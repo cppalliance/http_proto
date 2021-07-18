@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_VERB_IPP
 #define BOOST_HTTP_PROTO_IMPL_VERB_IPP
 
-#include <boost/http_proto.hpp>
+#include <boost/http_proto/verb.hpp>
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
 
@@ -20,7 +20,7 @@ namespace http_proto {
 string_view
 to_string(verb v)
 {
-    using namespace http_proto::detail::string_literals;
+    using namespace detail::string_literals;
     switch(v)
     {
     case verb::delete_:       return "DELETE"_sv;
@@ -108,7 +108,7 @@ string_to_verb(string_view v)
     UNLOCK
     UNSUBSCRIBE
 */
-    using namespace beast::detail::string_literals;
+    using namespace detail::string_literals;
     if(v.size() < 3)
         return verb::unknown;
     auto c = v[0];

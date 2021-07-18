@@ -9,6 +9,7 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/request_parser.hpp>
+#include <algorithm>
 
 #include "test_suite.hpp"
 
@@ -20,54 +21,39 @@ class request_parser_test
 public:
     static
     void
-    do_server()
+    check(string_view s)
     {
+        request_parser p;
+        while(! s.empty())
+        {
+            auto const b = p.prepare();
+            auto const n = (std::min)(
+                b.second, s.size());
+            std::memcpy(
+                b.first, s.data(), n);
+            s.remove_prefix(n);
+            error_code ec;
+            auto const n1 = p.commit(n, ec);
+            BOOST_TEST(! ec);
+            if(ec)
+                break;
+        }
+    }
+
+    static
+    void
+    test()
+    {
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Connection: close\r\n"
+            "\r\n");
     }
 
     void
     run()
     {
-/*
-        error_code ec;
-        request_parser rp;
-
-        while( ! rp.is_header_done() )
-        {
-            if( rp.need_more() )
-            {
-                auto const bytes_transferred =
-                    sock.read_some( rp.buffer(), ec );
-                if( ec == net::error::eof )
-                    rp.commit_eof( ec ); // clears ec
-                if( ec )
-                    return;
-                rp.commit( bytes_transferred );
-            }
-            rp.consume( ec );
-            if( ec )
-                return;
-        }
-
-        // inspect header
-        f( rp.header() );
-
-        while( ! rp.is_body_done() )
-        {
-            if( rp.need_more() )
-            {
-                auto const bytes_transferred =
-                    sock.read_some( rp.buffer(), ec );
-                rp.commit( bytes_transferred );
-                if( ec == net::error::eof )
-                    rp.commit_eof( ec ); // clears ec
-                if( ec )
-                    return;
-            }
-            rp.consume( ec );
-            if( ec )
-                return;
-        }
-*/
+        test();
     }
 };
 

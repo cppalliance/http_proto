@@ -29,5 +29,6 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/basic_parser.ipp>
 #include <boost/http_proto/impl/error.ipp>
 #include <boost/http_proto/impl/request_parser.ipp>
+#include <boost/http_proto/impl/verb.ipp>
 
 #endif

@@ -21,4 +21,6 @@ using string_view = boost::string_view;
 } // http_proto
 } // boost
 
+#include <boost/http_proto/detail/string_view.hpp>
+
 #endif
