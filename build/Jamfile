@@ -1,0 +1,34 @@
+#
+# Copyright (c) 2019 Vinnie Falco (vinnie dot falco at gmail dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+# Official repository: https://github.com/vinniefalco/http_proto
+#
+
+import ../../config/checks/config : requires ;
+
+project boost/http_proto_tests
+    : requirements
+      $(c11-requires)
+      <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
+      <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
+    : usage-requirements
+      $(c11-requires)
+      <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
+      <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
+    : source-location ../src
+    ;
+
+alias http_proto_sources
+   : src.cpp
+   ;
+
+explicit http_proto_sources ;
+
+lib boost_http_proto
+   : http_proto_sources
+   ;
+
+boost-install boost_http_proto ;
