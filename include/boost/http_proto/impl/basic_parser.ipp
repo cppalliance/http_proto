@@ -80,7 +80,7 @@ need_more() const noexcept
     return true;
 }
 
-mutable_buffers
+std::pair<void*, std::size_t>
 basic_parser::
 prepare()
 {
@@ -88,11 +88,9 @@ prepare()
     {
         buffer_ = new char[4096];
         capacity_ = 4096;
-        mb_ = { buffer_, capacity_ };
     }
 
-    mutable_buffers b(&mb_);
-    return b;
+    return { buffer_, capacity_ };
 }
 
 std::size_t

@@ -8,13 +8,12 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/beast2/http/request_parser.hpp>
+#include <boost/http_proto/request_parser.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
-namespace beast2 {
-namespace http {
+namespace http_proto {
 
 class request_parser_test
 {
@@ -72,9 +71,8 @@ public:
     }
 };
 
-TEST_SUITE(request_parser_test, "boost.beast2.http.request_parser");
+TEST_SUITE(request_parser_test, "boost.http_proto.request_parser");
 
-} // http
-} // beast2
+} // http_proto
 } // boost
 

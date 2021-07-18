@@ -8,4 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/beast2/http/basic_parser.hpp>
+#include <boost/http_proto/basic_parser.hpp>

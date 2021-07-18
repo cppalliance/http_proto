@@ -14,6 +14,7 @@
 #include <boost/http_proto/error.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -27,7 +28,6 @@ class basic_parser
     std::size_t size_;              // valid part of buffer
 
     state state_;
-    net::mutable_buffer mb_;
     std::uint32_t header_limit_;    // max header size
     std::size_t skip_;              // offset to continue parse
 
@@ -60,7 +60,7 @@ public:
     bool
     need_more() const noexcept;
 
-    mutable_buffers
+    std::pair<void*, std::size_t>
     prepare();
 
     std::size_t

@@ -8,15 +8,14 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/beast2/http/error.hpp>
+#include <boost/http_proto/error.hpp>
 
 #include <memory>
 
 #include "test_suite.hpp"
 
 namespace boost {
-namespace beast2 {
-namespace http {
+namespace http_proto {
 
 class error_test
 {
@@ -26,7 +25,7 @@ public:
     {
         auto const ec = make_error_code(ev);
         auto const& cat = make_error_code(
-            static_cast<http::error>(0)).category();
+            static_cast<http_proto::error>(0)).category();
         BOOST_TEST(std::string(ec.category().name()) == name);
         BOOST_TEST(! ec.message().empty());
         BOOST_TEST(
@@ -42,38 +41,37 @@ public:
     void
     run()
     {
-        check("beast2.http", error::end_of_stream);
-        check("beast2.http", error::partial_message);
-        check("beast2.http", error::need_more);
-        check("beast2.http", error::unexpected_body);
-        check("beast2.http", error::need_buffer);
-        check("beast2.http", error::end_of_chunk);
-        check("beast2.http", error::buffer_overflow);
-        check("beast2.http", error::header_limit);
-        check("beast2.http", error::body_limit);
-        check("beast2.http", error::bad_alloc);
+        check("http_proto", error::end_of_stream);
+        check("http_proto", error::partial_message);
+        check("http_proto", error::need_more);
+        check("http_proto", error::unexpected_body);
+        check("http_proto", error::need_buffer);
+        check("http_proto", error::end_of_chunk);
+        check("http_proto", error::buffer_overflow);
+        check("http_proto", error::header_limit);
+        check("http_proto", error::body_limit);
+        check("http_proto", error::bad_alloc);
 
-        check("beast2.http", error::bad_line_ending);
-        check("beast2.http", error::bad_method);
-        check("beast2.http", error::bad_target);
-        check("beast2.http", error::bad_version);
-        check("beast2.http", error::bad_status);
-        check("beast2.http", error::bad_reason);
-        check("beast2.http", error::bad_field);
-        check("beast2.http", error::bad_value);
-        check("beast2.http", error::bad_content_length);
-        check("beast2.http", error::bad_transfer_encoding);
-        check("beast2.http", error::bad_chunk);
-        check("beast2.http", error::bad_chunk_extension);
-        check("beast2.http", error::bad_obs_fold);
+        check("http_proto", error::bad_line_ending);
+        check("http_proto", error::bad_method);
+        check("http_proto", error::bad_target);
+        check("http_proto", error::bad_version);
+        check("http_proto", error::bad_status);
+        check("http_proto", error::bad_reason);
+        check("http_proto", error::bad_field);
+        check("http_proto", error::bad_value);
+        check("http_proto", error::bad_content_length);
+        check("http_proto", error::bad_transfer_encoding);
+        check("http_proto", error::bad_chunk);
+        check("http_proto", error::bad_chunk_extension);
+        check("http_proto", error::bad_obs_fold);
 
-        check("beast2.http", error::stale_parser);
-        check("beast2.http", error::short_read);
+        check("http_proto", error::stale_parser);
+        check("http_proto", error::short_read);
     }
 };
 
-TEST_SUITE(error_test, "boost.beast2.http.error");
+TEST_SUITE(error_test, "boost.http_proto.error");
 
-} // http
-} // beast2
+} // http_proto
 } // boost

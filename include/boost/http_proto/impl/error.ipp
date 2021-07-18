@@ -24,7 +24,7 @@ public:
     const char*
     name() const noexcept override
     {
-        return "beast2.http";
+        return "http_proto";
     }
 
     std::string
@@ -59,7 +59,7 @@ public:
         case error::short_read: return "unexpected eof in body";
 
         default:
-            return "beast2.http error";
+            return "http_proto error";
         }
     }
 

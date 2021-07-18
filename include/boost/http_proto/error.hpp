@@ -176,9 +176,24 @@ enum class error
     short_read
 };
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+BOOST_HTTP_PROTO_DECL
+error_code
+make_error_code(error ev) noexcept;
+#endif
+
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/error.hpp>
+namespace boost {
+namespace system {
+template<>
+struct is_error_code_enum<
+    ::boost::http_proto::error>
+{
+    static bool const value = true;
+};
+} // system
+} // boost
 
 #endif

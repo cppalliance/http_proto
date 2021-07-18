@@ -10,27 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 #define BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 
-#include <type_traits>
-
-namespace boost {
-namespace system {
-template<>
-struct is_error_code_enum<
-    ::boost::http_proto::error>
-{
-    static bool const value = true;
-};
-} // system
-} // boost
-
-namespace boost {
-namespace http_proto {
-
-BOOST_HTTP_PROTO_DECL
-error_code
-make_error_code(error ev) noexcept;
-
-} // http_proto
-} // boost
+//#include <type_traits>
 
 #endif
