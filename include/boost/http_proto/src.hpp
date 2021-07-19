@@ -31,6 +31,8 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/request_parser.ipp>
 #include <boost/http_proto/impl/request_view.ipp>
+#include <boost/http_proto/impl/response_parser.ipp>
+#include <boost/http_proto/impl/response_view.ipp>
 #include <boost/http_proto/impl/status.ipp>
 
 #endif

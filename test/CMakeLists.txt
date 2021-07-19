@@ -20,6 +20,7 @@ set(PFILES
     method.cpp
     request_parser.cpp
     request_view.cpp
+    response_parser.cpp
     status.cpp
     )
 
