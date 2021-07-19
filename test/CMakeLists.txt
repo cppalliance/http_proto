@@ -18,6 +18,7 @@ set(PFILES
     basic_parser.cpp
     error.cpp
     request_parser.cpp
+    request_view.cpp
     verb.cpp
     )
 
