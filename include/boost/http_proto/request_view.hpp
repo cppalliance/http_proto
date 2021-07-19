@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_REQUEST_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/string_view.hpp>
 #include <cstddef>
 
 namespace boost {
@@ -22,9 +24,10 @@ class request_view
 
     char const* base_;
     std::size_t size_;
-    unsigned short n_method;
-    unsigned short n_target;
-    int version;
+    http_proto::method method_;
+    int version_;
+    unsigned short n_method_;
+    unsigned short n_target_;
 
     request_view(
         char const* base,
@@ -55,12 +58,32 @@ public:
         return size_;
     }
 
-#if 0
-    http_proto::verb
+    http_proto::method
     method() const noexcept
     {
+        return method_;
     };
-#endif
+
+    string_view
+    method_str() const noexcept
+    {
+        return {
+            base_, n_method_ };
+    }
+
+    string_view
+    target() const noexcept
+    {
+        return {
+            base_ + n_method_ + 1,
+            n_target_ };
+    }
+
+    int
+    version() const noexcept
+    {
+        return version_;
+    }
 };
 
 } // http_proto

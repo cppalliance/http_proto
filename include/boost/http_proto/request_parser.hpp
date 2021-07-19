@@ -13,6 +13,8 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstddef>
 
@@ -33,44 +35,14 @@ enum class what
 class request_parser
     : public basic_parser
 {
+    http_proto::method method_;
+    int version_;
+    unsigned short n_method_;
+    unsigned short n_target_;
+
 public:
-#if 0
-    /** Return the type of the current structured element.
-    */
-    beast2::what
-    what() const noexcept;
-
-    /** Return true if more input buffer data is needed.
-    */
-    bool
-    need_more() const noexcept;
-
-    /** Reserve space in the input buffer.
-    */
-    void
-    reserve(std::size_t n);
-
-    /** Attempt to advance the state of the parser to the next structured element.
-
-        @return `false` if more data is needed.
-    */
-    bool
-    next(error_code& ec);
-
-    /** Return the request header.
-    */
-    request_header
-    header();
-
-    /** Return the chunk header.
-    */
-    chunk_header
-    chunk_header();
-
-    template<class Body>
-    void
-    attach_body();
-#endif
+    BOOST_HTTP_PROTO_DECL
+    request_parser() noexcept;
 
 private:
     void

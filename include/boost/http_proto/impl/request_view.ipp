@@ -33,6 +33,10 @@ request_view::
 request_view() noexcept
     : base_("")
     , size_(0)
+    , method_(http_proto::method::unknown)
+    , version_(0)
+    , n_method_(0)
+    , n_target_(0)
 {
 }
 

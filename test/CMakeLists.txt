@@ -17,9 +17,10 @@ set(PFILES
     CMakeLists.txt
     basic_parser.cpp
     error.cpp
+    method.cpp
     request_parser.cpp
     request_view.cpp
-    verb.cpp
+    status.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

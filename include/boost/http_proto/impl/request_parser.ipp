@@ -16,6 +16,16 @@
 namespace boost {
 namespace http_proto {
 
+request_parser::
+request_parser() noexcept
+    : basic_parser()
+    , method_(http_proto::method::unknown)
+    , version_(0)
+    , n_method_(0)
+    , n_target_(0)
+{
+}
+
 void
 request_parser::
 parse_start_line(
@@ -29,27 +39,45 @@ parse_start_line(
 */
     auto p = in;
 
-    string_view method;
-    parse_method(p, last, method, ec);
-    if(ec)
-        return;
-
-    string_view target;
-    parse_target(p, last, target, ec);
-    if(ec)
-        return;
-
-    int version = 0;
-    parse_version(p, last, version, ec);
-    if(ec)
-        return;
-    if(version < 10 || version > 11)
+    // method
     {
-        ec = error::bad_version;
-        return;
+        string_view s;
+        parse_method(p, last, s, ec);
+        if(ec)
+            return;
+        method_ = string_to_method(s);
+        n_method_ = static_cast<
+            unsigned short>(s.size());
     }
 
-    if(p + 2 > last)
+    // request-target
+    {
+        string_view s;
+        parse_target(p, last, s, ec);
+        if(ec)
+            return;
+        n_target_ = static_cast<
+            unsigned short>(s.size());
+    }
+
+    // HTTP-version
+    {
+        int v = 0;
+        parse_version(p, last, v, ec);
+        if(ec)
+            return;
+        if(v != 10 && v != 11)
+        {
+            ec = error::bad_version;
+            return;
+        }
+        version_ = v;
+        if(version_ == 11)
+            f_ |= flagHTTP11;
+    }
+
+    // CRLF
+    if(last - p < 2)
     {
         ec = error::need_more;
         return;
@@ -61,17 +89,7 @@ parse_start_line(
     }
     p += 2;
 
-    if(version >= 11)
-        f_ |= flagHTTP11;
-
-    // VFALCO TODO
-    /*
-    this->on_request_impl(string_to_verb(method),
-        method, target, version, ec);
-    if(ec)
-        return;
-    */
-
+    // at this point the request line is parsed
     in = p;
 }
 
@@ -81,7 +99,7 @@ parse_method(
     char const*& it, char const* last,
     string_view& result, error_code& ec)
 {
-    // parse token SP
+    // token SP
     auto const first = it;
     for(;; ++it)
     {
@@ -119,7 +137,7 @@ parse_target(
     char const*& it, char const* last,
     string_view& result, error_code& ec)
 {
-    // parse target SP
+    // target SP
     auto const first = it;
     for(;; ++it)
     {
