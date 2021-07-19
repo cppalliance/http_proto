@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_VERB_HPP
-#define BOOST_HTTP_PROTO_VERB_HPP
+#ifndef BOOST_HTTP_PROTO_METHOD_HPP
+#define BOOST_HTTP_PROTO_METHOD_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
@@ -17,12 +17,12 @@
 namespace boost {
 namespace http_proto {
 
-/** HTTP request method verbs
+/** HTTP request methods
 
-    Each verb corresponds to a particular method string
+    Each item corresponds to a particular method string
     used in HTTP request messages.
 */
-enum class verb
+enum class method
 {
     /** An unknown method.
 
@@ -127,26 +127,26 @@ enum class verb
     unlink
 };
 
-/** Converts a string to the request method verb.
+/** Return the method enum corresponding to a string.
 
     If the string does not match a known request method,
-    @ref verb::unknown is returned.
+    @ref method::unknown is returned.
 */
 BOOST_HTTP_PROTO_DECL
-verb
-string_to_verb(string_view s);
+method
+string_to_method(string_view s);
 
-/// Returns the text representation of a request method verb.
+/// Return the string for a method enum.
 BOOST_HTTP_PROTO_DECL
 string_view
-to_string(verb v);
+to_string(method v);
 
-/// Write the text for a request method verb to an output stream.
+/// Write the text for a method enum to an output stream.
 inline
 std::ostream&
-operator<<(std::ostream& os, verb v)
+operator<<(std::ostream& os, method m)
 {
-    return os << to_string(v);
+    return os << to_string(m);
 }
 
 } // http_proto

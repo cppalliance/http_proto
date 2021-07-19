@@ -7,10 +7,10 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_VERB_IPP
-#define BOOST_HTTP_PROTO_IMPL_VERB_IPP
+#ifndef BOOST_HTTP_PROTO_IMPL_METHOD_IPP
+#define BOOST_HTTP_PROTO_IMPL_METHOD_IPP
 
-#include <boost/http_proto/verb.hpp>
+#include <boost/http_proto/method.hpp>
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
 
@@ -18,60 +18,61 @@ namespace boost {
 namespace http_proto {
 
 string_view
-to_string(verb v)
+to_string(method v)
 {
     using namespace detail::string_literals;
     switch(v)
     {
-    case verb::delete_:       return "DELETE"_sv;
-    case verb::get:           return "GET"_sv;
-    case verb::head:          return "HEAD"_sv;
-    case verb::post:          return "POST"_sv;
-    case verb::put:           return "PUT"_sv;
-    case verb::connect:       return "CONNECT"_sv;
-    case verb::options:       return "OPTIONS"_sv;
-    case verb::trace:         return "TRACE"_sv;
+    case method::delete_:       return "DELETE"_sv;
+    case method::get:           return "GET"_sv;
+    case method::head:          return "HEAD"_sv;
+    case method::post:          return "POST"_sv;
+    case method::put:           return "PUT"_sv;
+    case method::connect:       return "CONNECT"_sv;
+    case method::options:       return "OPTIONS"_sv;
+    case method::trace:         return "TRACE"_sv;
 
-    case verb::copy:          return "COPY"_sv;
-    case verb::lock:          return "LOCK"_sv;
-    case verb::mkcol:         return "MKCOL"_sv;
-    case verb::move:          return "MOVE"_sv;
-    case verb::propfind:      return "PROPFIND"_sv;
-    case verb::proppatch:     return "PROPPATCH"_sv;
-    case verb::search:        return "SEARCH"_sv;
-    case verb::unlock:        return "UNLOCK"_sv;
-    case verb::bind:          return "BIND"_sv;
-    case verb::rebind:        return "REBIND"_sv;
-    case verb::unbind:        return "UNBIND"_sv;
-    case verb::acl:           return "ACL"_sv;
+    case method::copy:          return "COPY"_sv;
+    case method::lock:          return "LOCK"_sv;
+    case method::mkcol:         return "MKCOL"_sv;
+    case method::move:          return "MOVE"_sv;
+    case method::propfind:      return "PROPFIND"_sv;
+    case method::proppatch:     return "PROPPATCH"_sv;
+    case method::search:        return "SEARCH"_sv;
+    case method::unlock:        return "UNLOCK"_sv;
+    case method::bind:          return "BIND"_sv;
+    case method::rebind:        return "REBIND"_sv;
+    case method::unbind:        return "UNBIND"_sv;
+    case method::acl:           return "ACL"_sv;
 
-    case verb::report:        return "REPORT"_sv;
-    case verb::mkactivity:    return "MKACTIVITY"_sv;
-    case verb::checkout:      return "CHECKOUT"_sv;
-    case verb::merge:         return "MERGE"_sv;
+    case method::report:        return "REPORT"_sv;
+    case method::mkactivity:    return "MKACTIVITY"_sv;
+    case method::checkout:      return "CHECKOUT"_sv;
+    case method::merge:         return "MERGE"_sv;
 
-    case verb::msearch:       return "M-SEARCH"_sv;
-    case verb::notify:        return "NOTIFY"_sv;
-    case verb::subscribe:     return "SUBSCRIBE"_sv;
-    case verb::unsubscribe:   return "UNSUBSCRIBE"_sv;
+    case method::msearch:       return "M-SEARCH"_sv;
+    case method::notify:        return "NOTIFY"_sv;
+    case method::subscribe:     return "SUBSCRIBE"_sv;
+    case method::unsubscribe:   return "UNSUBSCRIBE"_sv;
 
-    case verb::patch:         return "PATCH"_sv;
-    case verb::purge:         return "PURGE"_sv;
+    case method::patch:         return "PATCH"_sv;
+    case method::purge:         return "PURGE"_sv;
 
-    case verb::mkcalendar:    return "MKCALENDAR"_sv;
+    case method::mkcalendar:    return "MKCALENDAR"_sv;
 
-    case verb::link:          return "LINK"_sv;
-    case verb::unlink:        return "UNLINK"_sv;
+    case method::link:          return "LINK"_sv;
+    case method::unlink:        return "UNLINK"_sv;
 
-    case verb::unknown:
+    case method::unknown:
         return "<unknown>"_sv;
     }
 
-    BOOST_THROW_EXCEPTION(std::invalid_argument{"unknown verb"});
+    BOOST_THROW_EXCEPTION(
+        std::invalid_argument("unknown method"));
 }
 
-verb
-string_to_verb(string_view v)
+method
+string_to_method(string_view v)
 {
 /*
     ACL
@@ -110,19 +111,19 @@ string_to_verb(string_view v)
 */
     using namespace detail::string_literals;
     if(v.size() < 3)
-        return verb::unknown;
+        return method::unknown;
     auto c = v[0];
     v.remove_prefix(1);
     switch(c)
     {
     case 'A':
         if(v == "CL"_sv)
-            return verb::acl;
+            return method::acl;
         break;
 
     case 'B':
         if(v == "IND"_sv)
-            return verb::bind;
+            return method::bind;
         break;
 
     case 'C':
@@ -132,14 +133,14 @@ string_to_verb(string_view v)
         {
         case 'H':
             if(v == "ECKOUT"_sv)
-                return verb::checkout;
+                return method::checkout;
             break;
 
         case 'O':
             if(v == "NNECT"_sv)
-                return verb::connect;
+                return method::connect;
             if(v == "PY"_sv)
-                return verb::copy;
+                return method::copy;
             BOOST_FALLTHROUGH;
 
         default:
@@ -149,24 +150,24 @@ string_to_verb(string_view v)
 
     case 'D':
         if(v == "ELETE"_sv)
-            return verb::delete_;
+            return method::delete_;
         break;
 
     case 'G':
         if(v == "ET"_sv)
-            return verb::get;
+            return method::get;
         break;
 
     case 'H':
         if(v == "EAD"_sv)
-            return verb::head;
+            return method::head;
         break;
 
     case 'L':
         if(v == "INK"_sv)
-            return verb::link;
+            return method::link;
         if(v == "OCK"_sv)
-            return verb::lock;
+            return method::lock;
         break;
 
     case 'M':
@@ -176,31 +177,31 @@ string_to_verb(string_view v)
         {
         case '-':
             if(v == "SEARCH"_sv)
-                return verb::msearch;
+                return method::msearch;
             break;
 
         case 'E':
             if(v == "RGE"_sv)
-                return verb::merge;
+                return method::merge;
             break;
 
         case 'K':
             if(v == "ACTIVITY"_sv)
-                return verb::mkactivity;
+                return method::mkactivity;
             if(v[0] == 'C')
             {
                 v.remove_prefix(1);
                 if(v == "ALENDAR"_sv)
-                    return verb::mkcalendar;
+                    return method::mkcalendar;
                 if(v == "OL"_sv)
-                    return verb::mkcol;
+                    return method::mkcol;
                 break;
             }
             break;
 
         case 'O':
             if(v == "VE"_sv)
-                return verb::move;
+                return method::move;
             BOOST_FALLTHROUGH;
 
         default:
@@ -210,12 +211,12 @@ string_to_verb(string_view v)
 
     case 'N':
         if(v == "OTIFY"_sv)
-            return verb::notify;
+            return method::notify;
         break;
 
     case 'O':
         if(v == "PTIONS"_sv)
-            return verb::options;
+            return method::options;
         break;
 
     case 'P':
@@ -225,26 +226,26 @@ string_to_verb(string_view v)
         {
         case 'A':
             if(v == "TCH"_sv)
-                return verb::patch;
+                return method::patch;
             break;
 
         case 'O':
             if(v == "ST"_sv)
-                return verb::post;
+                return method::post;
             break;
 
         case 'R':
             if(v == "OPFIND"_sv)
-                return verb::propfind;
+                return method::propfind;
             if(v == "OPPATCH"_sv)
-                return verb::proppatch;
+                return method::proppatch;
             break;
 
         case 'U':
             if(v == "RGE"_sv)
-                return verb::purge;
+                return method::purge;
             if(v == "T"_sv)
-                return verb::put;
+                return method::put;
             BOOST_FALLTHROUGH;
 
         default:
@@ -257,21 +258,21 @@ string_to_verb(string_view v)
             break;
         v.remove_prefix(1);
         if(v == "BIND"_sv)
-            return verb::rebind;
+            return method::rebind;
         if(v == "PORT"_sv)
-            return verb::report;
+            return method::report;
         break;
 
     case 'S':
         if(v == "EARCH"_sv)
-            return verb::search;
+            return method::search;
         if(v == "UBSCRIBE"_sv)
-            return verb::subscribe;
+            return method::subscribe;
         break;
 
     case 'T':
         if(v == "RACE"_sv)
-            return verb::trace;
+            return method::trace;
         break;
 
     case 'U':
@@ -279,20 +280,20 @@ string_to_verb(string_view v)
             break;
         v.remove_prefix(1);
         if(v == "BIND"_sv)
-            return verb::unbind;
+            return method::unbind;
         if(v == "LINK"_sv)
-            return verb::unlink;
+            return method::unlink;
         if(v == "LOCK"_sv)
-            return verb::unlock;
+            return method::unlock;
         if(v == "SUBSCRIBE"_sv)
-            return verb::unsubscribe;
+            return method::unsubscribe;
         break;
 
     default:
         break;
     }
 
-    return verb::unknown;
+    return method::unknown;
 }
 
 } // http_proto

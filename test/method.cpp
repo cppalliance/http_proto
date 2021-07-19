@@ -8,67 +8,67 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/verb.hpp>
+#include <boost/http_proto/method.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class verb_test
+class method_test
 {
 public:
     void
     testVerb()
     {
         auto const good =
-            [&](verb v)
+            [&](method v)
             {
-                BOOST_TEST(string_to_verb(
+                BOOST_TEST(string_to_method(
                     to_string(v)) == v);
             };
 
-        good(verb::unknown);
+        good(method::unknown);
 
-        good(verb::delete_);
-        good(verb::get);
-        good(verb::head);
-        good(verb::post);
-        good(verb::put);
-        good(verb::connect);
-        good(verb::options);
-        good(verb::trace);
-        good(verb::copy);
-        good(verb::lock);
-        good(verb::mkcol);
-        good(verb::move);
-        good(verb::propfind);
-        good(verb::proppatch);
-        good(verb::search);
-        good(verb::unlock);
-        good(verb::bind);
-        good(verb::rebind);
-        good(verb::unbind);
-        good(verb::acl);
-        good(verb::report);
-        good(verb::mkactivity);
-        good(verb::checkout);
-        good(verb::merge);
-        good(verb::msearch);
-        good(verb::notify);
-        good(verb::subscribe);
-        good(verb::unsubscribe);
-        good(verb::patch);
-        good(verb::purge);
-        good(verb::mkcalendar);
-        good(verb::link);
-        good(verb::unlink);
+        good(method::delete_);
+        good(method::get);
+        good(method::head);
+        good(method::post);
+        good(method::put);
+        good(method::connect);
+        good(method::options);
+        good(method::trace);
+        good(method::copy);
+        good(method::lock);
+        good(method::mkcol);
+        good(method::move);
+        good(method::propfind);
+        good(method::proppatch);
+        good(method::search);
+        good(method::unlock);
+        good(method::bind);
+        good(method::rebind);
+        good(method::unbind);
+        good(method::acl);
+        good(method::report);
+        good(method::mkactivity);
+        good(method::checkout);
+        good(method::merge);
+        good(method::msearch);
+        good(method::notify);
+        good(method::subscribe);
+        good(method::unsubscribe);
+        good(method::patch);
+        good(method::purge);
+        good(method::mkcalendar);
+        good(method::link);
+        good(method::unlink);
 
         auto const bad =
             [&](string_view s)
             {
-                auto const v = string_to_verb(s);
-                BOOST_TEST(v == verb::unknown);
+                auto const v = string_to_method(s);
+                BOOST_TEST(v == method::unknown);
             };
 
         bad("AC_");
@@ -107,7 +107,7 @@ public:
 
         try
         {
-            to_string(static_cast<verb>(-1));
+            to_string(static_cast<method>(-1));
             BOOST_TEST_FAIL();
         }
         catch(std::exception const&)
@@ -123,7 +123,7 @@ public:
     }
 };
 
-TEST_SUITE(verb_test, "boost.http_proto.verb");
+TEST_SUITE(method_test, "boost.http_proto.method");
 
 } // http_proto
 } // boost
