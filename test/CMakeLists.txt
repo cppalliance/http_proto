@@ -17,6 +17,7 @@ set(PFILES
     CMakeLists.txt
     basic_parser.cpp
     error.cpp
+    field.cpp
     method.cpp
     request_parser.cpp
     request_view.cpp

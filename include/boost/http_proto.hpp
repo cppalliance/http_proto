@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/request_view.hpp>
