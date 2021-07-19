@@ -15,19 +15,22 @@
 namespace boost {
 namespace http_proto {
 
-#if 0
 request_view::
 request_view(
     char const* base,
     std::size_t size,
     unsigned short n_method,
     unsigned short n_target,
+    http_proto::method method,
     int version) noexcept
     : base_(base)
     , size_(size)
+    , n_method_(n_method)
+    , n_target_(n_target)
+    , method_(method)
+    , version_(version)
 {
 }
-#endif
 
 request_view::
 request_view() noexcept

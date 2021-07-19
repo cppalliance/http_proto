@@ -21,6 +21,8 @@ namespace http_proto {
 
 class basic_parser
 {
+// VFALCO TODO
+protected: // private:
     enum class state;
 
     char* buffer_;

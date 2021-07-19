@@ -16,6 +16,8 @@
 namespace boost {
 namespace http_proto {
 
+//------------------------------------------------
+
 request_parser::
 request_parser() noexcept
     : basic_parser()
@@ -25,6 +27,21 @@ request_parser() noexcept
     , n_target_(0)
 {
 }
+
+request_view
+request_parser::
+get() const noexcept
+{
+    return request_view(
+        buffer_,
+        size_,
+        n_method_,
+        n_target_,
+        method_,
+        version_);
+}
+
+//------------------------------------------------
 
 void
 request_parser::

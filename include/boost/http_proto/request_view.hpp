@@ -24,16 +24,17 @@ class request_view
 
     char const* base_;
     std::size_t size_;
-    http_proto::method method_;
-    int version_;
     unsigned short n_method_;
     unsigned short n_target_;
+    http_proto::method method_;
+    int version_;
 
     request_view(
         char const* base,
         std::size_t size,
         unsigned short n_method,
         unsigned short n_target,
+        http_proto::method method,
         int version) noexcept;
 
 public:
