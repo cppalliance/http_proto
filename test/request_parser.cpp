@@ -50,7 +50,8 @@ public:
                 BOOST_TEST(n == s.size());
                 std::memcpy(
                     b.first, s.data(), n);
-                auto const n1 = p.commit(n, ec);
+                p.commit(n);
+                p.parse(ec);
                 BOOST_TEST(! ec);
                 if(ec)
                     break;
@@ -74,7 +75,8 @@ public:
                 BOOST_TEST(n == i);
                 std::memcpy(
                     b.first, s.data(), n);
-                auto n1 = p.commit(n, ec);
+                p.commit(n);
+                p.parse(ec);
                 BOOST_TEST(! ec);
                 if(ec)
                     break;
@@ -86,7 +88,8 @@ public:
                 BOOST_TEST(n == s.size());
                 std::memcpy(
                     b.first, s.data() + i, n);
-                n1 = p.commit(n, ec);
+                p.commit(n);
+                p.parse(ec);
                 BOOST_TEST(! ec);
                 if(ec)
                     break;

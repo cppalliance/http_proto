@@ -21,17 +21,39 @@ namespace http_proto {
 
 class basic_parser
 {
-// VFALCO TODO
-protected: // private:
-    enum class state;
+protected:
+    // headers have a maximum size of 65536 chars
+    using off_t = std::uint16_t;
 
+private:
+    enum class state
+    {
+        nothing_yet = 0,
+        start_line,
+        fields,
+        body0,
+        body,
+        body_to_eof0,
+        body_to_eof,
+        chunk_header0,
+        chunk_header,
+        chunk_body,
+        complete
+    };
+protected:
     char* buffer_;
+private:
     std::size_t capacity_;          // allocated size
-    std::size_t size_;              // valid part of buffer
+    std::size_t committed_;         // committed part
+protected:
+    std::size_t parsed_;            // parsed part
+private:
 
     state state_;
     std::uint32_t header_limit_;    // max header size
     std::size_t skip_;              // offset to continue parse
+
+
 
 protected:
     static unsigned constexpr flagSkipBody              = 1<<  0;
@@ -55,32 +77,78 @@ protected:
     static bool is_print(char) noexcept;
 
 public:
+    BOOST_HTTP_PROTO_DECL
     ~basic_parser();
 
+    BOOST_HTTP_PROTO_DECL
     basic_parser() noexcept;
 
+    /** Returns `true` if more input data is required.
+    */
     bool
     need_more() const noexcept;
 
-    std::pair<void*, std::size_t>
-    prepare();
-
-    std::size_t
-    commit(
-        std::size_t n,
-        error_code& ec);
-
-    // temp stuff
-    bool is_done() const noexcept
+    /** Returns `true` if a complete message has been parsed.
+    */
+    bool
+    is_done() const noexcept
     {
         return false;
     }
+
+    /** Prepare the parser for a new message.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset();
+
+    BOOST_HTTP_PROTO_DECL
+    std::pair<void*, std::size_t>
+    prepare();
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    commit(std::size_t n);
+
+    //void commit_eof(error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse(error_code& ec);
+
+protected:
+    virtual
+    bool
+    parse_start_line(
+        char*& first,
+        char const* last,
+        error_code& ec) = 0;
+
+    virtual
+    void
+    finish_header(
+        error_code& ec) = 0;
 
 private:
     void
     maybe_need_more(
         char const* p,
         std::size_t n,
+        error_code& ec) noexcept;
+
+    static
+    std::pair<char*, bool>
+    find_fast(
+        char* buf,
+        char const* buf_end,
+        char const* ranges,
+        size_t ranges_size) noexcept;
+
+    static
+    char const*
+    find_eol(
+        char const* it,
+        char const* last,
         error_code& ec) noexcept;
 
     static
@@ -91,28 +159,25 @@ private:
 
     void
     parse_fields(
-        char const*& p,
+        char*& p,
         char const* last,
         error_code& ec);
 
 protected:
-    virtual
-    void
-    parse_start_line(
-        char const*& in,
+    static
+    bool
+    parse_version(
+        char*& it,
         char const* last,
-        error_code& ec) = 0;
-
-    virtual
-    void
-    finish_header(
-        error_code& ec) = 0;
+        int& result,
+        error_code& ec) noexcept;
 
     static
     void
-    parse_version(
-        char const*& it, char const* last,
-        int& result, error_code& ec) noexcept;
+    parse_field(
+        char*& p,
+        char const* last,
+        error_code& ec);
 };
 
 } // http_proto

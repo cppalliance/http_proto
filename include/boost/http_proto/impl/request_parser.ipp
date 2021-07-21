@@ -34,7 +34,7 @@ get() const noexcept
 {
     return request_view(
         buffer_,
-        size_,
+        parsed_,
         n_method_,
         n_target_,
         method_,
@@ -43,10 +43,10 @@ get() const noexcept
 
 //------------------------------------------------
 
-void
+bool
 request_parser::
 parse_start_line(
-    char const*& in,
+    char*& first,
     char const* const last,
     error_code& ec)
 {
@@ -54,136 +54,107 @@ parse_start_line(
     request-line   = method SP request-target SP HTTP-version CRLF
     method         = token
 */
-    auto p = in;
+    auto it = first;
 
     // method
-    {
-        string_view s;
-        parse_method(p, last, s, ec);
-        if(ec)
-            return;
-        method_ = string_to_method(s);
-        n_method_ = static_cast<
-            unsigned short>(s.size());
-    }
+    if(! parse_method(it, last, ec))
+        return false;
 
     // request-target
-    {
-        string_view s;
-        parse_target(p, last, s, ec);
-        if(ec)
-            return;
-        n_target_ = static_cast<
-            unsigned short>(s.size());
-    }
+    if(! parse_target(it, last, ec))
+        return false;
 
     // HTTP-version
-    {
-        int v = 0;
-        parse_version(p, last, v, ec);
-        if(ec)
-            return;
-        if(v != 10 && v != 11)
-        {
-            ec = error::bad_version;
-            return;
-        }
-        version_ = v;
-        if(version_ == 11)
-            f_ |= flagHTTP11;
-    }
+    if(! parse_version(
+            it, last, version_, ec))
+        return false;
 
     // CRLF
-    if(last - p < 2)
-    {
-        ec = error::need_more;
-        return;
-    }
-    if(p[0] != '\r' || p[1] != '\n')
+    if(last - it < 2)
+        return false;
+    if(it[0] != '\r' || it[1] != '\n')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
-    p += 2;
-
-    // at this point the request line is parsed
-    in = p;
+    first = it + 2;
+    return true;
 }
 
-void
+bool
 request_parser::
 parse_method(
-    char const*& it, char const* last,
-    string_view& result, error_code& ec)
+    char*& first,
+    char const* last,
+    error_code& ec)
 {
     // token SP
-    auto const first = it;
+    auto it = first;
     for(;; ++it)
     {
-        if(it + 1 > last)
-        {
-            ec = error::need_more;
-            return;
-        }
+        if(it == last)
+            return false;
         if(! detail::is_token_char(*it))
             break;
     }
-    if(it + 1 > last)
-    {
-        ec = error::need_more;
-        return;
-    }
+    if(it == last)
+        return false;
     if(*it != ' ')
     {
+        // bad token char
         ec = error::bad_method;
-        return;
+        return false;
     }
     if(it == first)
     {
-        // cannot be empty
+        // empty method
         ec = error::bad_method;
-        return;
+        return false;
     }
-    result = string_view(
+    string_view s(
         first, it++ - first);
+    method_ = string_to_method(s);
+    n_method_ = static_cast<
+        off_t>(s.size());
+    first = it;
+    return true;
 }
 
-void
+bool
 request_parser::
 parse_target(
-    char const*& it, char const* last,
-    string_view& result, error_code& ec)
+    char*& first,
+    char const* last,
+    error_code& ec)
 {
     // target SP
-    auto const first = it;
+    auto it = first;
     for(;; ++it)
     {
-        if(it + 1 > last)
-        {
-            ec = error::need_more;
-            return;
-        }
+        if(it == last)
+            return false;
         if(! detail::is_pathchar(*it))
             break;
     }
-    if(it + 1 > last)
-    {
-        ec = error::need_more;
-        return;
-    }
+    if(it == last)
+        return false;
     if(*it != ' ')
     {
+        // bad path char
         ec = error::bad_target;
-        return;
+        return false;
     }
     if(it == first)
     {
-        // cannot be empty
+        // empty target
         ec = error::bad_target;
-        return;
+        return false;
     }
-    result = string_view(
+    string_view s(
         first, it++ - first);
+    n_target_ = s.size();
+    first = it;
+    return true;
 }
 
 void

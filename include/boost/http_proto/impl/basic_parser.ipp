@@ -19,23 +19,6 @@ namespace http_proto {
 
 //------------------------------------------------
 
-enum class basic_parser::state
-{
-    nothing_yet = 0,
-    start_line,
-    fields,
-    body0,
-    body,
-    body_to_eof0,
-    body_to_eof,
-    chunk_header0,
-    chunk_header,
-    chunk_body,
-    complete
-};
-
-//------------------------------------------------
-
 bool
 basic_parser::
 is_digit(char c) noexcept
@@ -65,7 +48,8 @@ basic_parser::
 basic_parser() noexcept
     : buffer_(nullptr)
     , capacity_(0)
-    , size_(0)
+    , committed_(0)
+    , parsed_(0)
     , state_(state::nothing_yet)
     , header_limit_(8192)
     , skip_(0)
@@ -93,6 +77,15 @@ prepare()
     return { buffer_, capacity_ };
 }
 
+void
+basic_parser::
+commit(
+    std::size_t n)
+{
+    (void)n;
+}
+
+#if 0
 std::size_t
 basic_parser::
 commit(
@@ -113,7 +106,7 @@ commit(
     }
     auto p = static_cast<char const*>(buffer.data());
 #endif
-    char const* p = buffer_;
+    char* p = buffer_;
     auto const p0 = p;
     auto const p1 = p0 + n;
     ec = {};
@@ -257,6 +250,45 @@ loop:
 done:
     return static_cast<std::size_t>(p - p0);
 }
+#endif
+
+void
+basic_parser::
+parse(
+    error_code& ec)
+{
+    switch(state_)
+    {
+    case state::nothing_yet:
+        // Parsing an empty buffer?
+        BOOST_ASSERT(committed_ > 0);
+
+        state_ = state::start_line;
+        BOOST_FALLTHROUGH;
+
+    case state::start_line:
+    {
+        // Nothing can come before start-line
+        BOOST_ASSERT(parsed_ == 0);
+        auto const parsed = 
+            parse_start_line(
+                buffer_,
+                buffer_ + committed_,
+                ec);
+        parsed_ += parsed;
+        if(ec)
+            return;
+
+        state_ = state::fields;
+        BOOST_FALLTHROUGH;
+    }
+
+    case state::fields:
+        break;
+    default:
+        break;
+    }
+}
 
 //------------------------------------------------
 
@@ -290,6 +322,58 @@ maybe_need_more(
         return;
     }
     skip_ = 0;
+}
+
+std::pair<char*, bool>
+basic_parser::
+find_fast(
+    char* buf,
+    char const* buf_end,
+    char const* ranges,
+    size_t ranges_size) noexcept
+{
+    // VFALCO This would be a place for SIMD
+    (void)buf_end;
+    (void)ranges;
+    (void)ranges_size;
+    return {buf, false};
+}
+
+char const*
+basic_parser::
+find_eol(
+    char const* it,
+    char const* last,
+    error_code& ec) noexcept
+{
+    for(;;)
+    {
+        if(it == last)
+        {
+            // VFALCO Do we have to clear the error?
+            ec = {};
+            return nullptr;
+        }
+        if(*it == '\r')
+        {
+            if(++it == last)
+            {
+                ec = {};
+                return nullptr;
+            }
+            if(*it != '\n')
+            {
+                ec = error::bad_line_ending;
+                return nullptr;
+            }
+            ec = {};
+            return ++it;
+        }
+        // VFALCO We do not want to handle
+        // non-conforming HTTP which uses CR
+        // instead of CRLF.
+        ++it;
+    }
 }
 
 char const*
@@ -328,73 +412,107 @@ find_eom(
     }
 }
 
-void
+//------------------------------------------------
+
+#if 0
+bool
+basic_parser::
+parse_u64(
+    string_view s,
+    std::uint64_t& v)
+{
+    char const* it = s.data();
+    char const* last = it + s.size();
+    if(it == last)
+        return false;
+    std::uint64_t tmp = 0;
+    do
+    {
+        if((! is_digit(*it)) ||
+            tmp > (std::numeric_limits<std::uint64_t>::max)() / 10)
+            return false;
+        tmp *= 10;
+        std::uint64_t const d = *it - '0';
+        if((std::numeric_limits<std::uint64_t>::max)() - tmp < d)
+            return false;
+        tmp += d;
+    }
+    while(++it != last);
+    v = tmp;
+    return true;
+}
+#endif
+
+bool
 basic_parser::
 parse_version(
-    char const*& it, char const* last,
-    int& result, error_code& ec) noexcept
+    char*& first,
+    char const* const last,
+    int& result,
+    error_code& ec) noexcept
 {
-    if(last - it < 8) // it + 8 > last
-    {
-        ec = error::need_more;
-        return;
-    }
+    auto it = first;
+    if(last - it < 8)
+        return false;
     if(*it++ != 'H')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(*it++ != 'T')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(*it++ != 'T')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(*it++ != 'P')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(*it++ != '/')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(! is_digit(*it))
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     result = 10 * (*it++ - '0');
     if(*it++ != '.')
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     if(! is_digit(*it))
     {
         ec = error::bad_version;
-        return;
+        return false;
     }
     result += *it++ - '0';
+    if(result != 10 && result != 11)
+    {
+        ec = error::bad_version;
+        return false;
+    }
+    first = it;
+    return true;
 }
 
 void
 basic_parser::
 parse_fields(
-    char const*& in,
+    char*& in,
     char const* last,
     error_code& ec)
 {
-#if 0
-    string_view name;
-    string_view value;
     // https://stackoverflow.com/questions/686217/maximum-on-http-header-values
-    beast::detail::char_buffer<max_obs_fold> buf;
     auto p = in;
     for(;;)
     {
@@ -410,17 +528,187 @@ parse_fields(
             in = p + 2;
             return;
         }
-        parse_field(p, last, name, value, buf, ec);
-        if(ec)
-            return;
-        auto const f = string_to_field(name);
-        do_field(f, value, ec);
-        if(ec)
-            return;
-        this->on_field_impl(f, name, value, ec);
+        parse_field(p, last, ec);
         if(ec)
             return;
         in = p;
+    }
+}
+
+void
+basic_parser::
+parse_field(
+    char*& p,
+    char const* last,
+    error_code& ec)
+{
+/*  header-field    = field-name ":" OWS field-value OWS
+
+    field-name      = token
+    field-value     = *( field-content / obs-fold )
+    field-content   = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+    field-vchar     = VCHAR / obs-text
+
+    obs-fold        = CRLF 1*( SP / HTAB )
+                    ; obsolete line folding
+                    ; see Section 3.2.4
+
+    token           = 1*<any CHAR except CTLs or separators>
+    CHAR            = <any US-ASCII character (octets 0 - 127)>
+    sep             = "(" | ")" | "<" | ">" | "@"
+                    | "," | ";" | ":" | "\" | <">
+                    | "/" | "[" | "]" | "?" | "="
+                    | "{" | "}" | SP | HT
+*/
+    static char const* is_token =
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        "\0\1\0\1\1\1\1\1\0\0\1\1\0\1\1\0\1\1\1\1\1\1\1\1\1\1\0\0\0\0\0\0"
+        "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\0\0\0\1\1"
+        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\0\1\0\1\0"
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+    // name
+    BOOST_ALIGNMENT(16) static const char ranges1[] =
+        "\x00 "  /* control chars and up to SP */
+        "\"\""   /* 0x22 */
+        "()"     /* 0x28,0x29 */
+        ",,"     /* 0x2c */
+        "//"     /* 0x2f */
+        ":@"     /* 0x3a-0x40 */
+        "[]"     /* 0x5b-0x5d */
+        "{\377"; /* 0x7b-0xff */
+    auto first = p;
+    bool found;
+    std::tie(p, found) = find_fast(
+        p, last, ranges1, sizeof(ranges1)-1);
+    if(! found && p >= last)
+    {
+        ec = error::need_more;
+        return;
+    }
+    for(;;)
+    {
+        if(*p == ':')
+            break;
+        if(! is_token[static_cast<
+            unsigned char>(*p)])
+        {
+            ec = error::bad_field;
+            return;
+        }
+        ++p;
+        if(p >= last)
+        {
+            ec = error::need_more;
+            return;
+        }
+    }
+    if(p == first)
+    {
+        // empty name
+        ec = error::bad_field;
+        return;
+    }
+#if 0
+    name = make_string(first, p);
+    ++p; // eat ':'
+    char const* token_last = nullptr;
+    for(;;)
+    {
+        // eat leading ' ' and '\t'
+        for(;;++p)
+        {
+            if(p + 1 > last)
+            {
+                ec = error::need_more;
+                return;
+            }
+            if(! (*p == ' ' || *p == '\t'))
+                break;
+        }
+        // parse to CRLF
+        first = p;
+        p = parse_token_to_eol(p, last, token_last, ec);
+        if(ec)
+            return;
+        if(! p)
+        {
+            ec = error::bad_value;
+            return;
+        }
+        // Look 1 char past the CRLF to handle obs-fold.
+        if(p + 1 > last)
+        {
+            ec = error::need_more;
+            return;
+        }
+        token_last =
+            trim_back(token_last, first);
+        if(*p != ' ' && *p != '\t')
+        {
+            value = make_string(first, token_last);
+            return;
+        }
+        ++p;
+        if(token_last != first)
+            break;
+    }
+    buf.clear();
+    if (!buf.try_append(first, token_last))
+    {
+        ec = error::header_limit;
+        return;
+    }
+
+    BOOST_ASSERT(! buf.empty());
+    for(;;)
+    {
+        // eat leading ' ' and '\t'
+        for(;;++p)
+        {
+            if(p + 1 > last)
+            {
+                ec = error::need_more;
+                return;
+            }
+            if(! (*p == ' ' || *p == '\t'))
+                break;
+        }
+        // parse to CRLF
+        first = p;
+        p = parse_token_to_eol(p, last, token_last, ec);
+        if(ec)
+            return;
+        if(! p)
+        {
+            ec = error::bad_value;
+            return;
+        }
+        // Look 1 char past the CRLF to handle obs-fold.
+        if(p + 1 > last)
+        {
+            ec = error::need_more;
+            return;
+        }
+        token_last = trim_back(token_last, first);
+        if(first != token_last)
+        {
+            if (!buf.try_push_back(' ') ||
+                !buf.try_append(first, token_last))
+            {
+                ec = error::header_limit;
+                return;
+            }
+        }
+        if(*p != ' ' && *p != '\t')
+        {
+            value = {buf.data(), buf.size()};
+            return;
+        }
+        ++p;
     }
 #endif
 }

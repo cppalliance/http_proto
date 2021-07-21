@@ -24,7 +24,7 @@ response_parser() noexcept
 void
 response_parser::
 parse_start_line(
-    char const*& in,
+    char*& in,
     char const* const last,
     error_code& ec)
 {

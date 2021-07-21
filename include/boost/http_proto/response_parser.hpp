@@ -31,7 +31,7 @@ private:
     BOOST_HTTP_PROTO_DECL
     void
     parse_start_line(
-        char const*& in, char const* last,
+        char*& in, char const* last,
         error_code& ec) override;
 
     BOOST_HTTP_PROTO_DECL

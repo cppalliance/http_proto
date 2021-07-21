@@ -25,9 +25,9 @@ class request_parser
     : public basic_parser
 {
     http_proto::method method_;
+    off_t n_method_;
+    off_t n_target_;
     int version_;
-    unsigned short n_method_;
-    unsigned short n_target_;
 
 public:
     BOOST_HTTP_PROTO_DECL
@@ -38,23 +38,23 @@ public:
     get() const noexcept;
 
 private:
-    BOOST_HTTP_PROTO_DECL
-    void
+    bool
     parse_start_line(
-        char const*& in, char const* last,
+        char*& first,
+        char const* last,
         error_code& ec) override;
 
-    static
-    void
+    bool
     parse_method(
-        char const*& it, char const* last,
-        string_view& result, error_code& ec);
+        char*& it,
+        char const* last,
+        error_code& ec);
 
-    static
-    void
+    bool
     parse_target(
-        char const*& it, char const* last,
-        string_view& result, error_code& ec);
+        char*& it,
+        char const* last,
+        error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
     void
