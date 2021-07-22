@@ -42,20 +42,16 @@ public:
         {
             error_code ec;
             request_parser p;
-            while(! p.is_done())
-            {
-                auto const b = p.prepare();
-                auto const n = (std::min)(
-                    b.second, s.size());
-                BOOST_TEST(n == s.size());
-                std::memcpy(
-                    b.first, s.data(), n);
-                p.commit(n);
-                p.parse(ec);
-                BOOST_TEST(! ec);
-                if(ec)
-                    break;
-            }
+            auto const b = p.prepare();
+            auto const n = (std::min)(
+                b.second, s.size());
+            BOOST_TEST(n == s.size());
+            std::memcpy(
+                b.first, s.data(), n);
+            p.commit(n);
+            p.parse(ec);
+            BOOST_TEST(! ec);
+            BOOST_TEST(p.is_done());
             if(! ec)
                 f(p);
         }
@@ -66,36 +62,32 @@ public:
         {
             error_code ec;
             request_parser p;
-            while(! p.is_done())
-            {
-                // first buffer
-                auto b = p.prepare();
-                auto n = (std::min)(
-                    b.second, i);
-                BOOST_TEST(n == i);
-                std::memcpy(
-                    b.first, s.data(), n);
-                p.commit(n);
-                p.parse(ec);
-                BOOST_TEST(! ec);
-                if(ec)
-                    break;
-
-                // second buffer
-                b = p.prepare();
-                n = (std::min)(
-                    b.second, s.size());
-                BOOST_TEST(n == s.size());
-                std::memcpy(
-                    b.first, s.data() + i, n);
-                p.commit(n);
-                p.parse(ec);
-                BOOST_TEST(! ec);
-                if(ec)
-                    break;
-            }
-            if(! ec)
-                f(p);
+            // first buffer
+            auto b = p.prepare();
+            auto n = (std::min)(
+                b.second, i);
+            BOOST_TEST(n == i);
+            std::memcpy(
+                b.first, s.data(), n);
+            p.commit(n);
+            p.parse(ec);
+            BOOST_TEST(! ec);
+            if(ec)
+                continue;
+            // second buffer
+            b = p.prepare();
+            n = (std::min)(
+                b.second, s.size());
+            BOOST_TEST(n == s.size());
+            std::memcpy(
+                b.first, s.data() + i, n);
+            p.commit(n);
+            p.parse(ec);
+            BOOST_TEST(! ec);
+            if(ec)
+                continue;
+            BOOST_TEST(p.is_done());
+            f(p);
         }
     }
 

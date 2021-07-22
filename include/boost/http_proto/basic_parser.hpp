@@ -50,10 +50,10 @@ protected:
 private:
 
     state state_;
-    std::uint32_t header_limit_;    // max header size
+    off_t header_limit_;            // max header size
     std::size_t skip_;              // offset to continue parse
 
-
+    bool need_more_ : 1;
 
 protected:
     static unsigned constexpr flagSkipBody              = 1<<  0;
@@ -86,14 +86,17 @@ public:
     /** Returns `true` if more input data is required.
     */
     bool
-    need_more() const noexcept;
+    need_more() const noexcept
+    {
+        return need_more_;
+    }
 
     /** Returns `true` if a complete message has been parsed.
     */
     bool
     is_done() const noexcept
     {
-        return false;
+        return state_ == state::complete;
     }
 
     /** Prepare the parser for a new message.
@@ -130,36 +133,9 @@ protected:
         error_code& ec) = 0;
 
 private:
-    void
-    maybe_need_more(
-        char const* p,
-        std::size_t n,
-        error_code& ec) noexcept;
-
-    static
-    std::pair<char*, bool>
-    find_fast(
-        char* buf,
-        char const* buf_end,
-        char const* ranges,
-        size_t ranges_size) noexcept;
-
-    static
-    char const*
-    find_eol(
-        char const* it,
-        char const* last,
-        error_code& ec) noexcept;
-
-    static
-    char const*
-    find_eom(
-        char const* p,
-        char const* last) noexcept;
-
-    void
+    bool
     parse_fields(
-        char*& p,
+        char*& first,
         char const* last,
         error_code& ec);
 
@@ -167,15 +143,15 @@ protected:
     static
     bool
     parse_version(
-        char*& it,
+        char*& first,
         char const* last,
         int& result,
         error_code& ec) noexcept;
 
     static
-    void
+    bool
     parse_field(
-        char*& p,
+        char*& first,
         char const* last,
         error_code& ec);
 };
