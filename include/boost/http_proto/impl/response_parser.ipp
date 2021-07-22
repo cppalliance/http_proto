@@ -21,13 +21,17 @@ response_parser() noexcept
 {
 }
 
-void
+bool
 response_parser::
 parse_start_line(
     char*& in,
     char const* const last,
     error_code& ec)
 {
+    (void)ec;
+    (void)last;
+    (void)in;
+    return false;
 }
 
 void

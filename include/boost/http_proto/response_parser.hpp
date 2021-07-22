@@ -29,7 +29,7 @@ public:
 
 private:
     BOOST_HTTP_PROTO_DECL
-    void
+    bool
     parse_start_line(
         char*& in, char const* last,
         error_code& ec) override;

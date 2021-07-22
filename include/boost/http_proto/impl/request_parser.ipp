@@ -152,7 +152,8 @@ parse_target(
     }
     string_view s(
         first, it++ - first);
-    n_target_ = s.size();
+    n_target_ = static_cast<
+        off_t>(s.size());
     first = it;
     return true;
 }

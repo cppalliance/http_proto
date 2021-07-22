@@ -7,7 +7,6 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#if 0
 // Test that header file is self-contained.
 #include <boost/http_proto/response_parser.hpp>
 #include <algorithm>
@@ -30,5 +29,3 @@ TEST_SUITE(response_parser_test, "boost.http_proto.response_parser");
 
 } // http_proto
 } // boost
-
-#endif

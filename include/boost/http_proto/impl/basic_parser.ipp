@@ -351,7 +351,7 @@ parse_field(
         ec = error::bad_field;
         return false;
     }
-    off_t n_name = in - first;
+    //off_t n_name = in - first;
     ++in; // eat ':'
 
     // consume OWS and obs-fold
