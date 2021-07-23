@@ -17,7 +17,9 @@ namespace boost {
 namespace http_proto {
 
 response_parser::
-response_parser() noexcept
+response_parser(
+    context& ctx) noexcept
+    : basic_parser(ctx)
 {
 }
 

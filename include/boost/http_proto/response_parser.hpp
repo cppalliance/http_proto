@@ -25,7 +25,8 @@ class response_parser
 {
 public:
     BOOST_HTTP_PROTO_DECL
-    response_parser() noexcept;
+    response_parser(
+        context& ctx) noexcept;
 
 private:
     BOOST_HTTP_PROTO_DECL

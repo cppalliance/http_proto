@@ -19,8 +19,9 @@ namespace http_proto {
 //------------------------------------------------
 
 request_parser::
-request_parser() noexcept
-    : basic_parser()
+request_parser(
+    context& ctx) noexcept
+    : basic_parser(ctx)
     , method_(http_proto::method::unknown)
     , version_(0)
     , n_method_(0)

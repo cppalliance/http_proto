@@ -31,7 +31,9 @@ class request_parser
 
 public:
     BOOST_HTTP_PROTO_DECL
-    request_parser() noexcept;
+    explicit
+    request_parser(
+        context& ctx) noexcept;
 
     BOOST_HTTP_PROTO_DECL
     request_view

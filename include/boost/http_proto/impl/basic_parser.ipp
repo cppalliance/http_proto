@@ -38,15 +38,10 @@ is_print(char c) noexcept
 //------------------------------------------------
 
 basic_parser::
-~basic_parser()
-{
-    if(buffer_)
-        delete[] buffer_;
-}
-
-basic_parser::
-basic_parser() noexcept
-    : buffer_(nullptr)
+basic_parser(
+    context& ctx) noexcept
+    : ctx_(ctx)
+    , buffer_(nullptr)
     , capacity_(0)
     , committed_(0)
     , parsed_(0)
@@ -56,6 +51,13 @@ basic_parser() noexcept
     , need_more_(true)
     , f_(0)
 {
+}
+
+basic_parser::
+~basic_parser()
+{
+    if(buffer_)
+        delete[] buffer_;
 }
 
 std::pair<void*, std::size_t>

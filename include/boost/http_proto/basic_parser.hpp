@@ -19,6 +19,10 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class context;
+#endif
+
 class basic_parser
 {
 protected:
@@ -40,6 +44,8 @@ private:
         chunk_body,
         complete
     };
+
+    context& ctx_;
 protected:
     char* buffer_;
 private:
@@ -76,12 +82,13 @@ protected:
     static bool is_digit(char) noexcept;
     static bool is_print(char) noexcept;
 
+    explicit
+    basic_parser(
+        context& ctx) noexcept;
+
 public:
     BOOST_HTTP_PROTO_DECL
     ~basic_parser();
-
-    BOOST_HTTP_PROTO_DECL
-    basic_parser() noexcept;
 
     /** Returns `true` if more input data is required.
     */

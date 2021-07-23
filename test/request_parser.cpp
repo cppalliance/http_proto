@@ -9,6 +9,8 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/request_parser.hpp>
+
+#include <boost/http_proto/context.hpp>
 #include <algorithm>
 
 #include "test_suite.hpp"
@@ -19,7 +21,8 @@ namespace http_proto {
 class request_parser_test
 {
 public:
-    static
+    context ctx_;
+
     void
     check(
         method m,
@@ -41,7 +44,7 @@ public:
         // single buffer
         {
             error_code ec;
-            request_parser p;
+            request_parser p(ctx_);
             auto const b = p.prepare();
             auto const n = (std::min)(
                 b.second, s.size());
@@ -61,7 +64,7 @@ public:
             i < s.size(); ++i)
         {
             error_code ec;
-            request_parser p;
+            request_parser p(ctx_);
             // first buffer
             auto b = p.prepare();
             auto n = (std::min)(
@@ -91,7 +94,6 @@ public:
         }
     }
 
-    static
     void
     test()
     {
