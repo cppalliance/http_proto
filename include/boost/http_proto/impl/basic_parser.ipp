@@ -102,17 +102,20 @@ commit(
 
 void
 basic_parser::
-parse(
+parse_header(
     error_code& ec)
 {
+    ec = {};
+
+    // parse algorithms assume at
+    // least one committed char.
+    if(committed_ == 0)
+        return;
+
     auto first = buffer_ + parsed_;
     char const* const last =
         buffer_ + committed_;
 
-    // VFALCO not sure about this...
-    BOOST_ASSERT(first != last);
-
-    ec = {};
     need_more_ = true;
     switch(state_)
     {
@@ -126,7 +129,7 @@ parse(
         BOOST_ASSERT(parsed_ == 0);
         if(! parse_start_line(
                 first, last, ec))
-            goto done;
+            break;
         BOOST_ASSERT(! ec);
         state_ = state::fields;
         BOOST_FALLTHROUGH;
@@ -136,19 +139,16 @@ parse(
     {
         if(! parse_fields(
                 first, last, ec))
-            goto done;
+            break;
         BOOST_ASSERT(! ec);
-        //state_ = state::body0;
-        BOOST_FALLTHROUGH;
-    }
-
-    default:
-        // VFALCO For now
-        state_ = state::complete;
+        state_ = state::body0;
         break;
     }
 
-done:
+    default:
+        break;
+    }
+
     parsed_ = first - buffer_;
 }
 

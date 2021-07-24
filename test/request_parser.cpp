@@ -52,9 +52,9 @@ public:
             std::memcpy(
                 b.first, s.data(), n);
             p.commit(n);
-            p.parse(ec);
+            p.parse_header(ec);
             BOOST_TEST(! ec);
-            BOOST_TEST(p.is_done());
+            //BOOST_TEST(p.is_done());
             if(! ec)
                 f(p);
         }
@@ -73,7 +73,7 @@ public:
             std::memcpy(
                 b.first, s.data(), n);
             p.commit(n);
-            p.parse(ec);
+            p.parse_header(ec);
             BOOST_TEST(! ec);
             if(ec)
                 continue;
@@ -85,11 +85,11 @@ public:
             std::memcpy(
                 b.first, s.data() + i, n);
             p.commit(n);
-            p.parse(ec);
+            p.parse_header(ec);
             BOOST_TEST(! ec);
             if(ec)
                 continue;
-            BOOST_TEST(p.is_done());
+            //BOOST_TEST(p.is_done());
             f(p);
         }
     }

@@ -12,13 +12,34 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/error.hpp>
+#include <cstdint>
 
 namespace boost {
 namespace http_proto {
 
+class decoder
+{
+public:
+    struct buffers
+    {
+        void const* input;
+        std::size_t input_size;
+        void* output;
+        std::size_t output_size;
+    };
+
+    virtual ~decoder() = 0;
+
+//    virtual
+
+};
+
 class decoder_type
     : public context::service
 {
+public:
+    
 };
 
 } // http_proto

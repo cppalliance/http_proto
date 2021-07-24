@@ -124,7 +124,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    parse(error_code& ec);
+    parse_header(error_code& ec);
 
 protected:
     virtual
