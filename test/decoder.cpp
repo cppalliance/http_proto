@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,21 +7,24 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DECODER_HPP
-#define BOOST_HTTP_PROTO_DECODER_HPP
+// Test that header file is self-contained.
+#include <boost/http_proto/decoder.hpp>
 
-#include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/context.hpp>
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class decoder_type
-    : public context::service
+class decoder_test
 {
+public:
+    void
+    run()
+    {
+    }
 };
+
+TEST_SUITE(decoder_test, "boost.http_proto.decoder");
 
 } // http_proto
 } // boost
-
-#endif
