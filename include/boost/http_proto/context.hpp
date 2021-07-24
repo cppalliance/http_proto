@@ -11,23 +11,50 @@
 #define BOOST_HTTP_PROTO_CONTEXT_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <memory>
 
 namespace boost {
 namespace http_proto {
 
 class context
 {
+    struct data;
+
 public:
-    BOOST_HTTP_PROTO_DECL
-    context() noexcept;
+    struct service
+    {
+        virtual ~service() = 0;
+    };
 
     context(context const&) = delete;
     context& operator=(
         context const&) = delete;
 
+    BOOST_HTTP_PROTO_DECL
+    ~context();
+
+    BOOST_HTTP_PROTO_DECL
+    context() noexcept;
+
+    template<class T, class... Args>
+    friend
+    T&
+    make_service(
+        context& ctx,
+        Args&&... args);
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    void
+    insert_service(
+        std::unique_ptr<service> sp);
+
+    std::unique_ptr<data> p_;
 };
 
 } // http_proto
 } // boost
+
+#include <boost/http_proto/impl/context.hpp>
 
 #endif

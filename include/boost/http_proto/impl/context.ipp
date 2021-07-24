@@ -11,13 +11,34 @@
 #define BOOST_HTTP_PROTO_IMPL_CONTEXT_IPP
 
 #include <boost/http_proto/context.hpp>
+#include <vector>
 
 namespace boost {
 namespace http_proto {
 
+struct context::data
+{
+    std::vector<std::unique_ptr<
+        service>> vsp;
+};
+
+context::
+~context()
+{
+}
+
 context::
 context() noexcept
+    : p_(new data)
 {
+}
+
+void
+context::
+insert_service(
+    std::unique_ptr<service> sp)
+{
+    p_->vsp.emplace_back(std::move(sp));
 }
 
 } // http_proto
