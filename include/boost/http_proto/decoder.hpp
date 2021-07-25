@@ -38,6 +38,11 @@ public:
         buffers& b, error_code& ec) = 0;
 };
 
+class decoder_type
+{
+public:
+};
+
 } // http_proto
 } // boost
 

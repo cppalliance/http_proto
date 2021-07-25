@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <memory>
+#include <typeindex>
 
 namespace boost {
 namespace http_proto {
@@ -41,13 +42,13 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    insert_content_decoder(
+    add_content_decoder(
         string_view name,
         decoder_type&);
 
     BOOST_HTTP_PROTO_DECL
     void
-    insert_transfer_decoder(
+    add_transfer_decoder(
         string_view name,
         decoder_type&);
 
@@ -65,21 +66,57 @@ public:
 
     //---
 
-    template<class T, class... Args>
+    /** Create a service.
+
+        The service must not already exist.
+    */
+    template<
+        class T,
+        class... Args>
     friend
     T&
     make_service(
         context& ctx,
         Args&&... args);
 
+    template<class T>
+    friend
+    T*
+    find_service(
+        context& ctx) noexcept;
+
+    /** Return service T or throw an exception.
+    */
+    template<class T>
+    friend
+    T&
+    get_service(
+        context& ctx);
+
 private:
     BOOST_HTTP_PROTO_DECL
-    void
-    insert_service(
+    service*
+    find_service_impl(
+        std::type_index ti) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    service&
+    make_service_impl(
+        std::type_index ti,
         std::unique_ptr<service> sp);
 
     std::unique_ptr<data> p_;
 };
+
+#if 0
+template<class T>
+bool
+has_service(
+    context& ctx) noexcept
+{
+    return find_service<T>(ctx) != nullptr;
+}
+#endif
 
 } // http_proto
 } // boost

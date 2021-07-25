@@ -13,9 +13,9 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/string.hpp>
-//#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet
 #include <boost/container/map.hpp>
-#include <vector>
+//#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet
+#include <unordered_map>
 
 namespace boost {
 namespace http_proto {
@@ -23,8 +23,10 @@ namespace http_proto {
 struct context::data
 {
     // Installed services
-    std::vector<
-        std::unique_ptr<service>> services;
+    std::unordered_map<
+        std::type_index,
+        std::unique_ptr<service>
+            > services;
 
     // List of content decoders
     //boost::unordered_map<
@@ -47,6 +49,14 @@ struct context::data
             > transfer_decoders;
 };
 
+//------------------------------------------------
+
+context::
+service::
+~service() = default;
+
+//------------------------------------------------
+
 context::
 ~context()
 {
@@ -60,7 +70,7 @@ context() noexcept
 
 void
 context::
-insert_content_decoder(
+add_content_decoder(
     string_view name,
     decoder_type& dt)
 {
@@ -69,14 +79,13 @@ insert_content_decoder(
             name.to_string(), &dt);
     if(result.second)
         return;
-    detail::throw_invalid_argument(
-        "duplicate content decoder",
+    detail::throw_out_of_range(
         BOOST_CURRENT_LOCATION);
 }
 
 void
 context::
-insert_transfer_decoder(
+add_transfer_decoder(
     string_view name,
     decoder_type& dt)
 {
@@ -85,8 +94,7 @@ insert_transfer_decoder(
             name.to_string(), &dt);
     if(result.second)
         return;
-    detail::throw_invalid_argument(
-        "duplicate transfer decoder",
+    detail::throw_out_of_range(
         BOOST_CURRENT_LOCATION);
 }
 
@@ -116,12 +124,34 @@ find_transfer_decoder(
     return nullptr;
 }
 
-void
+//------------------------------------------------
+
+auto
 context::
-insert_service(
-    std::unique_ptr<service> sp)
+find_service_impl(
+    std::type_index id) noexcept ->
+        service*
 {
-    p_->services.emplace_back(std::move(sp));
+    auto it = p_->services.find(id);
+    if(it != p_->services.end())
+        return it->second.get();
+    return nullptr;
+}
+
+auto
+context::
+make_service_impl(
+    std::type_index id,
+    std::unique_ptr<service> sp) ->
+        service&    
+{
+    auto const result =
+        p_->services.emplace(
+            id, std::move(sp));
+    if(! result.second)
+        detail::throw_out_of_range(
+            BOOST_CURRENT_LOCATION);
+    return *result.first->second;
 }
 
 } // http_proto
