@@ -11,10 +11,13 @@
 #define BOOST_HTTP_PROTO_CONTEXT_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/string_view.hpp>
 #include <memory>
 
 namespace boost {
 namespace http_proto {
+
+class decoder_type;
 
 class context
 {
@@ -35,6 +38,32 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     context() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    insert_content_decoder(
+        string_view name,
+        decoder_type&);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    insert_transfer_decoder(
+        string_view name,
+        decoder_type&);
+
+    //---
+
+    BOOST_HTTP_PROTO_DECL
+    decoder_type*
+    find_content_decoder(
+        string_view name) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    decoder_type*
+    find_transfer_decoder(
+        string_view name) noexcept;
+
+    //---
 
     template<class T, class... Args>
     friend

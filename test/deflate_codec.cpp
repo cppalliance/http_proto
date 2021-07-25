@@ -8,42 +8,41 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/response_parser.hpp>
+#include <boost/http_proto/deflate_codec.hpp>
 
+#include <boost/http_proto/deflate_codec.hpp>
 #include <boost/http_proto/context.hpp>
-
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class response_parser_test
+class deflate_codec_test
 {
 public:
     void
-    testBody()
+    testDecoder()
     {
         context ctx;
-        response_parser p(ctx);
-        error_code ec;
-#if 0
-        p.commit(socket.read(p.prepare()));
-        p.parse_header(ec);
-        //...
-        p.parse_body(..., ec); // ?
-        // 1. body in parser-owned storage
-        // 2. body in caller-owned storage
-        // 3. clear existing parser-owned body storage
-#endif
+        install_deflate_decoder(ctx);
+    }
+
+    void
+    testEncoder()
+    {
+        context ctx;
+        install_deflate_encoder(ctx);
     }
 
     void
     run()
     {
+        testDecoder();
+        testEncoder();
     }
 };
 
-TEST_SUITE(response_parser_test, "boost.http_proto.response_parser");
+TEST_SUITE(deflate_codec_test, "boost.http_proto.deflate_codec");
 
 } // http_proto
 } // boost

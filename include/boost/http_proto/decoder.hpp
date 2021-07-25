@@ -23,23 +23,19 @@ class decoder
 public:
     struct buffers
     {
-        void const* input;
-        std::size_t input_size;
-        void* output;
-        std::size_t output_size;
+        char const* input;          // in/out
+        std::size_t input_avail;    // in/out
+        char*       output;         // in/out
+        std::size_t output_avail;   // in/out
+
+        std::size_t input_used;     // out
+        std::size_t output_used;    // out
     };
 
     virtual ~decoder() = 0;
 
-//    virtual
-
-};
-
-class decoder_type
-    : public context::service
-{
-public:
-    
+    virtual void exchange(
+        buffers& b, error_code& ec) = 0;
 };
 
 } // http_proto
