@@ -23,6 +23,13 @@ namespace http_proto {
 class context;
 #endif
 
+enum part
+{
+    start_line,
+    fields,
+
+};
+
 class basic_parser
 {
 protected:
