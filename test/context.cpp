@@ -24,6 +24,11 @@ public:
     struct test_decoder_type
         : decoder_type
     {
+        std::unique_ptr<decoder>
+        make_decoder() override
+        {
+            return nullptr;
+        }
     };
 
     test_decoder_type td;

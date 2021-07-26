@@ -40,6 +40,13 @@ public:
     BOOST_HTTP_PROTO_DECL
     context() noexcept;
 
+    //--------------------------------------------
+    //
+    // Content-Encoding
+    // Transfer-Encoding
+    //
+    //--------------------------------------------
+
     BOOST_HTTP_PROTO_DECL
     void
     add_content_decoder(
@@ -52,8 +59,6 @@ public:
         string_view name,
         decoder_type&);
 
-    //---
-
     BOOST_HTTP_PROTO_DECL
     decoder_type*
     find_content_decoder(
@@ -64,7 +69,7 @@ public:
     find_transfer_decoder(
         string_view name) noexcept;
 
-    //---
+    //--------------------------------------------
 
     /** Create a service.
 

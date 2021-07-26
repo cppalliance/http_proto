@@ -43,4 +43,9 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/response_view.ipp>
 #include <boost/http_proto/impl/status.ipp>
 
+// VFALCO These are tucked away here temporarily
+#include <boost/beast/zlib/detail/deflate_stream.ipp>
+#include <boost/beast/zlib/detail/inflate_stream.ipp>
+#include <boost/beast/zlib/impl/error.ipp>
+
 #endif

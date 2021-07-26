@@ -14,6 +14,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <cstdint>
+#include <memory>
 
 namespace boost {
 namespace http_proto {
@@ -38,9 +39,14 @@ public:
         buffers& b, error_code& ec) = 0;
 };
 
+//------------------------------------------------
+
 class decoder_type
 {
 public:
+    virtual
+    std::unique_ptr<decoder>
+    make_decoder() = 0;
 };
 
 } // http_proto

@@ -15,6 +15,9 @@
 namespace boost {
 namespace http_proto {
 
+decoder::
+~decoder() = default;
+
 } // http_proto
 } // boost
 
