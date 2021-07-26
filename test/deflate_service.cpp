@@ -8,9 +8,8 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/deflate_codec.hpp>
+#include <boost/http_proto/deflate_service.hpp>
 
-#include <boost/http_proto/deflate_codec.hpp>
 #include <boost/http_proto/context.hpp>
 #include "test_suite.hpp"
 
@@ -42,7 +41,7 @@ public:
     }
 };
 
-TEST_SUITE(deflate_codec_test, "boost.http_proto.deflate_codec");
+TEST_SUITE(deflate_codec_test, "boost.http_proto.deflate_service");
 
 } // http_proto
 } // boost

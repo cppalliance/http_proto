@@ -37,11 +37,8 @@ public:
     test_service(
         context& ctx)
     {
-        ctx.add_content_decoder(
-            "test-content-decoder", td);
-
-        ctx.add_transfer_decoder(
-            "test-transfer-decoder", td);
+        ctx.add_decoder(
+            "test-decoder", td);
     }
 };
 
@@ -61,7 +58,14 @@ public:
     testDecoders()
     {
         context ctx;
-        make_service<test_service>(ctx);
+        auto& ts = make_service<
+            test_service>(ctx);
+        BOOST_TEST(ctx.find_decoder("test-decoder") == &ts.td);
+    }
+
+    void
+    testEncoders()
+    {
     }
 
     void
@@ -69,6 +73,7 @@ public:
     {
         testContext();
         testDecoders();
+        testEncoders();
     }
 };
 

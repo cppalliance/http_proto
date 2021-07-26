@@ -19,6 +19,7 @@ namespace boost {
 namespace http_proto {
 
 class decoder_type;
+class encoder_type;
 
 class context
 {
@@ -49,24 +50,24 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    add_content_decoder(
-        string_view name,
-        decoder_type&);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    add_transfer_decoder(
+    add_decoder(
         string_view name,
         decoder_type&);
 
     BOOST_HTTP_PROTO_DECL
     decoder_type*
-    find_content_decoder(
+    find_decoder(
         string_view name) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    decoder_type*
-    find_transfer_decoder(
+    void
+    add_encoder(
+        string_view name,
+        encoder_type&);
+
+    BOOST_HTTP_PROTO_DECL
+    encoder_type*
+    find_encoder(
         string_view name) noexcept;
 
     //--------------------------------------------

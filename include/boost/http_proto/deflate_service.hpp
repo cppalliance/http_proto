@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DEFLATE_CODEC_HPP
-#define BOOST_HTTP_PROTO_DEFLATE_CODEC_HPP
+#ifndef BOOST_HTTP_PROTO_DEFLATE_SERVICE_HPP
+#define BOOST_HTTP_PROTO_DEFLATE_SERVICE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 
@@ -19,18 +19,18 @@ namespace http_proto {
 class context;
 #endif
 
-/** Install the deflate encoder into the specified context.
-*/
-BOOST_HTTP_PROTO_DECL
-void
-install_deflate_encoder(
-    context& ctx);
-
 /** Install the deflate decoder into the specified context.
 */
 BOOST_HTTP_PROTO_DECL
 void
 install_deflate_decoder(
+    context& ctx);
+
+/** Install the deflate encoder into the specified context.
+*/
+BOOST_HTTP_PROTO_DECL
+void
+install_deflate_encoder(
     context& ctx);
 
 } // http_proto

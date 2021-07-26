@@ -7,11 +7,14 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_DEFLATE_CODEC_IPP
-#define BOOST_HTTP_PROTO_IMPL_DEFLATE_CODEC_IPP
+#ifndef BOOST_HTTP_PROTO_IMPL_DEFLATE_SERVICE_IPP
+#define BOOST_HTTP_PROTO_IMPL_DEFLATE_SERVICE_IPP
 
-#include <boost/http_proto/deflate_codec.hpp>
+#include <boost/http_proto/deflate_service.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/decoder.hpp>
+#include <boost/http_proto/encoder.hpp>
+#include <boost/beast/zlib/deflate_stream.hpp>
 #include <boost/beast/zlib/inflate_stream.hpp>
 
 namespace boost {
@@ -19,19 +22,16 @@ namespace http_proto {
 
 //------------------------------------------------
 
-class deflate_service_impl
+class deflate_decoder_service_impl
     : public context::service
     , public decoder_type
 {
 public:
     explicit
-    deflate_service_impl(
+    deflate_decoder_service_impl(
         context& ctx)
     {
-        ctx.add_content_decoder(
-            "deflate", *this);
-
-        ctx.add_transfer_decoder(
+        ctx.add_decoder(
             "deflate", *this);
     }
 
@@ -79,6 +79,45 @@ public:
 
 //------------------------------------------------
 
+class deflate_encoder_service_impl
+    : public context::service
+    , public encoder_type
+{
+public:
+    explicit
+    deflate_encoder_service_impl(
+        context& ctx)
+    {
+        ctx.add_encoder(
+            "deflate", *this);
+    }
+
+    class encoder_impl
+        : public encoder
+    {
+        beast::zlib::deflate_stream is_;
+
+    public:
+        void
+        exchange(
+            buffers& b,
+            error_code& ec)
+        {
+            (void)b;
+            (void)ec;
+        }
+    };
+
+    std::unique_ptr<encoder>
+    make_encoder() override
+    {
+        return std::unique_ptr<encoder>(
+            new encoder_impl());
+    }
+};
+
+//------------------------------------------------
+
 void
 install_deflate_encoder(
     context& ctx)
@@ -91,7 +130,7 @@ install_deflate_decoder(
     context& ctx)
 {
     auto& svc = make_service<
-        deflate_service_impl>(ctx);
+        deflate_decoder_service_impl>(ctx);
     (void)svc;
 }
 

@@ -28,25 +28,19 @@ struct context::data
         std::unique_ptr<service>
             > services;
 
-    // List of content decoders
-    //boost::unordered_map<
+    // List of decoders
     boost::container::map<
         std::string,
         decoder_type*,
-        //detail::ihash,
-        //detail::iequals_pred
         detail::iless_pred
-            > content_decoders;
+            > decoders;
 
-    // List of transfer decoders
-    //boost::unordered_map<
+    // List of encoders
     boost::container::map<
         std::string,
-        decoder_type*,
-        //detail::ihash,
-        //detail::iequals_pred
+        encoder_type*,
         detail::iless_pred
-            > transfer_decoders;
+            > encoders;
 };
 
 //------------------------------------------------
@@ -70,27 +64,12 @@ context() noexcept
 
 void
 context::
-add_content_decoder(
+add_decoder(
     string_view name,
     decoder_type& dt)
 {
     auto const result =
-        p_->content_decoders.emplace(
-            name.to_string(), &dt);
-    if(result.second)
-        return;
-    detail::throw_out_of_range(
-        BOOST_CURRENT_LOCATION);
-}
-
-void
-context::
-add_transfer_decoder(
-    string_view name,
-    decoder_type& dt)
-{
-    auto const result =
-        p_->transfer_decoders.emplace(
+        p_->decoders.emplace(
             name.to_string(), &dt);
     if(result.second)
         return;
@@ -100,26 +79,41 @@ add_transfer_decoder(
 
 decoder_type*
 context::
-find_content_decoder(
+find_decoder(
     string_view name) noexcept
 {
     auto const result =
-        p_->content_decoders.find(name);
+        p_->decoders.find(name);
     if(result !=
-        p_->content_decoders.end())
+        p_->decoders.end())
         return result->second;
     return nullptr;
 }
 
-decoder_type*
+void
 context::
-find_transfer_decoder(
+add_encoder(
+    string_view name,
+    encoder_type& dt)
+{
+    auto const result =
+        p_->encoders.emplace(
+            name.to_string(), &dt);
+    if(result.second)
+        return;
+    detail::throw_out_of_range(
+        BOOST_CURRENT_LOCATION);
+}
+
+encoder_type*
+context::
+find_encoder(
     string_view name) noexcept
 {
     auto const result =
-        p_->transfer_decoders.find(name);
+        p_->encoders.find(name);
     if(result !=
-        p_->transfer_decoders.end())
+        p_->encoders.end())
         return result->second;
     return nullptr;
 }

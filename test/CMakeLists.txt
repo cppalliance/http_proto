@@ -18,7 +18,8 @@ set(PFILES
     basic_parser.cpp
     context.cpp
     decoder.cpp
-    deflate_codec.cpp
+    deflate_service.cpp
+    encoder.cpp
     error.cpp
     field.cpp
     fields_view.cpp
