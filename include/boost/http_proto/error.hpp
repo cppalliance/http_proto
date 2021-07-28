@@ -174,6 +174,8 @@ enum class error
         to read from the file.
     */
     short_read
+
+,eof
 };
 
 #ifndef BOOST_HTTP_PROTO_DOCS

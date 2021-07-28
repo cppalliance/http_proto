@@ -60,6 +60,12 @@ basic_parser::
         delete[] buffer_;
 }
 
+void
+basic_parser::
+reset()
+{
+}
+
 std::pair<void*, std::size_t>
 basic_parser::
 prepare()
@@ -99,6 +105,14 @@ commit(
         capacity_ - committed_);
     committed_ += n;
 }
+
+void
+basic_parser::
+commit_eof()
+{
+}
+
+//------------------------------------------------
 
 void
 basic_parser::
@@ -150,6 +164,55 @@ parse_header(
     }
 
     parsed_ = first - buffer_;
+}
+
+void
+basic_parser::
+parse_body(
+    error_code& ec)
+{
+}
+
+void
+basic_parser::
+parse_chunk_prefix(
+    error_code& ec)
+{
+}
+
+void
+basic_parser::
+parse_chunk_data(
+    error_code& ec)
+{
+}
+
+void
+basic_parser::
+parse_last_chunk(
+    error_code& ec)
+{
+}
+
+std::pair<
+    void const*,
+    std::size_t>
+basic_parser::
+body() const
+{
+    return {nullptr, 0};
+}
+
+void
+basic_parser::
+consume_header() noexcept
+{
+}
+
+void
+basic_parser::
+consume_body() noexcept
+{
 }
 
 //------------------------------------------------

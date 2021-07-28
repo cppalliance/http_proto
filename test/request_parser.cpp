@@ -18,6 +18,12 @@
 namespace boost {
 namespace http_proto {
 
+namespace net {
+namespace error {
+static int eof = 1;
+} // error
+} // net
+
 class request_parser_test
 {
 public:
@@ -33,7 +39,7 @@ public:
         auto const f =
             [&](request_parser const& p)
         {
-            auto const req = p.get();
+            auto const req = p.header();
             BOOST_TEST(req.method() == m);
             BOOST_TEST(req.method_str() ==
                 to_string(m));
@@ -95,7 +101,7 @@ public:
     }
 
     void
-    test()
+    testParse()
     {
         check(method::get, "/", 11,
             "GET / HTTP/1.1\r\n"
@@ -103,10 +109,87 @@ public:
             "\r\n");
     }
 
+    struct socket
+    {
+    };
+
+    template<
+        class ReadStream>
+    void
+    read_more(
+        ReadStream&,
+        basic_parser&,
+        error_code&)
+    {
+    }
+
+    /*
+        Accumulated wisdom
+
+        * Committing bytes is orthogonal to parsing
+
+        * Caller needs to know if more committed bytes are needed
+
+        * All parsing is possibly partial
+    */
+    void
+    sandbox()
+    {
+        //
+        // Read header+body inline
+        //
+        {
+            socket sock;
+            error_code ec;
+            request_parser p(ctx_);
+
+            // read the header
+            for(;;)
+            {
+                p.parse_header(ec);
+                if(! ec)
+                    break;
+                if(ec != error::need_more)
+                    return; // failed
+                read_more(sock, p, ec);
+                if(! ec)
+                    continue;
+                if(ec != error::eof)
+                    return; // failed
+                p.commit_eof();
+            }
+
+            // access the header
+            request_view req = p.header();
+
+            // read the body inline
+            for(;;)
+            {
+                p.parse_body(ec);
+                if(! ec)
+                    break;
+                if(ec != error::need_more)
+                    return; // failed
+                read_more(sock, p, ec);
+                if(! ec)
+                    continue;
+                if(ec != error::eof)
+                    return; // failed
+                p.commit_eof();
+            }
+
+            // access the body
+            auto body = p.body();
+
+            // prepare for another parse
+            p.reset();
+        }
+    }
+
     void
     run()
     {
-        test();
+        sandbox();
     }
 };
 

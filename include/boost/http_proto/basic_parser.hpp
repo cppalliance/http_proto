@@ -25,9 +25,11 @@ class context;
 
 enum part
 {
-    start_line,
-    fields,
-
+    header,
+    body,
+    chunk_header,
+    chunk_body,
+    chunk_final
 };
 
 class basic_parser
@@ -127,11 +129,46 @@ public:
     void
     commit(std::size_t n);
 
-    //void commit_eof(error_code& ec);
+    BOOST_HTTP_PROTO_DECL
+    void
+    commit_eof();
 
     BOOST_HTTP_PROTO_DECL
     void
     parse_header(error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_body(error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_chunk_prefix(
+        error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_chunk_data(
+        error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_last_chunk(
+        error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    std::pair<
+        void const*,
+        std::size_t>
+    body() const;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    consume_header() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    consume_body() noexcept;
 
 protected:
     virtual

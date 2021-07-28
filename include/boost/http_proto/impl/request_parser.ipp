@@ -31,7 +31,7 @@ request_parser(
 
 request_view
 request_parser::
-get() const noexcept
+header() const noexcept
 {
     return request_view(
         buffer_,

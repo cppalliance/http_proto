@@ -37,7 +37,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     request_view
-    get() const noexcept;
+    header() const noexcept;
 
 private:
     bool
