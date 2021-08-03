@@ -123,73 +123,119 @@ public:
     {
     }
 
-    /*
-        Accumulated wisdom
-
-        * Committing bytes is orthogonal to parsing
-
-        * Caller needs to know if more committed bytes are needed
-
-        * All parsing is possibly partial
-    */
+    template<
+        class ReadStream>
     void
-    sandbox()
+    read_header(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
     {
-        //
-        // Read header+body inline
-        //
+        // read the header
+        for(;;)
         {
-            socket sock;
-            error_code ec;
-            request_parser p(ctx_);
+            p.parse_header(ec);
+            if(! ec)
+                break;
+            if(ec != error::need_more)
+                return; // failed
+            read_more(sock, p, ec);
+            if(! ec)
+                continue;
+            if(ec != error::eof)
+                return; // failed
+            p.commit_eof();
+        }
+    }
 
-            // read the header
-            for(;;)
-            {
-                p.parse_header(ec);
-                if(! ec)
-                    break;
-                if(ec != error::need_more)
-                    return; // failed
-                read_more(sock, p, ec);
-                if(! ec)
-                    continue;
-                if(ec != error::eof)
-                    return; // failed
-                p.commit_eof();
-            }
+    //
+    // Read body inline
+    // Use-case for when:
+    //  1. parser manages storage ("inline")
+    //  2. no access to chunk extensions or trailer
+    //  3. entire body in one buffer
+    //
+    void
+    doReadInline()
+    {
+        socket sock;
+        error_code ec;
+        request_parser p(ctx_);
 
-            // access the header
-            request_view req = p.header();
+        // read and access header
+        read_header(sock, p, ec);
+        if(ec)
+            return; // failed
+        request_view req = p.header();
 
-            // read the body inline
-            for(;;)
-            {
-                p.parse_body(ec);
-                if(! ec)
-                    break;
-                if(ec != error::need_more)
-                    return; // failed
-                read_more(sock, p, ec);
-                if(! ec)
-                    continue;
-                if(ec != error::eof)
-                    return; // failed
-                p.commit_eof();
-            }
+        // read the body inline
+        for(;;)
+        {
+            p.parse_body(ec);
+            if(! ec)
+                break;
+            if(ec != error::need_more)
+                return; // failed
+            read_more(sock, p, ec);
+            if(! ec)
+                continue;
+            if(ec != error::eof)
+                return; // failed
+            p.commit_eof();
+        }
 
-            // access the body
+        // access the body
+        auto body = p.body();
+    }
+
+    //
+    // Read header and body inline
+    //      * Works for identity and chunked, but
+    //        chunk extensions are not visible.
+    //      * Body is accessed one buffer at a time
+    //
+    void
+    doReadIncremental()
+    {
+        socket sock;
+        error_code ec;
+        request_parser p(ctx_);
+
+        // read and access header
+        read_header(sock, p, ec);
+        if(ec)
+            return; // failed
+        request_view req = p.header();
+
+        // read the body inline
+        for(;;)
+        {
+            p.parse_body(ec);
+            // access and clear the body
             auto body = p.body();
-
-            // prepare for another parse
-            p.reset();
+            //if(! body.empty())
+            {
+                //...
+                p.consume_body();
+            }
+            if(! ec)
+                break;
+            if(ec != error::need_more)
+                return; // failed
+            read_more(sock, p, ec);
+            if(! ec)
+                continue;
+            if(ec != error::eof)
+                return; // failed
+            p.commit_eof();
         }
     }
 
     void
     run()
     {
-        sandbox();
+        doReadInline();
+        doReadIncremental();
     }
 };
 

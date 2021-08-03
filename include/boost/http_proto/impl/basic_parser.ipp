@@ -166,16 +166,17 @@ parse_header(
     parsed_ = first - buffer_;
 }
 
-void
+bool
 basic_parser::
 parse_body(
     error_code& ec)
 {
+    return true;
 }
 
 void
 basic_parser::
-parse_chunk_prefix(
+parse_chunk_ext(
     error_code& ec)
 {
 }

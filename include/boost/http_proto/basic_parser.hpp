@@ -138,12 +138,12 @@ public:
     parse_header(error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
-    void
+    bool
     parse_body(error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
     void
-    parse_chunk_prefix(
+    parse_chunk_ext(
         error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
@@ -169,6 +169,13 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     consume_body() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    bool
+    need_more() const noexcept
+    {
+        return true;
+    }
 
 protected:
     virtual
