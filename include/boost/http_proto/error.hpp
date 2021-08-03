@@ -108,13 +108,6 @@ enum class error
     */
     body_limit,
 
-    /** A memory allocation failed.
-
-        When basic_fields throws std::bad_alloc, it is
-        converted into this error by @ref parser.
-    */
-    bad_alloc,
-
     //
     // (parser errors)
     //
@@ -158,15 +151,6 @@ enum class error
     /// An obs-fold exceeded an internal limit.
     bad_obs_fold,
 
-    /** The parser is stale.
-
-        This happens when attempting to re-use a parser that has
-        already completed parsing a message. Programs must construct
-        a new parser for each message. This can be easily done by
-        storing the parser in an boost or std::optional container.
-    */
-    stale_parser,
-
     /** The message body is shorter than expected.
 
         This error is returned by @ref file_body when an unexpected
@@ -176,6 +160,7 @@ enum class error
     short_read
 
 ,eof
+,end_of_body
 };
 
 #ifndef BOOST_HTTP_PROTO_DOCS

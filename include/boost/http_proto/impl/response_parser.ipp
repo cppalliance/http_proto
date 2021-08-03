@@ -23,7 +23,7 @@ response_parser(
 {
 }
 
-bool
+void
 response_parser::
 parse_start_line(
     char*& in,
@@ -33,7 +33,6 @@ parse_start_line(
     (void)ec;
     (void)last;
     (void)in;
-    return false;
 }
 
 void

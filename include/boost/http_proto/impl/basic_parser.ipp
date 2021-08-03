@@ -13,6 +13,7 @@
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/assert.hpp>
+#include <memory>
 
 namespace boost {
 namespace http_proto {
@@ -48,7 +49,6 @@ basic_parser(
     , state_(state::nothing_yet)
     , header_limit_(8192)
     , skip_(0)
-    , need_more_(true)
     , f_(0)
 {
 }
@@ -96,11 +96,9 @@ basic_parser::
 commit(
     std::size_t n)
 {
-    // VFALCO Not sure about these
+    // VFALCO Not sure about this
     BOOST_ASSERT(n > 0);
-    BOOST_ASSERT(need_more_);
 
-    need_more_ = false;
     BOOST_ASSERT(n <=
         capacity_ - committed_);
     committed_ += n;
@@ -130,7 +128,6 @@ parse_header(
     char const* const last =
         buffer_ + committed_;
 
-    need_more_ = true;
     switch(state_)
     {
     case state::nothing_yet:
@@ -141,10 +138,9 @@ parse_header(
     {
         // Nothing can come before start-line
         BOOST_ASSERT(parsed_ == 0);
-        if(! parse_start_line(
-                first, last, ec))
-            break;
-        BOOST_ASSERT(! ec);
+        parse_start_line(first, last, ec);
+        if(ec)
+            return;
         state_ = state::fields;
         BOOST_FALLTHROUGH;
     }
@@ -155,7 +151,7 @@ parse_header(
                 first, last, ec))
             break;
         BOOST_ASSERT(! ec);
-        state_ = state::body0;
+        state_ = state::body;
         break;
     }
 
@@ -166,12 +162,30 @@ parse_header(
     parsed_ = first - buffer_;
 }
 
-bool
+void
 basic_parser::
 parse_body(
     error_code& ec)
 {
-    return true;
+    switch(state_)
+    {
+    case state::nothing_yet:
+        state_ = state::start_line;
+        BOOST_FALLTHROUGH;
+    }
+}
+
+void
+basic_parser::
+parse_body_part(
+    error_code& ec)
+{
+    switch(state_)
+    {
+    case state::nothing_yet:
+        state_ = state::start_line;
+        BOOST_FALLTHROUGH;
+    }
 }
 
 void
@@ -183,21 +197,19 @@ parse_chunk_ext(
 
 void
 basic_parser::
-parse_chunk_data(
+parse_chunk_part(
     error_code& ec)
 {
 }
 
 void
 basic_parser::
-parse_last_chunk(
+parse_chunk_trailer(
     error_code& ec)
 {
 }
 
-std::pair<
-    void const*,
-    std::size_t>
+string_view
 basic_parser::
 body() const
 {
@@ -247,66 +259,39 @@ parse_u64(
 }
 #endif
 
-bool
+void
 basic_parser::
 parse_version(
     char*& first,
     char const* const last,
-    int& result,
     error_code& ec) noexcept
 {
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     auto it = first;
     if(last - it < 8)
-        return false;
-    if(*it++ != 'H')
+        return need_more();
+    if(std::memcmp(it, "HTTP/1.", 7) != 0)
     {
         ec = error::bad_version;
-        return false;
+        return;
     }
-    if(*it++ != 'T')
+    it += 7;
+    if(*it == 0)
+    {
+        version_ = 0;
+    }
+    else if(*it == 1)
+    {
+        version_ = 1;
+    }
+    else
     {
         ec = error::bad_version;
-        return false;
+        return;
     }
-    if(*it++ != 'T')
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    if(*it++ != 'P')
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    if(*it++ != '/')
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    if(! is_digit(*it))
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    result = 10 * (*it++ - '0');
-    if(*it++ != '.')
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    if(! is_digit(*it))
-    {
-        ec = error::bad_version;
-        return false;
-    }
-    result += *it++ - '0';
-    if(result != 10 && result != 11)
-    {
-        ec = error::bad_version;
-        return false;
-    }
+    ++it;
     first = it;
-    return true;
 }
 
 bool

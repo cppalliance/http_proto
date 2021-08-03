@@ -116,7 +116,7 @@ public:
     template<
         class ReadStream>
     void
-    read_more(
+    read_some(
         ReadStream&,
         basic_parser&,
         error_code&)
@@ -131,111 +131,208 @@ public:
         basic_parser& p,
         error_code& ec)
     {
-        // read the header
         for(;;)
         {
             p.parse_header(ec);
-            if(! ec)
-                break;
             if(ec != error::need_more)
-                return; // failed
-            read_more(sock, p, ec);
-            if(! ec)
-                continue;
-            if(ec != error::eof)
-                return; // failed
-            p.commit_eof();
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
+        }
+    }
+
+    template<
+        class ReadStream>
+    void
+    read_body(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
+    {
+        for(;;)
+        {
+            p.parse_body(ec);
+            if(ec != error::need_more)
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
+        }
+    }
+
+    template<
+        class ReadStream>
+    void
+    read_body_part(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
+    {
+        for(;;)
+        {
+            p.parse_body_part(ec);
+            if(ec != error::need_more)
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
+        }
+    }
+
+    template<
+        class ReadStream>
+    void
+    read_chunk_ext(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
+    {
+        for(;;)
+        {
+            p.parse_chunk_ext(ec);
+            if(ec != error::need_more)
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
+        }
+    }
+
+    template<
+        class ReadStream>
+    void
+    read_chunk_part(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
+    {
+        for(;;)
+        {
+            p.parse_chunk_part(ec);
+            if(ec != error::need_more)
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
+        }
+    }
+
+    template<
+        class ReadStream>
+    void
+    read_chunk_trailer(
+        ReadStream& sock,
+        basic_parser& p,
+        error_code& ec)
+    {
+        for(;;)
+        {
+            p.parse_chunk_trailer(ec);
+            if(ec != error::need_more)
+                break;
+            read_some(sock, p, ec);
+            if(ec == error::eof)
+                p.commit_eof();
+            else if(ec.failed())
+                return;
         }
     }
 
     //
-    // Read body inline
-    // Use-case for when:
-    //  1. parser manages storage ("inline")
-    //  2. no access to chunk extensions or trailer
-    //  3. entire body in one buffer
+    // Read complete body into parser-owned storage
     //
     void
-    doReadInline()
+    doReadBody()
     {
         socket sock;
         error_code ec;
         request_parser p(ctx_);
 
-        // read and access header
         read_header(sock, p, ec);
         if(ec)
-            return; // failed
+            return;
         request_view req = p.header();
 
-        // read the body inline
-        for(;;)
-        {
-            p.parse_body(ec);
-            if(! ec)
-                break;
-            if(ec != error::need_more)
-                return; // failed
-            read_more(sock, p, ec);
-            if(! ec)
-                continue;
-            if(ec != error::eof)
-                return; // failed
-            p.commit_eof();
-        }
-
-        // access the body
-        auto body = p.body();
+        read_body(sock, p, ec);
+        if(ec)
+            return;
+        // access complete body
+        string_view body = p.body();
     }
 
     //
-    // Read header and body inline
-    //      * Works for identity and chunked, but
-    //        chunk extensions are not visible.
-    //      * Body is accessed one buffer at a time
+    // Read a complete body a buffer at a time,
+    // using parser-owned storage.
     //
     void
-    doReadIncremental()
+    doReadBodyParts()
     {
         socket sock;
         error_code ec;
         request_parser p(ctx_);
 
-        // read and access header
         read_header(sock, p, ec);
         if(ec)
-            return; // failed
+            return;
         request_view req = p.header();
 
-        // read the body inline
         for(;;)
         {
-            p.parse_body(ec);
-            // access and clear the body
-            auto body = p.body();
-            //if(! body.empty())
-            {
-                //...
-                p.consume_body();
-            }
-            if(! ec)
+            read_body_part(sock, p, ec);
+            if(ec == error::end_of_body)
                 break;
-            if(ec != error::need_more)
-                return; // failed
-            read_more(sock, p, ec);
-            if(! ec)
-                continue;
-            if(ec != error::eof)
-                return; // failed
-            p.commit_eof();
+            if(ec.failed())
+                return;
+            // access body part
+            string_view body_part = p.body();
+        }
+    }
+
+    //
+    // Read a chunked body one chunk
+    // at a time, including extensions
+    // and the trailer
+    //
+    void
+    doReadChunked()
+    {
+        socket sock;
+        error_code ec;
+        request_parser p(ctx_);
+
+        read_header(sock, p, ec);
+        if(ec)
+            return;
+        request_view req = p.header();
+
+        for(;;)
+        {
+            read_chunk_part(sock, p, ec);
+            if(ec == error::end_of_body)
+                break;
+            if(ec.failed())
+                return;
+            // access body part
+            string_view body_part = p.body();
         }
     }
 
     void
     run()
     {
-        doReadInline();
-        doReadIncremental();
+        doReadBody();
+        doReadBodyParts();
     }
 };
 

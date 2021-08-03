@@ -50,7 +50,6 @@ public:
         check("http_proto", error::buffer_overflow);
         check("http_proto", error::header_limit);
         check("http_proto", error::body_limit);
-        check("http_proto", error::bad_alloc);
 
         check("http_proto", error::bad_line_ending);
         check("http_proto", error::bad_method);
@@ -66,7 +65,6 @@ public:
         check("http_proto", error::bad_chunk_extension);
         check("http_proto", error::bad_obs_fold);
 
-        check("http_proto", error::stale_parser);
         check("http_proto", error::short_read);
     }
 };

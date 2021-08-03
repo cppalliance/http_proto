@@ -27,7 +27,6 @@ class request_parser
     http_proto::method method_;
     off_t n_method_;
     off_t n_target_;
-    int version_;
 
 public:
     BOOST_HTTP_PROTO_DECL
@@ -40,19 +39,19 @@ public:
     header() const noexcept;
 
 private:
-    bool
+    void
     parse_start_line(
         char*& first,
         char const* last,
         error_code& ec) override;
 
-    bool
+    void
     parse_method(
         char*& it,
         char const* last,
         error_code& ec);
 
-    bool
+    void
     parse_target(
         char*& it,
         char const* last,

@@ -23,7 +23,6 @@ request_parser(
     context& ctx) noexcept
     : basic_parser(ctx)
     , method_(http_proto::method::unknown)
-    , version_(0)
     , n_method_(0)
     , n_target_(0)
 {
@@ -44,119 +43,124 @@ header() const noexcept
 
 //------------------------------------------------
 
-bool
+void
 request_parser::
 parse_start_line(
     char*& first,
     char const* const last,
     error_code& ec)
 {
-/*
-    request-line   = method SP request-target SP HTTP-version CRLF
-    method         = token
-*/
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     auto it = first;
 
+/*
+    request-line   = method SP request-target SP HTTP-version CRLF
+*/
     // method
-    if(! parse_method(it, last, ec))
-        return false;
+    parse_method(it, last, ec);
+    if(ec)
+        return;
 
     // request-target
-    if(! parse_target(it, last, ec))
-        return false;
+    parse_target(it, last, ec);
+    if(ec)
+        return;
 
     // HTTP-version
-    if(! parse_version(
-            it, last, version_, ec))
-        return false;
+    parse_version(it, last, ec);
+    if(ec)
+        return;
 
     // CRLF
     if(last - it < 2)
-        return false;
+        return need_more();
     if(it[0] != '\r' || it[1] != '\n')
     {
         ec = error::bad_version;
-        return false;
+        return;
     }
     first = it + 2;
-    return true;
 }
 
-bool
+void
 request_parser::
 parse_method(
     char*& first,
     char const* last,
     error_code& ec)
 {
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     // token SP
     auto it = first;
     for(;; ++it)
     {
         if(it == last)
-            return false;
+            return need_more();
         if(! detail::is_token_char(*it))
             break;
     }
     if(it == last)
-        return false;
+        return need_more();
     if(*it != ' ')
     {
         // bad token char
         ec = error::bad_method;
-        return false;
+        return;
     }
     if(it == first)
     {
         // empty method
         ec = error::bad_method;
-        return false;
+        return;
     }
+
     string_view s(
         first, it++ - first);
     method_ = string_to_method(s);
     n_method_ = static_cast<
         off_t>(s.size());
     first = it;
-    return true;
 }
 
-bool
+void
 request_parser::
 parse_target(
     char*& first,
     char const* last,
     error_code& ec)
 {
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     // target SP
     auto it = first;
     for(;; ++it)
     {
         if(it == last)
-            return false;
+            return need_more();
         if(! detail::is_pathchar(*it))
             break;
     }
     if(it == last)
-        return false;
+        return need_more();
     if(*it != ' ')
     {
         // bad path char
         ec = error::bad_target;
-        return false;
+        return;
     }
     if(it == first)
     {
         // empty target
         ec = error::bad_target;
-        return false;
+        return;
     }
     string_view s(
         first, it++ - first);
     n_target_ = static_cast<
         off_t>(s.size());
     first = it;
-    return true;
 }
 
 void

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/string_view.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -44,13 +45,14 @@ private:
         nothing_yet = 0,
         start_line,
         fields,
-        body0,
         body,
+#if 0
         body_to_eof0,
         body_to_eof,
         chunk_header0,
         chunk_header,
         chunk_body,
+#endif
         complete
     };
 
@@ -67,8 +69,6 @@ private:
     state state_;
     off_t header_limit_;            // max header size
     std::size_t skip_;              // offset to continue parse
-
-    bool need_more_ : 1;
 
 protected:
     static unsigned constexpr flagSkipBody              = 1<<  0;
@@ -87,6 +87,7 @@ protected:
     static unsigned constexpr flagFinalChunk            = 1<< 13;
 
     unsigned f_;                    // flags
+    char version_;                  // HTTP-version, 0 or 1
 
     static bool is_digit(char) noexcept;
     static bool is_print(char) noexcept;
@@ -98,14 +99,6 @@ protected:
 public:
     BOOST_HTTP_PROTO_DECL
     ~basic_parser();
-
-    /** Returns `true` if more input data is required.
-    */
-    bool
-    need_more() const noexcept
-    {
-        return need_more_;
-    }
 
     /** Returns `true` if a complete message has been parsed.
     */
@@ -138,8 +131,12 @@ public:
     parse_header(error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
-    bool
+    void
     parse_body(error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_body_part(error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -148,18 +145,16 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    parse_chunk_data(
+    parse_chunk_part(
         error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
     void
-    parse_last_chunk(
+    parse_chunk_trailer(
         error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
-    std::pair<
-        void const*,
-        std::size_t>
+    string_view
     body() const;
 
     BOOST_HTTP_PROTO_DECL
@@ -170,16 +165,9 @@ public:
     void
     consume_body() noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    bool
-    need_more() const noexcept
-    {
-        return true;
-    }
-
 protected:
     virtual
-    bool
+    void
     parse_start_line(
         char*& first,
         char const* last,
@@ -198,12 +186,10 @@ private:
         error_code& ec);
 
 protected:
-    static
-    bool
+    void
     parse_version(
         char*& first,
         char const* last,
-        int& result,
         error_code& ec) noexcept;
 
     static
