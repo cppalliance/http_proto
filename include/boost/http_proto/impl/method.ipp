@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_METHOD_IPP
 
 #include <boost/http_proto/method.hpp>
-#include <boost/http_proto/detail/string.hpp>
+#include <boost/http_proto/detail/sv.hpp>
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
 

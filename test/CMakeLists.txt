@@ -17,6 +17,7 @@ set(PFILES
     CMakeLists.txt
     basic_parser.cpp
     context.cpp
+    ctype.cpp
     decoder.cpp
     deflate_service.cpp
     encoder.cpp
@@ -28,7 +29,9 @@ set(PFILES
     request_view.cpp
     response_parser.cpp
     response_view.cpp
+    rfc.cpp
     status.cpp
+    string_view.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

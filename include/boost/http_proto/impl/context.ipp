@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_IMPL_CONTEXT_IPP
 
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/rfc.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/http_proto/detail/string.hpp>
 #include <boost/container/map.hpp>
 //#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet
 #include <unordered_map>
@@ -32,14 +32,14 @@ struct context::data
     boost::container::map<
         std::string,
         decoder_type*,
-        detail::iless_pred
+        iless_pred
             > decoders;
 
     // List of encoders
     boost::container::map<
         std::string,
         encoder_type*,
-        detail::iless_pred
+        iless_pred
             > encoders;
 };
 

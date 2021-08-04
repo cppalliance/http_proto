@@ -20,24 +20,6 @@ namespace http_proto {
 
 //------------------------------------------------
 
-bool
-basic_parser::
-is_digit(char c) noexcept
-{
-    return static_cast<
-        unsigned char>(c-'0') < 10;
-}
-
-bool
-basic_parser::
-is_print(char c) noexcept
-{
-    return static_cast<
-        unsigned char>(c-32) < 95;
-}
-
-//------------------------------------------------
-
 basic_parser::
 basic_parser(
     context& ctx) noexcept
@@ -122,7 +104,10 @@ parse_header(
     // parse algorithms assume at
     // least one committed char.
     if(committed_ == 0)
+    {
+        ec = error::need_more;
         return;
+    }
 
     auto first = buffer_ + parsed_;
     char const* const last =
@@ -140,16 +125,16 @@ parse_header(
         BOOST_ASSERT(parsed_ == 0);
         parse_start_line(first, last, ec);
         if(ec)
-            return;
+            goto finish;
         state_ = state::fields;
         BOOST_FALLTHROUGH;
     }
 
     case state::fields:
     {
-        if(! parse_fields(
-                first, last, ec))
-            break;
+        parse_fields(first, last, ec);
+        if(ec)
+            goto finish;
         BOOST_ASSERT(! ec);
         state_ = state::body;
         break;
@@ -159,6 +144,7 @@ parse_header(
         break;
     }
 
+finish:
     parsed_ = first - buffer_;
 }
 
@@ -216,55 +202,14 @@ body() const
     return {nullptr, 0};
 }
 
-void
-basic_parser::
-consume_header() noexcept
-{
-}
-
-void
-basic_parser::
-consume_body() noexcept
-{
-}
-
 //------------------------------------------------
-
-#if 0
-bool
-basic_parser::
-parse_u64(
-    string_view s,
-    std::uint64_t& v)
-{
-    char const* it = s.data();
-    char const* last = it + s.size();
-    if(it == last)
-        return false;
-    std::uint64_t tmp = 0;
-    do
-    {
-        if((! is_digit(*it)) ||
-            tmp > (std::numeric_limits<std::uint64_t>::max)() / 10)
-            return false;
-        tmp *= 10;
-        std::uint64_t const d = *it - '0';
-        if((std::numeric_limits<std::uint64_t>::max)() - tmp < d)
-            return false;
-        tmp += d;
-    }
-    while(++it != last);
-    v = tmp;
-    return true;
-}
-#endif
 
 void
 basic_parser::
 parse_version(
     char*& first,
     char const* const last,
-    error_code& ec) noexcept
+    error_code& ec)
 {
     auto const need_more =
         [&ec]{ ec = error::need_more; };
@@ -277,11 +222,11 @@ parse_version(
         return;
     }
     it += 7;
-    if(*it == 0)
+    if(*it == '0')
     {
         version_ = 0;
     }
-    else if(*it == 1)
+    else if(*it == '1')
     {
         version_ = 1;
     }
@@ -294,39 +239,42 @@ parse_version(
     first = it;
 }
 
-bool
+//------------------------------------------------
+
+void
 basic_parser::
 parse_fields(
     char*& first,
     char const* last,
     error_code& ec)
 {
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     auto in = first;
     for(;;)
     {
         if(last - in < 2)
-            return false;
+            return need_more();
         if(in[0] == '\r')
         {
             if(in[1] != '\n')
             {
                 ec = error::bad_line_ending;
-                return false;
+                return;
             }
             // end of header
             in = in + 2;
             first = in;
             break;
         }
-        if(! parse_field(in, last, ec))
-            return false;
-        BOOST_ASSERT(! ec);
+        parse_field(in, last, ec);
+        if(ec)
+            return;
         first = in;
     }
-    return true;
 }
 
-bool
+void
 basic_parser::
 parse_field(
     char*& first,
@@ -375,44 +323,51 @@ parse_field(
         "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
         "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1";
 
+    BOOST_ASSERT(first != last);
+    auto const need_more =
+        [&ec]{ ec = error::need_more; };
     auto in = first;
+    char const* k1; // end of name
+    char const* v0; // start of value
+    char const* v1; // end of value
 
-    // field-name
+    // field-name ":"
     for(;;)
     {
         if(*in == ':')
-            break;
+        {
+            if(in != first)
+                break;
+            // empty field name
+            ec = error::bad_field;
+            return;
+        }
         if(! is_tchar[static_cast<
             unsigned char>(*in)])
         {
+            // invalid char
             ec = error::bad_field;
-            return false;
+            return;
         }
         ++in;
         if(last - in < 3)
         {
-            // need at least 3 chars
-            // to detect CRLF SP.
-            return false;
+            // not enough input
+            // to detect obs-fold
+            return need_more();
         }
-    }
-    if(in == first)
-    {
-        // empty name
-        ec = error::bad_field;
-        return false;
-    }
-    //off_t n_name = in - first;
-    ++in; // eat ':'
+    }   
+    k1 = in;
+    ++in;
 
-    // consume OWS and obs-fold
+    // *( OWS / obs-fold )
     for(;;)
     {
         if(last - in < 3)
         {
             // need at least 3 chars
             // to detect CRLF SP.
-            return false;
+            return need_more();
         }
         if( *in == ' ' ||
             *in == '\t')
@@ -425,8 +380,9 @@ parse_field(
         {
             if(in[1] != '\n')
             {
+                // expected LF
                 ec = error::bad_line_ending;
-                return false;
+                return;
             }
             if( in[2] != ' ' &&
                 in[2] != '\t')
@@ -441,17 +397,18 @@ parse_field(
             *in++ = ' ';
             continue;
         }
-        // field-value
         break;
     }
 
+    // field-content
+    v0 = in;
     for(;;)
     {
         if(last - in < 3)
         {
             // need at least 3 chars
             // to detect CRLF SP.
-            return false;
+            return need_more();
         }
         if( is_vchar[static_cast<
                 unsigned char>(*in)] ||
@@ -465,18 +422,17 @@ parse_field(
         {
             // bad field-char
             ec = error::bad_value;
-            return false;
+            return;
         }
         if(in[1] != '\n')
         {
             ec = error::bad_line_ending;
-            return false;
+            return;
         }
         if( in[2] != ' ' &&
             in[2] != '\t')
         {
             // end of field
-            in += 2;
             goto done;
         }
         // replace obs-fold with SP
@@ -486,8 +442,72 @@ parse_field(
     }
 
 done:
+    v1 = in;
+    in += 2;
+    string_view k(first, k1 - first);
+    string_view v(v0, v1 - v0);
+    auto const f =
+        string_to_field(k);
+    switch(f)
+    {
+    case field::connection:
+    case field::proxy_connection:
+        do_connection(v, ec);
+        if(ec)
+            return;
+        break;
+    case field::content_length:
+        do_content_length(v, ec);
+        if(ec)
+            return;
+        break;
+    case field::transfer_encoding:
+        do_transfer_encoding(v, ec);
+        if(ec)
+            return;
+        break;
+    case field::upgrade:
+        do_upgrade(v, ec);
+        if(ec)
+            return;
+        break;
+    default:
+        break;
+    }
     first = in;
-    return true;
+}
+
+//------------------------------------------------
+
+// https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
+void
+basic_parser::
+do_connection(
+    string_view v, error_code& ec)
+{
+}
+
+//------------------------------------------------
+
+void
+basic_parser::
+do_content_length(
+    string_view v, error_code& ec)
+{
+}
+
+void
+basic_parser::
+do_transfer_encoding(
+    string_view v, error_code& ec)
+{
+}
+
+void
+basic_parser::
+do_upgrade(
+    string_view v, error_code& ec)
+{
 }
 
 } // http_proto

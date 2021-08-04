@@ -331,8 +331,11 @@ public:
     void
     run()
     {
+#if 0
         doReadBody();
         doReadBodyParts();
+#endif
+        testParse();
     }
 };
 

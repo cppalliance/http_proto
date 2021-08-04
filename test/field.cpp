@@ -9,7 +9,9 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/detail/string.hpp>
+
+#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/detail/sv.hpp>
 
 #include "test_suite.hpp"
 
@@ -25,8 +27,7 @@ public:
         auto const match =
             [&](field f, string_view s)
             {
-                BOOST_TEST(detail::iequals(
-                    to_string(f), s));
+                BOOST_TEST(iequals(to_string(f), s));
                 BOOST_TEST(string_to_field(s) == f);
             };
 

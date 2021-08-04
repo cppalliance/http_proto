@@ -89,9 +89,6 @@ protected:
     unsigned f_;                    // flags
     char version_;                  // HTTP-version, 0 or 1
 
-    static bool is_digit(char) noexcept;
-    static bool is_print(char) noexcept;
-
     explicit
     basic_parser(
         context& ctx) noexcept;
@@ -157,47 +154,26 @@ public:
     string_view
     body() const;
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    consume_header() noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    consume_body() noexcept;
-
 protected:
-    virtual
-    void
-    parse_start_line(
-        char*& first,
-        char const* last,
-        error_code& ec) = 0;
-
-    virtual
-    void
-    finish_header(
-        error_code& ec) = 0;
+    virtual void parse_start_line(
+        char*&, char const*, error_code&) = 0;
+    virtual void finish_header(error_code&) = 0;
+    void parse_version(
+        char*&, char const*, error_code&);
 
 private:
-    bool
-    parse_fields(
-        char*& first,
-        char const* last,
-        error_code& ec);
-
-protected:
-    void
-    parse_version(
-        char*& first,
-        char const* last,
-        error_code& ec) noexcept;
-
-    static
-    bool
-    parse_field(
-        char*& first,
-        char const* last,
-        error_code& ec);
+    void parse_fields(char*&,
+        char const*, error_code&);
+    void parse_field(char*&,
+        char const*, error_code&);
+    void do_connection(
+        string_view, error_code&);
+    void do_content_length(
+        string_view, error_code&);
+    void do_transfer_encoding(
+        string_view, error_code&);
+    void do_upgrade(
+        string_view, error_code&);
 };
 
 } // http_proto

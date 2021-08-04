@@ -11,17 +11,21 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/basic_parser.hpp>
+#include <boost/http_proto/connection.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/decoder.hpp>
 #include <boost/http_proto/deflate_service.hpp>
 #include <boost/http_proto/encoder.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/response_view.hpp>
+#include <boost/http_proto/rfc.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_view.hpp>
 
