@@ -16,6 +16,7 @@ set(TFILES
 set(PFILES
     CMakeLists.txt
     basic_parser.cpp
+    connection.cpp
     context.cpp
     ctype.cpp
     decoder.cpp
