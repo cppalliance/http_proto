@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/transfer_param_list.hpp>
+#include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 #include "test_suite.hpp"
 #include "test_bnf.hpp"

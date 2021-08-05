@@ -34,8 +34,8 @@ set(PFILES
     rfc.cpp
     status.cpp
     string_view.cpp
-    token_list.cpp
-    transfer_param_list.cpp
+    bnf/token_list.cpp
+    bnf/transfer_param_list.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

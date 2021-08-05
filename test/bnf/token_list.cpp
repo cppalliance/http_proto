@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/token_list.hpp>
+#include <boost/http_proto/bnf/token_list.hpp>
 
 #include "test_suite.hpp"
 #include "test_bnf.hpp"

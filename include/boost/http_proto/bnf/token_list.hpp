@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_TOKEN_LIST_HPP
-#define BOOST_HTTP_PROTO_TOKEN_LIST_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_TOKEN_LIST_HPP
+#define BOOST_HTTP_PROTO_BNF_TOKEN_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>

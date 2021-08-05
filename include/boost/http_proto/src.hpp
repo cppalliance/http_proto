@@ -45,8 +45,9 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/response_view.ipp>
 #include <boost/http_proto/impl/rfc.ipp>
 #include <boost/http_proto/impl/status.ipp>
-#include <boost/http_proto/impl/token_list.ipp>
-#include <boost/http_proto/impl/transfer_param_list.ipp>
+
+#include <boost/http_proto/bnf/impl/token_list.ipp>
+#include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
 
 // VFALCO These are tucked away here temporarily
 #include <boost/beast/zlib/detail/deflate_stream.ipp>
