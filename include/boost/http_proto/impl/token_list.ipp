@@ -124,7 +124,7 @@ token_list_bnf::
 begin(
     char const* const start,
     char const* const end,
-    error_code& ec) noexcept
+    error_code& ec)
 {
 //  *( "," OWS ) token *( OWS "," )
     auto first = skip_opt_comma_ows(
@@ -147,7 +147,7 @@ token_list_bnf::
 increment(
     char const* const start,
     char const* const end,
-    error_code& ec) noexcept
+    error_code& ec)
 {
 //  element *( OWS "," )
     if(start == end)

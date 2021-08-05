@@ -35,6 +35,7 @@ set(PFILES
     status.cpp
     string_view.cpp
     token_list.cpp
+    transfer_parameter_list.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
