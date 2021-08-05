@@ -20,39 +20,60 @@ class token_list_test
 {
 public:
     template<class T>
+    void
+    bad(string_view s)
+    {
+        T r(s);
+        BOOST_TEST(! r.is_valid());
+        BOOST_TEST_THROWS(r.validate(),
+            system_error);
+    }
+
+    template<class T>
     static
     void
-    check(
+    good(
         string_view s,
-        string_view good)
+        string_view match)
     {
-        T list(s);
+        T r(s);
+        BOOST_TEST_NO_THROW(r.validate());
+        if(! BOOST_TEST(r.is_valid()))
+            return;
         std::stringstream ss;
-        for(auto it = list.begin(),
-            end = list.end();
+        for(auto it = r.begin(),
+            end = r.end();
             it != end;)
         {
             ss << *it++;
             if(it != end)
                 ss << ',';
         }
-        BOOST_TEST(ss.str() == good);
+        BOOST_TEST(ss.str() == match);
     }
 
     void
     testTokenList()
     {
         using T = token_list;
-        check<T>("a", "a");
-        check<T>("ab", "ab");
-        check<T>("abc", "abc");
-        check<T>("a,b", "a,b");
-        check<T>("a,b,c", "a,b,c");
-        check<T>(",a", "a");
-        check<T>("a,", "a");
-        check<T>(",a,", "a");
-        check<T>(",,a,", "a");
-        check<T>(",a,,", "a");
+
+        bad<T>("");
+        bad<T>(" ");
+        bad<T>("\t");
+        bad<T>(",");
+        bad<T>(",,");
+        bad<T>(", ");
+        bad<T>(", ,");
+        bad<T>(" x");
+        bad<T>("x ");
+        bad<T>("x,@");
+
+        good<T>("x", "x");
+        good<T>(",x", "x");
+        good<T>(", x", "x");
+        good<T>(",\tx", "x");
+        good<T>("x,", "x");
+        good<T>("x,y", "x,y");
     }
 
     void

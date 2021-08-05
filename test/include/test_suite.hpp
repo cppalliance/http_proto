@@ -650,26 +650,48 @@ using log_type = detail::log_ostream<char>;
 #define BOOST_TEST_NOT(expr) BOOST_TEST(!(expr))
 
 #ifndef BOOST_NO_EXCEPTIONS
+
 # define BOOST_TEST_THROWS( expr, except ) \
     try { \
         (void)(expr); \
         ::test_suite::detail::current()->fail ( \
-            #except, __FILE__, __LINE__, \
+            #expr, __FILE__, __LINE__, \
             TEST_SUITE_FUNCTION); \
     } \
     catch(except const&) { \
         ::test_suite::detail::current()->pass( \
-            #except, __FILE__, __LINE__, \
+            #expr, __FILE__, __LINE__, \
             TEST_SUITE_FUNCTION); \
     } \
     catch(...) { \
         ::test_suite::detail::current()->fail( \
-            #except, __FILE__, __LINE__, \
+            #expr, __FILE__, __LINE__, \
+            TEST_SUITE_FUNCTION); \
+    }
+
+# define BOOST_TEST_NO_THROW( expr )                                    \
+    try { \
+        (void)(expr); \
+        ::test_suite::detail::current()->pass( \
+            #expr, __FILE__, __LINE__, \
+            TEST_SUITE_FUNCTION); \
+    } \
+    catch (const std::exception&) { \
+        ::test_suite::detail::current()->fail ( \
+            #expr, __FILE__, __LINE__, \
+            TEST_SUITE_FUNCTION); \
+    } \
+    catch (...) {                                                    \
+        ::test_suite::detail::current()->fail ( \
+            #expr, __FILE__, __LINE__, \
             TEST_SUITE_FUNCTION); \
     }
 
 #else
-   #define BOOST_TEST_THROWS( expr, except )
+
+# define BOOST_TEST_THROWS( expr, except )
+# define BOOST_TEST_NO_THROW( expr ) { expr; }
+
 #endif
 
 #define TEST_SUITE(type, name) \

@@ -22,10 +22,6 @@ namespace http_proto {
 /*
     token-list        = 1#token
     token             = 1*tchar
-    tchar             = "!" / "#" / "$" / "%" / "&" /
-                        "'" / "*" / "+" / "-" / "." /
-                        "^" / "_" / "`" / "|" / "~" /
-                        DIGIT / ALPHA
 
     legacy list rules:
     1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
@@ -95,6 +91,33 @@ increment(
     auto it = start;
 
     // *( OWS "," [ OWS token ] )
+    if(it == end)
+        return nullptr;
+    // OWS ","
+    for(;;)
+    {
+        if( *it == ' ' ||
+            *it == '\t')
+        {
+            ++it;
+            if(it == end)
+            {
+                ec = error::bad_value;
+                return start;
+            }
+        }
+        else if(*it == ',')
+        {
+            ++it;
+            break;
+        }
+        else
+        {
+            ec = error::bad_value;
+            return start;
+        }
+    }
+    // *( OWS [ "," ] ) [ token ]
     for(;;)
     {
         if(it == end)
@@ -107,12 +130,12 @@ increment(
             ++it;
             continue;
         default:
+            if(! is_tchar(*it))
+            {
+                ec = error::bad_value;
+                return start;
+            }
             break;
-        }
-        if(! is_tchar(*it))
-        {
-            ec = error::bad_value;
-            return start;
         }
         break;
     }
