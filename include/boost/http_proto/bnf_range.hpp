@@ -236,6 +236,41 @@ is_valid() const
     return ! ec.failed();
 }
 
+//------------------------------------------------
+
+/** Return the valid prefix of s for the BNF T
+*/
+template<class T>
+string_view
+valid_prefix(
+    string_view s,
+    error_code& ec)
+{
+    auto const end = &*s.end();
+    auto pos = s.data();
+    typename T::state st;
+    pos = T::begin(
+        st, pos, end, ec);
+    if(ec)
+        return {};
+    error_code e;
+    for(;;)
+    {
+        auto next = T::increment(
+            st, pos, end, e);
+        if(e)
+            break;
+        if(! next)
+        {
+            pos = end;
+            break;
+        }
+        pos = next;
+    }
+    return { s.data(), s.data() +
+        (pos - s.data()) };
+}
+
 } // http_proto
 } // boost
 

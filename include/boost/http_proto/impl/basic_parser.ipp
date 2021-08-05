@@ -153,6 +153,7 @@ basic_parser::
 parse_body(
     error_code& ec)
 {
+    (void)ec;
     switch(state_)
     {
     case state::nothing_yet:
@@ -166,6 +167,7 @@ basic_parser::
 parse_body_part(
     error_code& ec)
 {
+    (void)ec;
     switch(state_)
     {
     case state::nothing_yet:
@@ -179,6 +181,7 @@ basic_parser::
 parse_chunk_ext(
     error_code& ec)
 {
+    (void)ec;
 }
 
 void
@@ -186,6 +189,7 @@ basic_parser::
 parse_chunk_part(
     error_code& ec)
 {
+    (void)ec;
 }
 
 void
@@ -193,6 +197,7 @@ basic_parser::
 parse_chunk_trailer(
     error_code& ec)
 {
+    (void)ec;
 }
 
 string_view
@@ -485,6 +490,8 @@ basic_parser::
 do_connection(
     string_view v, error_code& ec)
 {
+    (void)v;
+    (void)ec;
 }
 
 //------------------------------------------------
@@ -494,6 +501,8 @@ basic_parser::
 do_content_length(
     string_view v, error_code& ec)
 {
+    (void)v;
+    (void)ec;
 }
 
 void
@@ -501,6 +510,8 @@ basic_parser::
 do_transfer_encoding(
     string_view v, error_code& ec)
 {
+    (void)v;
+    (void)ec;
 }
 
 void
@@ -508,6 +519,8 @@ basic_parser::
 do_upgrade(
     string_view v, error_code& ec)
 {
+    (void)v;
+    (void)ec;
 }
 
 } // http_proto
