@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_PARSER_IPP
 
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/detail/rfc7230.hpp>
+#include <boost/http_proto/ctype.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -98,7 +98,7 @@ parse_method(
     {
         if(it == last)
             return need_more();
-        if(! detail::is_token_char(*it))
+        if(! is_tchar(*it))
             break;
     }
     if(it == last)

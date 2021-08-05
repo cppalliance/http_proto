@@ -25,9 +25,8 @@ in a translation unit of the program.
 // using src.hpp as their main header file
 #include <boost/http_proto.hpp>
 
-#include <boost/http_proto/detail/rfc7230.ipp>
-
 #include <boost/http_proto/detail/impl/except.ipp>
+#include <boost/http_proto/detail/impl/rfc7230.ipp>
 
 #include <boost/http_proto/impl/basic_parser.ipp>
 #include <boost/http_proto/impl/connection.ipp>
@@ -47,7 +46,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/rfc.ipp>
 #include <boost/http_proto/impl/status.ipp>
 #include <boost/http_proto/impl/token_list.ipp>
-#include <boost/http_proto/impl/transfer_parameter_list.ipp>
+#include <boost/http_proto/impl/transfer_param_list.ipp>
 
 // VFALCO These are tucked away here temporarily
 #include <boost/beast/zlib/detail/deflate_stream.ipp>

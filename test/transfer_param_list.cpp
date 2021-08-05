@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/transfer_parameter_list.hpp>
+#include <boost/http_proto/transfer_param_list.hpp>
 
 #include "test_suite.hpp"
 #include <sstream>
@@ -16,7 +16,7 @@
 namespace boost {
 namespace http_proto {
 
-class transfer_parameter_list_test
+class transfer_param_list_test
 {
 public:
     void
@@ -25,7 +25,7 @@ public:
     }
 };
 
-TEST_SUITE(transfer_parameter_list_test, "boost.http_proto.transfer_parameter_list");
+TEST_SUITE(transfer_param_list_test, "boost.http_proto.transfer_param_list");
 
 } // http_proto
 } // boost

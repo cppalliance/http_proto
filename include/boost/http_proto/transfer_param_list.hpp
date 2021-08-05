@@ -18,7 +18,7 @@
 namespace boost {
 namespace http_proto {
 
-struct transfer_parameter_list_bnf
+struct transfer_param_list_bnf
 {
     string_view value;
 
@@ -37,8 +37,8 @@ struct transfer_parameter_list_bnf
         error_code& ec);
 };
 
-using transfer_parameter_list =
-    bnf_range<transfer_parameter_list_bnf>;
+using transfer_param_list =
+    bnf_range<transfer_param_list_bnf>;
 
 } // http_proto
 } // boost

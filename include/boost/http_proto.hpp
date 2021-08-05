@@ -30,6 +30,6 @@
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/token_list.hpp>
-#include <boost/http_proto/transfer_parameter_list.hpp>
+#include <boost/http_proto/transfer_param_list.hpp>
 
 #endif

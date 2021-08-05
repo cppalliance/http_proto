@@ -16,24 +16,31 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-static char is_token_char(char c) noexcept;
 static bool is_pathchar(char c) noexcept;
 
-#if 0
-static bool is_digit(char c) noexcept;
-static char is_alpha(char c) noexcept;
-static char is_text(char c) noexcept;
-static char is_qdchar(char c) noexcept;
-static char is_qpchar(char c) noexcept;
+char const*
+skip_ows(
+    char const* it,
+    char const* const end) noexcept;
 
-// VFALCO TODO Make this return unsigned?
-static std::int8_t unhex(char c) noexcept;
-#endif
+static
+char const*
+skip_token(
+    char const* start,
+    char const* end) noexcept;
 
-// converts to lower case,
-// returns 0 if not a valid text char
-//
-static char to_value_char(char c) noexcept;
+static
+char const*
+skip_opt_comma_ows(
+    char const* start,
+    char const* end) noexcept;
+
+static
+char const*
+skip_opt_ows_comma(
+    bool& comma,
+    char const* start,
+    char const* end) noexcept;
 
 } // detail
 } // http_proto

@@ -7,22 +7,22 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_TRANSFER_PARAMETER_LIST_IPP
-#define BOOST_HTTP_PROTO_IMPL_TRANSFER_PARAMETER_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_IMPL_TRANSFER_PARAM_LIST_IPP
+#define BOOST_HTTP_PROTO_IMPL_TRANSFER_PARAM_LIST_IPP
 
-#include <boost/http_proto/transfer_parameter_list.hpp>
+#include <boost/http_proto/transfer_param_list.hpp>
 #include <boost/http_proto/ctype.hpp>
 
 namespace boost {
 namespace http_proto {
 
 /*
-    legacy list rules:
-    1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
+    transfer-param-list = *( OWS ";" OWS transfer-param )
+    transfer-param      = token BWS "=" BWS ( token / quoted-string )
 */
 
 char const*
-transfer_parameter_list_bnf::
+transfer_param_list_bnf::
 begin(
     char const* const start,
     char const* const end,
@@ -32,7 +32,7 @@ begin(
 }
 
 char const*
-transfer_parameter_list_bnf::
+transfer_param_list_bnf::
 increment(
     char const* const start,
     char const* const end,
