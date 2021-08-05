@@ -13,7 +13,7 @@
 #include <boost/http_proto/forward_range.hpp>
 
 #include "test_suite.hpp"
-#include <iostream>
+#include <sstream>
 
 namespace boost {
 namespace http_proto {
@@ -21,16 +21,46 @@ namespace http_proto {
 class token_list_test
 {
 public:
+    template<class T>
+    static
+    void
+    check(
+        string_view s,
+        string_view good)
+    {
+        T list(s);
+        std::stringstream ss;
+        for(auto it = list.begin(),
+            end = list.end();
+            it != end;)
+        {
+            ss << *it++;
+            if(it != end)
+                ss << ',';
+        }
+        BOOST_TEST(ss.str() == good);
+    }
+
+    void
+    testTokenList()
+    {
+        using T = token_list;
+        check<T>("a", "a");
+        check<T>("ab", "ab");
+        check<T>("abc", "abc");
+        check<T>("a,b", "a,b");
+        check<T>("a,b,c", "a,b,c");
+        check<T>(",a", "a");
+        check<T>("a,", "a");
+        check<T>(",a,", "a");
+        check<T>(",,a,", "a");
+        check<T>(",a,,", "a");
+    }
+
     void
     run()
     {
-        test_suite::debug_stream log(std::cout);
-
-        string_view in =
-            "close,, ,keep-alive, upgrade,  ";
-
-        for(auto v : token_list(in))
-            log << '\"' << v << '\"' << std::endl;
+        testTokenList();
     }
 };
 

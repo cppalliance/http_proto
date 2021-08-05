@@ -53,7 +53,6 @@ begin(
                 case ',':
                 case ' ':
                 case '\t':
-                    ++it;
                     break;
                 default:
                     goto do_token;
