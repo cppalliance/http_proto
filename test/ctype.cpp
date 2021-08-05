@@ -19,8 +19,38 @@ class ctype_test
 {
 public:
     void
+    test_ctype(
+        bool (*pf)(char),
+        string_view set)
+    {
+        unsigned char u = 0;
+        do
+        {
+            char const c = static_cast<char>(u);
+            if(set.find(c) != string_view::npos)
+                BOOST_TEST(pf(c));
+            else
+                BOOST_TEST(! pf(c));
+        }
+        while(++u != 0);
+    }
+
+    void
+    test_is_tchar()
+    {
+        test_ctype(
+            &is_tchar,
+            "!#$" "%%" "&'*+-.^_`|~"
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+        );
+    }
+
+    void
     run()
     {
+        test_is_tchar();
     }
 };
 

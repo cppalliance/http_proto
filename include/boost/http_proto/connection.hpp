@@ -7,15 +7,13 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_CONNECTION_HPP
-#define BOOST_HTTP_CONNECTION_HPP
+#ifndef BOOST_HTTP_PROTO_CONNECTION_HPP
+#define BOOST_HTTP_PROTO_CONNECTION_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
-
 
 } // http_proto
 } // boost

@@ -100,6 +100,22 @@ struct iless_pred
     }
 };
 
+//------------------------------------------------
+
+/** Return true if c is a tchar
+
+    @par BNF
+    @code
+    tchar   = "!" / "#" / "$" / "%" / "&" /
+              "'" / "*" / "+" / "-" / "." /
+              "^" / "_" / "`" / "|" / "~" /
+              DIGIT / ALPHA
+    @endcode
+*/
+inline
+bool
+is_tchar(char c) noexcept;
+
 } // http_proto
 } // boost
 
