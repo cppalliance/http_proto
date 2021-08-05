@@ -97,6 +97,10 @@ public:
         suffix<T>("x,", 0);
         suffix<T>("x, ", 1);
         suffix<T>("x, @", 2);
+        suffix<T>("x,x", 0);
+        suffix<T>("x,x ", 1);
+        suffix<T>("x,x x", 2);
+        suffix<T>("x,x ,", 0);
     }
 
     void
