@@ -30,7 +30,6 @@ namespace http_proto {
 char const*
 token_list_bnf::
 begin(
-    state& st,
     char const* const start,
     char const* const end,
     error_code& ec) noexcept
@@ -75,15 +74,14 @@ do_token:
             break;
         ++it;
     }
-    st.value = {first, static_cast<
-        std::size_t>(it - first)};
+    value = { first, static_cast<
+        std::size_t>(it - first) };
     return it;
 }
 
 char const*
 token_list_bnf::
 increment(
-    state& st,
     char const* const start,
     char const* const end,
     error_code& ec) noexcept
@@ -144,8 +142,8 @@ increment(
     while(++it != end)
         if(! is_tchar(*it))
             break;
-    st.value = {first, static_cast<
-        std::size_t>(it - first)};
+    value = { first, static_cast<
+        std::size_t>(it - first) };
     return it;
 }
 

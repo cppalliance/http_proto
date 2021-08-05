@@ -60,7 +60,7 @@ class bnf_range<T>::iterator
 {
     char const* next_;
     char const* end_;
-    typename T::state st_;
+    T impl_;
 
     friend class bnf_range;
 
@@ -69,8 +69,8 @@ class bnf_range<T>::iterator
         : end_(&*s.end())
     {
         error_code ec;
-        next_ = T::begin(
-            st_, s.data(), end_, ec);
+        next_ = impl_.begin(
+            s.data(), end_, ec);
         if(ec)
             detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
@@ -81,8 +81,8 @@ class bnf_range<T>::iterator
         error_code& ec)
         : end_(&*s.end())
     {
-        next_ = T::begin(
-            st_, s.data(), end_, ec);
+        next_ = impl_.begin(
+            s.data(), end_, ec);
     }
 
     explicit
@@ -93,9 +93,8 @@ class bnf_range<T>::iterator
     }
 
 public:
-    using value_type =
-        decltype(std::declval<
-            T::state>().value);
+    using value_type = decltype(
+        std::declval<T>().value);
     using pointer = value_type const*;
     using reference = value_type const&;
     using difference_type = std::ptrdiff_t;
@@ -127,21 +126,21 @@ public:
     reference
     operator*() const
     {
-        return st_.value;
+        return impl_.value;
     }
 
     pointer
     operator->() const
     {
-        return &st_.value;
+        return &impl_.value;
     }
 
     void
     increment(
         error_code& ec)
     {
-        next_ = T::increment(
-            st_, next_, end_, ec);
+        next_ = impl_.increment(
+            next_, end_, ec);
     }
 
     iterator&
@@ -248,16 +247,15 @@ valid_prefix(
 {
     auto const end = &*s.end();
     auto pos = s.data();
-    typename T::state st;
-    pos = T::begin(
-        st, pos, end, ec);
+    T impl;
+    pos = impl.begin(pos, end, ec);
     if(ec)
         return {};
     error_code e;
     for(;;)
     {
-        auto next = T::increment(
-            st, pos, end, e);
+        auto next = impl.increment(
+            pos, end, e);
         if(e)
             break;
         if(! next)

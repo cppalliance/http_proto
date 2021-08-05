@@ -20,25 +20,18 @@ namespace http_proto {
 
 struct token_list_bnf
 {
-    struct state
-    {
-        string_view value;
-    };
+    string_view value;
 
     BOOST_HTTP_PROTO_DECL
-    static
     char const*
     begin(
-        state& st,
         char const* start,
         char const* end,
         error_code& ec) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    static
     char const*
     increment(
-        state& st,
         char const* start,
         char const* end,
         error_code& ec) noexcept;
