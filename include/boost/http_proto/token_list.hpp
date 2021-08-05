@@ -12,29 +12,13 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/forward_range.hpp>
+#include <boost/http_proto/bnf_range.hpp>
 #include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
 
-#if 0
-class iterator_impl
-{
-public:
-    string_view value;
-    char const* end;
-
-    iterator_impl(
-        iterator_impl const&) = default;
-    iterator_impl&
-        operator=(iterator_impl const&) = default;
-
-    iterator_impl()
-};
-#endif
-
-struct token_list_type
+struct token_list_bnf
 {
     struct state
     {
@@ -58,17 +42,9 @@ struct token_list_type
         char const* start,
         char const* end,
         error_code& ec) noexcept;
-
-private:
-    static
-    inline
-    char const*
-    skip_comma_ows_seq(
-        char const* it,
-        char const* end) noexcept;
 };
 
-using token_list = forward_range<token_list_type>;
+using token_list = bnf_range<token_list_bnf>;
 
 } // http_proto
 } // boost

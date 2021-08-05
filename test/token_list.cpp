@@ -10,8 +10,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/token_list.hpp>
 
-#include <boost/http_proto/forward_range.hpp>
-
 #include "test_suite.hpp"
 #include <sstream>
 

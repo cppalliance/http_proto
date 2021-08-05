@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/basic_parser.hpp>
+#include <boost/http_proto/bnf_range.hpp>
 #include <boost/http_proto/connection.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/ctype.hpp>
@@ -20,7 +21,6 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_view.hpp>
-#include <boost/http_proto/forward_range.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/request_view.hpp>

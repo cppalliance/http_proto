@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_FORWARD_RANGE_HPP
-#define BOOST_HTTP_PROTO_FORWARD_RANGE_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_RANGE_HPP
+#define BOOST_HTTP_PROTO_BNF_RANGE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -20,14 +20,16 @@
 namespace boost {
 namespace http_proto {
 
-template<class ListType>
-class forward_range
+template<class BNF>
+class bnf_range
 {
     string_view s_;
 
 public:
+    using bnf_type = BNF;
+
     explicit
-    forward_range(
+    bnf_range(
         string_view s)
         : s_(s)
     {
@@ -37,16 +39,16 @@ public:
     {
         char const* next_;
         char const* end_;
-        typename ListType::state st_;
+        typename BNF::state st_;
 
-        friend class forward_range;
+        friend class bnf_range;
 
         explicit
         iterator(string_view s)
             : end_(&*s.end())
         {
             error_code ec;
-            next_ = ListType::begin(
+            next_ = BNF::begin(
                 st_, s.data(), end_, ec);
         }
 
@@ -60,7 +62,7 @@ public:
     public:
         using value_type =
             decltype(std::declval<
-                ListType::state>().value);
+                BNF::state>().value);
         using pointer = value_type const*;
         using reference = value_type const&;
         using difference_type = std::ptrdiff_t;
@@ -73,7 +75,8 @@ public:
         }
 
         bool
-        operator==(iterator const& other) const
+        operator==(
+            iterator const& other) const
         {
             return
                 next_ == other.next_ &&
@@ -81,7 +84,8 @@ public:
         }
 
         bool
-        operator!=(iterator const& other) const
+        operator!=(
+            iterator const& other) const
         {
             return !(*this == other);
         }
@@ -102,7 +106,7 @@ public:
         operator++()
         {
             error_code ec;
-            next_ = ListType::increment(
+            next_ = BNF::increment(
                 st_, next_, end_, ec);
             return *this;
         }

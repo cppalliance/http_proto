@@ -17,8 +17,8 @@ namespace boost {
 namespace http_proto {
 
 // https://datatracker.ietf.org/doc/html/rfc5234
-// https://datatracker.ietf.org/doc/html/rfc7230#section-7
 // https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
+// https://datatracker.ietf.org/doc/html/rfc7230#section-7
 /*
     token-list        = 1#token
     token             = 1*tchar
@@ -32,7 +32,7 @@ namespace http_proto {
 */
 
 char const*
-token_list_type::
+token_list_bnf::
 begin(
     state& st,
     char const* const start,
@@ -85,7 +85,7 @@ do_token:
 }
 
 char const*
-token_list_type::
+token_list_bnf::
 increment(
     state& st,
     char const* const start,
