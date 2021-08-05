@@ -25,7 +25,99 @@ namespace http_proto {
 
     legacy list rules:
     1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
+
+    To satisfy the requirement for greedy parsing,
+    in begin we consume this bnf:
+
+        *( "," OWS ) element *( OWS "," )
+
+    and in increment we consume:
+
+        element *( OWS "," )
+
+    with an additional flag to indicate a comma was seen.
 */
+
+char const*
+token_list_bnf::
+skip_opt_comma_ows(
+    char const* it,
+    char const* const end) noexcept
+{
+    // *( "," OWS )
+    if(it == end)
+        return it;
+    if(*it != ',')
+        return it;
+    ++it;
+    while(it != end)
+    {
+        switch(*it)
+        {
+        case ' ':
+        case '\t':
+        case ',':
+            ++it;
+            continue;
+        }
+        break;
+    }
+    return it;
+}
+
+char const*
+token_list_bnf::
+skip_opt_ows_comma(
+    char const* const start,
+    char const* const end) noexcept
+{
+    // *( OWS "," )
+    auto it = start;
+    auto last = start;
+    if(it == end)
+        return it;
+    for(;;)
+    {
+        switch(*it)
+        {
+        case ' ':
+        case '\t':
+            ++it;
+            if(it == end)
+            {
+                comma_ =
+                    last != start;
+                return last;
+            }
+            break;
+        case ',':
+            ++it;
+            if(it == end)
+                return it;
+            last = it;
+            break;
+        default:
+            comma_ =
+                last != start;
+            return last;
+        }
+    }
+}
+
+char const*
+token_list_bnf::
+skip_token(
+    char const* it,
+    char const* const end) noexcept
+{
+    while(it != end)
+    {
+        if(! is_tchar(*it))
+            break;
+        ++it;
+    }
+    return it;
+}
 
 char const*
 token_list_bnf::
@@ -34,49 +126,20 @@ begin(
     char const* const end,
     error_code& ec) noexcept
 {
-    auto it = start;
-   
-    // *( "," OWS )
-    if(it != end)
+//  *( "," OWS ) token *( OWS "," )
+    auto first = skip_opt_comma_ows(
+        start, end);
+    auto it = skip_token(first, end);
+    if(it == first)
     {
-        if(*it != ',')
-            goto do_token;
-        while(++it != end)
-        {
-            switch(*it)
-            {
-                case ',':
-                case ' ':
-                case '\t':
-                    break;
-                default:
-                    goto do_token;
-            }
-        }
-    }
-    // can't have 0 tokens
-    ec = error::bad_value;
-    return start;
-
-    // token
-do_token:
-    if(! is_tchar(*it) )
-    {
+        // missing token
         ec = error::bad_value;
         return start;
     }
-    auto const first = it;
-    ++it;
-    for(;;)
-    {
-        if( it == end ||
-            ! is_tchar(*it))
-            break;
-        ++it;
-    }
     value = { first, static_cast<
         std::size_t>(it - first) };
-    return it;
+    return skip_opt_ows_comma(
+        it, end);
 }
 
 char const*
@@ -86,65 +149,25 @@ increment(
     char const* const end,
     error_code& ec) noexcept
 {
-    auto it = start;
-
-    // *( OWS "," [ OWS token ] )
-    if(it == end)
+//  element *( OWS "," )
+    if(start == end)
         return nullptr;
-    // OWS ","
-    for(;;)
+    if(! comma_)
     {
-        if( *it == ' ' ||
-            *it == '\t')
-        {
-            ++it;
-            if(it == end)
-            {
-                ec = error::bad_value;
-                return start;
-            }
-        }
-        else if(*it == ',')
-        {
-            ++it;
-            break;
-        }
-        else
-        {
-            ec = error::bad_value;
-            return start;
-        }
+        ec = error::bad_value;
+        return start;
     }
-    // *( OWS [ "," ] ) [ token ]
-    for(;;)
+    auto it = skip_token(
+        start, end);
+    if(it == start)
     {
-        if(it == end)
-            return nullptr;
-        switch(*it)
-        {
-        case ' ':
-        case '\t':
-        case ',':
-            ++it;
-            continue;
-        default:
-            if(! is_tchar(*it))
-            {
-                ec = error::bad_value;
-                return start;
-            }
-            break;
-        }
-        break;
+        ec = error::bad_value;
+        return start;
     }
-    // token
-    auto const first = it;
-    while(++it != end)
-        if(! is_tchar(*it))
-            break;
-    value = { first, static_cast<
-        std::size_t>(it - first) };
-    return it;
+    value = { start, static_cast<
+        std::size_t>(it - start) };
+    return skip_opt_ows_comma(
+        it, end);
 }
 
 } // http_proto

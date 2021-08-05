@@ -95,9 +95,8 @@ class bnf_range<T>::iterator
 public:
     using value_type = decltype(
         std::declval<T>().value);
-    using pointer = value_type const*;
-    using reference = value_type const&;
-    using difference_type = std::ptrdiff_t;
+    using pointer = value_type;
+    using reference = value_type;
     using iterator_category =
         std::forward_iterator_tag;
 
@@ -123,13 +122,13 @@ public:
         return !(*this == other);
     }
 
-    reference
+    value_type
     operator*() const
     {
         return impl_.value;
     }
 
-    pointer
+    value_type
     operator->() const
     {
         return &impl_.value;
@@ -265,8 +264,8 @@ valid_prefix(
         }
         pos = next;
     }
-    return { s.data(), s.data() +
-        (pos - s.data()) };
+    return { s.data(), static_cast<
+        std::size_t>(pos - s.data()) };
 }
 
 } // http_proto

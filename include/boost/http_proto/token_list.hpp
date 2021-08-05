@@ -35,6 +35,26 @@ struct token_list_bnf
         char const* start,
         char const* end,
         error_code& ec) noexcept;
+
+private:
+    bool comma_;
+
+    static
+    char const*
+    skip_opt_comma_ows(
+        char const* start,
+        char const* end) noexcept;
+
+    char const*
+    skip_opt_ows_comma(
+        char const* start,
+        char const* end) noexcept;
+
+    static
+    char const*
+    skip_token(
+        char const* start,
+        char const* end) noexcept;
 };
 
 using token_list = bnf_range<token_list_bnf>;

@@ -20,14 +20,31 @@ class bnf_range_test
 public:
     struct bnf1
     {
-#if 0
         string_view value;
-        static char const* begin(
-            state& st,
+
+        char const*
+        begin(
             char const* start,
             char const* end,
-            error_code& ec) noexcept;
-#endif
+            error_code& ec) noexcept
+        {
+            (void)start;
+            (void)end;
+            (void)ec;
+            return nullptr;
+        }
+
+        char const*
+        increment(
+            char const* start,
+            char const* end,
+            error_code& ec) noexcept
+        {
+            (void)start;
+            (void)end;
+            (void)ec;
+            return nullptr;
+        }
     };
 
     void

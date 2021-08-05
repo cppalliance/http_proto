@@ -52,6 +52,20 @@ public:
         BOOST_TEST(ss.str() == match);
     }
 
+    template<class T>
+    static
+    void
+    suffix(
+        string_view s,
+        std::size_t n)
+    {
+        error_code ec;
+        auto s1 = valid_prefix<
+            typename T::bnf_type>(s, ec);
+        BOOST_TEST(! ec);
+        BOOST_TEST(s.size() - s1.size() == n);
+    }
+
     void
     testTokenList()
     {
@@ -67,6 +81,7 @@ public:
         bad<T>(" x");
         bad<T>("x ");
         bad<T>("x,@");
+        bad<T>("x, ");
 
         good<T>("x", "x");
         good<T>(",x", "x");
@@ -74,6 +89,14 @@ public:
         good<T>(",\tx", "x");
         good<T>("x,", "x");
         good<T>("x,y", "x,y");
+
+        suffix<T>("x", 0);
+        suffix<T>("x ", 1);
+        suffix<T>("x@", 1);
+        suffix<T>("x @", 2);
+        suffix<T>("x,", 0);
+        suffix<T>("x, ", 1);
+        suffix<T>("x, @", 2);
     }
 
     void
