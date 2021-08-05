@@ -11,7 +11,7 @@
 #include <boost/http_proto/token_list.hpp>
 
 #include "test_suite.hpp"
-#include <sstream>
+#include "test_bnf.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -19,16 +19,6 @@ namespace http_proto {
 class token_list_test
 {
 public:
-    template<class T>
-    void
-    bad(string_view s)
-    {
-        T r(s);
-        BOOST_TEST(! r.is_valid());
-        BOOST_TEST_THROWS(r.validate(),
-            system_error);
-    }
-
     template<class T>
     static
     void
@@ -52,23 +42,10 @@ public:
         BOOST_TEST(ss.str() == match);
     }
 
-    template<class T>
-    static
     void
-    suffix(
-        string_view s,
-        std::size_t n)
+    run()
     {
-        error_code ec;
-        auto s1 = valid_prefix<
-            typename T::bnf_type>(s, ec);
-        BOOST_TEST(! ec);
-        BOOST_TEST(s.size() - s1.size() == n);
-    }
-
-    void
-    testTokenList()
-    {
+        using namespace test;
         using T = token_list;
 
         bad<T>("");
@@ -101,12 +78,6 @@ public:
         suffix<T>("x,x ", 1);
         suffix<T>("x,x x", 2);
         suffix<T>("x,x ,", 0);
-    }
-
-    void
-    run()
-    {
-        testTokenList();
     }
 };
 

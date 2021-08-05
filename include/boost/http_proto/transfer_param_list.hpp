@@ -14,13 +14,31 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf_range.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
 
+/** BNF for transfer-param-list
+
+    Parameters are in the form of a name=value pair.
+
+    @par BNF
+    @code
+    transfer-param-list = *( OWS ";" OWS transfer-param )
+    transfer-param      = token BWS "=" BWS ( token / quoted-string )
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc5234
+        https://datatracker.ietf.org/doc/html/rfc7230#section-4
+        https://www.rfc-editor.org/errata/eid4839
+*/
 struct transfer_param_list_bnf
 {
-    string_view value;
+    std::pair<
+        string_view,
+        string_view> value;
 
     BOOST_HTTP_PROTO_DECL
     char const*

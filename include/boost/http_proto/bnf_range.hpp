@@ -128,12 +128,6 @@ public:
         return impl_.value;
     }
 
-    value_type
-    operator->() const
-    {
-        return &impl_.value;
-    }
-
     void
     increment(
         error_code& ec)

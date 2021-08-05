@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_TOKEN_LIST_IPP
 
 #include <boost/http_proto/token_list.hpp>
+#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/rfc7230.hpp>
 
 namespace boost {

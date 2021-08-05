@@ -11,7 +11,8 @@
 #define BOOST_HTTP_PROTO_IMPL_TRANSFER_PARAM_LIST_IPP
 
 #include <boost/http_proto/transfer_param_list.hpp>
-#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/error.hpp>
+#include <boost/http_proto/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -28,7 +29,8 @@ begin(
     char const* const end,
     error_code& ec)
 {
-    return nullptr;
+    return increment(
+        start, end, ec);
 }
 
 char const*
@@ -38,7 +40,70 @@ increment(
     char const* const end,
     error_code& ec)
 {
-    return nullptr;
+    // *( ... )
+    if(start == end)
+        return nullptr;
+    // OWS
+    auto it = detail::skip_ows(
+        start, end);
+    // ";"
+    if(it == end)
+    {
+        ec = error::bad_value;
+        return start;
+    }
+    if(*it != ';')
+    {
+        ec = error::bad_value;
+        return start;
+    }
+    ++it;
+    // OWS
+    it = detail::skip_ows(
+        it, end);
+    // token
+    auto t0 = it;
+    it = detail::skip_token(
+        t0, end);
+    if(it == t0)
+    {
+        ec = error::bad_value;
+        return start;
+    }
+    value.first = {
+        t0, static_cast<
+            std::size_t>(it - t0) };
+    // OWS
+    it = detail::skip_ows(it, end);
+    // "="
+    if(it == end)
+    {
+        ec = error::bad_value;
+        return start;
+    }
+    if(*it != '=')
+    {
+        ec = error::bad_value;
+        return start;
+    }
+    ++it;
+    // OWS
+    it = detail::skip_ows(it, end);
+    // token
+    t0 = it;
+    it = detail::skip_token(
+        t0, end);
+    if(it == t0)
+    {
+        // value must be present
+        // https://www.rfc-editor.org/errata/eid4839
+        ec = error::bad_value;
+        return start;
+    }
+    value.second = {
+        t0, static_cast<
+            std::size_t>(it - t0) };
+    return it;
 }
 
 } // http_proto

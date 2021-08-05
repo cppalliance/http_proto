@@ -18,6 +18,25 @@
 namespace boost {
 namespace http_proto {
 
+/** BNF for token-list
+
+    A token list consists of one or more tokens
+    separated by commas and optional whitespace.
+
+    @par BNF
+    @code
+    token-list        = 1#token
+    token             = 1*tchar
+
+    legacy list rules:
+    1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc5234
+        https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
+        https://datatracker.ietf.org/doc/html/rfc7230#section-7
+*/
 struct token_list_bnf
 {
     string_view value;
