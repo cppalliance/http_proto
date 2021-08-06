@@ -27,6 +27,10 @@ namespace http_proto {
     @code
     transfer-param-list = *( OWS ";" OWS transfer-param )
     transfer-param      = token BWS "=" BWS ( token / quoted-string )
+
+    quoted-string       = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+    qdtext              = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+    obs-text            = %x80-FF
     @endcode
 
     @see

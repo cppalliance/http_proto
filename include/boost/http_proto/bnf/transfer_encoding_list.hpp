@@ -30,8 +30,6 @@ namespace http_proto {
                         / "gzip"
                         / transfer-extension
     transfer-extension  = token transfer-param-list
-    transfer-param-list = *( OWS ";" OWS transfer-parameter )
-    transfer-parameter  = token BWS "=" BWS ( token / quoted-string )
 
     legacy list rule:
     1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
