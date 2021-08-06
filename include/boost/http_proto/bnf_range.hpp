@@ -27,10 +27,24 @@ class bnf_range
     string_view s_;
 
 public:
-    using bnf_type = T;
+    using type = T;
 
     class iterator;
 
+    bnf_range(
+        bnf_range const&) = default;
+    bnf_range& operator=(
+        bnf_range const&) = default;
+
+    /** Default constructor
+
+        Iteration of default constructed ranges
+        is undefined.
+    */
+    bnf_range() = default;
+
+    /** Constructor
+    */
     explicit
     bnf_range(
         string_view s)
@@ -235,21 +249,24 @@ is_valid() const
 template<class T>
 string_view
 valid_prefix(
-    string_view s,
-    error_code& ec)
+    string_view s)
 {
+    error_code ec;
     auto const end = &*s.end();
     auto pos = s.data();
     T impl;
     pos = impl.begin(pos, end, ec);
+    // nothing valid
     if(ec)
-        return {};
-    error_code e;
+        return { s.data(), 0 };
+    // valid empty list
+    if(! pos)
+        return { s.data(), 0 };
     for(;;)
     {
         auto next = impl.increment(
-            pos, end, e);
-        if(e)
+            pos, end, ec);
+        if(ec)
             break;
         if(! next)
         {

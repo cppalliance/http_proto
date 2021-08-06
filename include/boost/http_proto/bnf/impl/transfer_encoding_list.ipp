@@ -7,10 +7,10 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_LIST_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
+#define BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
 
-#include <boost/http_proto/bnf/token_list.hpp>
+#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/rfc7230.hpp>
 
@@ -24,7 +24,7 @@ namespace http_proto {
 
 // *( "," OWS ) element *( OWS "," )
 char const*
-token_list_bnf::
+transfer_encoding_list_bnf::
 begin(
     char const* const start,
     char const* const end,
@@ -43,16 +43,22 @@ begin(
         ec = error::bad_value;
         return start;
     }
-    value = { first, static_cast<
+    value.first = { first, static_cast<
         std::size_t>(it - first) };
+    // transfer-param-list
+    auto const s = valid_prefix<
+        transfer_param_list_bnf>({ it,
+            static_cast<std::size_t>(
+                end - it) });
+    value.second = transfer_param_list(s);
     // *( OWS "," )
     return detail::skip_opt_ows_comma(
-        comma_, it, end);
+        comma_, &*s.end(), end);
 }
 
 // [ OWS element *( OWS "," ) ]
 char const*
-token_list_bnf::
+transfer_encoding_list_bnf::
 increment(
     char const* const start,
     char const* const end,
@@ -79,11 +85,19 @@ increment(
         ec = error::bad_value;
         return start;
     }
-    value = { first, static_cast<
+    value.first = { first, static_cast<
         std::size_t>(it - first) };
-    // *( OWS "," )
+    // transfer-param-list
+    auto const s = valid_prefix<
+        transfer_param_list_bnf>({ it,
+            static_cast<std::size_t>(
+                end - it) });
+    if(ec)
+        return start;
+    value.second = transfer_param_list(s);
+//  *( OWS "," )
     return detail::skip_opt_ows_comma(
-        comma_, it, end);
+        comma_, &*s.end(), end);
 }
 
 } // http_proto

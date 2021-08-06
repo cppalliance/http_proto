@@ -37,10 +37,8 @@ suffix(
     string_view s,
     std::size_t n)
 {
-    error_code ec;
     auto s1 = valid_prefix<
-        typename T::bnf_type>(s, ec);
-    BOOST_TEST(! ec);
+        typename T::type>(s);
     BOOST_TEST(s.size() - s1.size() == n);
 }
 

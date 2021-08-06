@@ -31,6 +31,7 @@
 #include <boost/http_proto/string_view.hpp>
 
 #include <boost/http_proto/bnf/token_list.hpp>
+#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 #endif

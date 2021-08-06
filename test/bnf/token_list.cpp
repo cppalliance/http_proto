@@ -66,6 +66,12 @@ public:
         good<T>(",\tx", "x");
         good<T>("x,", "x");
         good<T>("x,y", "x,y");
+        good<T>("x, y", "x,y");
+        good<T>("a,b,c", "a,b,c");
+        good<T>("a ,b,c", "a,b,c");
+        good<T>("a, b,c", "a,b,c");
+        good<T>("a,b ,c", "a,b,c");
+        good<T>("a,b, c", "a,b,c");
 
         suffix<T>("x", 0);
         suffix<T>("x ", 1);

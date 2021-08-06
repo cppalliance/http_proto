@@ -47,6 +47,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/status.ipp>
 
 #include <boost/http_proto/bnf/impl/token_list.ipp>
+#include <boost/http_proto/bnf/impl/transfer_encoding_list.ipp>
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
 
 // VFALCO These are tucked away here temporarily
