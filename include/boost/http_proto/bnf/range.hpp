@@ -22,7 +22,7 @@ namespace boost {
 namespace http_proto {
 
 template<class T>
-class bnf_range
+class range
 {
     string_view s_;
 
@@ -31,22 +31,22 @@ public:
 
     class iterator;
 
-    bnf_range(
-        bnf_range const&) = default;
-    bnf_range& operator=(
-        bnf_range const&) = default;
+    range(
+        range const&) = default;
+    range& operator=(
+        range const&) = default;
 
     /** Default constructor
 
         Iteration of default constructed ranges
         is undefined.
     */
-    bnf_range() = default;
+    range() = default;
 
     /** Constructor
     */
     explicit
-    bnf_range(
+    range(
         string_view s)
         : s_(s)
     {
@@ -70,13 +70,13 @@ public:
 //------------------------------------------------
 
 template<class T>
-class bnf_range<T>::iterator
+class range<T>::iterator
 {
     char const* next_;
     char const* end_;
     T impl_;
 
-    friend class bnf_range;
+    friend class range;
 
     explicit
     iterator(string_view s)
@@ -172,7 +172,7 @@ public:
 
 template<class T>
 auto
-bnf_range<T>::
+range<T>::
 begin(error_code& ec) const ->
     iterator
 {
@@ -185,7 +185,7 @@ begin(error_code& ec) const ->
 
 template<class T>
 auto
-bnf_range<T>::
+range<T>::
 begin() const ->
     iterator
 {
@@ -194,7 +194,7 @@ begin() const ->
 
 template<class T>
 auto
-bnf_range<T>::
+range<T>::
 end() const ->
     iterator
 {
@@ -206,7 +206,7 @@ end() const ->
 
 template<class T>
 void
-bnf_range<T>::
+range<T>::
 validate(
     error_code& ec) const
 {
@@ -222,7 +222,7 @@ validate(
 
 template<class T>
 void
-bnf_range<T>::
+range<T>::
 validate() const
 {
     error_code ec;
@@ -234,7 +234,7 @@ validate() const
 
 template<class T>
 bool
-bnf_range<T>::
+range<T>::
 is_valid() const
 {
     error_code ec;

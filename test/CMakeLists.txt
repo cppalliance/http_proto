@@ -16,7 +16,6 @@ set(TFILES
 set(PFILES
     CMakeLists.txt
     basic_parser.cpp
-    bnf_range.cpp
     connection.cpp
     context.cpp
     ctype.cpp
@@ -34,6 +33,7 @@ set(PFILES
     rfc.cpp
     status.cpp
     string_view.cpp
+    bnf/range.cpp
     bnf/token_list.cpp
     bnf/transfer_encoding_list.cpp
     bnf/transfer_param_list.cpp

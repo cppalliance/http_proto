@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf_range.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <utility>
 
@@ -56,7 +56,7 @@ struct transfer_param_list_bnf
 };
 
 using transfer_param_list =
-    bnf_range<transfer_param_list_bnf>;
+    range<transfer_param_list_bnf>;
 
 } // http_proto
 } // boost

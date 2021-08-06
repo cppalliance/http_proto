@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf_range.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
 
 namespace boost {
@@ -59,7 +59,7 @@ private:
     bool comma_;
 };
 
-using token_list = bnf_range<token_list_bnf>;
+using token_list = range<token_list_bnf>;
 
 } // http_proto
 } // boost

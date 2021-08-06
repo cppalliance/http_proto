@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_TEST_BNF_HPP
 #define BOOST_HTTP_PROTO_TEST_BNF_HPP
 
-#include <boost/http_proto/bnf_range.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
 
 #include "test_suite.hpp"

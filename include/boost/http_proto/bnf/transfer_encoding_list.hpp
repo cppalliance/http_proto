@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf_range.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
@@ -69,7 +69,7 @@ private:
 };
 
 using transfer_encoding_list =
-    bnf_range<transfer_encoding_list_bnf>;
+    range<transfer_encoding_list_bnf>;
 
 } // http_proto
 } // boost
