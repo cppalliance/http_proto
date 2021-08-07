@@ -23,6 +23,12 @@ inline
 bool
 is_digit(char c) noexcept;
 
+/** Return true if c is horizontal white space
+*/
+inline
+bool
+is_ws(char c) noexcept;
+
 /** Return c converted to lower case
 */
 inline
@@ -133,6 +139,8 @@ public:
     }
 };
 
+//------------------------------------------------
+
 template<bool (*F)(char)>
 class char_set_function
 {
@@ -169,9 +177,20 @@ public:
     @par BNF
     @code
     DIGIT   = [0..9]
+    @endcode
 */
 using digit_set
     = char_set_function<&is_digit>;
+
+/** Character set for WS
+
+    @par BNF
+    @code
+    WS      = SP / HTAB
+    @endcode
+*/
+using ws_set
+    = char_set_function<&is_ws>;
 
 /** Character set for tchar
 
@@ -190,6 +209,29 @@ struct tchar_set : char_set_table
 {
     BOOST_HTTP_PROTO_DECL
     tchar_set() noexcept;
+};
+
+/** Character set for field-vchar
+
+    Valid characters for HTTP field values.
+
+    @par BNF
+    @code
+    field-vchar = VCHAR / obs-text
+
+    VCHAR       =  %x21-7E
+                ; visible (printing) characters
+
+    obs-text    = %x80-FF
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
+*/
+struct field_vchar_set : char_set_table
+{
+    BOOST_HTTP_PROTO_DECL
+    field_vchar_set() noexcept;
 };
 
 } // http_proto

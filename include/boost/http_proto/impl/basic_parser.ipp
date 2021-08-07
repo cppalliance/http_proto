@@ -284,7 +284,7 @@ void
 basic_parser::
 parse_field(
     char*& first,
-    char const* last,
+    char const* end,
     error_code& ec)
 {
 /*
@@ -293,54 +293,44 @@ parse_field(
     field-name      = token
     field-value     = *( field-content / obs-fold )
     field-content   = field-vchar [ 1*( SP / HTAB ) field-vchar ]
-    field-vchar     = VCHAR / obs-text
-
-    VCHAR           =  %x21-7E
-                    ; visible (printing) characters
 
     obs-fold        = CRLF 1*( SP / HTAB )
                     ; obsolete line folding
                     ; see Section 3.2.4
-
-    obs-text        = %x80-FF
 
     token           = 1*tchar
     tchar           = "!" / "#" / "$" / "%" / "&" / "'" /
                       "*" / "+" / "-" / "." / "^" / "_" /
                       "`" / "|" / "~" / DIGIT / ALPHA
 */
-    static char const* const is_vchar =
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\0"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1";
-
-    BOOST_ASSERT(first != last);
+    BOOST_ASSERT(first != end);
     auto const need_more =
         [&ec]{ ec = error::need_more; };
     auto in = first;
     char const* k1; // end of name
-    char const* v0; // start of value
+    char const* v0  // start of value
+        = nullptr;
     char const* v1; // end of value
 
     tchar_set ts;
+    field_vchar_set fvs;
+    ws_set ws;
+
+    // make sure we have at least
+    // 3 chars, to detect obs-fold
+    if(end - in < 3)
+        return need_more();
+    end -= 3;
 
     // field-name
-    in = ts.skip(in, last);
-    if(last - in < 4)
-    {
-        // not enough input to
-        // detect ( ":" obs-fold )
-        return need_more();
-    }
+    in = ts.skip(in, end);
+
     // ":"
+    if(in == end)
+        return need_more();
     if(*in != ':')
     {
-        // invalid char
+        // invalid field char
         ec = error::bad_field;
         return;
     }
@@ -353,23 +343,62 @@ parse_field(
     k1 = in;
     ++in;
 
-    // *( OWS / obs-fold )
+    // OWS
+    in = ws.skip(in, end);
+
+    // *( field-content / obs-fold )
     for(;;)
     {
-        if(last - in < 3)
+        if(in == end)
         {
-            // need at least 3 chars
-            // to detect CRLF SP.
-            return need_more();
+            ec = error::need_more;
+            return;
         }
-        if( *in == ' ' ||
-            *in == '\t')
+
+        // check field-content first, as
+        // it is more frequent than CRLF
+        if(fvs.contains(*in))
         {
-            // OWS
+            // field-content
+            if(! v0)
+                v0 = in;
             ++in;
-            continue;
+            // *field-vchar
+            in = fvs.skip(in, end);
+            if(in == end)
+            {
+                ec = error::need_more;
+                return;
+            }
+            v1 = in;
+            //  1*( SP / HTAB )
+            if(ws.contains(*in))
+            {
+                in = ws.skip(in, end);
+                if(in[0] == '\r')
+                {
+                    if(in[1] != '\n')
+                    {
+                        // expected LF
+                        ec = error::bad_line_ending;
+                        return;
+                    }
+                    if(ws.contains(in[2]))
+                    {
+                        // illegal obs-fold
+                        ec = error::bad_value;
+                        return;
+                    }
+                    // end of line
+                    v1 = in;
+                    in += 2;
+                    break;
+                }
+            }
         }
-        if(*in == '\r')
+
+        // obs-fold / CRLF
+        if(in[0] == '\r')
         {
             if(in[1] != '\n')
             {
@@ -377,66 +406,30 @@ parse_field(
                 ec = error::bad_line_ending;
                 return;
             }
-            if( in[2] != ' ' &&
-                in[2] != '\t')
+            if(! ws.contains(in[2]))
             {
-                // empty field-value
-                v0 = in;
-                goto done;
+                // end of line
+                if(! v0)
+                    v0 = in;
+                v1 = in;
+                in += 2;
+                break;
             }
-            // replace obs-fold with SP
-            *in++ = ' ';
-            *in++ = ' ';
-            *in++ = ' ';
+            // replace CRLF with SP SP
+            in[0] = ' ';
+            in[1] = ' ';
+            in[2] = ' ';
+            in += 3;
+            // *( SP / HTAB )
+            in = ws.skip(in, end);
             continue;
         }
-        break;
+
+        // illegal value
+        ec = error::bad_field;
+        return;
     }
 
-    // field-content
-    v0 = in;
-    for(;;)
-    {
-        if(last - in < 3)
-        {
-            // need at least 3 chars
-            // to detect CRLF SP.
-            return need_more();
-        }
-        if( is_vchar[static_cast<
-                unsigned char>(*in)] ||
-            *in == ' ' ||
-            *in == '\t')
-        {
-            ++in;
-            continue;
-        }
-        if(*in != '\r')
-        {
-            // bad field-char
-            ec = error::bad_value;
-            return;
-        }
-        if(in[1] != '\n')
-        {
-            ec = error::bad_line_ending;
-            return;
-        }
-        if( in[2] != ' ' &&
-            in[2] != '\t')
-        {
-            // end of field
-            goto done;
-        }
-        // replace obs-fold with SP
-        *in++ = ' ';
-        *in++ = ' ';
-        *in++ = ' ';
-    }
-
-done:
-    v1 = in;
-    in += 2;
     string_view k(first, k1 - first);
     string_view v(v0, v1 - v0);
     auto const f =

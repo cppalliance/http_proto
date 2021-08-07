@@ -20,6 +20,12 @@ is_digit(char c) noexcept
         unsigned char>(c-'0') < 10;
 }
 
+bool
+is_ws(char c) noexcept
+{
+    return c == ' ' || c == '\t';
+}
+
 char
 to_lower(char c) noexcept
 {
