@@ -20,6 +20,25 @@ namespace http_proto {
 class ctype_test
 {
 public:
+    template<class T>
+    void
+    check_set(T cs, string_view s)
+    {
+        int n = 0;
+        unsigned char u = 0;
+        do
+        {
+            char const c =
+                static_cast<char>(u);
+            if(cs.contains(c))
+                ++n;
+        }
+        while(++u != 0);
+        BOOST_TEST(n == s.size());
+        for(char c : s)
+            BOOST_TEST(cs.contains(c));
+    }
+
     void
     test_ctype(
         bool (*pf)(char),
@@ -38,21 +57,19 @@ public:
     }
 
     void
-    test_is_tchar()
+    testCharSets()
     {
-        test_ctype(
-            &is_tchar,
-            "!#$" "%%" "&'*+-.^_`|~"
+        check_set(tchar_set(),
+            "!#$%&'*+-.^_`|~"
             "0123456789"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz"
-        );
+            "abcdefghijklmnopqrstuvwxyz");
     }
 
     void
     run()
     {
-        test_is_tchar();
+        testCharSets();
     }
 };
 

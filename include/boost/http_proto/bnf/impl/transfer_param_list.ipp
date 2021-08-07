@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_PARAM_LIST_IPP
 
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
+#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/rfc7230.hpp>
 
@@ -40,6 +41,8 @@ increment(
     char const* const end,
     error_code& ec)
 {
+    tchar_set ts;
+
     // *( ... )
     if(start == end)
         return nullptr;
@@ -63,8 +66,7 @@ increment(
         it, end);
     // token
     auto t0 = it;
-    it = detail::skip_token(
-        t0, end);
+    it = ts.skip(t0, end);
     if(it == t0)
     {
         ec = error::bad_value;
@@ -91,8 +93,7 @@ increment(
     it = detail::skip_ows(it, end);
     // token
     t0 = it;
-    it = detail::skip_token(
-        t0, end);
+    it = ts.skip(t0, end);
     if(it == t0)
     {
         // value must be present

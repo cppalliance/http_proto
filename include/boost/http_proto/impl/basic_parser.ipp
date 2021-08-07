@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_BASIC_PARSER_IPP
 
 #include <boost/http_proto/basic_parser.hpp>
+#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/assert.hpp>
 #include <memory>
@@ -308,16 +309,6 @@ parse_field(
                       "*" / "+" / "-" / "." / "^" / "_" /
                       "`" / "|" / "~" / DIGIT / ALPHA
 */
-    static char const* const is_tchar =
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\1\0\1\1\1\1\1\0\0\1\1\0\1\1\0" "\1\1\1\1\1\1\1\1\1\1\0\0\0\0\0\0"
-        "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\0\0\0\1\1"
-        "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\0\1\0\1\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-
     static char const* const is_vchar =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
         "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1" "\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1"
@@ -336,7 +327,30 @@ parse_field(
     char const* v0; // start of value
     char const* v1; // end of value
 
-    // field-name ":"
+    tchar_set ts;
+
+    // field-name
+    in = ts.skip(in, last);
+    if(last - in < 4)
+    {
+        // not enough input to
+        // detect ( ":" obs-fold )
+        return need_more();
+    }
+    // ":"
+    if(*in != ':')
+    {
+        // invalid char
+        ec = error::bad_field;
+        return;
+    }
+    if(in != first)
+    {
+        // empty field name
+        ec = error::bad_field;
+        return;
+    }
+
     for(;;)
     {
         if(*in == ':')
@@ -347,8 +361,7 @@ parse_field(
             ec = error::bad_field;
             return;
         }
-        if(! is_tchar[static_cast<
-            unsigned char>(*in)])
+        if(! ts.contains(*in))
         {
             // invalid char
             ec = error::bad_field;
@@ -393,7 +406,7 @@ parse_field(
                 in[2] != '\t')
             {
                 // empty field-value
-                in += 2;
+                v0 = in;
                 goto done;
             }
             // replace obs-fold with SP

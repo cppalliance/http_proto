@@ -63,20 +63,6 @@ skip_ows(
 }
 
 char const*
-skip_token(
-    char const* it,
-    char const* const end) noexcept
-{
-    while(it != end)
-    {
-        if(! is_tchar(*it))
-            break;
-        ++it;
-    }
-    return it;
-}
-
-char const*
 skip_opt_comma_ows(
     char const* it,
     char const* const end) noexcept

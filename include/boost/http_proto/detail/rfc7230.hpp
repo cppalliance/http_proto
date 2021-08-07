@@ -25,12 +25,6 @@ skip_ows(
 
 static
 char const*
-skip_token(
-    char const* start,
-    char const* end) noexcept;
-
-static
-char const*
 skip_opt_comma_ows(
     char const* start,
     char const* end) noexcept;

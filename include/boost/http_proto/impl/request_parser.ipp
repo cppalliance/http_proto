@@ -90,22 +90,16 @@ parse_method(
     char const* last,
     error_code& ec)
 {
+    tchar_set ts;
     auto const need_more =
         [&ec]{ ec = error::need_more; };
     // token SP
-    auto it = first;
-    for(;; ++it)
-    {
-        if(it == last)
-            return need_more();
-        if(! is_tchar(*it))
-            break;
-    }
+    auto it = ts.skip(first, last);
     if(it == last)
         return need_more();
     if(*it != ' ')
     {
-        // bad token char
+        // bad method char
         ec = error::bad_method;
         return;
     }

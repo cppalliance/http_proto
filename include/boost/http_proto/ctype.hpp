@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <bitset>
 
 namespace boost {
 namespace http_proto {
@@ -21,12 +22,6 @@ namespace http_proto {
 inline
 bool
 is_digit(char c) noexcept;
-
-/** Return true if c is a printable character
-*/
-inline
-bool
-is_print(char c) noexcept;
 
 /** Return c converted to lower case
 */
@@ -102,7 +97,43 @@ struct iless_pred
 
 //------------------------------------------------
 
-/** Return true if c is a tchar
+class basic_char_set
+{
+    char const* const tab_;
+
+public:
+    basic_char_set(
+        char const* tab) noexcept
+        : tab_(tab)
+    {
+    }
+
+    bool
+    contains(
+        char c) const noexcept
+    {
+        auto const u = static_cast<
+            unsigned char>(c);
+        return tab_[u] != 0;
+    }
+
+    template<class Char>
+    Char*
+    skip(
+        Char* first,
+        char const* end) const noexcept
+    {
+        while(first != end)
+        {
+            if(! contains(*first))
+                break;
+            ++first;
+        }
+        return first;
+    }
+};
+
+/** Character set for tchar
 
     @par BNF
     @code
@@ -111,10 +142,15 @@ struct iless_pred
               "^" / "_" / "`" / "|" / "~" /
               DIGIT / ALPHA
     @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
 */
-inline
-bool
-is_tchar(char c) noexcept;
+struct tchar_set : basic_char_set
+{
+    BOOST_HTTP_PROTO_DECL
+    tchar_set() noexcept;
+};
 
 } // http_proto
 } // boost
