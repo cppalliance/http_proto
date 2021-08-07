@@ -318,12 +318,14 @@ parse_field(
 
     // make sure we have at least
     // 3 chars, to detect obs-fold
+#if 0
     if(end - in < 3)
     {
         ec = error::need_more;
         return start;
     }
     end -= 3;
+#endif
 
     // field-name
     in = ts.skip(in, end);
@@ -381,6 +383,11 @@ parse_field(
             if(ws.contains(*in))
             {
                 in = ws.skip(in, end);
+                if(end - in < 3)
+                {
+                    ec = error::need_more;
+                    return start;
+                }
                 if(in[0] == '\r')
                 {
                     if(in[1] != '\n')
@@ -400,12 +407,18 @@ parse_field(
                     in += 2;
                     break;
                 }
+                continue;
             }
         }
 
         // obs-fold / CRLF
         if(in[0] == '\r')
         {
+            if(end - in < 3)
+            {
+                ec = error::need_more;
+                return start;
+            }
             if(in[1] != '\n')
             {
                 // expected LF

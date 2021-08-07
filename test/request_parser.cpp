@@ -29,6 +29,49 @@ class request_parser_test
 public:
     context ctx_;
 
+    bool
+    valid(
+        string_view s,
+        std::size_t nmax)
+    {
+        request_parser p(ctx_);
+        while(! s.empty())
+        {
+            auto b = p.prepare();
+            auto n = b.second;
+            if( n > s.size())
+                n = s.size();
+            if( n > nmax)
+                n = nmax;
+            std::memcpy(b.first,
+                s.data(), n);
+            p.commit(n);
+            s.remove_prefix(n);
+            error_code ec;
+            p.parse_header(ec);
+            if(ec == error::need_more)
+                continue;
+            return ! ec.failed();
+        }
+        return false;
+    }
+
+    void
+    good(string_view s)
+    {
+        for(std::size_t nmax = 1;
+            nmax < s.size(); ++nmax)
+            BOOST_TEST(valid(s, nmax));
+    }
+
+    void
+    bad(string_view s)
+    {
+        for(std::size_t nmax = 1;
+            nmax < s.size(); ++nmax)
+            BOOST_TEST(valid(s, nmax));
+    }
+
     void
     check(
         method m,
@@ -109,233 +152,40 @@ public:
             "\r\n");
     }
 
-    struct socket
-    {
-    };
-
-    template<
-        class ReadStream>
     void
-    read_some(
-        ReadStream&,
-        basic_parser&,
-        error_code&)
+    testParseField()
     {
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_header(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
+        auto f = [](string_view f)
         {
-            p.parse_header(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_body(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
-        {
-            p.parse_body(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_body_part(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
-        {
-            p.parse_body_part(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_chunk_ext(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
-        {
-            p.parse_chunk_ext(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_chunk_part(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
-        {
-            p.parse_chunk_part(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    template<
-        class ReadStream>
-    void
-    read_chunk_trailer(
-        ReadStream& sock,
-        basic_parser& p,
-        error_code& ec)
-    {
-        for(;;)
-        {
-            p.parse_chunk_trailer(ec);
-            if(ec != error::need_more)
-                break;
-            read_some(sock, p, ec);
-            if(ec == error::eof)
-                p.commit_eof();
-            else if(ec.failed())
-                return;
-        }
-    }
-
-    //
-    // Read complete body into parser-owned storage
-    //
-    void
-    doReadBody()
-    {
-        socket sock;
-        error_code ec;
-        request_parser p(ctx_);
-
-        read_header(sock, p, ec);
-        if(ec)
-            return;
-        request_view req = p.header();
-
-        read_body(sock, p, ec);
-        if(ec)
-            return;
-        // access complete body
-        string_view body = p.body();
-    }
-
-    //
-    // Read a complete body a buffer at a time,
-    // using parser-owned storage.
-    //
-    void
-    doReadBodyParts()
-    {
-        socket sock;
-        error_code ec;
-        request_parser p(ctx_);
-
-        read_header(sock, p, ec);
-        if(ec)
-            return;
-        request_view req = p.header();
-
-        for(;;)
-        {
-            read_body_part(sock, p, ec);
-            if(ec == error::end_of_body)
-                break;
-            if(ec.failed())
-                return;
-            // access body part
-            string_view body_part = p.body();
-        }
-    }
-
-    //
-    // Read a chunked body one chunk
-    // at a time, including extensions
-    // and the trailer
-    //
-    void
-    doReadChunked()
-    {
-        socket sock;
-        error_code ec;
-        request_parser p(ctx_);
-
-        read_header(sock, p, ec);
-        if(ec)
-            return;
-        request_view req = p.header();
-
-        for(;;)
-        {
-            read_chunk_part(sock, p, ec);
-            if(ec == error::end_of_body)
-                break;
-            if(ec.failed())
-                return;
-            // access body part
-            string_view body_part = p.body();
-        }
+            return std::string(
+                "GET / HTTP/1.1\r\n") +
+                std::string(f.data(), f.size()) + "\r\n" +
+                "\r\n";
+        };
+        good(f(""));
+        good(f("x:"));
+        good(f("x: "));
+        good(f("x:\t "));
+        good(f("x:y"));
+        good(f("x: y"));
+        good(f("x:y "));
+        good(f("x: y "));
+        good(f("x:yy"));
+        good(f("x: yy"));
+        good(f("x:yy "));
+        good(f("x: y y "));
+        good(f("x:"));
+        good(f("x: \r\n "));
+        good(f("x: \r\n x"));
+        good(f("x: \r\n \t\r\n "));
+        good(f("x: \r\n \t\r\n x"));
     }
 
     void
     run()
     {
-#if 0
-        doReadBody();
-        doReadBodyParts();
-#endif
-        testParse();
+//        testParse();
+        testParseField();
     }
 };
 
