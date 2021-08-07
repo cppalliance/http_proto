@@ -39,9 +39,9 @@ public:
     header() const noexcept;
 
 private:
-    void
+    char*
     parse_start_line(
-        char*& first,
+        char* first,
         char const* last,
         error_code& ec) override;
 

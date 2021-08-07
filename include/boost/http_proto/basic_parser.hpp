@@ -155,8 +155,8 @@ public:
     body() const;
 
 protected:
-    virtual void parse_start_line(
-        char*&, char const*, error_code&) = 0;
+    virtual char* parse_start_line(
+        char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;
     void parse_version(
         char*&, char const*, error_code&);

@@ -124,7 +124,8 @@ parse_header(
     {
         // Nothing can come before start-line
         BOOST_ASSERT(parsed_ == 0);
-        parse_start_line(first, last, ec);
+        first = parse_start_line(
+            first, last, ec);
         if(ec)
             goto finish;
         state_ = state::fields;

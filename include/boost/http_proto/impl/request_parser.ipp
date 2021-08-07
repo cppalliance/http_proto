@@ -43,15 +43,13 @@ header() const noexcept
 
 //------------------------------------------------
 
-void
+char*
 request_parser::
 parse_start_line(
-    char*& first,
+    char* first,
     char const* const last,
     error_code& ec)
 {
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
     auto it = first;
 
 /*
@@ -60,27 +58,31 @@ parse_start_line(
     // method
     parse_method(it, last, ec);
     if(ec)
-        return;
+        return first;
 
     // request-target
     parse_target(it, last, ec);
     if(ec)
-        return;
+        return first;
 
     // HTTP-version
     parse_version(it, last, ec);
     if(ec)
-        return;
+        return first;
 
     // CRLF
     if(last - it < 2)
-        return need_more();
+    {
+        ec = error::need_more;
+        return first;
+    }
     if(it[0] != '\r' || it[1] != '\n')
     {
         ec = error::bad_version;
-        return;
+        return first;
     }
-    first = it + 2;
+    it += 2;
+    return it;
 }
 
 void
