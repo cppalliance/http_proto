@@ -11,18 +11,14 @@
 #include <boost/http_proto/request_parser.hpp>
 
 #include <boost/http_proto/context.hpp>
-#include <algorithm>
 
 #include "test_suite.hpp"
 
+#include <algorithm>
+#include <string>
+
 namespace boost {
 namespace http_proto {
-
-namespace net {
-namespace error {
-static int eof = 1;
-} // error
-} // net
 
 class request_parser_test
 {
@@ -69,7 +65,7 @@ public:
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
-            BOOST_TEST(valid(s, nmax));
+            BOOST_TEST(! valid(s, nmax));
     }
 
     void
@@ -159,9 +155,19 @@ public:
         {
             return std::string(
                 "GET / HTTP/1.1\r\n") +
-                std::string(f.data(), f.size()) + "\r\n" +
-                "\r\n";
+                std::string(
+                    f.data(), f.size()) +
+                "\r\n\r\n";
         };
+
+        bad(f(":"));
+        bad(f(" :"));
+        bad(f(" x:"));
+        bad(f("x :"));
+        bad(f("x@"));
+        bad(f("x@:"));
+        bad(f("x: y \r\n \r\n"));
+
         good(f(""));
         good(f("x:"));
         good(f("x: "));
