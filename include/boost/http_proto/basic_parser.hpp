@@ -164,7 +164,7 @@ protected:
 private:
     void parse_fields(char*&,
         char const*, error_code&);
-    void parse_field(char*&,
+    char* parse_field(char*,
         char const*, error_code&);
     void do_connection(
         string_view, error_code&);

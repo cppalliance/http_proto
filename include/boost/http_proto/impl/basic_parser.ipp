@@ -273,17 +273,18 @@ parse_fields(
             first = in;
             break;
         }
-        parse_field(in, last, ec);
+        in = parse_field(
+            in, last, ec);
         if(ec)
             return;
         first = in;
     }
 }
 
-void
+char*
 basic_parser::
 parse_field(
-    char*& first,
+    char* const start,
     char const* end,
     error_code& ec)
 {
@@ -303,23 +304,24 @@ parse_field(
                       "*" / "+" / "-" / "." / "^" / "_" /
                       "`" / "|" / "~" / DIGIT / ALPHA
 */
-    BOOST_ASSERT(first != end);
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
-    auto in = first;
+    BOOST_ASSERT(start != end);
+    auto in = start;
     char const* k1; // end of name
     char const* v0  // start of value
         = nullptr;
     char const* v1; // end of value
 
+    ws_set ws;
     tchar_set ts;
     field_vchar_set fvs;
-    ws_set ws;
 
     // make sure we have at least
     // 3 chars, to detect obs-fold
     if(end - in < 3)
-        return need_more();
+    {
+        ec = error::need_more;
+        return start;
+    }
     end -= 3;
 
     // field-name
@@ -327,18 +329,21 @@ parse_field(
 
     // ":"
     if(in == end)
-        return need_more();
+    {
+        ec = error::need_more;
+        return start;
+    }
     if(*in != ':')
     {
         // invalid field char
         ec = error::bad_field;
-        return;
+        return start;
     }
-    if(in == first)
+    if(in == start)
     {
         // empty field name
         ec = error::bad_field;
-        return;
+        return start;
     }
     k1 = in;
     ++in;
@@ -352,7 +357,7 @@ parse_field(
         if(in == end)
         {
             ec = error::need_more;
-            return;
+            return start;
         }
 
         // check field-content first, as
@@ -368,7 +373,7 @@ parse_field(
             if(in == end)
             {
                 ec = error::need_more;
-                return;
+                return start;
             }
             v1 = in;
             //  1*( SP / HTAB )
@@ -381,13 +386,13 @@ parse_field(
                     {
                         // expected LF
                         ec = error::bad_line_ending;
-                        return;
+                        return start;
                     }
                     if(ws.contains(in[2]))
                     {
                         // illegal obs-fold
                         ec = error::bad_value;
-                        return;
+                        return start;
                     }
                     // end of line
                     v1 = in;
@@ -404,7 +409,7 @@ parse_field(
             {
                 // expected LF
                 ec = error::bad_line_ending;
-                return;
+                return start;
             }
             if(! ws.contains(in[2]))
             {
@@ -427,10 +432,10 @@ parse_field(
 
         // illegal value
         ec = error::bad_field;
-        return;
+        return start;
     }
 
-    string_view k(first, k1 - first);
+    string_view k(start, k1 - start);
     string_view v(v0, v1 - v0);
     auto const f =
         string_to_field(k);
@@ -440,27 +445,27 @@ parse_field(
     case field::proxy_connection:
         do_connection(v, ec);
         if(ec)
-            return;
+            return in;
         break;
     case field::content_length:
         do_content_length(v, ec);
         if(ec)
-            return;
+            return in;
         break;
     case field::transfer_encoding:
         do_transfer_encoding(v, ec);
         if(ec)
-            return;
+            return in;
         break;
     case field::upgrade:
         do_upgrade(v, ec);
         if(ec)
-            return;
+            return in;
         break;
     default:
         break;
     }
-    first = in;
+    return in;
 }
 
 //------------------------------------------------
