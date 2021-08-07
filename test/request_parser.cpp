@@ -80,8 +80,8 @@ public:
                 b.first, s.data(), n);
             p.commit(n);
             p.parse_header(ec);
-            BOOST_TEST(! ec);
-            if(ec)
+            if(! BOOST_TEST(
+                ec == error::need_more))
                 continue;
             // second buffer
             b = p.prepare();
@@ -103,7 +103,7 @@ public:
     void
     testParse()
     {
-        check(method::get, "/", 11,
+        check(method::get, "/", 1,
             "GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
             "\r\n");

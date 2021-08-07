@@ -97,12 +97,12 @@ struct iless_pred
 
 //------------------------------------------------
 
-class basic_char_set
+class char_set_table
 {
     char const* const tab_;
 
 public:
-    basic_char_set(
+    char_set_table(
         char const* tab) noexcept
         : tab_(tab)
     {
@@ -133,6 +133,46 @@ public:
     }
 };
 
+template<bool (*F)(char)>
+class char_set_function
+{
+public:
+    bool
+    contains(
+        char c) const noexcept
+    {
+        auto const u = static_cast<
+            unsigned char>(c);
+        return F(u) != 0;
+    }
+
+    template<class Char>
+    Char*
+    skip(
+        Char* first,
+        char const* end) const noexcept
+    {
+        while(first != end)
+        {
+            if(! contains(*first))
+                break;
+            ++first;
+        }
+        return first;
+    }
+};
+
+//------------------------------------------------
+
+/** Character set for DIGIT
+
+    @par BNF
+    @code
+    DIGIT   = [0..9]
+*/
+using digit_set
+    = char_set_function<&is_digit>;
+
 /** Character set for tchar
 
     @par BNF
@@ -146,7 +186,7 @@ public:
     @see
         https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
 */
-struct tchar_set : basic_char_set
+struct tchar_set : char_set_table
 {
     BOOST_HTTP_PROTO_DECL
     tchar_set() noexcept;

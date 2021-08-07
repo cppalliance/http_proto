@@ -344,37 +344,12 @@ parse_field(
         ec = error::bad_field;
         return;
     }
-    if(in != first)
+    if(in == first)
     {
         // empty field name
         ec = error::bad_field;
         return;
     }
-
-    for(;;)
-    {
-        if(*in == ':')
-        {
-            if(in != first)
-                break;
-            // empty field name
-            ec = error::bad_field;
-            return;
-        }
-        if(! ts.contains(*in))
-        {
-            // invalid char
-            ec = error::bad_field;
-            return;
-        }
-        ++in;
-        if(last - in < 3)
-        {
-            // not enough input
-            // to detect obs-fold
-            return need_more();
-        }
-    }   
     k1 = in;
     ++in;
 

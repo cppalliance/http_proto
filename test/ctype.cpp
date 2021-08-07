@@ -40,25 +40,11 @@ public:
     }
 
     void
-    test_ctype(
-        bool (*pf)(char),
-        string_view set)
-    {
-        unsigned char u = 0;
-        do
-        {
-            char const c = static_cast<char>(u);
-            if(set.find(c) != string_view::npos)
-                BOOST_TEST(pf(c));
-            else
-                BOOST_TEST(! pf(c));
-        }
-        while(++u != 0);
-    }
-
-    void
     testCharSets()
     {
+        check_set(digit_set(),
+            "0123456789");
+
         check_set(tchar_set(),
             "!#$%&'*+-.^_`|~"
             "0123456789"
