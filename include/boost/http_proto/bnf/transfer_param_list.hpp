@@ -29,7 +29,7 @@ namespace http_proto {
     transfer-param      = token BWS "=" BWS ( token / quoted-string )
 
     quoted-string       = DQUOTE *( qdtext / quoted-pair ) DQUOTE
-    qdtext              = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+    qdtext              = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
     obs-text            = %x80-FF
     @endcode
 
@@ -37,6 +37,7 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc5234
         https://datatracker.ietf.org/doc/html/rfc7230#section-4
         https://www.rfc-editor.org/errata/eid4839
+        https://www.rfc-editor.org/errata/eid4891
 */
 struct transfer_param_list_bnf
 {

@@ -46,117 +46,137 @@ header() const noexcept
 char*
 request_parser::
 parse_start_line(
-    char* first,
-    char const* const last,
+    char* const start,
+    char const* const end,
     error_code& ec)
 {
-    auto it = first;
-
 /*
     request-line   = method SP request-target SP HTTP-version CRLF
 */
+
+    auto it = start;
+
     // method
-    parse_method(it, last, ec);
+    it = parse_method(
+        it, end, ec);
     if(ec)
-        return first;
+        return start;
 
-    // request-target
-    parse_target(it, last, ec);
-    if(ec)
-        return first;
-
-    // HTTP-version
-    parse_version(it, last, ec);
-    if(ec)
-        return first;
-
-    // CRLF
-    if(last - it < 2)
+    // SP
+    if(it == end)
     {
         ec = error::need_more;
-        return first;
+        return start;
     }
-    if(it[0] != '\r' || it[1] != '\n')
+    if(*it != ' ')
+    {
+        ec = error::bad_method;
+        return start;
+    }
+    ++it;
+
+    // request-target
+    it = parse_target(
+        it, end, ec);
+    if(ec)
+        return start;
+
+    // SP
+    if(it == end)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    if(*it != ' ')
+    {
+        ec = error::bad_method;
+        return start;
+    }
+    ++it;
+
+    // HTTP-version
+    it = parse_version(
+        it, end, ec);
+    if(ec)
+        return start;
+
+    // CRLF
+    if(end - it < 2)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    if( it[0] != '\r' ||
+        it[1] != '\n')
     {
         ec = error::bad_version;
-        return first;
+        return start;
     }
     it += 2;
     return it;
 }
 
-void
+char*
 request_parser::
 parse_method(
-    char*& first,
-    char const* last,
+    char* const start,
+    char const* const end,
     error_code& ec)
 {
     tchar_set ts;
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
-    // token SP
-    auto it = ts.skip(first, last);
-    if(it == last)
-        return need_more();
-    if(*it != ' ')
+
+    // token
+    auto it = ts.skip(start, end);
+    if(it == end)
     {
-        // bad method char
-        ec = error::bad_method;
-        return;
+        ec = error::need_more;
+        return start;
     }
-    if(it == first)
+    if(it == start)
     {
         // empty method
         ec = error::bad_method;
-        return;
+        return start;
     }
-
     string_view s(
-        first, it++ - first);
+        start, it - start);
     method_ = string_to_method(s);
     n_method_ = static_cast<
         off_t>(s.size());
-    first = it;
+    return it;
 }
 
-void
+char*
 request_parser::
 parse_target(
-    char*& first,
-    char const* last,
+    char* const start,
+    char const* const end,
     error_code& ec)
 {
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
-    // target SP
-    auto it = first;
-    for(;; ++it)
+    // target
+    auto it = start;
+    for(;;)
     {
-        if(it == last)
-            return need_more();
+        if(it == end)
+        {
+            ec = error::need_more;
+            return start;
+        }
         if(! detail::is_pathchar(*it))
             break;
+        ++it;
     }
-    if(it == last)
-        return need_more();
-    if(*it != ' ')
-    {
-        // bad path char
-        ec = error::bad_target;
-        return;
-    }
-    if(it == first)
+    if(it == start)
     {
         // empty target
         ec = error::bad_target;
-        return;
+        return start;
     }
     string_view s(
-        first, it++ - first);
+        start, it - start);
     n_target_ = static_cast<
         off_t>(s.size());
-    first = it;
+    return it;
 }
 
 void

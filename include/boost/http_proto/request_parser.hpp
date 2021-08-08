@@ -45,15 +45,15 @@ private:
         char const* last,
         error_code& ec) override;
 
-    void
+    char*
     parse_method(
-        char*& it,
+        char* it,
         char const* last,
         error_code& ec);
 
-    void
+    char*
     parse_target(
-        char*& it,
+        char* it,
         char const* last,
         error_code& ec);
 

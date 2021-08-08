@@ -158,11 +158,11 @@ protected:
     virtual char* parse_start_line(
         char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;
-    void parse_version(
-        char*&, char const*, error_code&);
+    char* parse_version(
+        char*, char const*, error_code&);
 
 private:
-    void parse_fields(char*&,
+    char* parse_fields(char*,
         char const*, error_code&);
     char* parse_field(char*,
         char const*, error_code&);

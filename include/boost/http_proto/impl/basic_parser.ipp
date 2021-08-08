@@ -13,6 +13,9 @@
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/token_list.hpp>
+#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
 #include <boost/assert.hpp>
 #include <memory>
 
@@ -134,7 +137,8 @@ parse_header(
 
     case state::fields:
     {
-        parse_fields(first, last, ec);
+        first = parse_fields(
+            first, last, ec);
         if(ec)
             goto finish;
         BOOST_ASSERT(! ec);
@@ -211,22 +215,24 @@ body() const
 
 //------------------------------------------------
 
-void
+char*
 basic_parser::
 parse_version(
-    char*& first,
-    char const* const last,
+    char* start,
+    char const* const end,
     error_code& ec)
 {
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
-    auto it = first;
-    if(last - it < 8)
-        return need_more();
-    if(std::memcmp(it, "HTTP/1.", 7) != 0)
+    auto it = start;
+    if(end - it < 8)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    if(std::memcmp(
+        it, "HTTP/1.", 7) != 0)
     {
         ec = error::bad_version;
-        return;
+        return start;
     }
     it += 7;
     if(*it == '0')
@@ -240,46 +246,56 @@ parse_version(
     else
     {
         ec = error::bad_version;
-        return;
+        return start;
     }
     ++it;
-    first = it;
+    return it;
 }
 
 //------------------------------------------------
 
-void
+char*
 basic_parser::
 parse_fields(
-    char*& first,
-    char const* last,
+    char* start,
+    char const* end,
     error_code& ec)
 {
-    auto const need_more =
-        [&ec]{ ec = error::need_more; };
-    auto in = first;
+    auto it = start;
     for(;;)
     {
-        if(last - in < 2)
-            return need_more();
-        if(in[0] == '\r')
+        if(it == end)
         {
-            if(in[1] != '\n')
+            ec = error::need_more;
+            return start;
+        }
+        if(*it != '\r')
+        {
+            it = parse_field(
+                it, end, ec);
+            start = it;
+            if(ec)
+                return start;
+        }
+        else
+        {
+            ++it;
+            if(it == end)
+            {
+                ec = error::need_more;
+                return start;
+            }
+            if(*it != '\n')
             {
                 ec = error::bad_line_ending;
-                return;
+                return start;
             }
-            // end of header
-            in = in + 2;
-            first = in;
+            ++it;
+            start = it;
             break;
         }
-        in = parse_field(
-            in, last, ec);
-        if(ec)
-            return;
-        first = in;
     }
+    return start;
 }
 
 char*
@@ -294,19 +310,20 @@ parse_field(
 
     field-name      = token
     field-value     = *( field-content / obs-fold )
-    field-content   = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+    field-content   = field-vchar [ 1*( SP / HTAB / field-vchar ) field-vchar ]
 
-    obs-fold        = CRLF 1*( SP / HTAB )
+    obs-fold        = OWS CRLF 1*( SP / HTAB )
                     ; obsolete line folding
                     ; see Section 3.2.4
 
     token           = 1*tchar
-    tchar           = "!" / "#" / "$" / "%" / "&" / "'" /
-                      "*" / "+" / "-" / "." / "^" / "_" /
-                      "`" / "|" / "~" / DIGIT / ALPHA
+
+
+    See:
+    https://www.rfc-editor.org/errata/eid4189
+    https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
 */
-    BOOST_ASSERT(start != end);
-    auto in = start;
+    auto it = start;
     char const* k1; // end of name
     char const* v0  // start of value
         = nullptr;
@@ -316,48 +333,37 @@ parse_field(
     tchar_set ts;
     field_vchar_set fvs;
 
-    // make sure we have at least
-    // 3 chars, to detect obs-fold
-#if 0
-    if(end - in < 3)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    end -= 3;
-#endif
-
     // field-name
-    in = ts.skip(in, end);
+    it = ts.skip(it, end);
 
     // ":"
-    if(in == end)
+    if(it == end)
     {
         ec = error::need_more;
         return start;
     }
-    if(*in != ':')
+    if(*it != ':')
     {
         // invalid field char
         ec = error::bad_field;
         return start;
     }
-    if(in == start)
+    if(it == start)
     {
         // empty field name
         ec = error::bad_field;
         return start;
     }
-    k1 = in;
-    ++in;
+    k1 = it;
+    ++it;
 
     // OWS
-    in = ws.skip(in, end);
+    it = ws.skip(it, end);
 
     // *( field-content / obs-fold )
     for(;;)
     {
-        if(in == end)
+        if(it == end)
         {
             ec = error::need_more;
             return start;
@@ -365,82 +371,61 @@ parse_field(
 
         // check field-content first, as
         // it is more frequent than CRLF
-        if(fvs.contains(*in))
+        if(fvs.contains(*it))
         {
             // field-content
             if(! v0)
-                v0 = in;
-            ++in;
+                v0 = it;
+            ++it;
             // *field-vchar
-            in = fvs.skip(in, end);
-            if(in == end)
+            it = fvs.skip(it, end);
+            if(it == end)
             {
                 ec = error::need_more;
                 return start;
             }
-            v1 = in;
-            //  1*( SP / HTAB )
-            if(ws.contains(*in))
-            {
-                in = ws.skip(in, end);
-                if(end - in < 3)
-                {
-                    ec = error::need_more;
-                    return start;
-                }
-                if(in[0] == '\r')
-                {
-                    if(in[1] != '\n')
-                    {
-                        // expected LF
-                        ec = error::bad_line_ending;
-                        return start;
-                    }
-                    if(ws.contains(in[2]))
-                    {
-                        // illegal obs-fold
-                        ec = error::bad_value;
-                        return start;
-                    }
-                    // end of line
-                    v1 = in;
-                    in += 2;
-                    break;
-                }
-                continue;
-            }
+            v1 = it;
+            continue;
+        }
+
+        // OWS
+        if(ws.contains(*it))
+        {
+            ++it;
+            it = ws.skip(it, end);
+            continue;
         }
 
         // obs-fold / CRLF
-        if(in[0] == '\r')
+        if(it[0] == '\r')
         {
-            if(end - in < 3)
+            if(end - it < 3)
             {
                 ec = error::need_more;
                 return start;
             }
-            if(in[1] != '\n')
+            if(it[1] != '\n')
             {
                 // expected LF
                 ec = error::bad_line_ending;
                 return start;
             }
-            if(! ws.contains(in[2]))
+            if(! ws.contains(it[2]))
             {
                 // end of line
                 if(! v0)
-                    v0 = in;
-                v1 = in;
-                in += 2;
+                    v0 = it;
+                v1 = it;
+                it += 2;
                 break;
             }
             // replace CRLF with SP SP
-            in[0] = ' ';
-            in[1] = ' ';
-            in[2] = ' ';
-            in += 3;
+            it[0] = ' ';
+            it[1] = ' ';
+            it[2] = ' ';
+            it += 3;
             // *( SP / HTAB )
-            in = ws.skip(in, end);
+            it = ws.skip(it, end);
             continue;
         }
 
@@ -459,27 +444,27 @@ parse_field(
     case field::proxy_connection:
         do_connection(v, ec);
         if(ec)
-            return in;
+            return it;
         break;
     case field::content_length:
         do_content_length(v, ec);
         if(ec)
-            return in;
+            return it;
         break;
     case field::transfer_encoding:
         do_transfer_encoding(v, ec);
         if(ec)
-            return in;
+            return it;
         break;
     case field::upgrade:
         do_upgrade(v, ec);
         if(ec)
-            return in;
+            return it;
         break;
     default:
         break;
     }
-    return in;
+    return it;
 }
 
 //------------------------------------------------
@@ -488,38 +473,63 @@ parse_field(
 void
 basic_parser::
 do_connection(
-    string_view v, error_code& ec)
+    string_view s, error_code& ec)
 {
-    (void)v;
     (void)ec;
-}
 
-//------------------------------------------------
+    using namespace detail::string_literals;
+    for(auto v : token_list(s))
+    {
+        if(iequals(v, "close"_sv))
+        {
+        }
+        else if(iequals(v, "keep-alive"_sv))
+        {
+        }
+        else if(iequals(v, "upgrade"_sv))
+        {
+        }
+    }
+}
 
 void
 basic_parser::
 do_content_length(
-    string_view v, error_code& ec)
+    string_view s, error_code& ec)
 {
-    (void)v;
+    (void)s;
     (void)ec;
 }
 
 void
 basic_parser::
 do_transfer_encoding(
-    string_view v, error_code& ec)
+    string_view s, error_code& ec)
 {
-    (void)v;
-    (void)ec;
+    using namespace detail::string_literals;
+
+    transfer_encoding_list te(s);
+    auto const end = te.end();
+    auto it = te.begin(ec);
+    if(ec)
+    {
+        // expected at least one encoding
+        ec = error::bad_transfer_encoding;
+        return;
+    }
+    for(;;)
+    {
+        auto cur = it++;
+        
+    }
 }
 
 void
 basic_parser::
 do_upgrade(
-    string_view v, error_code& ec)
+    string_view s, error_code& ec)
 {
-    (void)v;
+    (void)s;
     (void)ec;
 }
 

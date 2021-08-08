@@ -166,7 +166,6 @@ public:
         bad(f("x :"));
         bad(f("x@"));
         bad(f("x@:"));
-        bad(f("x: y \r\n \r\n"));
 
         good(f(""));
         good(f("x:"));
@@ -185,12 +184,18 @@ public:
         good(f("x: \r\n x"));
         good(f("x: \r\n \t\r\n "));
         good(f("x: \r\n \t\r\n x"));
+        good(f("x: y \r\n \r\n"));
+
+        // errata eid4189
+        good(f("x: , , ,"));
+        good(f("x: abrowser/0.001 (C O M M E N T)"));
+        good(f("x: gzip , chunked"));
     }
 
     void
     run()
     {
-//        testParse();
+        testParse();
         testParseField();
     }
 };
