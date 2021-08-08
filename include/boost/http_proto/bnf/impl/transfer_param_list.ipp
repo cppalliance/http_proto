@@ -41,14 +41,15 @@ increment(
     char const* const end,
     error_code& ec)
 {
+    ws_set ws;
     tchar_set ts;
 
     // *( ... )
     if(start == end)
         return nullptr;
     // OWS
-    auto it = detail::skip_ows(
-        start, end);
+    auto it =
+        ws.skip(start, end);
     // ";"
     if(it == end)
     {
@@ -62,8 +63,7 @@ increment(
     }
     ++it;
     // OWS
-    it = detail::skip_ows(
-        it, end);
+    it = ws.skip(it, end);
     // token
     auto t0 = it;
     it = ts.skip(t0, end);
@@ -76,7 +76,7 @@ increment(
         t0, static_cast<
             std::size_t>(it - t0) };
     // OWS
-    it = detail::skip_ows(it, end);
+    it = ws.skip(it, end);
     // "="
     if(it == end)
     {
@@ -90,7 +90,7 @@ increment(
     }
     ++it;
     // OWS
-    it = detail::skip_ows(it, end);
+    it = ws.skip(it, end);
     // token
     t0 = it;
     it = ts.skip(t0, end);

@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_CTYPE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/char_set.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <bitset>
 
 namespace boost {
 namespace http_proto {
@@ -103,74 +103,15 @@ struct iless_pred
 
 //------------------------------------------------
 
-class char_set_table
-{
-    char const* const tab_;
+/** Character set for WS
 
-public:
-    char_set_table(
-        char const* tab) noexcept
-        : tab_(tab)
-    {
-    }
-
-    bool
-    contains(
-        char c) const noexcept
-    {
-        auto const u = static_cast<
-            unsigned char>(c);
-        return tab_[u] != 0;
-    }
-
-    template<class Char>
-    Char*
-    skip(
-        Char* first,
-        char const* end) const noexcept
-    {
-        while(first != end)
-        {
-            if(! contains(*first))
-                break;
-            ++first;
-        }
-        return first;
-    }
-};
-
-//------------------------------------------------
-
-template<bool (*F)(char)>
-class char_set_function
-{
-public:
-    bool
-    contains(
-        char c) const noexcept
-    {
-        auto const u = static_cast<
-            unsigned char>(c);
-        return F(u) != 0;
-    }
-
-    template<class Char>
-    Char*
-    skip(
-        Char* first,
-        char const* end) const noexcept
-    {
-        while(first != end)
-        {
-            if(! contains(*first))
-                break;
-            ++first;
-        }
-        return first;
-    }
-};
-
-//------------------------------------------------
+    @par BNF
+    @code
+    WS      = SP / HTAB
+    @endcode
+*/
+using ws_set
+    = char_set_function<&is_ws>;
 
 /** Character set for DIGIT
 
@@ -181,16 +122,6 @@ public:
 */
 using digit_set
     = char_set_function<&is_digit>;
-
-/** Character set for WS
-
-    @par BNF
-    @code
-    WS      = SP / HTAB
-    @endcode
-*/
-using ws_set
-    = char_set_function<&is_ws>;
 
 /** Character set for tchar
 

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -153,18 +154,15 @@ parse_target(
     char const* const end,
     error_code& ec)
 {
+    detail::pchar_set ps;
+
     // target
-    auto it = start;
-    for(;;)
+    auto it = ps.skip(
+        start, end);;
+    if(it == end)
     {
-        if(it == end)
-        {
-            ec = error::need_more;
-            return start;
-        }
-        if(! detail::is_pathchar(*it))
-            break;
-        ++it;
+        ec = error::need_more;
+        return start;
     }
     if(it == start)
     {

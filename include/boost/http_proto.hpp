@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/basic_parser.hpp>
+#include <boost/http_proto/char_set.hpp>
 #include <boost/http_proto/connection.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/ctype.hpp>

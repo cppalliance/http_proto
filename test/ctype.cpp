@@ -42,6 +42,9 @@ public:
     void
     testCharSets()
     {
+        check_set(ws_set(),
+            " \t");
+
         check_set(digit_set(),
             "0123456789");
 

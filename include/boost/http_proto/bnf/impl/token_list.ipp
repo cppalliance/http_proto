@@ -60,6 +60,7 @@ increment(
     char const* const end,
     error_code& ec)
 {
+    ws_set ws;
     tchar_set ts;
 
     // [ ... ]
@@ -73,7 +74,7 @@ increment(
     }
     // OWS
     auto const first =
-        detail::skip_ows(start, end);
+        ws.skip(start, end);
     // token
     auto it = ts.skip(first, end);
     if(it == first)

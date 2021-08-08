@@ -19,7 +19,7 @@ namespace detail {
 
 static
 bool
-is_pathchar(char c) noexcept
+is_pchar(char c) noexcept
 {
     // TEXT = <any OCTET except CTLs, and excluding LWS>
     static bool constexpr tab[256] = {
@@ -41,25 +41,6 @@ is_pathchar(char c) noexcept
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1  // 240
     };
     return tab[static_cast<unsigned char>(c)];
-}
-
-char const*
-skip_ows(
-    char const* it,
-    char const* const end) noexcept
-{
-    while(it != end)
-    {
-        switch(*it)
-        {
-        case ' ':
-        case '\t':
-            ++it;
-            continue;
-        }
-        break;
-    }
-    return it;
 }
 
 char const*
