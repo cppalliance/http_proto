@@ -30,11 +30,10 @@ basic_parser(
     : ctx_(ctx)
     , buffer_(nullptr)
     , capacity_(0)
-    , committed_(0)
+    , size_(0)
     , parsed_(0)
     , state_(state::nothing_yet)
-    , header_limit_(8192)
-    , skip_(0)
+    , max_header_(8192)
     , f_(0)
 {
 }
@@ -58,25 +57,35 @@ prepare()
 {
     if(! buffer_)
     {
+        // VFALCO This should be
+        // configurable or something
         buffer_ = new char[4096];
         capacity_ = 4096;
     }
-    else if(capacity_ <= committed_)
+    else if(capacity_ <= size_)
     {
+        // VFALCO Put a configurable
+        // growth policy here.
+        std::size_t amount = 4096;
         auto buffer = new char[
-            capacity_ + 4096];
+            capacity_ + amount];
         std::memcpy(buffer,
-            buffer_, committed_);
+            buffer_, parsed_);
         delete[] buffer_;
         buffer_ = buffer;
-        capacity_ = capacity_ + 4096;
+        capacity_ =
+            capacity_ + amount;
     }
 
     return {
-        buffer_ + committed_,
-        capacity_ - committed_ };
+        buffer_ + size_,
+        capacity_ - size_ };
 }
 
+// VFALCO TODO We could null-terminate
+// the input temporarily, and then instead
+// of checking if( it == end ) we could
+// check if( *it == '\0' )
 void
 basic_parser::
 commit(
@@ -86,8 +95,8 @@ commit(
     BOOST_ASSERT(n > 0);
 
     BOOST_ASSERT(n <=
-        capacity_ - committed_);
-    committed_ += n;
+        capacity_ - size_);
+    size_ += n;
 }
 
 void
@@ -105,6 +114,9 @@ parse_header(
 {
     ec = {};
 
+    // VFALCO This is wrong, what
+    // if the header is complete?
+#if 0
     // parse algorithms assume at
     // least one committed char.
     if(committed_ == 0)
@@ -112,10 +124,15 @@ parse_header(
         ec = error::need_more;
         return;
     }
+#endif
 
-    auto first = buffer_ + parsed_;
-    char const* const last =
-        buffer_ + committed_;
+    auto start = buffer_ + parsed_;
+    char const* const end = [this]
+    {
+        if(size_ <= max_header_)
+            return buffer_ + size_;
+        return buffer_ + max_header_;
+    }();
 
     switch(state_)
     {
@@ -127,8 +144,8 @@ parse_header(
     {
         // Nothing can come before start-line
         BOOST_ASSERT(parsed_ == 0);
-        first = parse_start_line(
-            first, last, ec);
+        start = parse_start_line(
+            start, end, ec);
         if(ec)
             goto finish;
         state_ = state::fields;
@@ -137,8 +154,8 @@ parse_header(
 
     case state::fields:
     {
-        first = parse_fields(
-            first, last, ec);
+        start = parse_fields(
+            start, end, ec);
         if(ec)
             goto finish;
         BOOST_ASSERT(! ec);
@@ -151,7 +168,7 @@ parse_header(
     }
 
 finish:
-    parsed_ = first - buffer_;
+    parsed_ = start - buffer_;
 }
 
 void

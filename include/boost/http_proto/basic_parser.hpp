@@ -37,7 +37,6 @@ protected:
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
-private:
     enum class state
     {
         nothing_yet = 0,
@@ -55,20 +54,15 @@ private:
     };
 
     context& ctx_;
-protected:
     char* buffer_;
-private:
     std::size_t capacity_;          // allocated size
-    std::size_t committed_;         // committed part
-protected:
+    std::size_t size_;              // committed part
     std::size_t parsed_;            // parsed part
-private:
 
     state state_;
-    off_t header_limit_;            // max header size
-    std::size_t skip_;              // offset to continue parse
 
-protected:
+    std::size_t max_header_;        // max header size
+
     static unsigned constexpr flagSkipBody              = 1<<  0;
     static unsigned constexpr flagEager                 = 1<<  1;
     static unsigned constexpr flagGotSome               = 1<<  2;
