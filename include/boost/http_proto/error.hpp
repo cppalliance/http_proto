@@ -32,6 +32,49 @@ using error_condition = boost::system::error_condition;
 /// Error codes returned from HTTP algorithms and operations.
 enum class error
 {
+    success = 0
+
+    //
+    // Partial success
+    //
+
+    /** The parser needs more input to make progress.
+    */
+    ,need_more = 1
+
+    //
+    // Syntax errors (unrecoverable)
+    //
+
+    /// Syntax error in method
+    ,bad_method
+
+    /// Syntax error in field-name
+    ,bad_field_name
+
+    /// Syntax error in field-value
+    ,bad_field_value
+
+    /// Expected LF after CR
+    ,bad_line_ending
+
+    /// Syntax error in list
+    ,bad_list
+
+    /// Syntax error in HTTP-Version
+    ,bad_version
+
+    /// Syntax error in request-target
+    ,bad_request_target
+
+    /// Syntax error in transfer-encoding
+    ,bad_transfer_encoding
+
+    //
+    // Old
+    //
+
+#if 0
     /** The end of the stream was reached.
 
         This error is returned when attempting to read HTTP data,
@@ -112,17 +155,11 @@ enum class error
     // (parser errors)
     //
 
-    /// The line ending was malformed
-    bad_line_ending,
-
     /// The method is invalid.
     bad_method,
 
     /// The request-target is invalid.
     bad_target,
-
-    /// The HTTP-version is invalid.
-    bad_version,
 
     /// The status-code is invalid.
     bad_status,
@@ -161,25 +198,56 @@ enum class error
 
 ,eof
 ,end_of_body
+#endif
+};
+
+/** Error conditions corresponding to HTTP errors
+*/
+enum class condition
+{
+    /// A recoverable, partial success
+    partial_success = 1
+
+    /// Inputs are not standards-conforming
+    ,syntax_error
 };
 
 #ifndef BOOST_HTTP_PROTO_DOCS
+
 BOOST_HTTP_PROTO_DECL
 error_code
-make_error_code(error ev) noexcept;
+make_error_code(
+    error ev) noexcept;
+
+BOOST_HTTP_PROTO_DECL
+error_condition
+make_error_condition(
+    condition c) noexcept;
+
 #endif
 
 } // http_proto
 } // boost
 
+//--------------------------------------
+
 namespace boost {
 namespace system {
+
 template<>
 struct is_error_code_enum<
     ::boost::http_proto::error>
 {
     static bool const value = true;
 };
+
+template<>
+struct is_error_condition_enum<
+    ::boost::http_proto::condition>
+{
+    static bool const value = true;
+};
+
 } // system
 } // boost
 

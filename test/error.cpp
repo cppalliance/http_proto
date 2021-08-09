@@ -21,7 +21,10 @@ class error_test
 {
 public:
     void
-    check(char const* name, error ev)
+    check(
+        char const* name,
+        error ev,
+        condition c)
     {
         auto const ec = make_error_code(ev);
         auto const& cat = make_error_code(
@@ -36,36 +39,28 @@ public:
                     static_cast<std::underlying_type<error>::type>(ev))));
         BOOST_TEST(cat.equivalent(ec,
             static_cast<std::underlying_type<error>::type>(ev)));
+        BOOST_TEST(ec == c);
     }
 
     void
     run()
     {
-        check("http_proto", error::end_of_stream);
-        check("http_proto", error::partial_message);
-        check("http_proto", error::need_more);
-        check("http_proto", error::unexpected_body);
-        check("http_proto", error::need_buffer);
-        check("http_proto", error::end_of_chunk);
-        check("http_proto", error::buffer_overflow);
-        check("http_proto", error::header_limit);
-        check("http_proto", error::body_limit);
+        char const* const n = "boost.http_proto";
 
-        check("http_proto", error::bad_line_ending);
-        check("http_proto", error::bad_method);
-        check("http_proto", error::bad_target);
-        check("http_proto", error::bad_version);
-        check("http_proto", error::bad_status);
-        check("http_proto", error::bad_reason);
-        check("http_proto", error::bad_field);
-        check("http_proto", error::bad_value);
-        check("http_proto", error::bad_content_length);
-        check("http_proto", error::bad_transfer_encoding);
-        check("http_proto", error::bad_chunk);
-        check("http_proto", error::bad_chunk_extension);
-        check("http_proto", error::bad_obs_fold);
+        condition c;
 
-        check("http_proto", error::short_read);
+        c = condition::partial_success;
+        check(n, error::need_more, c);
+
+        c = condition::syntax_error;
+        check(n, error::bad_method, c);
+        check(n, error::bad_field_name, c);
+        check(n, error::bad_field_value, c);
+        check(n, error::bad_line_ending, c);
+        check(n, error::bad_list, c);
+        check(n, error::bad_version, c);
+        check(n, error::bad_request_target, c);
+        check(n, error::bad_transfer_encoding, c);
     }
 };
 

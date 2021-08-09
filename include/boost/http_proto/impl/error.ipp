@@ -18,13 +18,13 @@ namespace http_proto {
 
 namespace detail {
 
-class http_error_category : public error_category
+struct http_error_category
+    : public error_category
 {
-public:
     const char*
     name() const noexcept override
     {
-        return "http_proto";
+        return "boost.http_proto";
     }
 
     std::string
@@ -32,32 +32,19 @@ public:
     {
         switch(static_cast<error>(ev))
         {
-        case error::end_of_stream: return "end of stream";
-        case error::partial_message: return "partial message";
         case error::need_more: return "need more";
-        case error::unexpected_body: return "unexpected body";
-        case error::need_buffer: return "need buffer";
-        case error::end_of_chunk: return "end of chunk";
-        case error::buffer_overflow: return "buffer overflow";
-        case error::header_limit: return "header limit exceeded";
-        case error::body_limit: return "body limit exceeded";
-        case error::bad_line_ending: return "bad line ending";
+
         case error::bad_method: return "bad method";
-        case error::bad_target: return "bad target";
+        case error::bad_field_name: return "bad field name";
+        case error::bad_field_value: return "bad field value";
+        case error::bad_line_ending: return "bad line ending";
+        case error::bad_list: return "bad list";
         case error::bad_version: return "bad version";
-        case error::bad_status: return "bad status";
-        case error::bad_reason: return "bad reason";
-        case error::bad_field: return "bad field";
-        case error::bad_value: return "bad value";
-        case error::bad_content_length: return "bad Content-Length";
-        case error::bad_transfer_encoding: return "bad Transfer-Encoding";
-        case error::bad_chunk: return "bad chunk";
-        case error::bad_chunk_extension: return "bad chunk extension";
-        case error::bad_obs_fold: return "bad obs-fold";
-        case error::short_read: return "unexpected eof in body";
+        case error::bad_request_target: return "bad request-target";
+        case error::bad_transfer_encoding: return "bad transfer-encoding";
 
         default:
-            return "http_proto error";
+            return "boost.http_proto error";
         }
     }
 
@@ -65,9 +52,27 @@ public:
     default_error_condition(
         int ev) const noexcept override
     {
-        return error_condition{ev, *this};
+        switch(static_cast<error>(ev))
+        {
+        case error::need_more:
+            return condition::partial_success;
+
+        case error::bad_method:
+        case error::bad_field_name:
+        case error::bad_field_value:
+        case error::bad_line_ending:
+        case error::bad_list:
+        case error::bad_version:
+        case error::bad_request_target:
+        case error::bad_transfer_encoding:
+            return condition::syntax_error;
+
+        default:
+            return {ev, *this};
+        }
     }
 
+#if 0
     bool
     equivalent(int ev,
         error_condition const& condition
@@ -84,6 +89,31 @@ public:
         return error.value() == ev &&
             &error.category() == this;
     }
+#endif
+};
+
+struct http_condition_category
+    : error_category
+{
+    const char*
+    name() const noexcept override
+    {
+        return "boost.http_proto";
+    }
+
+    std::string
+    message(int cv) const override
+    {
+        switch(static_cast<condition>(cv))
+        {
+        case condition::partial_success:
+            return "partial success";
+
+        default: // not used
+        case condition::syntax_error:
+            return "syntax error";
+        }
+    }
 };
 
 } // detail
@@ -94,6 +124,14 @@ make_error_code(error ev) noexcept
     static detail::http_error_category const cat{};
     return error_code{static_cast<
         std::underlying_type<error>::type>(ev), cat};
+}
+
+error_condition
+make_error_condition(condition c) noexcept
+{
+    static detail::http_condition_category const cat{};
+    return error_condition{static_cast<
+        std::underlying_type<condition>::type>(c), cat};
 }
 
 } // http_proto

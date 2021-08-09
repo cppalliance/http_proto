@@ -41,7 +41,7 @@ begin(
     if(it == first)
     {
         // missing token
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value.first = { first, static_cast<
@@ -74,7 +74,7 @@ increment(
     if(! comma_)
     {
         // missing comma
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     // OWS
@@ -85,7 +85,7 @@ increment(
     if(it == first)
     {
         // missing token
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value.first = { first, static_cast<

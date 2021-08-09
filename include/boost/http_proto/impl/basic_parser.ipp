@@ -222,6 +222,7 @@ parse_version(
     char const* const end,
     error_code& ec)
 {
+    // HTTP-version = "HTTP/" DIGIT "." DIGIT
     auto it = start;
     if(end - it < 8)
     {
@@ -345,13 +346,13 @@ parse_field(
     if(*it != ':')
     {
         // invalid field char
-        ec = error::bad_field;
+        ec = error::bad_field_name;
         return start;
     }
     if(it == start)
     {
-        // empty field name
-        ec = error::bad_field;
+        // missing field name
+        ec = error::bad_field_name;
         return start;
     }
     k1 = it;
@@ -430,7 +431,7 @@ parse_field(
         }
 
         // illegal value
-        ec = error::bad_field;
+        ec = error::bad_field_value;
         return start;
     }
 
@@ -517,10 +518,15 @@ do_transfer_encoding(
         ec = error::bad_transfer_encoding;
         return;
     }
+    BOOST_ASSERT(it != end);
+    // get last encoding
     for(;;)
     {
-        auto cur = it++;
-        
+        auto prev = it++;
+        if(it == end)
+        {
+            break;
+        }
     }
 }
 

@@ -24,15 +24,13 @@ namespace http_proto {
 class context;
 #endif
 
-enum part
-{
-    header,
-    body,
-    chunk_header,
-    chunk_body,
-    chunk_final
-};
+/** A parser for HTTP/1 messages.
 
+    The parser is strict. Any malformed
+    inputs according to the documented
+    HTTP ABNFs is treated as an
+    unrecoverable error.
+*/
 class basic_parser
 {
 protected:

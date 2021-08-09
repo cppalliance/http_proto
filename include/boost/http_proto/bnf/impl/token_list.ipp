@@ -42,7 +42,7 @@ begin(
     if(it == first)
     {
         // missing token
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value = { first, static_cast<
@@ -68,8 +68,8 @@ increment(
         return nullptr;
     if(! comma_)
     {
-        // missing comma
-        ec = error::bad_value;
+        // invalid character
+        ec = error::bad_list;
         return start;
     }
     // OWS
@@ -80,7 +80,7 @@ increment(
     if(it == first)
     {
         // missing token
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value = { first, static_cast<

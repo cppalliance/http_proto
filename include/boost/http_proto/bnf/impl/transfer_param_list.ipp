@@ -53,12 +53,12 @@ increment(
     // ";"
     if(it == end)
     {
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     if(*it != ';')
     {
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     ++it;
@@ -69,7 +69,7 @@ increment(
     it = ts.skip(t0, end);
     if(it == t0)
     {
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value.first = {
@@ -80,12 +80,12 @@ increment(
     // "="
     if(it == end)
     {
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     if(*it != '=')
     {
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     ++it;
@@ -98,7 +98,7 @@ increment(
     {
         // value must be present
         // https://www.rfc-editor.org/errata/eid4839
-        ec = error::bad_value;
+        ec = error::bad_list;
         return start;
     }
     value.second = {

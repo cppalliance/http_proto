@@ -154,11 +154,17 @@ parse_target(
     char const* const end,
     error_code& ec)
 {
+/*
+    request-target  = origin-form
+                    / absolute-form
+                    / authority-form
+                    / asterisk-form
+*/
     detail::pchar_set ps;
 
     // target
     auto it = ps.skip(
-        start, end);;
+        start, end);
     if(it == end)
     {
         ec = error::need_more;
@@ -167,7 +173,7 @@ parse_target(
     if(it == start)
     {
         // empty target
-        ec = error::bad_target;
+        ec = error::bad_request_target;
         return start;
     }
     string_view s(
