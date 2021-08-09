@@ -55,13 +55,14 @@ protected:
 
     context& ctx_;
     char* buffer_;
-    std::size_t capacity_;          // allocated size
-    std::size_t size_;              // committed part
-    std::size_t parsed_;            // parsed part
+    std::size_t cap_;           // allocated size
+    std::size_t size_;          // committed part
+    std::size_t used_;          // parsed part
+    std::size_t header_size_;   // full header size
 
     state state_;
 
-    std::size_t max_header_;        // max header size
+    std::size_t header_limit_;  // max header size
 
     static unsigned constexpr flagSkipBody              = 1<<  0;
     static unsigned constexpr flagEager                 = 1<<  1;
@@ -97,7 +98,8 @@ public:
         return state_ == state::complete;
     }
 
-    /** Prepare the parser for a new message.
+    /** Prepare the parser for the next message.
+
     */
     BOOST_HTTP_PROTO_DECL
     void

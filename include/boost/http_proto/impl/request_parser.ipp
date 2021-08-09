@@ -35,7 +35,7 @@ header() const noexcept
 {
     return request_view(
         buffer_,
-        parsed_,
+        used_,
         n_method_,
         n_target_,
         method_,
