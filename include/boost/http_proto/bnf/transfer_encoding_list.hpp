@@ -41,7 +41,7 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc7230#section-4
 */
 struct transfer_encoding_list_bnf
-    : required_list<transfer_encoding_list_bnf>
+    : required_list
 {
     struct value_type
     {
@@ -62,7 +62,7 @@ struct transfer_encoding_list_bnf
     parse_element(
         char const* const start,
         char const* const end,
-        error_code& ec);
+        error_code& ec) override;
 };
 
 using transfer_encoding_list =

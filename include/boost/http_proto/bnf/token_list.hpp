@@ -39,7 +39,7 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc7230#section-7
 */
 struct token_list_bnf
-    : required_list<token_list_bnf>
+    : required_list
 {
     string_view value;
 
@@ -48,7 +48,7 @@ struct token_list_bnf
     parse_element(
         char const* const start,
         char const* const end,
-        error_code& ec);
+        error_code& ec) override;
 };
 
 using token_list = range<token_list_bnf>;
