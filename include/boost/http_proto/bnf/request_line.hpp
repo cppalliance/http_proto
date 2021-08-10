@@ -7,21 +7,17 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_TRANSFER_PARAM_LIST_HPP
-#define BOOST_HTTP_PROTO_BNF_TRANSFER_PARAM_LIST_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
+#define BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <utility>
 
 namespace boost {
 namespace http_proto {
 
-/** BNF for transfer-param-list
-
-    Parameters are in the form of a name=value pair.
+/** BNF for request-line
 
     @par BNF
     @code
@@ -34,38 +30,38 @@ namespace http_proto {
     @endcode
 
     @see
-        https://datatracker.ietf.org/doc/html/rfc5234
-        https://datatracker.ietf.org/doc/html/rfc7230#section-4
-        https://www.rfc-editor.org/errata/eid4839
-        https://www.rfc-editor.org/errata/eid4891
 */
-struct transfer_param_list_bnf
+struct request_line
 {
     struct value_type
     {
-        string_view name;
-        string_view value;
+        string_view method;
+        string_view target;
+        int version;
     };
 
     value_type value;
 
     BOOST_HTTP_PROTO_DECL
     char const*
-    begin(
+    parse_element(
         char const* start,
         char const* end,
         error_code& ec);
 
-    BOOST_HTTP_PROTO_DECL
+private:
     char const*
-    increment(
+    parse_method(
+        char const* start,
+        char const* end,
+        error_code& ec);
+
+    char const*
+    parse_target(
         char const* start,
         char const* end,
         error_code& ec);
 };
-
-using transfer_param_list =
-    range<transfer_param_list_bnf>;
 
 } // http_proto
 } // boost

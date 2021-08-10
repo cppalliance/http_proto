@@ -7,15 +7,5 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_RFC7230_HPP
-#define BOOST_HTTP_PROTO_DETAIL_IMPL_RFC7230_HPP
-
-namespace boost {
-namespace http_proto {
-namespace detail {
-
-} // detail
-} // http_proto
-} // boost
-
-#endif
+// Test that header file is self-contained.
+#include <boost/http_proto/bnf/required_list.hpp>

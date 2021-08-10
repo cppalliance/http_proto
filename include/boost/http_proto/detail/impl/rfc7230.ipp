@@ -44,6 +44,72 @@ is_pchar(char c) noexcept
     return tab[static_cast<unsigned char>(c)];
 }
 
+
+char const*
+skip_opt_comma_ows(
+    char const* it,
+    char const* const end) noexcept
+{
+    // *( "," OWS )
+    if(it == end)
+        return it;
+    if(*it != ',')
+        return it;
+    ++it;
+    while(it != end)
+    {
+        switch(*it)
+        {
+        case ' ':
+        case '\t':
+        case ',':
+            ++it;
+            continue;
+        }
+        break;
+    }
+    return it;
+}
+
+char const*
+skip_opt_ows_comma(
+    bool& comma,
+    char const* const start,
+    char const* const end) noexcept
+{
+    // *( OWS "," )
+    auto it = start;
+    auto last = start;
+    if(it == end)
+        return it;
+    for(;;)
+    {
+        switch(*it)
+        {
+        case ' ':
+        case '\t':
+            ++it;
+            if(it == end)
+            {
+                comma =
+                    last != start;
+                return last;
+            }
+            break;
+        case ',':
+            ++it;
+            if(it == end)
+                return it;
+            last = it;
+            break;
+        default:
+            comma =
+                last != start;
+            return last;
+        }
+    }
+}
+
 static
 char const*
 parse_u64(
@@ -90,6 +156,54 @@ parse_u64(
     result = v;
     return it;
 }
+
+char const*
+parse_http_version(
+    int& result,
+    char const* const start,
+    char const* const end,
+    error_code& ec) noexcept
+{
+    // HTTP-version = "HTTP/" DIGIT "." DIGIT
+    if(start == end)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    auto it = start;
+    auto n = end - it;
+    if( n > 7)
+        n = 7;
+    if(std::memcmp(it,
+        "HTTP/1.", n) != 0)
+    {
+        // fail fast
+        ec = error::bad_version;
+        return start;
+    }
+    it += n;
+    if(it == end)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    if(*it == '0')
+    {
+        result = 0;
+    }
+    else if(*it == '1')
+    {
+        result = 1;
+    }
+    else
+    {
+        ec = error::bad_version;
+        return start;
+    }
+    ++it;
+    return it;
+}
+
 } // detail
 } // http_proto
 } // boost

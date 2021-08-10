@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_RFC7230_HPP
 
 #include <boost/http_proto/char_set.hpp>
+#include <boost/http_proto/error.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -23,14 +24,14 @@ using pchar_set =
     char_set_function<&is_pchar>;
 
 // *( "," OWS )
-inline
+static
 char const*
 skip_opt_comma_ows(
     char const* start,
     char const* end) noexcept;
 
 // *( OWS "," )
-inline
+static
 char const*
 skip_opt_ows_comma(
     bool& comma,
@@ -43,6 +44,14 @@ parse_u64(
     std::uint64_t& result,
     char const* start,
     char const* end) noexcept;
+
+static
+char const*
+parse_http_version(
+    int& result,
+    char const* start,
+    char const* end,
+    error_code& ec) noexcept;
 
 } // detail
 } // http_proto

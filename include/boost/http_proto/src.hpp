@@ -46,6 +46,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/rfc.ipp>
 #include <boost/http_proto/impl/status.ipp>
 
+#include <boost/http_proto/bnf/impl/request_line.ipp>
 #include <boost/http_proto/bnf/impl/required_list.ipp>
 #include <boost/http_proto/bnf/impl/token_list.ipp>
 #include <boost/http_proto/bnf/impl/transfer_encoding_list.ipp>

@@ -33,8 +33,8 @@ parse_element(
         ec = error::bad_list;
         return start;
     }
-    value.name = { start, static_cast<
-        std::size_t>(it - start) };
+    value.name = string_view(
+        start, it - start);
     // transfer-param-list
     auto const s = valid_prefix<
         transfer_param_list_bnf>({ it,
