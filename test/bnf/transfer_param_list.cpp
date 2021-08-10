@@ -16,6 +16,10 @@
 namespace boost {
 namespace http_proto {
 
+BOOST_STATIC_ASSERT(
+    std::is_trivially_destructible<
+        transfer_param_list>::value);
+
 class transfer_param_list_test
 {
 public:

@@ -16,6 +16,10 @@
 namespace boost {
 namespace http_proto {
 
+BOOST_STATIC_ASSERT(
+    std::is_trivially_destructible<
+        token_list>::value);
+
 class token_list_test
 {
 public:

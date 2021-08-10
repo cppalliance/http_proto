@@ -26,6 +26,7 @@ set(PFILES
     field.cpp
     fields_view.cpp
     method.cpp
+    optional.cpp
     request_parser.cpp
     request_view.cpp
     response_parser.cpp
