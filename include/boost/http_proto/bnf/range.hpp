@@ -86,7 +86,7 @@ class range<T>::iterator
 
     explicit
     iterator(string_view s)
-        : end_(&*s.end())
+        : end_(s.data() + s.size())
     {
         error_code ec;
         next_ = impl_.begin(
@@ -101,7 +101,7 @@ class range<T>::iterator
     iterator(
         string_view s,
         error_code& ec)
-        : end_(&*s.end())
+        : end_(s.data() + s.size())
     {
         next_ = impl_.begin(
             s.data(), end_, ec);

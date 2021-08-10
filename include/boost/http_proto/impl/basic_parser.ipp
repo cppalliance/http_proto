@@ -14,6 +14,7 @@
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/token_list.hpp>
 #include <boost/http_proto/bnf/transfer_encoding_list.hpp>
 #include <boost/assert.hpp>
@@ -257,212 +258,62 @@ body() const
 char*
 basic_parser::
 parse_fields(
-    char* start,
-    char const* end,
+    char* const start,
+    char const* const end,
     error_code& ec)
 {
+    header_fields_bnf p;
+    auto cit = p.begin(
+        start, end, ec);
     auto it = start;
     for(;;)
     {
-        if(it == end)
+        if(ec == error::end)
         {
-            ec = error::need_more;
-            return start;
-        }
-        if(*it != '\r')
-        {
-            it = parse_field(
-                it, end, ec);
-            start = it;
-            if(ec)
-                return start;
-        }
-        else
-        {
-            ++it;
-            if(it == end)
-            {
-                ec = error::need_more;
-                return start;
-            }
-            if(*it != '\n')
-            {
-                ec = error::bad_line_ending;
-                return start;
-            }
-            ++it;
-            start = it;
+            ec = {};
             break;
         }
-    }
-    return start;
-}
-
-char*
-basic_parser::
-parse_field(
-    char* const start,
-    char const* end,
-    error_code& ec)
-{
-/*
-    header-field   = field-name ":" OWS field-value OWS
-
-    field-name      = token
-    field-value     = *( field-content / obs-fold )
-    field-content   = field-vchar [ 1*( SP / HTAB / field-vchar ) field-vchar ]
-
-    obs-fold        = OWS CRLF 1*( SP / HTAB )
-                    ; obsolete line folding
-                    ; see Section 3.2.4
-
-    token           = 1*tchar
-
-
-    See:
-    https://www.rfc-editor.org/errata/eid4189
-    https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
-*/
-    auto it = start;
-    char const* k1; // end of name
-    char const* v0  // start of value
-        = nullptr;
-    char const* v1; // end of value
-
-    ws_set ws;
-    tchar_set ts;
-    field_vchar_set fvs;
-
-    // field-name
-    it = ts.skip(it, end);
-
-    // ":"
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(*it != ':')
-    {
-        // invalid field char
-        ec = error::bad_field_name;
-        return start;
-    }
-    if(it == start)
-    {
-        // missing field name
-        ec = error::bad_field_name;
-        return start;
-    }
-    k1 = it;
-    ++it;
-
-    // OWS
-    it = ws.skip(it, end);
-
-    // *( field-content / obs-fold )
-    for(;;)
-    {
-        if(it == end)
+        if(ec.failed())
+            return start + (
+                cit - start);
+        if(p.value.has_obs_fold)
+            replace_obs_fold(it, cit);
+        it = start + (cit - start);
+        auto const f =
+            string_to_field(
+                p.value.name);
+        switch(f)
         {
-            ec = error::need_more;
-            return start;
+        case field::connection:
+        case field::proxy_connection:
+            do_connection(
+                p.value.value, ec);
+            if(ec)
+                return it;
+            break;
+        case field::content_length:
+            do_content_length(
+                p.value.value, ec);
+            if(ec)
+                return it;
+            break;
+        case field::transfer_encoding:
+            do_transfer_encoding(
+                p.value.value, ec);
+            if(ec)
+                return it;
+            break;
+        case field::upgrade:
+            do_upgrade(
+                p.value.value, ec);
+            if(ec)
+                return it;
+            break;
+        default:
+            break;
         }
-
-        // check field-content first, as
-        // it is more frequent than CRLF
-        if(fvs.contains(*it))
-        {
-            // field-content
-            if(! v0)
-                v0 = it;
-            ++it;
-            // *field-vchar
-            it = fvs.skip(it, end);
-            if(it == end)
-            {
-                ec = error::need_more;
-                return start;
-            }
-            v1 = it;
-            continue;
-        }
-
-        // OWS
-        if(ws.contains(*it))
-        {
-            ++it;
-            it = ws.skip(it, end);
-            continue;
-        }
-
-        // obs-fold / CRLF
-        if(it[0] == '\r')
-        {
-            if(end - it < 3)
-            {
-                ec = error::need_more;
-                return start;
-            }
-            if(it[1] != '\n')
-            {
-                // expected LF
-                ec = error::bad_line_ending;
-                return start;
-            }
-            if(! ws.contains(it[2]))
-            {
-                // end of line
-                if(! v0)
-                    v0 = it;
-                v1 = it;
-                it += 2;
-                break;
-            }
-            // replace CRLF with SP SP
-            it[0] = ' ';
-            it[1] = ' ';
-            it[2] = ' ';
-            it += 3;
-            // *( SP / HTAB )
-            it = ws.skip(it, end);
-            continue;
-        }
-
-        // illegal value
-        ec = error::bad_field_value;
-        return start;
-    }
-
-    string_view k(start, k1 - start);
-    string_view v(v0, v1 - v0);
-    auto const f =
-        string_to_field(k);
-    switch(f)
-    {
-    case field::connection:
-    case field::proxy_connection:
-        do_connection(v, ec);
-        if(ec)
-            return it;
-        break;
-    case field::content_length:
-        do_content_length(v, ec);
-        if(ec)
-            return it;
-        break;
-    case field::transfer_encoding:
-        do_transfer_encoding(v, ec);
-        if(ec)
-            return it;
-        break;
-    case field::upgrade:
-        do_upgrade(v, ec);
-        if(ec)
-            return it;
-        break;
-    default:
-        break;
+        cit = p.increment(
+            cit, end, ec);
     }
     return it;
 }
