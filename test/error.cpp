@@ -60,6 +60,7 @@ public:
         condition c;
 
         c = condition::partial_success;
+        check(n, error::end, c);
         check(n, error::need_more, c);
 
         c = condition::syntax_error;

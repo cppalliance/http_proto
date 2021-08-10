@@ -32,15 +32,21 @@ using error_condition = boost::system::error_condition;
 /// Error codes returned from HTTP algorithms and operations.
 enum class error
 {
-    success = 0
+#ifndef BOOST_HTTO_PROTO_DOCS
+    success = 0 // ? Is this correct?
+#endif
 
     //
     // Partial success
     //
 
-    /** The parser needs more input to make progress.
+    /** An iterator reached the end
     */
-    ,need_more = 1
+    ,end
+
+    /** The parser needs more input to make progress
+    */
+    ,need_more
 
     //
     // Syntax errors (unrecoverable)

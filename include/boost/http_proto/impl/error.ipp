@@ -32,6 +32,7 @@ struct http_error_category
     {
         switch(static_cast<error>(ev))
         {
+        case error::end: return "end";
         case error::need_more: return "need more";
 
         case error::bad_method: return "bad method";
@@ -58,6 +59,7 @@ struct http_error_category
     {
         switch(static_cast<error>(ev))
         {
+        case error::end:
         case error::need_more:
             return condition::partial_success;
 
