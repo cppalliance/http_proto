@@ -33,7 +33,7 @@ using error_condition = boost::system::error_condition;
 enum class error
 {
 #ifndef BOOST_HTTO_PROTO_DOCS
-    success = 0 // ? Is this correct?
+    success = 0 // VFALCO Is this correct?
 #endif
 
     //

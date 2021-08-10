@@ -46,7 +46,10 @@ increment(
 
     // *( ... )
     if(start == end)
-        return nullptr;
+    {
+        ec = error::end;
+        return end;
+    }
     // OWS
     auto it =
         ws.skip(start, end);

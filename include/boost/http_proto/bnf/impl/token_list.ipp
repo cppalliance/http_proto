@@ -65,7 +65,10 @@ increment(
 
     // [ ... ]
     if(start == end)
-        return nullptr;
+    {
+        ec = error::end;
+        return end;
+    }
     if(! comma_)
     {
         // invalid character

@@ -26,6 +26,12 @@ class range
 {
     string_view s_;
 
+    char const*
+    pend() const noexcept
+    {
+        return s_.data() + s_.size();
+    }
+
 public:
     using type = T;
 
@@ -85,7 +91,9 @@ class range<T>::iterator
         error_code ec;
         next_ = impl_.begin(
             s.data(), end_, ec);
-        if(ec)
+        if(ec == error::end)
+            next_ = nullptr;
+        else if(ec)
             detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
     }
@@ -97,6 +105,11 @@ class range<T>::iterator
     {
         next_ = impl_.begin(
             s.data(), end_, ec);
+        if(ec == error::end)
+        {
+            next_ = nullptr;
+            ec = {};
+        }
     }
 
     explicit
@@ -154,6 +167,11 @@ public:
     {
         next_ = impl_.increment(
             next_, end_, ec);
+        if(ec == error::end)
+        {
+            next_ = nullptr;
+            ec = {};
+        }
     }
 
     iterator&
@@ -185,8 +203,9 @@ begin(error_code& ec) const ->
     iterator it(s_, ec);
     if(! ec)
         return it;
-    return iterator(
-        &*s_.end());
+    return iterator(pend());
+    // VFALCO is this better than above?
+    //return iterator();
 }
 
 template<class T>
@@ -204,8 +223,7 @@ range<T>::
 end() const ->
     iterator
 {
-    return iterator(
-        &*s_.end());
+    return iterator(pend());
 }
 
 //------------------------------------------------
