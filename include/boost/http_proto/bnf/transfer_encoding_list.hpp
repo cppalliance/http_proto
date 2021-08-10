@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_BNF_TRANSFER_ENCODING_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/bnf/range.hpp>
@@ -58,32 +57,12 @@ struct transfer_encoding_list_bnf
 
     value_type value;
 
+    BOOST_HTTP_PROTO_DECL
     char const*
     parse_element(
         char const* const start,
         char const* const end,
-        error_code& ec)
-    {
-        tchar_set ts;
-        // token
-        auto it = ts.skip(start, end);
-        if(it == start)
-        {
-            // missing token
-            ec = error::bad_list;
-            return start;
-        }
-        value.name = { start, static_cast<
-            std::size_t>(it - start) };
-        // transfer-param-list
-        auto const s = valid_prefix<
-            transfer_param_list_bnf>({ it,
-                static_cast<std::size_t>(
-                    end - it) });
-        value.params = transfer_param_list(s);
-        it = s.data() + s.size();
-        return it;
-    }
+        error_code& ec);
 };
 
 using transfer_encoding_list =

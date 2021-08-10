@@ -13,10 +13,29 @@
 #include <boost/http_proto/bnf/token_list.hpp>
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {
+
+char const*
+token_list_bnf::
+parse_element(
+    char const* const start,
+    char const* const end,
+    error_code& ec)
+{
+    tchar_set ts;
+    auto it = ts.skip(start, end);
+    if(it == start)
+    {
+        // missing or invalid token
+        ec = error::bad_list;
+        return start;
+    }
+    value = { start, static_cast<
+        std::size_t>(it - start) };
+    return it;
+}
 
 } // http_proto
 } // boost

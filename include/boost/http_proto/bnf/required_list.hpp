@@ -27,6 +27,16 @@ namespace http_proto {
     1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
     @endcode
 
+    @par Requirements
+    Derived must have this member function
+    @code
+        char const*
+        parse_element(
+            char const* start,
+            char const* end,
+            error_code& ec);
+    @endcode
+
     @see
         https://datatracker.ietf.org/doc/html/rfc5234
         https://datatracker.ietf.org/doc/html/rfc7230#section-7
@@ -34,22 +44,6 @@ namespace http_proto {
 template<class Derived>
 struct required_list
 {
-    /*
-    Derived&
-    char const*
-    parse_element(
-        char const* start,
-        char const* end,
-        error_code& ec);
-    */
-
-    Derived&
-    self() noexcept
-    {
-        return *static_cast<
-            Derived*>(this);
-    }
-
     char const*
     begin(
         char const* start,
@@ -63,6 +57,13 @@ struct required_list
         error_code& ec);
 
 private:
+    Derived&
+    self() noexcept
+    {
+        return *static_cast<
+            Derived*>(this);
+    }
+
     bool comma_;
 };
 

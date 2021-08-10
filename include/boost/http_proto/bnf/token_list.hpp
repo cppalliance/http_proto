@@ -43,24 +43,12 @@ struct token_list_bnf
 {
     string_view value;
 
+    BOOST_HTTP_PROTO_DECL
     char const*
     parse_element(
         char const* const start,
         char const* const end,
-        error_code& ec)
-    {
-        tchar_set ts;
-        auto it = ts.skip(start, end);
-        if(it == start)
-        {
-            // missing or invalid token
-            ec = error::bad_list;
-            return start;
-        }
-        value = { start, static_cast<
-            std::size_t>(it - start) };
-        return it;
-    }
+        error_code& ec);
 };
 
 using token_list = range<token_list_bnf>;
