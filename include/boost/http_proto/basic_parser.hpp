@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/trivial_optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -54,36 +55,26 @@ private:
     };
 
     context& ctx_;
+    state state_;
     char* buffer_;
     std::size_t cap_;           // allocated size
     std::size_t size_;          // committed part
     std::size_t used_;          // parsed part
     std::size_t header_size_;   // full header size
 
-    std::uint64_t
-        content_length_;
-    std::uint64_t body_size_;
+    trivial_optional<
+        std::uint64_t> content_length_;
 
-    state state_;
+    std::uint64_t body_size_;
 
     std::size_t header_limit_;  // max header size
 
-    bool flag_chunked_;
+    struct flags
+    {
+        bool chunked : 1;
+    };
 
-    static unsigned constexpr flagSkipBody              = 1<<  0;
-    static unsigned constexpr flagEager                 = 1<<  1;
-    static unsigned constexpr flagGotSome               = 1<<  2;
-    static unsigned constexpr flagHasBody               = 1<<  3;
-    static unsigned constexpr flagHTTP11                = 1<<  4;
-    static unsigned constexpr flagNeedEOF               = 1<<  5;
-    static unsigned constexpr flagExpectCRLF            = 1<<  6;
-    static unsigned constexpr flagConnectionClose       = 1<<  7;
-    static unsigned constexpr flagConnectionUpgrade     = 1<<  8;
-    static unsigned constexpr flagConnectionKeepAlive   = 1<<  9;
-    static unsigned constexpr flagContentLength         = 1<< 10;
-    static unsigned constexpr flagChunked               = 1<< 11;
-    static unsigned constexpr flagUpgrade               = 1<< 12;
-    static unsigned constexpr flagFinalChunk            = 1<< 13;
+    flags f_;
 
     char version_;                  // HTTP-version, 0 or 1
 

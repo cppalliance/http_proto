@@ -8,7 +8,7 @@
 //
 
 #ifndef BOOST_HTTP_PROTO_TRIVIAL_OPTIONAL_HPP
- #define BOOST_HTTP_PROTO_TRIVIAL_OPTIONAL_HPP
+#define BOOST_HTTP_PROTO_TRIVIAL_OPTIONAL_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>

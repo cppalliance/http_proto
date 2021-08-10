@@ -28,15 +28,15 @@ basic_parser::
 basic_parser(
     context& ctx) noexcept
     : ctx_(ctx)
+    , state_(state::nothing_yet)
     , buffer_(nullptr)
     , cap_(0)
     , size_(0)
     , used_(0)
-    , state_(state::nothing_yet)
     , header_limit_(8192)
-
-    , flag_chunked_(false)
 {
+    std::memset(&f_,
+        0, sizeof(f_));
 }
 
 basic_parser::
@@ -63,7 +63,8 @@ reset()
     header_size_ = 0;
     state_ = state::nothing_yet;
 
-    flag_chunked_ = false;
+    std::memset(&f_,
+        0, sizeof(f_));
 }
 
 std::pair<void*, std::size_t>
@@ -133,9 +134,10 @@ parse_header(
     switch(state_)
     {
     case state::nothing_yet:
+    {
         state_ = state::start_line;
         BOOST_FALLTHROUGH;
-
+    }
     case state::start_line:
     {
         // Nothing can come before start-line
@@ -152,7 +154,6 @@ parse_header(
         state_ = state::fields;
         BOOST_FALLTHROUGH;
     }
-
     case state::fields:
     {
         start = parse_fields(
@@ -169,7 +170,6 @@ parse_header(
         state_ = state::body;
         break;
     }
-
     default:
         break;
     }
@@ -190,16 +190,17 @@ parse_body(
     case state::nothing_yet:
     case state::start_line:
     case state::fields:
+    {
         parse_header(ec);
         if(ec.failed())
             return;
+        state_ = state::body;
         BOOST_FALLTHROUGH;
-
+    }
     case state::body:
-        //if(! f_chunked_)
-        //
-
+    {
         break;
+    }
 
     default:
         break;
@@ -574,7 +575,7 @@ do_transfer_encoding(
     BOOST_ASSERT(it != end);
     // handle multiple
     // Transfer-Encoding header lines
-    flag_chunked_ = false;
+    f_.chunked = false;
     // get last encoding
     for(;;)
     {
@@ -583,7 +584,7 @@ do_transfer_encoding(
         {
             if(iequals(
                 it->name, "chunked"_sv))
-                flag_chunked_ = true;
+                f_.chunked = true;
             break;
         }
     }
