@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/optional.hpp>
+#include <boost/http_proto/trivial_optional.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/none.hpp>
 
@@ -71,7 +71,7 @@ public:
         // operator==
         // operator!=
         // operator=
-        // value_Or
+        // value_or
         {
             trivial_optional<string_view> v1("test");
             trivial_optional<string_view> v2("xyz");

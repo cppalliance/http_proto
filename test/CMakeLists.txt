@@ -26,7 +26,6 @@ set(PFILES
     field.cpp
     fields_view.cpp
     method.cpp
-    optional.cpp
     request_parser.cpp
     request_view.cpp
     response_parser.cpp
@@ -34,6 +33,7 @@ set(PFILES
     rfc.cpp
     status.cpp
     string_view.cpp
+    trivial_optional.cpp
     bnf/range.cpp
     bnf/token_list.cpp
     bnf/transfer_encoding_list.cpp
