@@ -23,14 +23,14 @@ using pchar_set =
     char_set_function<&is_pchar>;
 
 // *( "," OWS )
-static
+inline
 char const*
 skip_opt_comma_ows(
     char const* start,
     char const* end) noexcept;
 
 // *( OWS "," )
-static
+inline
 char const*
 skip_opt_ows_comma(
     bool& comma,
@@ -47,6 +47,8 @@ parse_u64(
 } // detail
 } // http_proto
 } // boost
+
+#include <boost/http_proto/detail/impl/rfc7230.hpp>
 
 #endif
 

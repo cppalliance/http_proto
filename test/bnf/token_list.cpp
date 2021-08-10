@@ -12,7 +12,6 @@
 
 #include "test_suite.hpp"
 #include "test_bnf.hpp"
-#include <string_view>
 
 namespace boost {
 namespace http_proto {
