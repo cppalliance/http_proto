@@ -23,8 +23,7 @@ public:
     void
     check(
         char const* name,
-        error ev,
-        condition c)
+        error ev)
     {
         auto const ec = make_error_code(ev);
         auto const& cat = make_error_code(
@@ -39,6 +38,17 @@ public:
                     static_cast<std::underlying_type<error>::type>(ev))));
         BOOST_TEST(cat.equivalent(ec,
             static_cast<std::underlying_type<error>::type>(ev)));
+    }
+
+    void
+    check(
+        char const* name,
+        error ev,
+        condition c)
+    {
+        check(name, ev);
+
+        error_code ec = ev;
         BOOST_TEST(ec == c);
     }
 
@@ -53,6 +63,7 @@ public:
         check(n, error::need_more, c);
 
         c = condition::syntax_error;
+        check(n, error::bad_content_length, c);
         check(n, error::bad_method, c);
         check(n, error::bad_field_name, c);
         check(n, error::bad_field_value, c);
@@ -61,6 +72,9 @@ public:
         check(n, error::bad_version, c);
         check(n, error::bad_request_target, c);
         check(n, error::bad_transfer_encoding, c);
+
+        check(n, error::header_too_large);
+        check(n, error::numeric_overflow);
     }
 };
 

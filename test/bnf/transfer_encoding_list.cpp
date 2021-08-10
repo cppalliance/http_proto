@@ -35,10 +35,10 @@ public:
             it != end;)
         {
             auto const v = *it++;
-            ss << v.first;
-            for(auto p : v.second)
-                ss << ";" << p.first <<
-                    "=" << p.second;
+            ss << v.name;
+            for(auto p : v.params)
+                ss << ";" << p.name <<
+                    "=" << p.value;
             if(it != end)
                 ss << ',';
         }

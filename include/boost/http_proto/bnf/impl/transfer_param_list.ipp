@@ -72,7 +72,7 @@ increment(
         ec = error::bad_list;
         return start;
     }
-    value.first = {
+    value.name = {
         t0, static_cast<
             std::size_t>(it - t0) };
     // OWS
@@ -101,7 +101,7 @@ increment(
         ec = error::bad_list;
         return start;
     }
-    value.second = {
+    value.value = {
         t0, static_cast<
             std::size_t>(it - t0) };
     return it;

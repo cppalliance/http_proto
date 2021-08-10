@@ -145,6 +145,7 @@ public:
         check(method::get, "/", 1,
             "GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
+            "Content-Length: 42\r\n"
             "\r\n");
     }
 

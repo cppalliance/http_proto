@@ -46,6 +46,9 @@ enum class error
     // Syntax errors (unrecoverable)
     //
 
+    /// Syntax error in Content-Length
+    ,bad_content_length
+
     /// Syntax error in method
     ,bad_method
 
@@ -69,6 +72,16 @@ enum class error
 
     /// Syntax error in transfer-encoding
     ,bad_transfer_encoding
+
+    //
+    // Context-dependent errors
+    //
+
+    /// Header too large
+    ,header_too_large
+
+    /// A number overflowed
+    ,numeric_overflow
 
     //
     // Old

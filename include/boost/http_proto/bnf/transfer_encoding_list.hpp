@@ -44,9 +44,19 @@ namespace http_proto {
 */
 struct transfer_encoding_list_bnf
 {
-    std::pair<
-        string_view,
-        transfer_param_list> value;
+    struct value_type
+    {
+        string_view name;
+        transfer_param_list params;
+
+        value_type const*
+        operator->() const noexcept
+        {
+            return this;
+        }
+    };
+
+    value_type value;
 
     BOOST_HTTP_PROTO_DECL
     char const*

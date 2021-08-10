@@ -42,6 +42,10 @@ struct http_error_category
         case error::bad_version: return "bad version";
         case error::bad_request_target: return "bad request-target";
         case error::bad_transfer_encoding: return "bad transfer-encoding";
+        case error::bad_content_length: return "bad content-length";
+
+        case error::header_too_large: return "header too large";
+        case error::numeric_overflow: return "numeric overflow";
 
         default:
             return "boost.http_proto error";
@@ -57,6 +61,7 @@ struct http_error_category
         case error::need_more:
             return condition::partial_success;
 
+        case error::bad_content_length:
         case error::bad_method:
         case error::bad_field_name:
         case error::bad_field_value:
@@ -67,6 +72,8 @@ struct http_error_category
         case error::bad_transfer_encoding:
             return condition::syntax_error;
 
+        case error::header_too_large:
+        case error::numeric_overflow:
         default:
             return {ev, *this};
         }

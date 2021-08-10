@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/rfc7230.hpp>
 #include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -108,6 +109,52 @@ skip_opt_ows_comma(
     }
 }
 
+static
+char const*
+parse_u64(
+    std::uint64_t& result,
+    char const* const start,
+    char const* const end,
+    error_code& ec) noexcept
+{
+    if(start == end)
+        return start;
+    digit_set ds;
+    std::uint64_t v = 0;
+    auto const max = (static_cast<
+        std::uint64_t>(-1));
+    auto const max10 = max / 10;
+    auto it = start;
+    do
+    {
+        if(! ds.contains(*it))
+        {
+            if(it == start)
+            {
+                // no digits
+                return start;
+            }
+            break;
+        }
+        if(v > max10)
+        {
+            ec = error::numeric_overflow;
+            return start;
+        }
+        v *= 10;
+        std::uint64_t const d =
+            *it - '0';
+        if(max - v < d)
+        {
+            ec = error::numeric_overflow;
+            return start;
+        }
+        v += d;
+    }
+    while(++it != end);
+    result = v;
+    return it;
+}
 } // detail
 } // http_proto
 } // boost

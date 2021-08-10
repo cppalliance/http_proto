@@ -44,14 +44,14 @@ begin(
         ec = error::bad_list;
         return start;
     }
-    value.first = { first, static_cast<
+    value.name = { first, static_cast<
         std::size_t>(it - first) };
     // transfer-param-list
     auto const s = valid_prefix<
         transfer_param_list_bnf>({ it,
             static_cast<std::size_t>(
                 end - it) });
-    value.second = transfer_param_list(s);
+    value.params = transfer_param_list(s);
     // *( OWS "," )
     return detail::skip_opt_ows_comma(
         comma_, &*s.end(), end);
@@ -88,7 +88,7 @@ increment(
         ec = error::bad_list;
         return start;
     }
-    value.first = { first, static_cast<
+    value.name = { first, static_cast<
         std::size_t>(it - first) };
     // transfer-param-list
     auto const s = valid_prefix<
@@ -97,7 +97,7 @@ increment(
                 end - it) });
     if(ec)
         return start;
-    value.second = transfer_param_list(s);
+    value.params = transfer_param_list(s);
 //  *( OWS "," )
     return detail::skip_opt_ows_comma(
         comma_, &*s.end(), end);

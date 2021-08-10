@@ -37,6 +37,13 @@ skip_opt_ows_comma(
     char const* start,
     char const* end) noexcept;
 
+static
+char const*
+parse_u64(
+    std::uint64_t& result,
+    char const* start,
+    char const* end) noexcept;
+
 } // detail
 } // http_proto
 } // boost

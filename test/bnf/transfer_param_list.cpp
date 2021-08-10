@@ -37,8 +37,8 @@ public:
         {
             auto v = *it++;
             ss << ";" <<
-                v.first << "=" <<
-                v.second;
+                v.name << "=" <<
+                v.value;
         }
         BOOST_TEST(ss.str() == match);
     }

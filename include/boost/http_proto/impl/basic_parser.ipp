@@ -34,7 +34,8 @@ basic_parser(
     , used_(0)
     , state_(state::nothing_yet)
     , header_limit_(8192)
-    , f_(0)
+
+    , flag_chunked_(false)
 {
 }
 
@@ -61,6 +62,8 @@ reset()
     }
     header_size_ = 0;
     state_ = state::nothing_yet;
+
+    flag_chunked_ = false;
 }
 
 std::pair<void*, std::size_t>
@@ -119,18 +122,6 @@ parse_header(
 {
     ec = {};
 
-    // VFALCO This is wrong, what
-    // if the header is complete?
-#if 0
-    // parse algorithms assume at
-    // least one committed char.
-    if(committed_ == 0)
-    {
-        ec = error::need_more;
-        return;
-    }
-#endif
-
     auto start = buffer_ + used_;
     char const* const end = [this]
     {
@@ -152,7 +143,12 @@ parse_header(
         start = parse_start_line(
             start, end, ec);
         if(ec)
+        {
+            if( ec == error::need_more &&
+                size_ >= header_limit_)
+                ec = error::header_too_large;
             goto finish;
+        }
         state_ = state::fields;
         BOOST_FALLTHROUGH;
     }
@@ -162,7 +158,12 @@ parse_header(
         start = parse_fields(
             start, end, ec);
         if(ec)
+        {
+            if( ec == error::need_more &&
+                size_ >= header_limit_)
+                ec = error::header_too_large;
             goto finish;
+        }
         header_size_ =
             start - buffer_;
         state_ = state::body;
@@ -182,12 +183,26 @@ basic_parser::
 parse_body(
     error_code& ec)
 {
-    (void)ec;
+    ec = {}; // redundant?
+
     switch(state_)
     {
     case state::nothing_yet:
-        state_ = state::start_line;
+    case state::start_line:
+    case state::fields:
+        parse_header(ec);
+        if(ec.failed())
+            return;
         BOOST_FALLTHROUGH;
+
+    case state::body:
+        //if(! f_chunked_)
+        //
+
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -519,10 +534,25 @@ do_connection(
 void
 basic_parser::
 do_content_length(
-    string_view s, error_code& ec)
+    string_view s,
+    error_code& ec)
 {
-    (void)s;
-    (void)ec;
+    auto const start =
+        s.data();
+    auto const end =
+        start + s.size();
+    auto it = start;
+    std::uint64_t n;
+    it = detail::parse_u64(
+        n, it, end, ec);
+    if(ec)
+        return;
+    if(it != end)
+    {
+        ec = error::bad_content_length;
+        return;
+    }
+    content_length_ = n;
 }
 
 void
@@ -542,12 +572,18 @@ do_transfer_encoding(
         return;
     }
     BOOST_ASSERT(it != end);
+    // handle multiple
+    // Transfer-Encoding header lines
+    flag_chunked_ = false;
     // get last encoding
     for(;;)
     {
         auto prev = it++;
         if(it == end)
         {
+            if(iequals(
+                it->name, "chunked"_sv))
+                flag_chunked_ = true;
             break;
         }
     }

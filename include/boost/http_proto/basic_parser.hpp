@@ -33,7 +33,7 @@ class context;
 */
 class basic_parser
 {
-protected:
+private:
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
@@ -60,9 +60,15 @@ protected:
     std::size_t used_;          // parsed part
     std::size_t header_size_;   // full header size
 
+    std::uint64_t
+        content_length_;
+    std::uint64_t body_size_;
+
     state state_;
 
     std::size_t header_limit_;  // max header size
+
+    bool flag_chunked_;
 
     static unsigned constexpr flagSkipBody              = 1<<  0;
     static unsigned constexpr flagEager                 = 1<<  1;
@@ -79,7 +85,6 @@ protected:
     static unsigned constexpr flagUpgrade               = 1<< 12;
     static unsigned constexpr flagFinalChunk            = 1<< 13;
 
-    unsigned f_;                    // flags
     char version_;                  // HTTP-version, 0 or 1
 
     explicit
@@ -148,26 +153,21 @@ public:
     string_view
     body() const;
 
-protected:
+private:
+    friend class request_parser;
+    friend class response_parser;
+
     virtual char* parse_start_line(
         char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;
-    char* parse_version(
-        char*, char const*, error_code&);
 
-private:
-    char* parse_fields(char*,
-        char const*, error_code&);
-    char* parse_field(char*,
-        char const*, error_code&);
-    void do_connection(
-        string_view, error_code&);
-    void do_content_length(
-        string_view, error_code&);
-    void do_transfer_encoding(
-        string_view, error_code&);
-    void do_upgrade(
-        string_view, error_code&);
+    char* parse_version(char*, char const*, error_code&);
+    char* parse_fields(char*, char const*, error_code&);
+    char* parse_field(char*, char const*, error_code&);
+    void do_connection(string_view, error_code&);
+    void do_content_length(string_view, error_code&);
+    void do_transfer_encoding(string_view, error_code&);
+    void do_upgrade(string_view, error_code&);
 };
 
 } // http_proto

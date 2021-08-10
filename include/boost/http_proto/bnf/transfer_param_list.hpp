@@ -41,9 +41,13 @@ namespace http_proto {
 */
 struct transfer_param_list_bnf
 {
-    std::pair<
-        string_view,
-        string_view> value;
+    struct value_type
+    {
+        string_view name;
+        string_view value;
+    };
+
+    value_type value;
 
     BOOST_HTTP_PROTO_DECL
     char const*

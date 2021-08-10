@@ -137,7 +137,13 @@ public:
     }
 
     value_type
-    operator*() const
+    operator*() const noexcept
+    {
+        return impl_.value;
+    }
+
+    value_type
+    operator->() const noexcept
     {
         return impl_.value;
     }
