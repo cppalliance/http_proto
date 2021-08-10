@@ -45,19 +45,6 @@ private:
         char const* last,
         error_code& ec) override;
 
-    char*
-    parse_method(
-        char* it,
-        char const* last,
-        error_code& ec);
-
-    char*
-    parse_target(
-        char* it,
-        char const* last,
-        error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
     void
     finish_header(
         error_code& ec) override;

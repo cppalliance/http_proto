@@ -256,46 +256,6 @@ body() const
 
 char*
 basic_parser::
-parse_version(
-    char* start,
-    char const* const end,
-    error_code& ec)
-{
-    // HTTP-version = "HTTP/" DIGIT "." DIGIT
-    auto it = start;
-    if(end - it < 8)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(std::memcmp(
-        it, "HTTP/1.", 7) != 0)
-    {
-        ec = error::bad_version;
-        return start;
-    }
-    it += 7;
-    if(*it == '0')
-    {
-        version_ = 0;
-    }
-    else if(*it == '1')
-    {
-        version_ = 1;
-    }
-    else
-    {
-        ec = error::bad_version;
-        return start;
-    }
-    ++it;
-    return it;
-}
-
-//------------------------------------------------
-
-char*
-basic_parser::
 parse_fields(
     char* start,
     char const* end,

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/detail/rfc7230.hpp>
 
 namespace boost {
@@ -51,136 +52,20 @@ parse_start_line(
     char const* const end,
     error_code& ec)
 {
-/*
-    request-line   = method SP request-target SP HTTP-version CRLF
-*/
-
-    auto it = start;
-
-    // method
-    it = parse_method(
-        it, end, ec);
+    request_line p;
+    auto it = p.parse_element(
+        start, end, ec);
     if(ec)
-        return start;
-
-    // SP
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(*it != ' ')
-    {
-        ec = error::bad_method;
-        return start;
-    }
-    ++it;
-
-    // request-target
-    it = parse_target(
-        it, end, ec);
-    if(ec)
-        return start;
-
-    // SP
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(*it != ' ')
-    {
-        ec = error::bad_method;
-        return start;
-    }
-    ++it;
-
-    // HTTP-version
-    it = parse_version(
-        it, end, ec);
-    if(ec)
-        return start;
-
-    // CRLF
-    if(end - it < 2)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if( it[0] != '\r' ||
-        it[1] != '\n')
-    {
-        ec = error::bad_version;
-        return start;
-    }
-    it += 2;
-    return it;
-}
-
-char*
-request_parser::
-parse_method(
-    char* const start,
-    char const* const end,
-    error_code& ec)
-{
-    tchar_set ts;
-
-    // token
-    auto it = ts.skip(start, end);
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(it == start)
-    {
-        // empty method
-        ec = error::bad_method;
-        return start;
-    }
-    string_view s(
-        start, it - start);
-    method_ = string_to_method(s);
+        return start + (it - start);
+    method_ = string_to_method(
+        p.value.method);
     n_method_ = static_cast<
-        off_t>(s.size());
-    return it;
-}
-
-char*
-request_parser::
-parse_target(
-    char* const start,
-    char const* const end,
-    error_code& ec)
-{
-/*
-    request-target  = origin-form
-                    / absolute-form
-                    / authority-form
-                    / asterisk-form
-*/
-    detail::pchar_set ps;
-
-    // target
-    auto it = ps.skip(
-        start, end);
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
-    if(it == start)
-    {
-        // empty target
-        ec = error::bad_request_target;
-        return start;
-    }
-    string_view s(
-        start, it - start);
+        off_t>(p.value.method.size());
     n_target_ = static_cast<
-        off_t>(s.size());
-    return it;
+        off_t>(p.value.target.size());
+    version_ = static_cast<char>(
+        p.value.version);
+    return start + (it - start);
 }
 
 void
