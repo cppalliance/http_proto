@@ -11,9 +11,11 @@
 #define BOOST_HTTP_PROTO_BNF_TRANSFER_ENCODING_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/bnf/required_list.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 namespace boost {
@@ -31,8 +33,6 @@ namespace http_proto {
                         / transfer-extension
     transfer-extension  = token transfer-param-list
 
-    legacy list rule:
-    1#element => *( "," OWS ) element *( OWS "," [ OWS element ] )
     @endcode
 
     @see
@@ -40,9 +40,9 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc5234
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
         https://datatracker.ietf.org/doc/html/rfc7230#section-4
-        https://datatracker.ietf.org/doc/html/rfc7230#section-7
 */
 struct transfer_encoding_list_bnf
+    : required_list<transfer_encoding_list_bnf>
 {
     struct value_type
     {
@@ -58,22 +58,32 @@ struct transfer_encoding_list_bnf
 
     value_type value;
 
-    BOOST_HTTP_PROTO_DECL
     char const*
-    begin(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    char const*
-    increment(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-private:
-    bool comma_;
+    parse_element(
+        char const* const start,
+        char const* const end,
+        error_code& ec)
+    {
+        tchar_set ts;
+        // token
+        auto it = ts.skip(start, end);
+        if(it == start)
+        {
+            // missing token
+            ec = error::bad_list;
+            return start;
+        }
+        value.name = { start, static_cast<
+            std::size_t>(it - start) };
+        // transfer-param-list
+        auto const s = valid_prefix<
+            transfer_param_list_bnf>({ it,
+                static_cast<std::size_t>(
+                    end - it) });
+        value.params = transfer_param_list(s);
+        it = s.data() + s.size();
+        return it;
+    }
 };
 
 using transfer_encoding_list =

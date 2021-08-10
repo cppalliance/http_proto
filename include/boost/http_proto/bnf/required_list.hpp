@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_BNF_REQUIRED_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/rfc7230.hpp>
@@ -46,7 +47,7 @@ struct required_list
     self() noexcept
     {
         return *static_cast<
-            Derived>(this);
+            Derived*>(this);
     }
 
     char const*
@@ -78,8 +79,8 @@ begin(
         detail::skip_opt_comma_ows(
             start, end);
     // element
-    auto it = self.parse_element(
-        first, end);
+    auto it = self().parse_element(
+        first, end, ec);
     if(ec)
         return it;
     BOOST_ASSERT(it != first);
@@ -113,8 +114,8 @@ increment(
     auto const first =
         ws.skip(start, end);
     // element
-    auto it = self.parse_element(
-        first, end);
+    auto it = self().parse_element(
+        first, end, ec);
     if(ec)
         return it;
     BOOST_ASSERT(it != first);

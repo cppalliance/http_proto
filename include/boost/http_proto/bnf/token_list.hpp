@@ -12,8 +12,9 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/bnf/required_list.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -38,25 +39,28 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc7230#section-7
 */
 struct token_list_bnf
+    : required_list<token_list_bnf>
 {
     string_view value;
 
-    BOOST_HTTP_PROTO_DECL
     char const*
-    begin(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    char const*
-    increment(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-private:
-    bool comma_;
+    parse_element(
+        char const* const start,
+        char const* const end,
+        error_code& ec)
+    {
+        tchar_set ts;
+        auto it = ts.skip(start, end);
+        if(it == start)
+        {
+            // missing or invalid token
+            ec = error::bad_list;
+            return start;
+        }
+        value = { start, static_cast<
+            std::size_t>(it - start) };
+        return it;
+    }
 };
 
 using token_list = range<token_list_bnf>;
