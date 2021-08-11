@@ -38,7 +38,7 @@ suffix(
     std::size_t n)
 {
     auto s1 = valid_prefix<
-        typename T::type>(s);
+        typename T::list_type>(s);
     BOOST_TEST(s.size() - s1.size() == n);
 }
 

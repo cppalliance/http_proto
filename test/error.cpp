@@ -74,6 +74,7 @@ public:
         check(n, error::bad_version, c);
         check(n, error::bad_request_target, c);
         check(n, error::bad_transfer_encoding, c);
+        check(n, error::syntax, c);
 
         check(n, error::header_too_large);
         check(n, error::numeric_overflow);

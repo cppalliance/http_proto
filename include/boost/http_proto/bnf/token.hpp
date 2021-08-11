@@ -25,15 +25,22 @@ namespace bnf {
     token             = 1*tchar
     @endcode
 */
-struct token
+class token
 {
+    string_view s_;
+
+public:
     using value_type = string_view;
 
+    string_view const&
+    value() const noexcept
+    {
+        return s_;
+    }
+
     BOOST_HTTP_PROTO_DECL
-    static
     char const*
-    parse_element(
-        value_type& result,
+    parse(
         char const* const start,
         char const* const end,
         error_code& ec);

@@ -93,8 +93,11 @@ enum class error
     ,numeric_overflow
 
     //
-    // Old
     //
+    //
+
+    /// Unspecified syntax error
+    ,syntax
 
 #if 0
     /** The end of the stream was reached.

@@ -34,7 +34,7 @@ struct arrow_proxy
     }
 };
 
-template<class T>
+template<class List>
 class range
 {
     string_view s_;
@@ -46,7 +46,7 @@ class range
     }
 
 public:
-    using type = T;
+    using list_type = List;
 
     class iterator;
 

@@ -12,8 +12,6 @@
 
 #include "test_suite.hpp"
 
-#include <boost/http_proto/detail/rfc7230.hpp>
-
 namespace boost {
 namespace http_proto {
 

@@ -45,6 +45,7 @@ struct http_error_category
         case error::bad_request_target: return "bad request-target";
         case error::bad_transfer_encoding: return "bad transfer-encoding";
         case error::bad_content_length: return "bad content-length";
+        case error::syntax: return "syntax error";
 
         case error::header_too_large: return "header too large";
         case error::numeric_overflow: return "numeric overflow";
@@ -74,6 +75,7 @@ struct http_error_category
         case error::bad_version:
         case error::bad_request_target:
         case error::bad_transfer_encoding:
+        case error::syntax:
             return condition::syntax_error;
 
         case error::header_too_large:
