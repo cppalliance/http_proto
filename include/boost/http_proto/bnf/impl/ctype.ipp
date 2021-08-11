@@ -10,10 +10,11 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_CTYPE_IPP
 #define BOOST_HTTP_PROTO_IMPL_CTYPE_IPP
 
-#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 std::size_t
 idigest(
@@ -132,7 +133,7 @@ field_vchar_set() noexcept
 {
 }
 
-
+} // bnf
 } // http_proto
 } // boost
 

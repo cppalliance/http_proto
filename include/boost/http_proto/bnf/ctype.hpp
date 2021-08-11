@@ -11,11 +11,12 @@
 #define BOOST_HTTP_PROTO_CTYPE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/char_set.hpp>
+#include <boost/http_proto/bnf/char_set.hpp>
 #include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** Return true if c is a digit
 */
@@ -165,9 +166,10 @@ struct field_vchar_set : char_set_table
     field_vchar_set() noexcept;
 };
 
+} // bnf
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/ctype.hpp>
+#include <boost/http_proto/bnf/impl/ctype.hpp>
 
 #endif

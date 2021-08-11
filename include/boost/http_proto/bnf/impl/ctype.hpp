@@ -12,6 +12,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 bool
 is_digit(char c) noexcept
@@ -35,6 +36,7 @@ to_lower(char c) noexcept
     return c;
 }
 
+} // bnf
 } // http_proto
 } // boost
 

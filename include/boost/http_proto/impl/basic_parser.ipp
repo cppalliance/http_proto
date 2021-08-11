@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_IMPL_BASIC_PARSER_IPP
 
 #include <boost/http_proto/basic_parser.hpp>
-#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/token_list.hpp>
@@ -332,13 +332,13 @@ do_connection(
     using namespace detail::string_literals;
     for(auto v : bnf::token_list(s))
     {
-        if(iequals(v, "close"_sv))
+        if(bnf::iequals(v, "close"_sv))
         {
         }
-        else if(iequals(v, "keep-alive"_sv))
+        else if(bnf::iequals(v, "keep-alive"_sv))
         {
         }
-        else if(iequals(v, "upgrade"_sv))
+        else if(bnf::iequals(v, "upgrade"_sv))
         {
         }
     }
@@ -397,7 +397,7 @@ do_transfer_encoding(
         auto prev = it++;
         if(it == end)
         {
-            if(iequals(
+            if(bnf::iequals(
                 it->name, "chunked"_sv))
                 f_.chunked = true;
             break;

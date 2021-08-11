@@ -8,12 +8,13 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 class ctype_test
 {
@@ -77,5 +78,6 @@ public:
 
 TEST_SUITE(ctype_test, "boost.http_proto.ctype");
 
+} // bnf
 } // http_proto
 } // boost

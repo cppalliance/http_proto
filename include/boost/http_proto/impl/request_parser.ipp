@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_PARSER_IPP
 
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
 

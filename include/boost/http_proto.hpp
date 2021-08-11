@@ -11,10 +11,8 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/basic_parser.hpp>
-#include <boost/http_proto/char_set.hpp>
 #include <boost/http_proto/connection.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/decoder.hpp>
 #include <boost/http_proto/deflate_service.hpp>
 #include <boost/http_proto/encoder.hpp>
@@ -32,6 +30,8 @@
 #include <boost/http_proto/trivial_optional.hpp>
 
 #include <boost/http_proto/bnf/any_list.hpp>
+#include <boost/http_proto/bnf/char_set.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/optional_list.hpp>

@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_LIST_IPP
 
 #include <boost/http_proto/bnf/token_list.hpp>
-#include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {

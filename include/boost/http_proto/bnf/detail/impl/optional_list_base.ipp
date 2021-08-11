@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_BNF_DETAIL_IMPL_OPTIONAL_LIST_BASE_IPP
 
 #include <boost/http_proto/bnf/detail/optional_list_base.hpp>
-#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
 #include <boost/assert.hpp>
 

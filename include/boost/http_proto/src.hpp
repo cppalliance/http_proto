@@ -30,7 +30,6 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/basic_parser.ipp>
 #include <boost/http_proto/impl/connection.ipp>
 #include <boost/http_proto/impl/context.ipp>
-#include <boost/http_proto/impl/ctype.ipp>
 #include <boost/http_proto/impl/decoder.ipp>
 #include <boost/http_proto/impl/deflate_service.ipp>
 #include <boost/http_proto/impl/encoder.ipp>
@@ -45,6 +44,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/rfc.ipp>
 #include <boost/http_proto/impl/status.ipp>
 
+#include <boost/http_proto/bnf/impl/ctype.ipp>
 #include <boost/http_proto/bnf/impl/header_fields.ipp>
 #include <boost/http_proto/bnf/impl/number.ipp>
 #include <boost/http_proto/bnf/impl/request_line.ipp>

@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 class char_set_table
 {
@@ -83,6 +84,7 @@ public:
     }
 };
 
+} // bnf
 } // http_proto
 } // boost
 

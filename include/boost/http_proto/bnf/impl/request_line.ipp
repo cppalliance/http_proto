@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_BNF_IMPL_REQUEST_LINE_IPP
 
 #include <boost/http_proto/bnf/transfer_encoding_list.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
-#include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {

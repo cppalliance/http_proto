@@ -10,8 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_BNF_DETAIL_RFC7230_HPP
 #define BOOST_HTTP_PROTO_BNF_DETAIL_RFC7230_HPP
 
-#include <boost/http_proto/char_set.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/char_set.hpp>
 #include <cstdint>
 
 namespace boost {

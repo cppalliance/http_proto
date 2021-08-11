@@ -32,14 +32,14 @@ struct context::data
     boost::container::map<
         std::string,
         decoder_type*,
-        iless_pred
+        bnf::iless_pred
             > decoders;
 
     // List of encoders
     boost::container::map<
         std::string,
         encoder_type*,
-        iless_pred
+        bnf::iless_pred
             > encoders;
 };
 
