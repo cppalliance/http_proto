@@ -29,6 +29,17 @@ namespace bnf {
             char const* end,
             error_code& ec);
     @endcode
+
+    @par Exemplar
+    @code
+    struct element
+    {
+        using value_type = ...;
+        value_type const& value() const noexcept;
+        char const* parse(
+            char const*, char const*, error_code& );
+    };
+    @endcode
 */
 #if BOOST_HTTP_PROTO_DOCS
 template<class T>
@@ -44,7 +55,10 @@ struct is_element<T, boost::void_t<decltype(
         std::declval<char const*>(),
         std::declval<char const*>(),
         std::declval<error_code&>())
-            )>> : std::true_type
+            )>> : std::integral_constant<bool,
+    std::is_default_constructible<T>::value &&
+    std::is_copy_constructible<T>::value &&
+    std::is_copy_assignable<T>::value>
 {
 };
 
@@ -85,7 +99,10 @@ struct is_list<T, boost::void_t<decltype(
         std::declval<char const*>(),
         std::declval<char const*>(),
         std::declval<error_code&>())
-            )>> : std::true_type
+            )>> : std::integral_constant<bool,
+    std::is_default_constructible<T>::value &&
+    std::is_copy_constructible<T>::value &&
+    std::is_copy_assignable<T>::value>
 {
 };
 
