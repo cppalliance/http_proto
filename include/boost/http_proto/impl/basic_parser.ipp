@@ -356,7 +356,8 @@ do_content_length(
         start + s.size();
     auto it = start;
     number_bnf p;
-    p.parse_element(it, end, ec);
+    it = p.parse_element(
+        it, end, ec);
     if(ec)
     {
         ec = error::bad_content_length;

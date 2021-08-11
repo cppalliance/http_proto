@@ -16,10 +16,23 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <type_traits>
 
 namespace boost {
 namespace http_proto {
+
+template<class T>
+struct arrow_proxy
+{
+    T t;
+
+    T const*
+    operator->() const noexcept
+    {
+        return std::addressof(t);
+    }
+};
 
 template<class T>
 class range
@@ -155,10 +168,11 @@ public:
         return impl_.value;
     }
 
-    value_type
+    arrow_proxy<value_type>
     operator->() const noexcept
     {
-        return impl_.value;
+        return arrow_proxy<
+            value_type>{impl_.value};
     }
 
     void
