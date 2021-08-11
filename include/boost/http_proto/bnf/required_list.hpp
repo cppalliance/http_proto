@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** Mix-in for 1#element BNF
 
@@ -56,6 +57,7 @@ private:
     bool comma_;
 };
 
+} // bnf
 } // http_proto
 } // boost
 

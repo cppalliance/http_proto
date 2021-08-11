@@ -34,14 +34,18 @@ set(PFILES
     status.cpp
     string_view.cpp
     trivial_optional.cpp
+    bnf/any_element.cpp
+    bnf/any_list.cpp
     bnf/header_fields.cpp
     bnf/number.cpp
+    bnf/optional_list.cpp
     bnf/range.cpp
     bnf/request_line.cpp
     bnf/required_list.cpp
     bnf/token_list.cpp
     bnf/transfer_encoding_list.cpp
     bnf/transfer_param_list.cpp
+    bnf/type_traits.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

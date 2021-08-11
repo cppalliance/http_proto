@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for 1*DIGIT
 */
@@ -31,6 +32,7 @@ struct number_bnf
         error_code& ec);
 };
 
+} // bnf
 } // http_proto
 } // boost
 

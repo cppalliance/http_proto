@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 char const*
 token_list_bnf::
@@ -37,6 +38,7 @@ parse_element(
     return it;
 }
 
+} // bnf
 } // http_proto
 } // boost
 

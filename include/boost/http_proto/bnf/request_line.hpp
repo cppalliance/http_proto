@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for request-line
 
@@ -63,6 +64,7 @@ private:
         error_code& ec);
 };
 
+} // bnf
 } // http_proto
 } // boost
 

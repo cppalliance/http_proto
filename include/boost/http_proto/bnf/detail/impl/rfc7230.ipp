@@ -7,15 +7,16 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_RFC7230_IPP
-#define BOOST_HTTP_PROTO_DETAIL_RFC7230_IPP
+#ifndef BOOST_HTTP_PROTO_BNF_DETAIL_IMPL_RFC7230_IPP
+#define BOOST_HTTP_PROTO_BNF_DETAIL_IMPL_RFC7230_IPP
 
-#include <boost/http_proto/detail/rfc7230.hpp>
+#include <boost/http_proto/bnf/detail/rfc7230.hpp>
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 namespace detail {
 
 static
@@ -158,6 +159,7 @@ parse_http_version(
 }
 
 } // detail
+} // bnf
 } // http_proto
 } // boost
 

@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 BOOST_STATIC_ASSERT(
     std::is_trivially_destructible<
@@ -82,5 +83,6 @@ public:
 
 TEST_SUITE(transfer_encoding_list_test, "boost.http_proto.transfer_encoding_list");
 
+} // bnf
 } // http_proto
 } // boost

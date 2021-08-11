@@ -11,12 +11,13 @@
 #define BOOST_HTTP_PROTO_BNF_IMPL_REQUEST_LINE_IPP
 
 #include <boost/http_proto/bnf/transfer_encoding_list.hpp>
-#include <boost/http_proto/detail/rfc7230.hpp>
+#include <boost/http_proto/bnf/detail/rfc7230.hpp>
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 char const*
 request_line::
@@ -152,6 +153,7 @@ parse_target(
     return it;
 }
 
+} // bnf
 } // http_proto
 } // boost
 

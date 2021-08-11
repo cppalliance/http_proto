@@ -14,6 +14,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 class range_test
 {
@@ -55,5 +56,6 @@ public:
 
 TEST_SUITE(range_test, "boost.http_proto.range");
 
+} // bnf
 } // http_proto
 } // boost

@@ -263,7 +263,7 @@ parse_fields(
     char const* const end,
     error_code& ec)
 {
-    header_fields_bnf p;
+    bnf::header_fields_bnf p;
     auto cit = p.begin(
         start, end, ec);
     auto it = start;
@@ -278,7 +278,7 @@ parse_fields(
             return start + (
                 cit - start);
         if(p.value.has_obs_fold)
-            replace_obs_fold(it, cit);
+            bnf::replace_obs_fold(it, cit);
         it = start + (cit - start);
         auto const f =
             string_to_field(
@@ -330,7 +330,7 @@ do_connection(
     (void)ec;
 
     using namespace detail::string_literals;
-    for(auto v : token_list(s))
+    for(auto v : bnf::token_list(s))
     {
         if(iequals(v, "close"_sv))
         {
@@ -355,7 +355,7 @@ do_content_length(
     auto const end =
         start + s.size();
     auto it = start;
-    number_bnf p;
+    bnf::number_bnf p;
     it = p.parse_element(
         it, end, ec);
     if(ec)
@@ -378,7 +378,7 @@ do_transfer_encoding(
 {
     using namespace detail::string_literals;
 
-    transfer_encoding_list te(s);
+    bnf::transfer_encoding_list te(s);
     auto const end = te.end();
     auto it = te.begin(ec);
     if(ec)

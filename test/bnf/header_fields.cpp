@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 class header_fields_test
 {
@@ -27,5 +28,6 @@ public:
 
 TEST_SUITE(header_fields_test, "boost.http_proto.header_fields");
 
+} // bnf
 } // http_proto
 } // boost

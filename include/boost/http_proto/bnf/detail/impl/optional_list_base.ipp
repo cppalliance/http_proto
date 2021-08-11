@@ -7,20 +7,22 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_REQUIRED_LIST_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_REQUIRED_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_BNF_DETAIL_IMPL_OPTIONAL_LIST_BASE_IPP
+#define BOOST_HTTP_PROTO_BNF_DETAIL_IMPL_OPTIONAL_LIST_BASE_IPP
 
-#include <boost/http_proto/bnf/required_list.hpp>
+#include <boost/http_proto/bnf/detail/optional_list_base.hpp>
 #include <boost/http_proto/ctype.hpp>
+#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
+namespace detail {
 
 char const*
-required_list::
+optional_list_base::
 begin(
     char const* start,
     char const* end,
@@ -28,21 +30,21 @@ begin(
 {
     // *( "," OWS )
     auto const first =
-        detail::skip_opt_comma_ows(
+        skip_opt_comma_ows(
             start, end);
     // element
-    auto it = parse_element(
+    auto it = parse(
         first, end, ec);
     if(ec)
         return it;
     BOOST_ASSERT(it != first);
     // *( OWS "," )
-    return detail::skip_opt_ows_comma(
+    return skip_opt_ows_comma(
         comma_, it, end);
 }
 
 char const*
-required_list::
+optional_list_base::
 increment(
     char const* start,
     char const* end,
@@ -65,16 +67,17 @@ increment(
     auto const first =
         ws.skip(start, end);
     // element
-    auto it = parse_element(
+    auto it = parse(
         first, end, ec);
     if(ec)
         return it;
     BOOST_ASSERT(it != first);
     // *( OWS "," )
-    return detail::skip_opt_ows_comma(
+    return skip_opt_ows_comma(
         comma_, it, end);
 }
 
+} // detail
 } // bnf
 } // http_proto
 } // boost

@@ -7,36 +7,33 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_TOKEN_HPP
-#define BOOST_HTTP_PROTO_BNF_TOKEN_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_ANY_LIST_HPP
+#define BOOST_HTTP_PROTO_BNF_ANY_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for token
-
-    @par BNF
-    @code
-    token             = 1*tchar
-    @endcode
+/** Abstract generic list element
 */
-struct token
+struct any_list
 {
-    using value_type = string_view;
-
-    BOOST_HTTP_PROTO_DECL
-    static
+    virtual
     char const*
-    parse_element(
-        value_type& result,
-        char const* const start,
-        char const* const end,
-        error_code& ec);
+    begin(
+        char const* start,
+        char const* end,
+        error_code& ec) = 0;
+
+    virtual
+    char const*
+    increment(
+        char const* start,
+        char const* end,
+        error_code& ec) = 0;
 };
 
 } // bnf

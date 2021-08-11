@@ -19,6 +19,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for the Transfer-Encoding header field value
 
@@ -68,6 +69,7 @@ struct transfer_encoding_list_bnf
 using transfer_encoding_list =
     range<transfer_encoding_list_bnf>;
 
+} // bnf
 } // http_proto
 } // boost
 

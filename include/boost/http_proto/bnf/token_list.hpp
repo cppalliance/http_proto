@@ -18,6 +18,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for token-list
 
@@ -53,6 +54,7 @@ struct token_list_bnf
 
 using token_list = range<token_list_bnf>;
 
+} // bnf
 } // http_proto
 } // boost
 

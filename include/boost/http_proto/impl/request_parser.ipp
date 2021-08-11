@@ -13,7 +13,7 @@
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/bnf/request_line.hpp>
-#include <boost/http_proto/detail/rfc7230.hpp>
+#include <boost/http_proto/bnf/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -52,7 +52,7 @@ parse_start_line(
     char const* const end,
     error_code& ec)
 {
-    request_line p;
+    bnf::request_line p;
     auto it = p.parse_element(
         start, end, ec);
     if(ec)

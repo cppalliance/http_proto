@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_RFC7230_HPP
-#define BOOST_HTTP_PROTO_DETAIL_RFC7230_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_DETAIL_RFC7230_HPP
+#define BOOST_HTTP_PROTO_BNF_DETAIL_RFC7230_HPP
 
 #include <boost/http_proto/char_set.hpp>
 #include <boost/http_proto/error.hpp>
@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 namespace detail {
 
 static bool is_pchar(char c) noexcept;
@@ -47,10 +48,11 @@ parse_http_version(
     error_code& ec) noexcept;
 
 } // detail
+} // bnf
 } // http_proto
 } // boost
 
-#include <boost/http_proto/detail/impl/rfc7230.hpp>
+#include <boost/http_proto/bnf/detail/impl/rfc7230.hpp>
 
 #endif
 

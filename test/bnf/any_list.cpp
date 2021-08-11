@@ -8,26 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/number.hpp>
-
-#include "test_suite.hpp"
-#include "test_bnf.hpp"
-
-namespace boost {
-namespace http_proto {
-namespace bnf {
-
-class number_test
-{
-public:
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(number_test, "boost.http_proto.number");
-
-} // bnf
-} // http_proto
-} // boost
+#include <boost/http_proto/bnf/any_list.hpp>

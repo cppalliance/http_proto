@@ -18,6 +18,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for transfer-param-list
 
@@ -67,6 +68,7 @@ struct transfer_param_list_bnf
 using transfer_param_list =
     range<transfer_param_list_bnf>;
 
+} // bnf
 } // http_proto
 } // boost
 

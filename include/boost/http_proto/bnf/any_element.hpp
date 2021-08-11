@@ -7,14 +7,29 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_RFC7230_HPP
-#define BOOST_HTTP_PROTO_DETAIL_IMPL_RFC7230_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_ANY_ELEMENT_HPP
+#define BOOST_HTTP_PROTO_BNF_ANY_ELEMENT_HPP
+
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
-namespace detail {
+namespace bnf {
 
-} // detail
+/** Abstract generic element
+*/
+struct any_element
+{
+    virtual
+    char const*
+    parse(
+        char const* start,
+        char const* end,
+        error_code& ec) = 0;
+};
+
+} // bnf
 } // http_proto
 } // boost
 

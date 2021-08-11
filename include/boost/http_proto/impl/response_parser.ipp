@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_RESPONSE_PARSER_IPP
 
 #include <boost/http_proto/response_parser.hpp>
-#include <boost/http_proto/detail/rfc7230.hpp>
+#include <boost/http_proto/bnf/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {

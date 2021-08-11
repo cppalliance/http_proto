@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 class request_line_test
 {
@@ -27,5 +28,6 @@ public:
 
 TEST_SUITE(request_line_test, "boost.http_proto.request_line");
 
+} // bnf
 } // http_proto
 } // boost

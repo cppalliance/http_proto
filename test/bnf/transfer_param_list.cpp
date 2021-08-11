@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 BOOST_STATIC_ASSERT(
     std::is_trivially_destructible<
@@ -73,5 +74,6 @@ public:
 
 TEST_SUITE(transfer_param_list_test, "boost.http_proto.transfer_param_list");
 
+} // bnf
 } // http_proto
 } // boost

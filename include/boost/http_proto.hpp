@@ -31,8 +31,10 @@
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
 
+#include <boost/http_proto/bnf/any_list.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/number.hpp>
+#include <boost/http_proto/bnf/optional_list.hpp>
 #include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/required_list.hpp>

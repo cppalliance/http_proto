@@ -12,10 +12,11 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/bnf/detail/optional_list_base.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 /** BNF for a comma-separated list with zero or more elements
 
@@ -29,39 +30,44 @@ namespace http_proto {
         https://datatracker.ietf.org/doc/html/rfc7230#section-7
 */
 template<class Element>
-struct optional_list
+class optional_list
+    : private detail::optional_list_base
 {
-    using value_type =
-        typename Element::value_type;
+    Element element_;
 
-    value_type value;
+    char const*
+    parse(
+        char const* start,
+        char const* end,
+        error_code& ec) override
+    {
+        return element_.parse(
+            start, end, ec);
+    }
 
-    BOOST_HTTP_PROTO_DECL
+public:
     char const*
     begin(
         char const* start,
         char const* end,
-        error_code& ec);
+        error_code& ec)
+    {
+        return optional_list_base::begin(
+            start, end, ec);
+    }
 
-    BOOST_HTTP_PROTO_DECL
     char const*
     increment(
         char const* start,
         char const* end,
-        error_code& ec);
-
-protected:
-    virtual
-    char const*
-    parse_element(
-        char const* start,
-        char const* end,
-        error_code& ec) = 0;
-
-private:
-    bool comma_;
+        error_code& ec)
+    {
+        return optional_list_base::increment(
+            start, end, ec);
+    }
 };
 
+} // bnf
 } // http_proto
 } // boost
 

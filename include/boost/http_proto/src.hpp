@@ -26,7 +26,6 @@ in a translation unit of the program.
 #include <boost/http_proto.hpp>
 
 #include <boost/http_proto/detail/impl/except.ipp>
-#include <boost/http_proto/detail/impl/rfc7230.ipp>
 
 #include <boost/http_proto/impl/basic_parser.ipp>
 #include <boost/http_proto/impl/connection.ipp>
@@ -53,6 +52,9 @@ in a translation unit of the program.
 #include <boost/http_proto/bnf/impl/token_list.ipp>
 #include <boost/http_proto/bnf/impl/transfer_encoding_list.ipp>
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
+
+#include <boost/http_proto/bnf/detail/impl/optional_list_base.ipp>
+#include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
 
 // VFALCO These are tucked away here temporarily
 #include <boost/beast/zlib/detail/deflate_stream.ipp>

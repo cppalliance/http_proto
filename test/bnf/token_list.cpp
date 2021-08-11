@@ -15,6 +15,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 BOOST_STATIC_ASSERT(
     std::is_trivially_destructible<
@@ -93,5 +94,6 @@ public:
 
 TEST_SUITE(token_list_test, "boost.http_proto.token_list");
 
+} // bnf
 } // http_proto
 } // boost

@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 char const*
 number_bnf::
@@ -68,6 +69,7 @@ parse_element(
     return it;
 }
 
+} // bnf
 } // http_proto
 } // boost
 

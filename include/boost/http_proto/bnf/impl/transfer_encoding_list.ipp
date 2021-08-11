@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 char const*
 transfer_encoding_list_bnf::
@@ -45,6 +46,7 @@ parse_element(
     return it;
 }
 
+} // bnf
 } // http_proto
 } // boost
 

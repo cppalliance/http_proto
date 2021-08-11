@@ -16,6 +16,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 char const*
 header_fields_bnf::
@@ -199,6 +200,7 @@ replace_obs_fold(
     }
 }
 
+} // bnf
 } // http_proto
 } // boost
 
