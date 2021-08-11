@@ -70,6 +70,9 @@ enum class error
     /// Syntax error in list
     ,bad_list
 
+    /// Syntax error in number
+    ,bad_number
+
     /// Syntax error in HTTP-Version
     ,bad_version
 

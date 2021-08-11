@@ -70,6 +70,7 @@ public:
         check(n, error::bad_field_value, c);
         check(n, error::bad_line_ending, c);
         check(n, error::bad_list, c);
+        check(n, error::bad_number, c);
         check(n, error::bad_version, c);
         check(n, error::bad_request_target, c);
         check(n, error::bad_transfer_encoding, c);

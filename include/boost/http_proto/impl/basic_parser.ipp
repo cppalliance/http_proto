@@ -14,6 +14,7 @@
 #include <boost/http_proto/ctype.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/token_list.hpp>
 #include <boost/http_proto/bnf/transfer_encoding_list.hpp>
@@ -354,17 +355,19 @@ do_content_length(
     auto const end =
         start + s.size();
     auto it = start;
-    std::uint64_t n;
-    it = detail::parse_u64(
-        n, it, end, ec);
+    number_bnf p;
+    p.parse_element(it, end, ec);
     if(ec)
+    {
+        ec = error::bad_content_length;
         return;
+    }
     if(it != end)
     {
         ec = error::bad_content_length;
         return;
     }
-    content_length_ = n;
+    content_length_ = p.value;
 }
 
 void

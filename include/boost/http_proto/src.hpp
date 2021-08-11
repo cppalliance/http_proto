@@ -47,6 +47,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/status.ipp>
 
 #include <boost/http_proto/bnf/impl/header_fields.ipp>
+#include <boost/http_proto/bnf/impl/number.ipp>
 #include <boost/http_proto/bnf/impl/request_line.ipp>
 #include <boost/http_proto/bnf/impl/required_list.ipp>
 #include <boost/http_proto/bnf/impl/token_list.ipp>

@@ -35,6 +35,7 @@ set(PFILES
     string_view.cpp
     trivial_optional.cpp
     bnf/header_fields.cpp
+    bnf/number.cpp
     bnf/range.cpp
     bnf/request_line.cpp
     bnf/required_list.cpp

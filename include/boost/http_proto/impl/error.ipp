@@ -40,6 +40,7 @@ struct http_error_category
         case error::bad_field_value: return "bad field value";
         case error::bad_line_ending: return "bad line ending";
         case error::bad_list: return "bad list";
+        case error::bad_number: return "bad number";
         case error::bad_version: return "bad version";
         case error::bad_request_target: return "bad request-target";
         case error::bad_transfer_encoding: return "bad transfer-encoding";
@@ -69,6 +70,7 @@ struct http_error_category
         case error::bad_field_value:
         case error::bad_line_ending:
         case error::bad_list:
+        case error::bad_number:
         case error::bad_version:
         case error::bad_request_target:
         case error::bad_transfer_encoding:
