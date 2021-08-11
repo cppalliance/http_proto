@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_IMPL_CONTEXT_IPP
 
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/rfc.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/container/map.hpp>
 //#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet

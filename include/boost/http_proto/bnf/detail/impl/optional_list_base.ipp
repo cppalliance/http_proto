@@ -24,23 +24,30 @@ namespace detail {
 char const*
 optional_list_base::
 begin(
-    char const* start,
-    char const* end,
+    char const* const start,
+    char const* const end,
     error_code& ec)
 {
-    // *( "," OWS )
-    auto const first =
-        skip_opt_comma_ows(
-            start, end);
-    // element
-    auto it = parse(
-        first, end, ec);
-    if(ec)
+    // [...]
+    if(start == end)
+    {
+        ec = error::end;
+        return end;
+    }
+    auto it = start;
+    // ( "," / element )
+    if(*it != ',')
+    {
+        it = parse(it, end, ec);
+        if(ec)
+        {
+            // empty list
+            ec = error::end;
+        }
         return it;
-    BOOST_ASSERT(it != first);
-    // *( OWS "," )
-    return skip_opt_ows_comma(
-        comma_, it, end);
+    }
+    ++it;
+    return increment(it, end, ec);
 }
 
 char const*
@@ -51,30 +58,26 @@ increment(
     error_code& ec)
 {
     ws_set ws;
-    // [ ... ]
-    if(start == end)
+    auto it = start;
+    // *( OWS "," [ OWS element ] )
+    for(;;)
     {
-        ec = error::end;
-        return end;
+        it = ws.skip(it, end);
+        if(it == end)
+        {
+            // empty list
+            ec = error::end;
+            return it;
+        }
+        if(*it != ',')
+        {
+            it = parse(it, end, ec);
+            if(ec)
+                ec = error::end;
+            return it;
+        }
+        ++it;
     }
-    if(! comma_)
-    {
-        // invalid character
-        ec = error::bad_list;
-        return start;
-    }
-    // OWS
-    auto const first =
-        ws.skip(start, end);
-    // element
-    auto it = parse(
-        first, end, ec);
-    if(ec)
-        return it;
-    BOOST_ASSERT(it != first);
-    // *( OWS "," )
-    return skip_opt_ows_comma(
-        comma_, it, end);
 }
 
 } // detail

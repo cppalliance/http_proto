@@ -23,7 +23,6 @@
 #include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/response_view.hpp>
-#include <boost/http_proto/rfc.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>

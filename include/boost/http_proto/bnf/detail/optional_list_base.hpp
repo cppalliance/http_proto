@@ -22,8 +22,6 @@ namespace detail {
 class optional_list_base
     : public any_element
 {
-    bool comma_;
-
 public:
     BOOST_HTTP_PROTO_DECL
     char const*
