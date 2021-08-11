@@ -18,6 +18,19 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
+/** BNF for Connection header field value
+
+    @par BNF
+    @code
+    Connection        = 1#connection-option
+    connection-option = token
+    @encode
+
+    @see
+        @ref required_list
+        @ref token
+        https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
+*/
 using connection = required_list<token>;
 
 } // bnf

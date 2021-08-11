@@ -40,8 +40,9 @@ namespace bnf {
         https://www.rfc-editor.org/errata/eid4189
         https://datatracker.ietf.org/doc/html/rfc7230#appendix-B
 */
-struct header_fields_bnf
+class header_fields
 {
+public:
     struct value_type
     {
         string_view name;
@@ -49,14 +50,22 @@ struct header_fields_bnf
         bool has_obs_fold;
     };
 
-    value_type value;
+    value_type const&
+    value() const noexcept
+    {
+        return v_;
+    }
 
-    BOOST_HTTP_PROTO_DECL
     char const*
     begin(
         char const* start,
         char const* end,
-        error_code& ec);
+        error_code& ec)
+    {
+        v_.has_obs_fold = false;
+        return increment(
+            start, end, ec);
+    }
 
     BOOST_HTTP_PROTO_DECL
     char const*
@@ -64,10 +73,13 @@ struct header_fields_bnf
         char const* start,
         char const* end,
         error_code& ec);
+
+private:
+    value_type v_;
 };
 
-using header_fields = range<header_fields_bnf>;
-
+/** Replace obs-fold with spaces
+*/
 BOOST_HTTP_PROTO_DECL
 void
 replace_obs_fold(

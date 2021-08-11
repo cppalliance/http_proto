@@ -21,7 +21,7 @@ namespace bnf {
 
 char const*
 request_line::
-parse_element(
+parse(
     char const* start,
     char const* end,
     error_code& ec)
@@ -72,7 +72,7 @@ parse_element(
 
     // HTTP-version
     it = detail::parse_http_version(
-        value.version, it, end, ec);
+        v_.version, it, end, ec);
     if(ec)
         return start;
 
@@ -114,7 +114,7 @@ parse_method(
         ec = error::bad_method;
         return start;
     }
-    value.method = string_view(
+    v_.method = string_view(
         start, it - start );
     return it;
 }
@@ -148,7 +148,7 @@ parse_target(
         ec = error::bad_request_target;
         return start;
     }
-    value.target = string_view(
+    v_.target = string_view(
         start, it - start );
     return it;
 }

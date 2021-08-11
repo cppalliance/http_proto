@@ -110,7 +110,7 @@ class range<T>::iterator
         if(ec == error::end)
             next_ = nullptr;
         else if(ec)
-            detail::throw_system_error(ec,
+            http_proto::detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
     }
 
@@ -197,7 +197,7 @@ public:
         error_code ec;
         increment(ec);
         if(ec)
-            detail::throw_system_error(ec,
+            http_proto::detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
         return *this;
     }
@@ -269,7 +269,7 @@ validate() const
     error_code ec;
     validate(ec);
     if(ec.failed())
-        detail::throw_system_error(ec,
+        http_proto::detail::throw_system_error(ec,
             BOOST_CURRENT_LOCATION);
 }
 

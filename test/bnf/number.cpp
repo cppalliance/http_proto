@@ -10,12 +10,18 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/bnf/number.hpp>
 
+#include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/static_assert.hpp>
+
 #include "test_suite.hpp"
 #include "test_bnf.hpp"
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
+
+BOOST_STATIC_ASSERT(
+    is_element<number>::value);
 
 class number_test
 {

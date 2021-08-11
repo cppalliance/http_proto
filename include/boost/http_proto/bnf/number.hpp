@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,16 +19,26 @@ namespace bnf {
 
 /** BNF for 1*DIGIT
 */
-struct number_bnf
+class number
 {
-    std::uint64_t value;
+public:
+    using value_type = std::uint64_t;
+
+    std::uint64_t
+    value() const noexcept
+    {
+        return v_;
+    }
 
     BOOST_HTTP_PROTO_DECL
     char const*
-    parse_element(
+    parse(
         char const* const start,
         char const* const end,
         error_code& ec);
+
+private:
+    std::uint64_t v_;
 };
 
 } // bnf

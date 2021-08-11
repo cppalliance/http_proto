@@ -16,7 +16,6 @@ set(TFILES
 set(PFILES
     CMakeLists.txt
     basic_parser.cpp
-    connection.cpp
     context.cpp
     ctype.cpp
     decoder.cpp
@@ -36,6 +35,8 @@ set(PFILES
     trivial_optional.cpp
     bnf/any_element.cpp
     bnf/any_list.cpp
+    bnf/char_set.cpp
+    bnf/connection.cpp
     bnf/header_fields.cpp
     bnf/number.cpp
     bnf/optional_list.cpp

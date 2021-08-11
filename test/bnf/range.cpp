@@ -19,35 +19,6 @@ namespace bnf {
 class range_test
 {
 public:
-    struct bnf1
-    {
-        string_view value;
-
-        char const*
-        begin(
-            char const* start,
-            char const* end,
-            error_code& ec) noexcept
-        {
-            (void)start;
-            (void)end;
-            (void)ec;
-            return nullptr;
-        }
-
-        char const*
-        increment(
-            char const* start,
-            char const* end,
-            error_code& ec) noexcept
-        {
-            (void)start;
-            (void)end;
-            (void)ec;
-            return nullptr;
-        }
-    };
-
     void
     run()
     {

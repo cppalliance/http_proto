@@ -19,8 +19,8 @@ namespace http_proto {
 namespace bnf {
 
 char const*
-number_bnf::
-parse_element(
+number::
+parse(
     char const* const start,
     char const* const end,
     error_code& ec)
@@ -32,7 +32,7 @@ parse_element(
         return start;
     }
     digit_set ds;
-    std::uint64_t v = 0;
+    v_ = 0;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max10 = max / 10;
@@ -49,23 +49,22 @@ parse_element(
             }
             break;
         }
-        if(v > max10)
+        if(v_ > max10)
         {
             ec = error::numeric_overflow;
             return start;
         }
-        v *= 10;
+        v_ *= 10;
         std::uint64_t const d =
             *it - '0';
-        if(max - v < d)
+        if(max - v_ < d)
         {
             ec = error::numeric_overflow;
             return start;
         }
-        v += d;
+        v_ += d;
     }
     while(++it != end);
-    value = v;
     return it;
 }
 

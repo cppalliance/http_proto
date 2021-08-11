@@ -19,18 +19,7 @@ namespace http_proto {
 namespace bnf {
 
 char const*
-header_fields_bnf::
-begin(
-    char const* start,
-    char const* end,
-    error_code& ec)
-{
-    value.has_obs_fold = false;
-    return increment(start, end, ec);
-}
-
-char const*
-header_fields_bnf::
+header_fields::
 increment(
     char const* start,
     char const* end,
@@ -157,12 +146,11 @@ increment(
                 it += 2;
                 break;
             }
-            value.has_obs_fold = true;
+            v_.has_obs_fold = true;
             /*
             // replace CRLF with SP SP
             it[0] = ' ';
             it[1] = ' ';
-            it[2] = ' ';
             */
             it += 3;
             // *( SP / HTAB )
@@ -175,9 +163,9 @@ increment(
         return start;
     }
 
-    value.name = string_view(
+    v_.name = string_view(
         start, k1 - start);
-    value.value = string_view(
+    v_.value = string_view(
         v0, v1 - v0);
     return it;
 }
@@ -187,16 +175,28 @@ replace_obs_fold(
     char* it,
     char const* const end) noexcept
 {
+    ws_set ws;
     while(it != end)
     {
-        switch(*it)
+        if(*it != '\r')
         {
-        case '\r':
-        case '\n':
-            *it = ' ';
-            break;
+            ++it;
+            continue;
         }
-        ++it;
+        if(end - it < 3)
+            break;
+        BOOST_ASSERT(it[1] == '\n');
+        if( it[1] == '\n' &&
+            ws.contains(it[2]))
+        {
+            it[0] = ' ';
+            it[1] = ' ';
+            it += 3;
+        }
+        else
+        {
+            ++it;
+        }
     }
 }
 

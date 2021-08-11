@@ -17,7 +17,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** Abstract generic element
+/** A type-erased element BNF
 */
 struct any_element
 {

@@ -53,18 +53,18 @@ parse_start_line(
     error_code& ec)
 {
     bnf::request_line p;
-    auto it = p.parse_element(
+    auto it = p.parse(
         start, end, ec);
     if(ec)
         return start + (it - start);
     method_ = string_to_method(
-        p.value.method);
+        p.value().method);
     n_method_ = static_cast<
-        off_t>(p.value.method.size());
+        off_t>(p.value().method.size());
     n_target_ = static_cast<
-        off_t>(p.value.target.size());
+        off_t>(p.value().target.size());
     version_ = static_cast<char>(
-        p.value.version);
+        p.value().version);
     return start + (it - start);
 }
 

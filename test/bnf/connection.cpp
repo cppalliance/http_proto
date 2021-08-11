@@ -8,12 +8,19 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/connection.hpp>
+#include <boost/http_proto/bnf/connection.hpp>
+
+#include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/static_assert.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
+
+BOOST_STATIC_ASSERT(
+    is_list<connection>::value);
 
 class connection_test
 {
@@ -26,5 +33,6 @@ public:
 
 TEST_SUITE(connection_test, "boost.http_proto.connection");
 
+} // bnf
 } // http_proto
 } // boost

@@ -14,16 +14,17 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
+#include <boost/http_proto/bnf/optional_list.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for chunk-ext
+/** BNF for chunk-ext-elem
 
     @par BNF
     @code
-    chunk-ext      = *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
+    chunk-ext-elem = ";" chunk-ext-name [ "=" chunk-ext-val ]
 
     chunk-ext-name = token
     chunk-ext-val  = token / quoted-string
@@ -32,8 +33,9 @@ namespace bnf {
     @see
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-struct chunk_ext
+class chunk_ext_elem
 {
+public:
     struct value_type
     {
         string_view name;
@@ -41,17 +43,37 @@ struct chunk_ext
             string_view> value;
     };
 
-    struct bnf_type
+    value_type const&
+    value() const noexcept
     {
-        BOOST_HTTP_PROTO_DECL
-        char const*
-        parse_element(
-            value_type& result,
-            char const* const start,
-            char const* const end,
-            error_code& ec);
-    };
+        return v_;
+    }
+
+    BOOST_HTTP_PROTO_DECL
+    char const*
+    parse(
+        char const* const start,
+        char const* const end,
+        error_code& ec);
+
+private:
+    value_type v_;
 };
+
+/** BNF for chunk-ext
+
+    @par BNF
+    @code
+    chunk-ext      = *chunk-ext-elem
+    @endcode
+
+    @see
+        @ref chunk_ext_elem
+        @ref optional_list
+        https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
+*/
+using chunk_ext =
+    optional_list<chunk_ext_elem>;
 
 } // bnf
 } // http_proto

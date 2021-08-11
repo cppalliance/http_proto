@@ -264,7 +264,7 @@ parse_fields(
     char const* const end,
     error_code& ec)
 {
-    bnf::header_fields_bnf p;
+    bnf::header_fields p;
     auto cit = p.begin(
         start, end, ec);
     auto it = start;
@@ -278,36 +278,36 @@ parse_fields(
         if(ec.failed())
             return start + (
                 cit - start);
-        if(p.value.has_obs_fold)
+        if(p.value().has_obs_fold)
             bnf::replace_obs_fold(it, cit);
         it = start + (cit - start);
         auto const f =
             string_to_field(
-                p.value.name);
+                p.value().name);
         switch(f)
         {
         case field::connection:
         case field::proxy_connection:
             do_connection(
-                p.value.value, ec);
+                p.value().value, ec);
             if(ec)
                 return it;
             break;
         case field::content_length:
             do_content_length(
-                p.value.value, ec);
+                p.value().value, ec);
             if(ec)
                 return it;
             break;
         case field::transfer_encoding:
             do_transfer_encoding(
-                p.value.value, ec);
+                p.value().value, ec);
             if(ec)
                 return it;
             break;
         case field::upgrade:
             do_upgrade(
-                p.value.value, ec);
+                p.value().value, ec);
             if(ec)
                 return it;
             break;
@@ -356,8 +356,8 @@ do_content_length(
     auto const end =
         start + s.size();
     auto it = start;
-    bnf::number_bnf p;
-    it = p.parse_element(
+    bnf::number p;
+    it = p.parse(
         it, end, ec);
     if(ec)
     {
@@ -369,7 +369,7 @@ do_content_length(
         ec = error::bad_content_length;
         return;
     }
-    content_length_ = p.value;
+    content_length_ = p.value();
 }
 
 void

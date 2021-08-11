@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_CHAR_SET_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {

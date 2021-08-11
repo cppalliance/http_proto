@@ -7,34 +7,29 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_ANY_LIST_HPP
-#define BOOST_HTTP_PROTO_BNF_ANY_LIST_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_IMPL_CHUNK_EXT_IPP
+#define BOOST_HTTP_PROTO_BNF_IMPL_CHUNK_EXT_IPP
 
-#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/bnf/chunk_ext.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** A type-erased list BNF
-*/
-struct any_list
+char const*
+chunk_ext_elem::
+parse(
+    char const* const start,
+    char const* const end,
+    error_code& ec)
 {
-    virtual
-    char const*
-    begin(
-        char const* start,
-        char const* end,
-        error_code& ec) = 0;
-
-    virtual
-    char const*
-    increment(
-        char const* start,
-        char const* end,
-        error_code& ec) = 0;
-};
+    (void)start;
+    (void)end;
+    (void)ec;
+    // VFALCO TODO
+    return nullptr;
+}
 
 } // bnf
 } // http_proto

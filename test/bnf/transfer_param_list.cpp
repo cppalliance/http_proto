@@ -10,6 +10,9 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
+#include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/static_assert.hpp>
+
 #include "test_suite.hpp"
 #include "test_bnf.hpp"
 
@@ -18,8 +21,7 @@ namespace http_proto {
 namespace bnf {
 
 BOOST_STATIC_ASSERT(
-    std::is_trivially_destructible<
-        transfer_param_list>::value);
+    is_list<transfer_param_list>::value);
 
 class transfer_param_list_test
 {

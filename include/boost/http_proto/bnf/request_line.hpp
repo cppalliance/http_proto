@@ -32,8 +32,9 @@ namespace bnf {
 
     @see
 */
-struct request_line
+class request_line
 {
+public:
     struct value_type
     {
         string_view method;
@@ -41,11 +42,15 @@ struct request_line
         int version;
     };
 
-    value_type value;
+    value_type const&
+    value() const noexcept
+    {
+        return v_;
+    }
 
     BOOST_HTTP_PROTO_DECL
     char const*
-    parse_element(
+    parse(
         char const* start,
         char const* end,
         error_code& ec);
@@ -62,6 +67,8 @@ private:
         char const* start,
         char const* end,
         error_code& ec);
+
+    value_type v_;
 };
 
 } // bnf
