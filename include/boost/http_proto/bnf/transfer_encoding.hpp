@@ -41,13 +41,13 @@ namespace bnf {
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
         https://datatracker.ietf.org/doc/html/rfc7230#section-4
 */
-struct transfer_encoding_list_bnf
-    : required_list
+class transfer_coding
 {
+public:
     struct value_type
     {
         string_view name;
-        transfer_param_list params;
+        range<transfer_param_list> params;
 
         value_type const*
         operator->() const noexcept
@@ -56,18 +56,25 @@ struct transfer_encoding_list_bnf
         }
     };
 
-    value_type value;
+    value_type const&
+    value() const noexcept
+    {
+        return v_;
+    }
 
     BOOST_HTTP_PROTO_DECL
     char const*
-    parse_element(
+    parse(
         char const* const start,
         char const* const end,
-        error_code& ec) override;
+        error_code& ec);
+
+private:
+    value_type v_;
 };
 
-using transfer_encoding_list =
-    range<transfer_encoding_list_bnf>;
+using transfer_encoding =
+    required_list<transfer_coding>;
 
 } // bnf
 } // http_proto

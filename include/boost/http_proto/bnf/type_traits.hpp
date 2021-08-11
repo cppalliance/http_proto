@@ -50,7 +50,9 @@ template<class T, class = void>
 struct is_element : std::false_type {};
 
 template<class T>
-struct is_element<T, boost::void_t<decltype(
+struct is_element<T, boost::void_t<
+    typename T::value_type,
+    decltype(
     std::declval<char const*&>() = std::declval<T&>().parse(
         std::declval<char const*>(),
         std::declval<char const*>(),

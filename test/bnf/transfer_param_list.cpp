@@ -31,7 +31,7 @@ public:
         string_view s,
         string_view match)
     {
-        T r(s);
+        range<T> r(s);
         BOOST_TEST_NO_THROW(r.validate());
         if(! BOOST_TEST(r.is_valid()))
             return;

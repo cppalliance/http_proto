@@ -8,7 +8,10 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
+#include <boost/http_proto/bnf/transfer_encoding.hpp>
+
+#include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/static_assert.hpp>
 
 #include "test_suite.hpp"
 #include "test_bnf.hpp"
@@ -17,11 +20,10 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-BOOST_STATIC_ASSERT(
-    std::is_trivially_destructible<
-        transfer_encoding_list>::value);
+BOOST_STATIC_ASSERT(is_element<transfer_coding>::value);
+BOOST_STATIC_ASSERT(is_list<transfer_encoding>::value);
 
-class transfer_encoding_list_test
+class transfer_encoding_test
 {
 public:
     static
@@ -30,7 +32,7 @@ public:
         string_view s,
         string_view match)
     {
-        transfer_encoding_list r(s);
+        range<transfer_encoding> r(s);
         BOOST_TEST_NO_THROW(r.validate());
         if(! BOOST_TEST(r.is_valid()))
             return;
@@ -54,7 +56,7 @@ public:
     run()
     {
         using namespace test;
-        using T = transfer_encoding_list;
+        using T = transfer_encoding;
 
         bad<T>("");
         bad<T>("@");
@@ -81,7 +83,7 @@ public:
     }
 };
 
-TEST_SUITE(transfer_encoding_list_test, "boost.http_proto.transfer_encoding_list");
+TEST_SUITE(transfer_encoding_test, "boost.http_proto.transfer_encoding");
 
 } // bnf
 } // http_proto

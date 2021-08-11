@@ -38,8 +38,7 @@
 #include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/required_list.hpp>
-#include <boost/http_proto/bnf/token_list.hpp>
-#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
+#include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 #endif

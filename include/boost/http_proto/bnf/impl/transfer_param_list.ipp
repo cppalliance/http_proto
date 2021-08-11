@@ -25,18 +25,7 @@ namespace bnf {
 */
 
 char const*
-transfer_param_list_bnf::
-begin(
-    char const* const start,
-    char const* const end,
-    error_code& ec)
-{
-    return increment(
-        start, end, ec);
-}
-
-char const*
-transfer_param_list_bnf::
+transfer_param_list::
 increment(
     char const* const start,
     char const* const end,
@@ -76,7 +65,7 @@ increment(
         ec = error::bad_list;
         return start;
     }
-    value.name = {
+    v_.name = {
         t0, static_cast<
             std::size_t>(it - t0) };
     // OWS
@@ -105,7 +94,7 @@ increment(
         ec = error::bad_list;
         return start;
     }
-    value.value = {
+    v_.value = {
         t0, static_cast<
             std::size_t>(it - t0) };
     return it;

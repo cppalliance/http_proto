@@ -13,11 +13,12 @@
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
-#include <boost/http_proto/bnf/token_list.hpp>
-#include <boost/http_proto/bnf/transfer_encoding_list.hpp>
+#include <boost/http_proto/bnf/number.hpp>
+#include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/assert.hpp>
 #include <memory>
 
@@ -330,7 +331,7 @@ do_connection(
     (void)ec;
 
     using namespace detail::string_literals;
-    for(auto v : bnf::token_list(s))
+    for(auto v : bnf::range<bnf::connection>(s))
     {
         if(bnf::iequals(v, "close"_sv))
         {
@@ -378,7 +379,7 @@ do_transfer_encoding(
 {
     using namespace detail::string_literals;
 
-    bnf::transfer_encoding_list te(s);
+    bnf::range<bnf::transfer_encoding> te(s);
     auto const end = te.end();
     auto it = te.begin(ec);
     if(ec)

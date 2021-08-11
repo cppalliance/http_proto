@@ -30,11 +30,11 @@ parse(
     if(it == start)
     {
         // missing or invalid token
-        ec = error::bad_element;
+        ec = error::syntax;
         return start;
     }
-    value = { start, static_cast<
-        std::size_t>(it - start) };
+    s_ = string_view(
+        start, it - start);
     return it;
 }
 

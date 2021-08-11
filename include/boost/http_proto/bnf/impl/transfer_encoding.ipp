@@ -7,34 +7,42 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_LIST_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
+#define BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
 
-#include <boost/http_proto/bnf/token_list.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
 char const*
-token_list_bnf::
-parse_element(
+transfer_coding::
+parse(
     char const* const start,
     char const* const end,
     error_code& ec)
 {
     tchar_set ts;
+    // token
     auto it = ts.skip(start, end);
     if(it == start)
     {
-        // missing or invalid token
+        // missing token
         ec = error::bad_list;
         return start;
     }
-    value = { start, static_cast<
-        std::size_t>(it - start) };
+    v_.name = string_view(
+        start, it - start);
+    // transfer-param-list
+    auto const s = valid_prefix<
+        transfer_param_list>({ it,
+            static_cast<std::size_t>(
+                end - it) });
+    v_.params = range<transfer_param_list>(s);
+    it = s.data() + s.size();
     return it;
 }
 

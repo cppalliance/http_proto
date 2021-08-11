@@ -48,11 +48,11 @@ in a translation unit of the program.
 #include <boost/http_proto/bnf/impl/header_fields.ipp>
 #include <boost/http_proto/bnf/impl/number.ipp>
 #include <boost/http_proto/bnf/impl/request_line.ipp>
-#include <boost/http_proto/bnf/impl/required_list.ipp>
-#include <boost/http_proto/bnf/impl/token_list.ipp>
-#include <boost/http_proto/bnf/impl/transfer_encoding_list.ipp>
+#include <boost/http_proto/bnf/impl/token.ipp>
+#include <boost/http_proto/bnf/impl/transfer_encoding.ipp>
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
 
+#include <boost/http_proto/bnf/detail/impl/required_list_base.ipp>
 #include <boost/http_proto/bnf/detail/impl/optional_list_base.ipp>
 #include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
 

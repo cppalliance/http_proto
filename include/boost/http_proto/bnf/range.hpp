@@ -21,6 +21,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace bnf {
 
 template<class T>
 struct arrow_proxy
@@ -47,6 +48,8 @@ class range
 
 public:
     using list_type = List;
+    using value_type =
+        typename List::value_type;
 
     class iterator;
 
@@ -133,8 +136,8 @@ class range<T>::iterator
     }
 
 public:
-    using value_type = decltype(
-        std::declval<T>().value);
+    using value_type =
+        typename range::value_type;
     using pointer = value_type;
     using reference = value_type;
     using iterator_category =
@@ -165,14 +168,14 @@ public:
     value_type
     operator*() const noexcept
     {
-        return impl_.value;
+        return impl_.value();
     }
 
     arrow_proxy<value_type>
     operator->() const noexcept
     {
         return arrow_proxy<
-            value_type>{impl_.value};
+            value_type>{ impl_.value() };
     }
 
     void
@@ -317,6 +320,7 @@ valid_prefix(
         std::size_t>(pos - s.data()) };
 }
 
+} // bnf
 } // http_proto
 } // boost
 

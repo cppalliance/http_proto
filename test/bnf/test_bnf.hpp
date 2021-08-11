@@ -25,7 +25,7 @@ template<class T>
 void
 bad(string_view s)
 {
-    T r(s);
+    bnf::range<T> r(s);
     BOOST_TEST(! r.is_valid());
     BOOST_TEST_THROWS(r.validate(),
         system_error);
@@ -37,7 +37,7 @@ suffix(
     string_view s,
     std::size_t n)
 {
-    auto s1 = valid_prefix<
+    auto s1 = bnf::valid_prefix<
         typename T::list_type>(s);
     BOOST_TEST(s.size() - s1.size() == n);
 }

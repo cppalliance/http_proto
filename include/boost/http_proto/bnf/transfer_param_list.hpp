@@ -40,22 +40,30 @@ namespace bnf {
         https://www.rfc-editor.org/errata/eid4839
         https://www.rfc-editor.org/errata/eid4891
 */
-struct transfer_param_list_bnf
+class transfer_param_list
 {
+public:
     struct value_type
     {
         string_view name;
         string_view value;
     };
 
-    value_type value;
+    value_type const&
+    value() const noexcept
+    {
+        return v_;
+    }
 
-    BOOST_HTTP_PROTO_DECL
     char const*
     begin(
         char const* start,
         char const* end,
-        error_code& ec);
+        error_code& ec)
+    {
+        return increment(
+            start, end, ec);
+    }
 
     BOOST_HTTP_PROTO_DECL
     char const*
@@ -63,10 +71,10 @@ struct transfer_param_list_bnf
         char const* start,
         char const* end,
         error_code& ec);
-};
 
-using transfer_param_list =
-    range<transfer_param_list_bnf>;
+private:
+    value_type v_;
+};
 
 } // bnf
 } // http_proto
