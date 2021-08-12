@@ -42,6 +42,7 @@ set(PFILES
     bnf/number.cpp
     bnf/optional_list.cpp
     bnf/range.cpp
+    bnf/repeat.cpp
     bnf/request_line.cpp
     bnf/required_list.cpp
     bnf/token.cpp

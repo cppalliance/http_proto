@@ -12,7 +12,8 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/detail/repeat_base.hpp>
+#include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/assert.hpp>
 #include <boost/static_assert.hpp>
 
 namespace boost {
@@ -65,6 +66,8 @@ template<
 class repeat
 {
     BOOST_STATIC_ASSERT(M >= N);
+    BOOST_STATIC_ASSERT(
+        is_element<Element>::value);
 
     Element element_;
     std::size_t n_;
@@ -99,7 +102,7 @@ template<
     std::size_t N,
     std::size_t M>
 char const*
-repeat::
+repeat<Element, N, M>::
 begin(
     char const* start,
     char const* end,
@@ -115,7 +118,7 @@ template<
     std::size_t N,
     std::size_t M>
 char const*
-repeat::
+repeat<Element, N, M>::
 increment(
     char const* start,
     char const* end,
@@ -126,25 +129,22 @@ increment(
     if(! ec)
     {
         ++n_;
-        if(n_ > M)
-        {
-            // too many, treat this
-            // as unparsed input.
-            it = start;
-        }
+        if(n_ <= M)
+            return it;
+        // treat this as end
+        ec = error::end;
+        return start;
     }
-    else if(ec == error::end)
+    BOOST_ASSERT(
+        ec != error::end);
+    if(n_ >= N)
     {
-        if(n_ >= N)
-        {
-            ec = {};
-        }
-        else
-        {
-            // too few elements
-            ec = error::syntax;
-        }
+        // treat as end
+        ec = error::end;
+        return it;
     }
+    // too few elements
+    ec = error::syntax;
     return it;
 }
 

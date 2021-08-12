@@ -21,6 +21,8 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
+/** Consume a matching element BNF.
+*/
 template<class Element>
 #ifdef BOOST_HTTP_PROTO_DOCS
 char const*
@@ -31,29 +33,26 @@ typename std::enable_if<
 #endif
 consume(
     char const* start,
-    char const* end)
+    char const* end,
+    error_code& ec)
 {
     Element e;
-    error_code ec;
     auto it = e.parse(
         start, end, ec);
     if(ec.failed())
     {
+        // end makes no sense
         BOOST_ASSERT(
-            it == start);
-        return start;
-    }
-    if(ec != error::end)
-    {
-        BOOST_ASSERT(
-            it == start);
-        return start;
+            ec != error::end);
+        return it;
     }
     return it;
 }
 
 //------------------------------------------------
 
+/** Consume a matching list BNF
+*/
 template<class List>
 #ifdef BOOST_HTTP_PROTO_DOCS
 char const*
@@ -64,16 +63,19 @@ typename std::enable_if<
 #endif
 consume(
     char const* start,
-    char const* end)
+    char const* end,
+    error_code& ec)
 {
     List e;
-    error_code ec;
     auto it = e.begin(
         start, end, ec);
     for(;;)
     {
         if(ec == error::end)
+        {
+            ec = {};
             break;
+        }
         if(ec.failed())
         {
             // treat as non-match
@@ -93,10 +95,13 @@ template<class BNF>
 bool
 is_valid(string_view s)
 {
+    error_code ec;
     auto const end =
         s.data() + s.size();
     auto it = consume<BNF>(
-        s.data(), end);
+        s.data(), end, ec);
+    if(ec.failed())
+        return false;
     return it == end;
 }
 

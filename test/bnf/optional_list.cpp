@@ -8,4 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/optional_list.hpp>
+#include <boost/http_proto/bnf/repeat.hpp>
