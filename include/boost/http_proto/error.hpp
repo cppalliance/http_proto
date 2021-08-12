@@ -40,11 +40,20 @@ enum class error
     // Partial success
     //
 
-    /** An iterator reached the end
+    /** A BNF list reached the end of its range
+
+        This error is returned by the `begin` and
+        `increment` functions of a BNF list element
+        when iteration reaches one past the last
+        element of the range.
     */
     ,end
 
-    /** The parser needs more input to make progress
+    /** A parser needs more input to make progress
+
+        This error is returned when the full input
+        exactly matches a prefix of the BNF, and
+        more input is needed to complete the match.
     */
     ,need_more
 

@@ -43,14 +43,19 @@ public:
             char const* end,
             error_code& ec)
         {
-            digit_set ds;
-            auto it = ds.skip(
-                start, end);
-            if(it == start)
+            if(start == end)
             {
-                ec = error::syntax;
+                ec = error::need_more;
                 return start;
             }
+            digit_set ds;
+            auto it = start;
+            if(! ds.contains(*it))
+            {
+                ec = error::syntax;
+                return it;
+            }
+            it = ds.skip(it + 1, end);
             return it;
         }
     };

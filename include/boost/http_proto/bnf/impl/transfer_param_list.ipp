@@ -15,15 +15,11 @@
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/quoted_string.hpp>
+#include <boost/http_proto/bnf/token.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
-
-/*
-    transfer-param-list = *( OWS ";" OWS transfer-param )
-    transfer-param      = token BWS "=" BWS ( token / quoted-string )
-*/
 
 char const*
 transfer_param_list::
@@ -32,9 +28,6 @@ increment(
     char const* const end,
     error_code& ec)
 {
-    ws_set ws;
-    tchar_set ts;
-
     // *( ... )
     if(start == end)
     {
@@ -42,74 +35,75 @@ increment(
         return end;
     }
     // OWS
+    ws_set ws;
     auto it =
         ws.skip(start, end);
     // ";"
     if(it == end)
     {
-        ec = error::bad_list;
+        ec = error::need_more;
         return start;
     }
     if(*it != ';')
     {
-        ec = error::bad_list;
+        // expected ';'
+        ec = error::syntax;
         return start;
     }
     ++it;
     // OWS
     it = ws.skip(it, end);
     // token
-    auto t0 = it;
-    it = ts.skip(t0, end);
-    if(it == t0)
-    {
-        ec = error::bad_list;
-        return start;
-    }
-    v_.name = {
-        t0, static_cast<
-            std::size_t>(it - t0) };
+    token t;
+    it = t.parse(it, end, ec);
+    if(ec)
+        return it;
+    v_.name = t.value();
     // OWS
     it = ws.skip(it, end);
     // "="
     if(it == end)
     {
-        ec = error::bad_list;
+        ec = error::need_more;
         return start;
     }
     if(*it != '=')
     {
-        ec = error::bad_list;
+        // expected "="
+        ec = error::syntax;
         return start;
     }
     ++it;
     // OWS
     it = ws.skip(it, end);
-    // token
-    t0 = it;
-    it = ts.skip(t0, end);
-    if(it != t0)
+    if(it == end)
     {
-        v_.value = {
-            t0, static_cast<
-                std::size_t>(it - t0) };
-        return it;
-    }
-    // quoted-string
-    it = consume<quoted_string>(
-        t0, end, ec);
-    if(ec.failed())
-    {
-        // value must be present
-        // https://www.rfc-editor.org/errata/eid4839
-        ec = error::syntax;
+        ec = error::need_more;
         return start;
     }
-    BOOST_ASSERT(it != t0);
-    v_.value = {
-        t0, static_cast<
-            std::size_t>(it - t0) };
-    return it;
+    // ( token / quoted-string )
+    it = t.parse(it, end, ec);
+    if(! ec)
+    {
+        // token
+        v_.value = t.value();
+        return it;
+    }
+    ec = {};
+    quoted_string q;
+    it = q.parse(it, end, ec);
+    if(ec == error::need_more)
+        return it;
+    if(! ec)
+    {
+        // quoted-string
+        v_.value = q.value();
+        return it;
+    }
+    // value must be present
+    // https://www.rfc-editor.org/errata/eid4839
+    ec = error::syntax;
+    return start;
 }
 
 } // bnf

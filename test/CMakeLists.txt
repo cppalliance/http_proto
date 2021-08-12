@@ -34,6 +34,7 @@ set(PFILES
     bnf/algorithm.cpp
     bnf/char_set.cpp
     bnf/chunk_ext.cpp
+    bnf/chunk_part.cpp
     bnf/connection.cpp
     bnf/ctype.cpp
     bnf/header_fields.cpp

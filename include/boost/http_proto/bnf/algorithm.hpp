@@ -39,12 +39,6 @@ consume(
     Element e;
     auto it = e.parse(
         start, end, ec);
-    if(ec.failed())
-    {
-        // end makes no sense
-        BOOST_ASSERT(
-            ec != error::end);
-    }
     return it;
 }
 

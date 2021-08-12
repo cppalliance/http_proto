@@ -43,19 +43,29 @@ increment(
     char const* end,
     error_code& ec)
 {
+    if(start == end)
+    {
+        if(n_ < N)
+        {
+            ec = error::need_more;
+            return start;
+        }
+        ec = error::end;
+        return start;
+    }
     auto it = element_.parse(
         start, end, ec);
+    if(ec == error::need_more)
+        return it;
     if(! ec)
     {
         ++n_;
         if(n_ <= M)
             return it;
-        // treat this as end
+        // treat as end
         ec = error::end;
         return start;
     }
-    BOOST_ASSERT(
-        ec != error::end);
     if(n_ >= N)
     {
         // treat as end

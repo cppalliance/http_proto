@@ -30,6 +30,7 @@
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/char_set.hpp>
 #include <boost/http_proto/bnf/chunk_ext.hpp>
+#include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>

@@ -28,10 +28,9 @@ parse(
 {
     if(start == end)
     {
-        ec = error::syntax;
+        ec = error::need_more;
         return start;
     }
-    qdtext_set qts;
     auto it = start;
     // DQUOTE
     if(*it != '\"')
@@ -40,13 +39,14 @@ parse(
         return start;
     }
     ++it;
+    // *( qdtext / quoted-pair ) DQUOTE
+    qdtext_set qds;
     qpchar_set qps;
     for(;;)
     {
         if(it == end)
         {
-            // missing DQUOTE
-            ec = error::syntax;
+            ec = error::need_more;
             return start;
         }
         switch(*it)
@@ -65,7 +65,7 @@ parse(
             ++it;
             if(it == end)
             {
-                ec = error::syntax;
+                ec = error::need_more;
                 return start;
             }
             if(! qps.contains(*it))
@@ -74,11 +74,21 @@ parse(
                 ec = error::syntax;
                 return start;
             }
+            ++it;
+            break;
+        }
+        default:
+        {
+            if(! qds.contains(*it))
+            {
+                // bad qdchar
+                ec = error::syntax;
+                return start;
+            }
+            it = qds.skip(it, end);
             break;
         }
         }
-        ++it;
-        it = qts.skip(it, end);
     }
 }
 

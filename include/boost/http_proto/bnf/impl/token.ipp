@@ -25,14 +25,20 @@ parse(
     char const* const end,
     error_code& ec)
 {
-    tchar_set ts;
-    auto it = ts.skip(start, end);
-    if(it == start)
+    if(start == end)
     {
-        // missing or invalid token
+        ec = error::need_more;
+        return start;
+    }
+    tchar_set ts;
+    auto it = start;
+    if(! ts.contains(*it))
+    {
+        // invalid tchar
         ec = error::syntax;
         return start;
     }
+    it = ts.skip(it + 1, end);
     s_ = string_view(
         start, it - start);
     return it;

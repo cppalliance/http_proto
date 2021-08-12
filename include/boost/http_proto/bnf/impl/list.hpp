@@ -31,15 +31,14 @@ begin(
     error_code& ec)
 {
     n_ = 0;
-    // empty
     if(start == end)
     {
         if(n_ < N)
         {
-            // too few
-            ec = error::syntax;
+            ec = error::need_more;
             return start;
         }
+        // empty list
         ec = error::end;
         return start;
     }
@@ -55,7 +54,7 @@ begin(
     // *( "," OWS ) element
     it = consume<zero_or_more<
         comma_ows>>(it, end, ec);
-    BOOST_ASSERT(! ec);
+    //BOOST_ASSERT(! ec);
     it = element_.parse(
         it, end, ec);
     if(! ec)
@@ -67,7 +66,7 @@ begin(
     if(n_ < N)
     {
         // too few
-        ec = error::syntax;
+        ec = error::need_more;
         return start;
     }
     ec = error::end;
@@ -85,36 +84,49 @@ increment(
     char const* const end,
     error_code& ec)
 {
-    ws_set ws;
-
     if(n_ >= M)
     {
-        // too many
+        // got enough
         ec = error::end;
         return start;
     }
-    // *( "," OWS )
+    // *( OWS "," )
     auto it = consume<
         zero_or_more<ows_comma>>(
             start, end, ec);
-    BOOST_ASSERT(! ec);
+    if(ec)
+        return it;
     if(it == start)
     {
         // no comma
         if(n_ < N)
         {
             // too few
-            ec = error::syntax;
+            ec = error::need_more;
             return start;
         }
         ec = error::end;
         return start;
     }
-    start = it;
+    if(it == end)
+    {
+        if(n_ < N)
+        {
+            // too few
+            ec = error::need_more;
+            return start;
+        }
+        ec = error::end;
+        return it;
+    }
     // [ OWS element ]
+    ws_set ws;
+    start = it;
     it = ws.skip(it, end);
     it = element_.parse(
         it, end, ec);
+    if(ec == error::need_more)
+        return start;
     if(ec)
     {
         if(n_ < N)
@@ -123,6 +135,7 @@ increment(
             ec = error::syntax;
             return start;
         }
+        // exclude prev OWS
         ec = error::end;
         return start;
     }
@@ -140,12 +153,14 @@ parse(
     error_code& ec)
 {
     ws_set ws;
+    if(start == end)
+        return start;
     auto it = ws.skip(
         start, end);
     if(it == end)
     {
         // missing comma
-        ec = error::syntax;
+        ec = error::need_more;
         return start;
     }
     if(*it != ',')
@@ -168,12 +183,14 @@ parse(
     ws_set ws;
     if(start == end)
     {
-        ec = error::syntax;
+        // expected comma
+        ec = error::need_more;
         return start;
     }
     auto it = start;
     if(*it != ',')
     {
+        // expected comma
         ec = error::syntax;
         return it;
     }

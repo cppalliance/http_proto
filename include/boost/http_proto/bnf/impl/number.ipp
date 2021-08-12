@@ -27,8 +27,7 @@ parse(
 {
     if(start == end)
     {
-        // no digits
-        ec = error::bad_number;
+        ec = error::need_more;
         return start;
     }
     digit_set ds;
@@ -79,8 +78,7 @@ parse(
 {
     if(start == end)
     {
-        // no digits
-        ec = error::bad_number;
+        ec = error::need_more;
         return start;
     }
     hexdig_set hs;

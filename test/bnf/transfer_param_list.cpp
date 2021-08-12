@@ -28,25 +28,6 @@ class transfer_param_list_test
 {
 public:
     template<class T>
-    void
-    valid(string_view s)
-    {
-        BOOST_TEST_NO_THROW(
-            validate<T>(s));
-        BOOST_TEST(is_valid<T>(s));
-    }
-
-    template<class T>
-    void
-    invalid(string_view s)
-    {
-        BOOST_TEST_THROWS(
-            validate<T>(s),
-            std::exception);
-        BOOST_TEST(! is_valid<T>(s));
-    }
-
-    template<class T>
     static
     void
     good(
@@ -75,15 +56,15 @@ public:
         using namespace test;
         using T = transfer_param_list;
 
-        invalid<T>(" ");
-        invalid<T>(" ;");
-        invalid<T>("; ");
-        invalid<T>(";");
-        invalid<T>(";a");
-        invalid<T>(";a=");
-        invalid<T>(";a=b ");
-        invalid<T>(";a=b;");
-        invalid<T>(";a=\"");
+        test::bad<T>(" ");
+        test::bad<T>(" ;");
+        test::bad<T>("; ");
+        test::bad<T>(";");
+        test::bad<T>(";a");
+        test::bad<T>(";a=");
+        test::bad<T>(";a=b ");
+        test::bad<T>(";a=b;");
+        test::bad<T>(";a=\"");
 
         good<T>("", "");
         good<T>(";a=b", ";a=b");

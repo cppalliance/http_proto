@@ -7,41 +7,46 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_CHUNK_HPP
-#define BOOST_HTTP_PROTO_BNF_CHUNK_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_CHUNK_PART_HPP
+#define BOOST_HTTP_PROTO_BNF_CHUNK_PART_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/bnf/chunk_ext.hpp>
+#include <boost/http_proto/bnf/header_fields.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for chunk
+/** BNF for parsing parts of chunked encodings
 
-    This is actually just the prefix of the chunk,
-    which may not include the entire body.
+    This is actually just the prefix of a chunk,
+    last chunk, or trailer part, which may include
+    some or none of the body even on a successful parse.
 
     @par BNF
     @code
-    chunk       = chunk-size [ chunk-ext ] CRLF chunk-data CRLF
-    chunk-size  = 1*HEXDIG
+    chunk-part      = ( chunk / ( last-chunk trailer-part CRLF ) )
+    chunk           = chunk-size [ chunk-ext ] CRLF chunk-data CRLF
+    chunk-size      = 1*HEXDIG
+    chunk-data      = 1*OCTET
+    last-chunk      = 1*("0") [ chunk-ext ] CRLF
+    trailer-part    = header-fields
     @endcode
 
     @see
         @ref chunk_ext
+        @ref header_fields
         @ref hex_number
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-class chunk_ext_elem
+class chunk_part
 {
 public:
     struct value_type
     {
-        string_view name;
-        trivial_optional<
-            string_view> value;
+        std::uint64_t size;
     };
 
     value_type const&
@@ -60,21 +65,6 @@ public:
 private:
     value_type v_;
 };
-
-/** BNF for chunk-ext
-
-    @par BNF
-    @code
-    chunk-ext      = *chunk-ext-elem
-    @endcode
-
-    @see
-        @ref chunk_ext_elem
-        @ref zero_or_more
-        https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
-*/
-using chunk_ext =
-    zero_or_more<chunk_ext_elem>;
 
 } // bnf
 } // http_proto
