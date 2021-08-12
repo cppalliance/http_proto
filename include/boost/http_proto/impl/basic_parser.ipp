@@ -356,7 +356,7 @@ do_content_length(
     auto const end =
         start + s.size();
     auto it = start;
-    bnf::number p;
+    bnf::dec_number p;
     it = p.parse(
         it, end, ec);
     if(ec)

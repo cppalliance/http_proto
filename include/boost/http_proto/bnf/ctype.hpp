@@ -18,7 +18,13 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** Return true if c is a digit
+/** Return true if c is a decimal digit
+
+    @par BNF
+    @code
+    DIGIT = "0" / "1" / "2" / "3" / "4" /
+            "5" / "6" / "7" / "8" / "9"
+    @endcode
 */
 inline
 bool
@@ -134,11 +140,24 @@ using ws_set
 
     @par BNF
     @code
-    DIGIT   = [0..9]
+    DIGIT   = %30-39
     @endcode
 */
 using digit_set
     = char_set_function<&is_digit>;
+
+/** Character set for HEXDIG
+
+    @par BNF
+    @code
+    HEXDIG = DIGIT / %x41-46 / %x61-66
+    @endcode
+*/
+struct hexdig_set : char_set_table
+{
+    BOOST_HTTP_PROTO_DECL
+    hexdig_set() noexcept;
+};
 
 /** Character set for tchar
 

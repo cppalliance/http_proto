@@ -19,7 +19,59 @@ namespace http_proto {
 namespace bnf {
 
 char const*
-number::
+dec_number::
+parse(
+    char const* const start,
+    char const* const end,
+    error_code& ec)
+{
+    if(start == end)
+    {
+        // no digits
+        ec = error::bad_number;
+        return start;
+    }
+    digit_set ds;
+    v_ = 0;
+    auto const max = (static_cast<
+        std::uint64_t>(-1));
+    auto const max10 = max / 10;
+    auto it = start;
+    do
+    {
+        if(! ds.contains(*it))
+        {
+            if(it == start)
+            {
+                // no digits
+                ec = error::bad_number;
+                return start;
+            }
+            break;
+        }
+        if(v_ > max10)
+        {
+            ec = error::numeric_overflow;
+            return start;
+        }
+        v_ *= 10;
+        std::uint64_t const d =
+            *it - '0';
+        if(max - v_ < d)
+        {
+            ec = error::numeric_overflow;
+            return start;
+        }
+        v_ += d;
+    }
+    while(++it != end);
+    return it;
+}
+
+//------------------------------------------------
+
+char const*
+hex_number::
 parse(
     char const* const start,
     char const* const end,

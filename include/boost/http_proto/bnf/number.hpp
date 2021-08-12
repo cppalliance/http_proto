@@ -19,7 +19,31 @@ namespace bnf {
 
 /** BNF for 1*DIGIT
 */
-class number
+class dec_number
+{
+public:
+    using value_type = std::uint64_t;
+
+    std::uint64_t
+    value() const noexcept
+    {
+        return v_;
+    }
+
+    BOOST_HTTP_PROTO_DECL
+    char const*
+    parse(
+        char const* const start,
+        char const* const end,
+        error_code& ec);
+
+private:
+    std::uint64_t v_;
+};
+
+/** BNF for 1*HEXDIG
+*/
+class hex_number
 {
 public:
     using value_type = std::uint64_t;

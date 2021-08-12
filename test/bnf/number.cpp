@@ -21,7 +21,7 @@ namespace http_proto {
 namespace bnf {
 
 BOOST_STATIC_ASSERT(
-    is_element<number>::value);
+    is_element<dec_number>::value);
 
 class number_test
 {

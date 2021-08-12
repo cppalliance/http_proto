@@ -47,6 +47,11 @@ public:
         check_set(digit_set(),
             "0123456789");
 
+        check_set(hexdig_set(),
+            "0123456789"
+            "ABCDEF"
+            "abcdef");
+
         check_set(tchar_set(),
             "!#$%&'*+-.^_`|~"
             "0123456789"

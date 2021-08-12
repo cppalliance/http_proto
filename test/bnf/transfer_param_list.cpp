@@ -97,7 +97,8 @@ public:
     }
 };
 
-TEST_SUITE(transfer_param_list_test, "boost.http_proto.transfer_param_list");
+TEST_SUITE(transfer_param_list_test,
+    "boost.http_proto.transfer_param_list");
 
 } // bnf
 } // http_proto

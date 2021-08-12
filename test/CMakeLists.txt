@@ -17,7 +17,6 @@ set(PFILES
     CMakeLists.txt
     basic_parser.cpp
     context.cpp
-    ctype.cpp
     decoder.cpp
     deflate_service.cpp
     encoder.cpp
@@ -38,6 +37,7 @@ set(PFILES
     bnf/any_list.cpp
     bnf/char_set.cpp
     bnf/connection.cpp
+    bnf/ctype.cpp
     bnf/header_fields.cpp
     bnf/list.cpp
     bnf/number.cpp

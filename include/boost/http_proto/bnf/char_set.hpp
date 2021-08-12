@@ -16,6 +16,8 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
+/** A table-driven character set
+*/
 class char_set_table
 {
     char const* const tab_;
