@@ -83,6 +83,7 @@ public:
         invalid<T>(";a=");
         invalid<T>(";a=b ");
         invalid<T>(";a=b;");
+        invalid<T>(";a=\"");
 
         good<T>("", "");
         good<T>(";a=b", ";a=b");
@@ -91,6 +92,8 @@ public:
         good<T>(";a =b", ";a=b");
         good<T>(";a= b", ";a=b");
         good<T>(";a=b;c=d", ";a=b;c=d");
+        good<T>(";a=\"x\"", ";a=\"x\"");
+
     }
 };
 

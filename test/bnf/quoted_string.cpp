@@ -11,12 +11,16 @@
 #include <boost/http_proto/bnf/quoted_string.hpp>
 
 #include <boost/http_proto/bnf/algorithm.hpp>
+#include <boost/assert.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
+
+BOOST_STATIC_ASSERT(
+    is_element<quoted_string>::value);
 
 class quoted_string_test
 {

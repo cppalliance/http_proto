@@ -28,13 +28,10 @@ namespace bnf {
     @code
     transfer-param-list = *( OWS ";" OWS transfer-param )
     transfer-param      = token BWS "=" BWS ( token / quoted-string )
-
-    quoted-string       = DQUOTE *( qdtext / quoted-pair ) DQUOTE
-    qdtext              = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
-    obs-text            = %x80-FF
     @endcode
 
     @see
+        @ref quoted_string
         https://datatracker.ietf.org/doc/html/rfc5234
         https://datatracker.ietf.org/doc/html/rfc7230#section-4
         https://www.rfc-editor.org/errata/eid4839

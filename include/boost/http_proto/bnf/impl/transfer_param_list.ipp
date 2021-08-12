@@ -12,7 +12,9 @@
 
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/http_proto/bnf/quoted_string.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -86,13 +88,24 @@ increment(
     // token
     t0 = it;
     it = ts.skip(t0, end);
-    if(it == t0)
+    if(it != t0)
+    {
+        v_.value = {
+            t0, static_cast<
+                std::size_t>(it - t0) };
+        return it;
+    }
+    // quoted-string
+    it = consume<quoted_string>(
+        t0, end, ec);
+    if(ec.failed())
     {
         // value must be present
         // https://www.rfc-editor.org/errata/eid4839
-        ec = error::bad_list;
+        ec = error::syntax;
         return start;
     }
+    BOOST_ASSERT(it != t0);
     v_.value = {
         t0, static_cast<
             std::size_t>(it - t0) };
