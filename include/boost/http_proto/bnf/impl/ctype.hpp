@@ -27,6 +27,15 @@ is_ws(char c) noexcept
     return c == ' ' || c == '\t';
 }
 
+bool
+is_qpchar(char c) noexcept
+{
+    unsigned char u = c;
+    if(u >= 0x20)
+        return u != 0x7f;
+    return u == 0x09; // HTAB
+}
+
 char
 to_lower(char c) noexcept
 {

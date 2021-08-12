@@ -30,6 +30,22 @@ inline
 bool
 is_ws(char c) noexcept;
 
+/** Return true if c is a qpchar
+
+    @par BNF
+    @code
+    qpchar = ( HTAB / SP / VCHAR / obs-text )
+    obs-text    = %x80-FF
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
+        https://datatracker.ietf.org/doc/html/rfc5234#appendix-B.1
+*/
+inline
+bool
+is_qpchar(char c) noexcept;
+
 /** Return c converted to lower case
 */
 inline
@@ -165,6 +181,38 @@ struct field_vchar_set : char_set_table
     BOOST_HTTP_PROTO_DECL
     field_vchar_set() noexcept;
 };
+
+/** Character set for qdtext
+
+    @par BNF
+    @code
+    qdtext      = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+    obs-text    = %x80-FF
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
+*/
+struct qdtext_set : char_set_table
+{
+    BOOST_HTTP_PROTO_DECL
+    qdtext_set() noexcept;
+};
+
+/** Character set for qpchar
+
+    @par BNF
+    @code
+    qpchar = ( HTAB / SP / VCHAR / obs-text )
+    obs-text    = %x80-FF
+    @endcode
+
+    @see
+        https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
+        https://datatracker.ietf.org/doc/html/rfc5234#appendix-B.1
+*/
+using qpchar_set
+    = char_set_function<&is_qpchar>;
 
 } // bnf
 } // http_proto

@@ -41,6 +41,7 @@ set(PFILES
     bnf/header_fields.cpp
     bnf/list.cpp
     bnf/number.cpp
+    bnf/quoted_string.cpp
     bnf/range.cpp
     bnf/request_line.cpp
     bnf/sequence.cpp
