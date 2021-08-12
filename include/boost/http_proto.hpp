@@ -33,6 +33,7 @@
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
+#include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/optional_list.hpp>
 #include <boost/http_proto/bnf/range.hpp>

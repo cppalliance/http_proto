@@ -49,6 +49,7 @@ template<
     std::size_t M = std::size_t(-1)>
 class repeat
 {
+    BOOST_STATIC_ASSERT(M > 0);
     BOOST_STATIC_ASSERT(M >= N);
     BOOST_STATIC_ASSERT(
         is_element<Element>::value);
@@ -60,7 +61,7 @@ public:
     using value_type =
         typename Element::value_type;
 
-    value_type const&
+    value_type
     value() const noexcept
     {
         return element_.value();

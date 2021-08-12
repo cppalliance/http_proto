@@ -44,7 +44,6 @@ consume(
         // end makes no sense
         BOOST_ASSERT(
             ec != error::end);
-        return it;
     }
     return it;
 }
