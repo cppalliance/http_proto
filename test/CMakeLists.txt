@@ -33,6 +33,7 @@ set(PFILES
     status.cpp
     string_view.cpp
     trivial_optional.cpp
+    bnf/algorithm.cpp
     bnf/any_element.cpp
     bnf/any_list.cpp
     bnf/char_set.cpp
