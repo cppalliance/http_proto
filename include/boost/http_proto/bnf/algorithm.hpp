@@ -95,6 +95,8 @@ template<class BNF>
 bool
 is_valid(string_view s)
 {
+    BOOST_STATIC_ASSERT(
+        is_bnf<BNF>::value);
     error_code ec;
     auto const end =
         s.data() + s.size();
@@ -111,6 +113,8 @@ template<class BNF>
 void
 validate(string_view s)
 {
+    BOOST_STATIC_ASSERT(
+        is_bnf<BNF>::value);
     if(! is_valid<BNF>(s))
         http_proto::detail::throw_invalid_argument(
             "bad syntax", BOOST_CURRENT_LOCATION);

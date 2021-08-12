@@ -110,6 +110,12 @@ struct is_list<T, boost::void_t<decltype(
 
 #endif
 
+/** Alias for true_type if T is an element or list
+*/
+template<class T>
+using is_bnf = std::integral_constant<bool,
+    is_element<T>::value || is_list<T>::value>;
+
 } // bnf
 } // http_proto
 } // boost

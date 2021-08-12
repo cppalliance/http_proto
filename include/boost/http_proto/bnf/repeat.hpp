@@ -13,47 +13,31 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
-#include <boost/assert.hpp>
 #include <boost/static_assert.hpp>
+#include <cstddef>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-#if 0
-/** BNF for a list of N to M comma-separated elements
-
-    This rule defines a list of elements
-    separated by commas and optional whitespace.
-
-    @par BNF
-    @code
-    #element        => [ ( "," / element ) *( OWS "," [ OWS element ] ) ]
-    1#element       => *( "," OWS ) element *( OWS "," [ OWS element ] )
-    <n>#<m>element  => element <n-1>*<m-1>( OWS "," OWS element )
-
-    @endcode
-
-    @see
-        https://datatracker.ietf.org/doc/html/rfc5234
-        https://datatracker.ietf.org/doc/html/rfc7230#section-7
-*/
-#endif
-
-/** BNF for a repetition of elements
+/** BNF for a repeating number of elements
 
     This rule defines a sequence containing
-    at least n and at most m elements.
+    at least n and at most m of Element.
 
     @par BNF
     @code
-    <n>*<m>element
+    repeat          =  <n>*<m>element
+
+    *<m>element     => <0>*<m>element
+    <n>*element     => <n>*<inf.>element
+    *element        => <0>*<inf.>element
     <n>element      => <n>*<n>element
+    [ element ]     => *1( element )
     @endcode
 
     @see
-        https://datatracker.ietf.org/doc/html/rfc5234
-        https://datatracker.ietf.org/doc/html/rfc7230#section-7
+        https://datatracker.ietf.org/doc/html/rfc5234#section-3.6
 
     @tparam Element The element type to repeat
     @tparam N The minimum number of repetitions, which may be zero
@@ -97,59 +81,6 @@ public:
 
 //------------------------------------------------
 
-template<
-    class Element,
-    std::size_t N,
-    std::size_t M>
-char const*
-repeat<Element, N, M>::
-begin(
-    char const* start,
-    char const* end,
-    error_code& ec)
-{
-    n_ = 0;
-    return increment(
-        start, end, ec);
-}
-
-template<
-    class Element,
-    std::size_t N,
-    std::size_t M>
-char const*
-repeat<Element, N, M>::
-increment(
-    char const* start,
-    char const* end,
-    error_code& ec)
-{
-    auto it = element_.parse(
-        start, end, ec);
-    if(! ec)
-    {
-        ++n_;
-        if(n_ <= M)
-            return it;
-        // treat this as end
-        ec = error::end;
-        return start;
-    }
-    BOOST_ASSERT(
-        ec != error::end);
-    if(n_ >= N)
-    {
-        // treat as end
-        ec = error::end;
-        return it;
-    }
-    // too few elements
-    ec = error::syntax;
-    return it;
-}
-
-//------------------------------------------------
-
 /** A BNF rule for zero or more repetitions of element
 */
 template<class Element>
@@ -163,5 +94,7 @@ using one_or_more = repeat<Element, 1>;
 } // bnf
 } // http_proto
 } // boost
+
+#include <boost/http_proto/bnf/impl/repeat.hpp>
 
 #endif
