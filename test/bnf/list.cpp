@@ -14,7 +14,7 @@
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 
-#include "test_suite.hpp"
+#include "test_bnf.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -55,76 +55,57 @@ public:
         }
     };
 
-    template<class T>
-    void
-    valid(string_view s)
-    {
-        BOOST_TEST_NO_THROW(
-            validate<T>(s));
-        BOOST_TEST(is_valid<T>(s));
-    }
-
-    template<class T>
-    void
-    invalid(string_view s)
-    {
-        BOOST_TEST_THROWS(
-            validate<T>(s),
-            std::exception);
-        BOOST_TEST(! is_valid<T>(s));
-    }
-
     void
     run()
     {
         {
             using T = list_of_zero_or_more<
                 test_element>;
-              valid<T>("");
-            invalid<T>(",");
-            invalid<T>(", ");
-            invalid<T>(", ,");
-            invalid<T>(",,,");
-              valid<T>("1");
-              valid<T>(",1");
-              valid<T>("1,");
-              valid<T>(", 1");
-              valid<T>("1 ,");
-            invalid<T>("1, ");
-              valid<T>("1,2");
-              valid<T>("1,2");
-              valid<T>("1,2,3");
-              valid<T>(", 1,\t2, 3");
+            test::bad<T>( ",");
+            test::bad<T>( ", ");
+            test::bad<T>( ", ,");
+            test::bad<T>( ",,,");
+            test::bad<T>( "1, ");
+            test::good<T>("");
+            test::good<T>("1");
+            test::good<T>(",1");
+            test::good<T>("1,");
+            test::good<T>(", 1");
+            test::good<T>("1 ,");
+            test::good<T>("1,2");
+            test::good<T>("1,2");
+            test::good<T>("1,2,3");
+            test::good<T>(", 1,\t2, 3");
         }
         {
             using T = list_of_one_or_more<
                 test_element>;
-            invalid<T>("");
-            invalid<T>(",");
-            invalid<T>(", ");
-            invalid<T>(", ,");
-            invalid<T>(",,,");
-              valid<T>("1");
-              valid<T>("1,2");
+            test::bad<T>( "");
+            test::bad<T>( ",");
+            test::bad<T>( ", ");
+            test::bad<T>( ", ,");
+            test::bad<T>( ",,,");
+            test::good<T>("1");
+            test::good<T>("1,2");
         }
         {
             using T = list<test_element, 2, 3>;
-            invalid<T>("");
-            invalid<T>(",");
-            invalid<T>(", ");
-            invalid<T>(", ,");
-            invalid<T>(",,,");
-            invalid<T>("1");
-            invalid<T>(",1");
-            invalid<T>("1,");
-            invalid<T>(", 1");
-            invalid<T>("1 ,");
-            invalid<T>("1, ");
-              valid<T>("1,2");
-              valid<T>("1,2");
-              valid<T>("1,2,3");
-              valid<T>(", 1,\t2, 3");
-            invalid<T>("1,2,3,4");
+            test::bad<T>( "");
+            test::bad<T>( ",");
+            test::bad<T>( ", ");
+            test::bad<T>( ", ,");
+            test::bad<T>( ",,,");
+            test::bad<T>( "1");
+            test::bad<T>( ",1");
+            test::bad<T>( "1,");
+            test::bad<T>( ", 1");
+            test::bad<T>( "1 ,");
+            test::bad<T>( "1, ");
+            test::bad<T>( "1,2,3,4");
+            test::good<T>("1,2");
+            test::good<T>("1,2");
+            test::good<T>("1,2,3");
+            test::good<T>(", 1,\t2, 3");
         }
     }
 };

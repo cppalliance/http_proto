@@ -10,29 +10,37 @@
 #ifndef BOOST_HTTP_PROTO_TEST_BNF_HPP
 #define BOOST_HTTP_PROTO_TEST_BNF_HPP
 
-#include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/string_view.hpp>
 
 #include "test_suite.hpp"
 
-#include <sstream>
-
 namespace boost {
 namespace http_proto {
+namespace bnf {
 namespace test {
 
 template<class T>
 void
-suffix(
-    string_view s,
-    std::size_t n)
+bad(string_view s)
 {
-    auto s1 = bnf::valid_prefix<
-        typename T::list_type>(s);
-    BOOST_TEST(s.size() - s1.size() == n);
+    BOOST_TEST_THROWS(
+        validate<T>(s),
+        std::exception);
+    BOOST_TEST(! is_valid<T>(s));
+}
+
+template<class T>
+void
+good(string_view s)
+{
+    BOOST_TEST_NO_THROW(
+        validate<T>(s));
+    BOOST_TEST(is_valid<T>(s));
 }
 
 } // test
+} // bnf
 } // http_proto
 } // boost
 

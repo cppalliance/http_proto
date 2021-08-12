@@ -13,11 +13,14 @@
 #include <boost/http_proto/bnf/type_traits.hpp>
 #include <boost/static_assert.hpp>
 
-#include "test_suite.hpp"
+#include "test_bnf.hpp"
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
+
+BOOST_STATIC_ASSERT(
+    is_element<chunk_ext_elem>::value);
 
 BOOST_STATIC_ASSERT(
     is_list<chunk_ext>::value);
@@ -28,6 +31,15 @@ public:
     void
     run()
     {
+        using T = chunk_ext_elem;
+        test::bad<T>( "");
+        test::bad<T>( ",");
+        test::bad<T>( ";");
+        test::good<T>(";a");
+        test::good<T>(";ab");
+        test::good<T>(";ab=c");
+        test::good<T>(";ab=cd");
+        test::good<T>(";ab=\"cd\"");
     }
 };
 

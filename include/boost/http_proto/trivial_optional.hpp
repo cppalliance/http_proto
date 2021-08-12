@@ -14,6 +14,7 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
 #include <boost/none_t.hpp>
+#include <boost/static_assert.hpp>
 #include <initializer_list>
 #include <new>
 #include <type_traits>
@@ -25,23 +26,25 @@ namespace http_proto {
 template<class T>
 class trivial_optional
 {
-    static_assert(
+    BOOST_STATIC_ASSERT(
         std::is_trivially_destructible<
-            T>::value, "");
+            T>::value);
 
-    static_assert(
+    BOOST_STATIC_ASSERT(
         std::is_nothrow_copy_constructible<
-            T>::value, "");
+            T>::value);
 
-    static_assert(
+    BOOST_STATIC_ASSERT(
         std::is_destructible<
-            T>::value, "");
+            T>::value);
 
-    union
+    union U
     {
-        T v_;
+        T v;
+        U(){}
+        ~U(){}
     };
-
+    U u_;
     bool b_ = false;
 
 public:
@@ -54,7 +57,7 @@ public:
     ~trivial_optional()
     {
         if(b_)
-            v_.~T();
+            u_.v.~T();
     }
 
     constexpr
@@ -71,7 +74,7 @@ public:
     {
         if(other.b_)
         {
-            ::new(&v_) T(other.v_);
+            ::new(&u_.v) T(other.u_.v);
             b_ = true;
         }
         else
@@ -83,7 +86,7 @@ public:
     trivial_optional(
         T const& value) noexcept
     {
-        ::new(&v_) T(value);
+        ::new(&u_.v) T(value);
         b_ = true;
     }
 
@@ -92,7 +95,7 @@ public:
     {
         if(b_)
         {
-            v_.~T();
+            u_.v.~T();
             b_ = false;
         }
         return *this;
@@ -119,64 +122,72 @@ public:
     // Observers
     //
 
-    constexpr T const*
+    constexpr
+    T const*
     operator->() const noexcept
     {
         BOOST_ASSERT(b_);
-        return &v_;
+        return &u_.v;
     }
 
-    constexpr T*
+    constexpr
+    T*
     operator->() noexcept
     {
         BOOST_ASSERT(b_);
-        return &v_;
+        return &u_.v;
     }
  
-    constexpr T const&
+    constexpr
+    T const&
     operator*() const noexcept
     {
         BOOST_ASSERT(b_);
-        return v_;
+        return u_.v;
     }
      
-    constexpr T&
+    constexpr
+    T&
     operator*() noexcept
     {
         BOOST_ASSERT(b_);
-        return v_;
+        return u_.v;
     }
  
-    constexpr explicit
+    constexpr
+    explicit
     operator bool() const noexcept
     {
         return b_;
     }
     
-    constexpr bool
+    constexpr
+    bool
     has_value() const noexcept
     {
         return b_;
     }
 
-    constexpr T const&
+    constexpr
+    T const&
     value() const
     {
         if (! b_)
             detail::throw_invalid_argument(
                 "bad optional access",
                 BOOST_CURRENT_LOCATION);
-        return v_;
+        return u_.v;
     }
  
-    constexpr T&
+    constexpr
+    T&
     value()
     {
         if (! b_)
             detail::throw_invalid_argument(
                 "bad optional access",
                 BOOST_CURRENT_LOCATION);
-        return v_;
+        return u_.v;
     }
 
     template<class U>
@@ -184,7 +195,7 @@ public:
     value_or(U&& default_value) const
     {
         if(b_)
-            return v_;
+            return u_.v;
         return default_value;
     }
 
@@ -198,7 +209,7 @@ public:
     {
         if(b_)
         {
-            v_.~T();
+            u_.v.~T();
             b_ = false;
         }
     }
@@ -209,11 +220,11 @@ public:
     emplace(Args&&... args) noexcept
     {
         if(b_)
-            v_.~T();
-        ::new(&v_) T(std::forward<
+            u_.v.~T();
+        ::new(&u_.v) T(std::forward<
             Args>(args)...);
         b_ = true;
-        return v_;
+        return u_.v;
     }
 
     template<class U, class... Args>
@@ -224,11 +235,11 @@ public:
         Args&&... args) noexcept
     {
         if(b_)
-            v_.~T();
-        ::new(&v_) T(ilist,
+            u_.v.~T();
+        ::new(&u_.v) T(ilist,
             std::forward<Args>(args)...);
         b_ = true;
-        return v_;
+        return u_.v;
     }
 
     //
@@ -244,7 +255,7 @@ public:
             return ! rhs.b_;
         if(! rhs.b_)
             return false;
-        return lhs.v_ == rhs.v_;
+        return lhs.u_.v == rhs.u_.v;
     }
 
     friend

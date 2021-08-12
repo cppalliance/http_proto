@@ -20,6 +20,19 @@ namespace http_proto {
 class optional_test
 {
 public:
+    using T1 = trivial_optional<int>;
+    using T2 = trivial_optional<string_view>;
+
+    BOOST_STATIC_ASSERT(
+        std::is_default_constructible<T1>::value &&
+        std::is_copy_constructible<T1>::value &&
+        std::is_copy_assignable<T1>::value);
+
+    BOOST_STATIC_ASSERT(
+        std::is_default_constructible<T2>::value &&
+        std::is_copy_constructible<T2>::value &&
+        std::is_copy_assignable<T2>::value);
+
     void
     run()
     {

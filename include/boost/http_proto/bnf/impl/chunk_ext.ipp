@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_BNF_IMPL_CHUNK_EXT_IPP
 
 #include <boost/http_proto/bnf/chunk_ext.hpp>
+#include <boost/http_proto/bnf/quoted_string.hpp>
+#include <boost/http_proto/bnf/token.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {
@@ -24,11 +26,55 @@ parse(
     char const* const end,
     error_code& ec)
 {
-    (void)start;
-    (void)end;
-    (void)ec;
-    // VFALCO TODO
-    return nullptr;
+    if(start == end)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    auto it = start;
+    // ";"
+    if(*it != ';')
+    {
+        // expected ';"
+        ec = error::syntax;
+        return start;
+    }
+    ++it;
+    // token
+    token t;
+    it = t.parse(
+        it, end, ec);
+    if(ec)
+        return start;
+    v_.name = t.value();
+    if(it == end)
+        return it;
+    // [ "=" ( token / quoted-string ) ]
+    if(*it != '=')
+        return it;
+    ++it;
+    // token
+    it = t.parse(
+        it, end, ec);
+    if(! ec)
+    {
+        v_.value = t.value();
+        return it;
+    }
+    ec = {};
+    // quoted-string
+    quoted_string q;
+    it = q.parse(
+        it, end, ec);
+    if(! ec)
+    {
+        v_.value = q.value();
+        return it;
+    }
+    // expected token or
+    // quoted-string
+    ec = error::syntax;
+    return it;
 }
 
 } // bnf

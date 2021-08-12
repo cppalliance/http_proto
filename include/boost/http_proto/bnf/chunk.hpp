@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
-#define BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_CHUNK_HPP
+#define BOOST_HTTP_PROTO_BNF_CHUNK_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -18,31 +18,30 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for request-line
+/** BNF for chunk
+
+    This is actually just the prefix of the chunk,
+    which may not include the entire body.
 
     @par BNF
     @code
-    request-line    = method SP request-target SP HTTP-version CRLF
-    method          = token
-    request-target  = origin-form /
-                      absolute-form /
-                      authority-form /
-                      asterisk-form
-    HTTP-version    = "HTTP/" DIGIT "." DIGIT
+    chunk       = chunk-size [ chunk-ext ] CRLF chunk-data CRLF
+    chunk-size  = 1*HEXDIG
     @endcode
 
     @see
-        @ref token
-        https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
+        @ref chunk_ext
+        @ref hex_number
+        https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-class request_line
+class chunk_ext_elem
 {
 public:
     struct value_type
     {
-        string_view method;
-        string_view target;
-        int version;
+        string_view name;
+        trivial_optional<
+            string_view> value;
     };
 
     value_type const&
@@ -59,20 +58,23 @@ public:
         error_code& ec);
 
 private:
-    char const*
-    parse_method(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-    char const*
-    parse_target(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
     value_type v_;
 };
+
+/** BNF for chunk-ext
+
+    @par BNF
+    @code
+    chunk-ext      = *chunk-ext-elem
+    @endcode
+
+    @see
+        @ref chunk_ext_elem
+        @ref zero_or_more
+        https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
+*/
+using chunk_ext =
+    zero_or_more<chunk_ext_elem>;
 
 } // bnf
 } // http_proto

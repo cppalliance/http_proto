@@ -32,9 +32,8 @@ set(PFILES
     string_view.cpp
     trivial_optional.cpp
     bnf/algorithm.cpp
-    bnf/any_element.cpp
-    bnf/any_list.cpp
     bnf/char_set.cpp
+    bnf/chunk_ext.cpp
     bnf/connection.cpp
     bnf/ctype.cpp
     bnf/header_fields.cpp

@@ -28,8 +28,6 @@
 #include <boost/http_proto/trivial_optional.hpp>
 
 #include <boost/http_proto/bnf/algorithm.hpp>
-#include <boost/http_proto/bnf/any_element.hpp>
-#include <boost/http_proto/bnf/any_list.hpp>
 #include <boost/http_proto/bnf/char_set.hpp>
 #include <boost/http_proto/bnf/chunk_ext.hpp>
 #include <boost/http_proto/bnf/connection.hpp>

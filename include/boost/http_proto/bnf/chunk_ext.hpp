@@ -14,7 +14,7 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
-#include <boost/http_proto/bnf/list.hpp>
+#include <boost/http_proto/bnf/sequence.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -52,8 +52,8 @@ public:
     BOOST_HTTP_PROTO_DECL
     char const*
     parse(
-        char const* const start,
-        char const* const end,
+        char const* start,
+        char const* end,
         error_code& ec);
 
 private:
@@ -69,10 +69,11 @@ private:
 
     @see
         @ref chunk_ext_elem
-        @ref list_of_zero_or_more
+        @ref zero_or_more
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-using chunk_ext = list_of_zero_or_more<chunk_ext_elem>;
+using chunk_ext =
+    zero_or_more<chunk_ext_elem>;
 
 } // bnf
 } // http_proto
