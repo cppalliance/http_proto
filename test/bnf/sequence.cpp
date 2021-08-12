@@ -8,7 +8,8 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/repeat.hpp>
+#include <boost/http_proto/bnf/sequence.hpp>
+
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/bnf/algorithm.hpp>
@@ -20,7 +21,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-class repeat_test
+class sequence_test
 {
 public:
     /*
@@ -132,7 +133,7 @@ public:
               valid<T>(";1;2");
         }
         {
-            using T = repeat<
+            using T = sequence<
                 test_element, 2, 3>;
             BOOST_STATIC_ASSERT(
                 is_list<T>::value);
@@ -151,7 +152,7 @@ public:
     }
 };
 
-TEST_SUITE(repeat_test, "boost.http_proto.repeat");
+TEST_SUITE(sequence_test, "boost.http_proto.sequence");
 
 } // bnf
 } // http_proto

@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/repeat.hpp>
+#include <boost/http_proto/bnf/sequence.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {

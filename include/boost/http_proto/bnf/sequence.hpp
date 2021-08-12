@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_REPEAT_HPP
-#define BOOST_HTTP_PROTO_BNF_REPEAT_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_SEQUENCE_HPP
+#define BOOST_HTTP_PROTO_BNF_SEQUENCE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -27,7 +27,7 @@ namespace bnf {
 
     @par BNF
     @code
-    repeat          =  <n>*<m>element
+    sequence          =  <n>*<m>element
 
     *<m>element     => <0>*<m>element
     <n>*element     => <n>*<inf.>element
@@ -47,7 +47,7 @@ template<
     class Element,
     std::size_t N = 0,
     std::size_t M = std::size_t(-1)>
-class repeat
+class sequence
 {
     BOOST_STATIC_ASSERT(M > 0);
     BOOST_STATIC_ASSERT(M >= N);
@@ -85,17 +85,17 @@ public:
 /** A BNF rule for zero or more repetitions of element
 */
 template<class Element>
-using zero_or_more = repeat<Element>;
+using zero_or_more = sequence<Element>;
 
 /** A BNF rule for one or more repetitions of element
 */
 template<class Element>
-using one_or_more = repeat<Element, 1>;
+using one_or_more = sequence<Element, 1>;
 
 } // bnf
 } // http_proto
 } // boost
 
-#include <boost/http_proto/bnf/impl/repeat.hpp>
+#include <boost/http_proto/bnf/impl/sequence.hpp>
 
 #endif

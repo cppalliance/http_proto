@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_REPEAT_HPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_REPEAT_HPP
+#ifndef BOOST_HTTP_PROTO_BNF_IMPL_SEQUENCE_HPP
+#define BOOST_HTTP_PROTO_BNF_IMPL_SEQUENCE_HPP
 
 #include <boost/assert.hpp>
 
@@ -21,7 +21,7 @@ template<
     std::size_t N,
     std::size_t M>
 char const*
-repeat<Element, N, M>::
+sequence<Element, N, M>::
 begin(
     char const* start,
     char const* end,
@@ -37,7 +37,7 @@ template<
     std::size_t N,
     std::size_t M>
 char const*
-repeat<Element, N, M>::
+sequence<Element, N, M>::
 increment(
     char const* start,
     char const* end,

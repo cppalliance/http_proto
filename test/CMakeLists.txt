@@ -42,8 +42,8 @@ set(PFILES
     bnf/list.cpp
     bnf/number.cpp
     bnf/range.cpp
-    bnf/repeat.cpp
     bnf/request_line.cpp
+    bnf/sequence.cpp
     bnf/token.cpp
     bnf/transfer_encoding.cpp
     bnf/transfer_param_list.cpp
