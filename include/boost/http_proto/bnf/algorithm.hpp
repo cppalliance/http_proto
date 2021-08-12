@@ -82,6 +82,31 @@ consume(
 
 //------------------------------------------------
 
+/** Require the specified character
+*/
+inline
+char const*
+expect(
+    char ch,
+    char const* start,
+    char const* end,
+    error_code& ec)
+{
+    if(start == end)
+    {
+        ec = error::need_more;
+        return start;
+    }
+    if(*start != ch)
+    {
+        ec = error::syntax;
+        return start;
+    }
+    return start + 1;
+}
+
+//------------------------------------------------
+
 /** Return true if s matches the BNF exactly
 */
 template<class BNF>

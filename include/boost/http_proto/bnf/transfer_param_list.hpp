@@ -12,22 +12,20 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <utility>
+#include <boost/http_proto/bnf/sequence.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for transfer-param-list
+/** BNF for transfer-param-elem
 
     Parameters are in the form of a name=value pair.
 
     @par BNF
     @code
-    transfer-param-list = *( OWS ";" OWS transfer-param )
-    transfer-param      = token BWS "=" BWS ( token / quoted-string )
+    transfer-param-elem = OWS ";" OWS token OWS "=" OWS ( token / quoted-string )
     @endcode
 
     @see
@@ -37,7 +35,7 @@ namespace bnf {
         https://www.rfc-editor.org/errata/eid4839
         https://www.rfc-editor.org/errata/eid4891
 */
-class transfer_param_list
+class transfer_param_elem
 {
 public:
     struct value_type
@@ -52,19 +50,9 @@ public:
         return v_;
     }
 
-    char const*
-    begin(
-        char const* start,
-        char const* end,
-        error_code& ec)
-    {
-        return increment(
-            start, end, ec);
-    }
-
     BOOST_HTTP_PROTO_DECL
     char const*
-    increment(
+    parse(
         char const* start,
         char const* end,
         error_code& ec);
@@ -72,6 +60,22 @@ public:
 private:
     value_type v_;
 };
+
+/** BNF for transfer-param-list
+
+    Parameters are in the form of a name=value pair.
+
+    @par BNF
+    @code
+    transfer-param-list = *transfer-param-elem
+    @endcode
+
+    @see
+        @ref transfer_param
+        https://datatracker.ietf.org/doc/html/rfc5234
+*/
+using transfer_param_list =
+    zero_or_more<transfer_param_elem>;
 
 } // bnf
 } // http_proto

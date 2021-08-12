@@ -11,6 +11,7 @@
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 #include <boost/http_proto/bnf/algorithm.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
 #include <boost/static_assert.hpp>
 

@@ -22,35 +22,21 @@ namespace http_proto {
 namespace bnf {
 
 char const*
-transfer_param_list::
-increment(
+transfer_param_elem::
+parse(
     char const* const start,
     char const* const end,
     error_code& ec)
 {
-    // *( ... )
-    if(start == end)
-    {
-        ec = error::end;
-        return end;
-    }
     // OWS
     ws_set ws;
     auto it =
         ws.skip(start, end);
     // ";"
-    if(it == end)
-    {
-        ec = error::need_more;
+    it = expect(';',
+        it, end, ec);
+    if(ec)
         return start;
-    }
-    if(*it != ';')
-    {
-        // expected ';'
-        ec = error::syntax;
-        return start;
-    }
-    ++it;
     // OWS
     it = ws.skip(it, end);
     // token
@@ -62,25 +48,12 @@ increment(
     // OWS
     it = ws.skip(it, end);
     // "="
-    if(it == end)
-    {
-        ec = error::need_more;
+    it = expect('=',
+        it, end, ec);
+    if(ec)
         return start;
-    }
-    if(*it != '=')
-    {
-        // expected "="
-        ec = error::syntax;
-        return start;
-    }
-    ++it;
     // OWS
     it = ws.skip(it, end);
-    if(it == end)
-    {
-        ec = error::need_more;
-        return start;
-    }
     // ( token / quoted-string )
     it = t.parse(it, end, ec);
     if(! ec)
@@ -92,8 +65,6 @@ increment(
     ec = {};
     quoted_string q;
     it = q.parse(it, end, ec);
-    if(ec == error::need_more)
-        return it;
     if(! ec)
     {
         // quoted-string
@@ -102,7 +73,6 @@ increment(
     }
     // value must be present
     // https://www.rfc-editor.org/errata/eid4839
-    ec = error::syntax;
     return start;
 }
 
