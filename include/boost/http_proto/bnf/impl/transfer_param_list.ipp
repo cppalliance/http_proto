@@ -13,7 +13,6 @@
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {

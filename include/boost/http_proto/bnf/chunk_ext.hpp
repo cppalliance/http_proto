@@ -14,7 +14,7 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
-#include <boost/http_proto/bnf/optional_list.hpp>
+#include <boost/http_proto/bnf/list.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -69,11 +69,10 @@ private:
 
     @see
         @ref chunk_ext_elem
-        @ref optional_list
+        @ref list_of_zero_or_more
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-using chunk_ext =
-    optional_list<chunk_ext_elem>;
+using chunk_ext = list_of_zero_or_more<chunk_ext_elem>;
 
 } // bnf
 } // http_proto

@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
+#include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
 #include <boost/static_assert.hpp>
 
@@ -26,6 +27,25 @@ BOOST_STATIC_ASSERT(
 class transfer_param_list_test
 {
 public:
+    template<class T>
+    void
+    valid(string_view s)
+    {
+        BOOST_TEST_NO_THROW(
+            validate<T>(s));
+        BOOST_TEST(is_valid<T>(s));
+    }
+
+    template<class T>
+    void
+    invalid(string_view s)
+    {
+        BOOST_TEST_THROWS(
+            validate<T>(s),
+            std::exception);
+        BOOST_TEST(! is_valid<T>(s));
+    }
+
     template<class T>
     static
     void
@@ -55,14 +75,14 @@ public:
         using namespace test;
         using T = transfer_param_list;
 
-        bad<T>(" ");
-        bad<T>(" ;");
-        bad<T>("; ");
-        bad<T>(";");
-        bad<T>(";a");
-        bad<T>(";a=");
-        bad<T>(";a=b ");
-        bad<T>(";a=b;");
+        invalid<T>(" ");
+        invalid<T>(" ;");
+        invalid<T>("; ");
+        invalid<T>(";");
+        invalid<T>(";a");
+        invalid<T>(";a=");
+        invalid<T>(";a=b ");
+        invalid<T>(";a=b;");
 
         good<T>("", "");
         good<T>(";a=b", ";a=b");

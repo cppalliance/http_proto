@@ -26,6 +26,25 @@ BOOST_STATIC_ASSERT(is_list<transfer_encoding>::value);
 class transfer_encoding_test
 {
 public:
+    template<class T>
+    void
+    valid(string_view s)
+    {
+        BOOST_TEST_NO_THROW(
+            validate<T>(s));
+        BOOST_TEST(is_valid<T>(s));
+    }
+
+    template<class T>
+    void
+    invalid(string_view s)
+    {
+        BOOST_TEST_THROWS(
+            validate<T>(s),
+            std::exception);
+        BOOST_TEST(! is_valid<T>(s));
+    }
+
     static
     void
     good(
@@ -58,13 +77,13 @@ public:
         using namespace test;
         using T = transfer_encoding;
 
-        bad<T>("");
-        bad<T>("@");
-        bad<T>(" ");
-        bad<T>(" x");
-        bad<T>("x ");
-        bad<T>("d;b=3 ");
-        bad<T>(" d;b=3");
+        invalid<T>("");
+        invalid<T>("@");
+        invalid<T>(" ");
+        invalid<T>(" x");
+        invalid<T>("x ");
+        invalid<T>("d;b=3 ");
+        invalid<T>(" d;b=3");
 
         good("x","x");
         good(",x","x");

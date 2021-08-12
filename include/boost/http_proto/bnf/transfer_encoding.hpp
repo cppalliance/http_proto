@@ -13,19 +13,18 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/range.hpp>
-#include <boost/http_proto/bnf/required_list.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for the Transfer-Encoding header field value
+/** BNF for transfer-coding
 
     @par BNF
     @code
-    Transfer-Encoding   = 1#transfer-coding
     transfer-coding     = "chunked"
                         / "compress"
                         / "deflate"
@@ -36,6 +35,7 @@ namespace bnf {
     @endcode
 
     @see
+        @ref token
         @ref transfer_param_list
         https://datatracker.ietf.org/doc/html/rfc5234
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
@@ -73,8 +73,19 @@ private:
     value_type v_;
 };
 
+/** BNF for the Transfer-Encoding header field value
+
+    @par BNF
+    @code
+    Transfer-Encoding   = 1#transfer-coding
+    @endcode
+
+    @see
+        @ref list_of_one_or_more
+        @ref transfer_coding
+*/
 using transfer_encoding =
-    required_list<transfer_coding>;
+    list_of_one_or_more<transfer_coding>;
 
 } // bnf
 } // http_proto

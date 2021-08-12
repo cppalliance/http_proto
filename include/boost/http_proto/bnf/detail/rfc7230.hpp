@@ -24,21 +24,6 @@ static bool is_pchar(char c) noexcept;
 using pchar_set =
     char_set_function<&is_pchar>;
 
-// *( "," OWS )
-static
-char const*
-skip_opt_comma_ows(
-    char const* start,
-    char const* end) noexcept;
-
-// *( OWS "," )
-static
-char const*
-skip_opt_ows_comma(
-    bool& comma,
-    char const* start,
-    char const* end) noexcept;
-
 static
 char const*
 parse_http_version(

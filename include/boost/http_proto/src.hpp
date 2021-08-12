@@ -51,8 +51,6 @@ in a translation unit of the program.
 #include <boost/http_proto/bnf/impl/transfer_encoding.ipp>
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
 
-#include <boost/http_proto/bnf/detail/impl/required_list_base.ipp>
-#include <boost/http_proto/bnf/detail/impl/optional_list_base.ipp>
 #include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
 
 // VFALCO These are tucked away here temporarily

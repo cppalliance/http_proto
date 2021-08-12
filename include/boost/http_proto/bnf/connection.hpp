@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_BNF_CONNECTION_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/bnf/required_list.hpp>
+#include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/token.hpp>
 
 namespace boost {
@@ -27,11 +27,11 @@ namespace bnf {
     @encode
 
     @see
-        @ref required_list
+        @ref list
         @ref token
         https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
 */
-using connection = required_list<token>;
+using connection = list_of_one_or_more<token>;
 
 } // bnf
 } // http_proto

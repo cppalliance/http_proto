@@ -23,16 +23,6 @@ namespace test {
 
 template<class T>
 void
-bad(string_view s)
-{
-    bnf::range<T> r(s);
-    BOOST_TEST(! r.is_valid());
-    BOOST_TEST_THROWS(r.validate(),
-        system_error);
-}
-
-template<class T>
-void
 suffix(
     string_view s,
     std::size_t n)
