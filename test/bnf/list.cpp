@@ -46,7 +46,7 @@ public:
             digit_set ds;
             auto it = ds.skip(
                 start, end);
-            if(it == end)
+            if(it == start)
             {
                 ec = error::syntax;
                 return start;
@@ -78,68 +78,58 @@ public:
     run()
     {
         {
-            using T = test_element;
-            BOOST_STATIC_ASSERT(
-                is_element<T>::value);
-            invalid<T>("");
-            invalid<T>(".");
-            invalid<T>("0");
-            invalid<T>(";");
-            invalid<T>(";12 ");
-            invalid<T>(" ;12");
-            invalid<T>(";1;");
-              valid<T>(";0");
-              valid<T>(";12");
-        }
-        {
-            using T = zero_or_more<test_element>;
-            BOOST_STATIC_ASSERT(
-                is_list<T>::value);
-            invalid<T>(".");
-            invalid<T>("0");
-            invalid<T>(";");
-            invalid<T>(";12 ");
-            invalid<T>(" ;12");
-            invalid<T>(";1;");
+            using T = list_of_zero_or_more<
+                test_element>;
               valid<T>("");
-              valid<T>(";1");
-              valid<T>(";1;2");
+            invalid<T>(",");
+            invalid<T>(", ");
+            invalid<T>(", ,");
+            invalid<T>(",,,");
+              valid<T>("1");
+              valid<T>(",1");
+              valid<T>("1,");
+              valid<T>(", 1");
+              valid<T>("1 ,");
+            invalid<T>("1, ");
+              valid<T>("1,2");
+              valid<T>("1,2");
+              valid<T>("1,2,3");
+              valid<T>(", 1,\t2, 3");
         }
         {
-            using T = one_or_more<test_element>;
-            BOOST_STATIC_ASSERT(
-                is_list<T>::value);
+            using T = list_of_one_or_more<
+                test_element>;
             invalid<T>("");
-            invalid<T>(".");
-            invalid<T>("0");
-            invalid<T>(";");
-            invalid<T>(";12 ");
-            invalid<T>(" ;12");
-            invalid<T>(";1;");
-              valid<T>(";1");
-              valid<T>(";1;2");
+            invalid<T>(",");
+            invalid<T>(", ");
+            invalid<T>(", ,");
+            invalid<T>(",,,");
+              valid<T>("1");
+              valid<T>("1,2");
         }
         {
-            using T = repeat<
-                test_element, 2, 3>;
-            BOOST_STATIC_ASSERT(
-                is_list<T>::value);
+            using T = list<test_element, 2, 3>;
             invalid<T>("");
-            invalid<T>(".");
-            invalid<T>("0");
-            invalid<T>(";");
-            invalid<T>(";12 ");
-            invalid<T>(" ;12");
-            invalid<T>(";1;");
-            invalid<T>(";1");
-              valid<T>(";1;2");
-              valid<T>(";1;2;3");
-            invalid<T>(";1;2;3;4");
+            invalid<T>(",");
+            invalid<T>(", ");
+            invalid<T>(", ,");
+            invalid<T>(",,,");
+            invalid<T>("1");
+            invalid<T>(",1");
+            invalid<T>("1,");
+            invalid<T>(", 1");
+            invalid<T>("1 ,");
+            invalid<T>("1, ");
+              valid<T>("1,2");
+              valid<T>("1,2");
+              valid<T>("1,2,3");
+              valid<T>(", 1,\t2, 3");
+            invalid<T>("1,2,3,4");
         }
     }
 };
 
-TEST_SUITE(repeat_test, "boost.http_proto.repeat");
+TEST_SUITE(list_test, "boost.http_proto.list");
 
 } // bnf
 } // http_proto

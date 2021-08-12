@@ -49,6 +49,9 @@ template<
     std::size_t N = 0,
     std::size_t M = std::size_t(-1)>
 class list
+#ifdef BOOST_HTTP_PROTO_DOCS
+    ;
+#else
 {
     BOOST_STATIC_ASSERT(M > 0);
     BOOST_STATIC_ASSERT(M >= N);
@@ -80,9 +83,20 @@ public:
         char const* end,
         error_code& ec);
 };
+#endif
 
 //------------------------------------------------
 
+/** BNF for optional whitespace followed by a comma
+
+    @par BNF
+    @code
+    ows-comma   = OWS ","
+    @endcode
+*/
+#ifdef BOOST_HTTP_PROTO_DOCS
+using ows_comma = __see_below__;
+#else
 struct ows_comma
 {
     using value_type = void;
@@ -92,13 +106,25 @@ struct ows_comma
     {
     }
 
+    inline
     char const*
     parse(
         char const* start,
         char const* end,
         error_code& ec);
 };
+#endif
 
+/** BNF for a comma followed by optional whitespace
+
+    @par BNF
+    @code
+    comma-ows   = "," OWS
+    @endcode
+*/
+#ifdef BOOST_HTTP_PROTO_DOCS
+using comma_ows = __see_below__;
+#else
 struct comma_ows
 {
     using value_type = void;
@@ -108,12 +134,14 @@ struct comma_ows
     {
     }
 
+    inline
     char const*
     parse(
         char const* start,
         char const* end,
         error_code& ec);
 };
+#endif
 
 //------------------------------------------------
 

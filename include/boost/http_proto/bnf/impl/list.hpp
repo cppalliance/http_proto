@@ -30,8 +30,6 @@ begin(
     char const* const end,
     error_code& ec)
 {
-    ws_set ws;
-
     n_ = 0;
     // empty
     if(start == end)
@@ -47,7 +45,7 @@ begin(
     }
     // ( element ) ;most common
     auto it = element_.parse(
-        it, end, ec);
+        start, end, ec);
     if(! ec)
     {
         ++n_;

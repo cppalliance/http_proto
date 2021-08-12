@@ -39,6 +39,7 @@ set(PFILES
     bnf/char_set.cpp
     bnf/connection.cpp
     bnf/header_fields.cpp
+    bnf/list.cpp
     bnf/number.cpp
     bnf/optional_list.cpp
     bnf/range.cpp
