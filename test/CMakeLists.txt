@@ -28,7 +28,6 @@ set(PFILES
     request_view.cpp
     response_parser.cpp
     response_view.cpp
-    rfc.cpp
     status.cpp
     string_view.cpp
     trivial_optional.cpp

@@ -32,11 +32,11 @@ parse(
         return start;
     }
     digit_set ds;
-    v_ = 0;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max10 = max / 10;
     auto it = start;
+    v_ = 0;
     do
     {
         if(! ds.contains(*it))
@@ -83,15 +83,15 @@ parse(
         ec = error::bad_number;
         return start;
     }
-    digit_set ds;
-    v_ = 0;
+    hexdig_set hs;
     auto const max = (static_cast<
         std::uint64_t>(-1));
-    auto const max10 = max / 10;
+    auto const max16 = max / 16;
     auto it = start;
+    v_ = 0;
     do
     {
-        if(! ds.contains(*it))
+        if(! hs.contains(*it))
         {
             if(it == start)
             {
@@ -101,14 +101,14 @@ parse(
             }
             break;
         }
-        if(v_ > max10)
+        if(v_ > max16)
         {
             ec = error::numeric_overflow;
             return start;
         }
-        v_ *= 10;
+        v_ *= 16;
         std::uint64_t const d =
-            *it - '0';
+            hs.value(*it);
         if(max - v_ < d)
         {
             ec = error::numeric_overflow;
