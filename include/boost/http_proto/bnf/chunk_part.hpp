@@ -32,7 +32,7 @@ namespace bnf {
     chunk-size      = 1*HEXDIG
     chunk-data      = 1*OCTET
     last-chunk      = 1*("0") [ chunk-ext ] CRLF
-    trailer-part    = header-fields
+    trailer-part    = *( header-field CRLF )
     @endcode
 
     @see
@@ -47,6 +47,9 @@ public:
     struct value_type
     {
         std::uint64_t size;
+        range<chunk_ext> ext;
+        range<header_fields> trailer;
+        string_view data;
     };
 
     value_type const&
@@ -63,6 +66,13 @@ public:
         error_code& ec);
 
 private:
+    static
+    char const*
+    skip_crlf(
+        char const* start,
+        char const* end,
+        error_code& ec) noexcept;
+
     value_type v_;
 };
 

@@ -28,10 +28,18 @@ public:
     void
     run()
     {
+        using T = chunk_part;
+        test::bad<T>( "");
+        test::good<T>("0\r\n\r\n");
+        test::good<T>("0;x\r\n\r\n");
+        test::good<T>("0;x=y\r\n\r\n");
+        test::good<T>("0;x=y\r\nx: y\r\n\r\n");
+        test::good<T>("1\r\n*\r\n");
     }
 };
 
-TEST_SUITE(chunk_part_test, "boost.http_proto.chunk_part");
+TEST_SUITE(chunk_part_test,
+    "boost.http_proto.chunk_part");
 
 } // bnf
 } // http_proto
