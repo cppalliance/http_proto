@@ -38,45 +38,59 @@ private:
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
+    enum class api
+    {
+        header,
+        body,
+        body_part,
+        chunk,
+        chunk_part,
+    };
+
     enum class state
     {
         nothing_yet = 0,
         start_line,
         fields,
         body,
-#if 0
-        body_to_eof0,
-        body_to_eof,
-        chunk_header0,
-        chunk_header,
-        chunk_body,
-#endif
+        chunk,
+        chunk_next,
         complete
     };
 
+    struct config
+    {
+        constexpr config() noexcept;
+
+        std::size_t header_limit;   // max header size
+    };
+
+    struct message
+    {
+        constexpr message() noexcept;
+
+        std::size_t header_size;   // full header size
+        string_view payload;       // payload part
+        trivial_optional<
+            std::uint64_t
+                > payload_size;
+        std::uint64_t
+            payload_remain;
+        char version;               // HTTP-version, 0 or 1
+
+        bool is_chunked : 1;
+    };
+
     context& ctx_;
-    state state_;
     char* buffer_;
     std::size_t cap_;           // allocated size
     std::size_t size_;          // committed part
     std::size_t used_;          // parsed part
-    std::size_t header_size_;   // full header size
+    state state_;
+    api api_;
 
-    trivial_optional<
-        std::uint64_t> content_length_;
-
-    std::uint64_t body_size_;
-
-    std::size_t header_limit_;  // max header size
-
-    struct flags
-    {
-        bool chunked : 1;
-    };
-
-    flags f_;
-
-    char version_;                  // HTTP-version, 0 or 1
+    config cfg_;
+    message m_;
 
     explicit
     basic_parser(
@@ -91,7 +105,8 @@ public:
     bool
     is_done() const noexcept
     {
-        return state_ == state::complete;
+        return state_ ==
+            state::complete;
     }
 
     /** Prepare the parser for the next message.
@@ -140,9 +155,11 @@ public:
     parse_chunk_trailer(
         error_code& ec);
 
-    BOOST_HTTP_PROTO_DECL
     string_view
-    body() const;
+    payload() const noexcept
+    {
+        return m_.payload;
+    }
 
 private:
     friend class request_parser;
@@ -152,6 +169,7 @@ private:
         char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;
 
+    void do_parse(error_code&);
     char* parse_fields(char*, char const*, error_code&);
     char* parse_field(char*, char const*, error_code&);
     void do_connection(string_view, error_code&);

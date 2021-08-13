@@ -40,7 +40,7 @@ header() const noexcept
         n_method_,
         n_target_,
         method_,
-        version_);
+        m_.version);
 }
 
 //------------------------------------------------
@@ -63,7 +63,7 @@ parse_start_line(
         off_t>(p.value().method.size());
     n_target_ = static_cast<
         off_t>(p.value().target.size());
-    version_ = static_cast<char>(
+    m_.version = static_cast<char>(
         p.value().version);
     return start + (it - start);
 }

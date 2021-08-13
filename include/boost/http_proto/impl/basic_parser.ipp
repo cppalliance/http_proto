@@ -13,6 +13,7 @@
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
@@ -20,6 +21,7 @@
 #include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/assert.hpp>
+#include <boost/none.hpp>
 #include <memory>
 
 namespace boost {
@@ -27,19 +29,39 @@ namespace http_proto {
 
 //------------------------------------------------
 
+constexpr
+basic_parser::
+config::
+config() noexcept
+    : header_limit(8192)
+{
+}
+
+constexpr
+basic_parser::
+message::
+message() noexcept
+    : header_size(0)
+    , payload()
+    , payload_size(boost::none)
+    , payload_remain(0)
+    , version(0)
+    , is_chunked(false)
+{
+}
+
+//------------------------------------------------
+
 basic_parser::
 basic_parser(
     context& ctx) noexcept
     : ctx_(ctx)
-    , state_(state::nothing_yet)
     , buffer_(nullptr)
     , cap_(0)
     , size_(0)
     , used_(0)
-    , header_limit_(8192)
+    , state_(state::nothing_yet)
 {
-    std::memset(&f_,
-        0, sizeof(f_));
 }
 
 basic_parser::
@@ -53,6 +75,7 @@ void
 basic_parser::
 reset()
 {
+    // move leftovers to front
     if( size_ > used_ &&
         used_ > 0)
     {
@@ -63,11 +86,8 @@ reset()
         size_ -= used_;
         used_ = 0;
     }
-    header_size_ = 0;
-    state_ = state::nothing_yet;
 
-    std::memset(&f_,
-        0, sizeof(f_));
+    m_ = message();
 }
 
 std::pair<void*, std::size_t>
@@ -121,17 +141,61 @@ commit_eof()
 
 void
 basic_parser::
+do_parse(
+    error_code& ec)
+{
+    auto const start =
+        buffer_ + used_;
+    auto const end =
+        buffer_ + size_;
+    auto n = static_cast<
+        std::size_t>(end - start);
+
+    switch(state_)
+    {
+    case state::start_line:
+    {
+        break;
+    }
+    case state::fields:
+    {
+        break;
+    }
+    case state::body:
+    {
+
+        break;
+    }
+    case state::chunk:
+    {
+        bnf::chunk_part p;
+        auto it = p.parse(
+            start, end, ec);
+        if(ec)
+            return;
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+}
+
+void
+basic_parser::
 parse_header(
     error_code& ec)
 {
     ec = {};
+    api_ = api::header;
 
     auto start = buffer_ + used_;
     char const* const end = [this]
     {
-        if(size_ <= header_limit_)
+        if(size_ <= cfg_.header_limit)
             return buffer_ + size_;
-        return buffer_ + header_limit_;
+        return buffer_ + cfg_.header_limit;
     }();
 
     switch(state_)
@@ -150,7 +214,7 @@ parse_header(
         if(ec)
         {
             if( ec == error::need_more &&
-                size_ >= header_limit_)
+                size_ >= cfg_.header_limit)
                 ec = error::header_too_large;
             goto finish;
         }
@@ -164,11 +228,11 @@ parse_header(
         if(ec)
         {
             if( ec == error::need_more &&
-                size_ >= header_limit_)
+                size_ >= cfg_.header_limit)
                 ec = error::header_too_large;
             goto finish;
         }
-        header_size_ =
+        m_.header_size =
             start - buffer_;
         state_ = state::body;
         break;
@@ -186,7 +250,8 @@ basic_parser::
 parse_body(
     error_code& ec)
 {
-    ec = {}; // redundant?
+    ec = {};
+    api_ = api::body;
 
     switch(state_)
     {
@@ -246,13 +311,6 @@ parse_chunk_trailer(
     error_code& ec)
 {
     (void)ec;
-}
-
-string_view
-basic_parser::
-body() const
-{
-    return {nullptr, 0};
 }
 
 //------------------------------------------------
@@ -369,7 +427,7 @@ do_content_length(
         ec = error::bad_content_length;
         return;
     }
-    content_length_ = p.value();
+    m_.payload_size = p.value();
 }
 
 void
@@ -391,7 +449,7 @@ do_transfer_encoding(
     BOOST_ASSERT(it != end);
     // handle multiple
     // Transfer-Encoding header lines
-    f_.chunked = false;
+    m_.is_chunked = false;
     // get last encoding
     for(;;)
     {
@@ -400,7 +458,7 @@ do_transfer_encoding(
         {
             if(bnf::iequals(
                 it->name, "chunked"_sv))
-                f_.chunked = true;
+                m_.is_chunked = true;
             break;
         }
     }
