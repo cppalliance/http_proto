@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/chunk_ext.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 
@@ -58,7 +59,7 @@ protected:
     @par BNF
     @code
     chunk-part      = ( chunk / ( last-chunk trailer-part CRLF ) )
-    chunk           = chunk-size [ chunk-ext ] CRLF chunk-data CRLF
+    chunk           = chunk-size [ chunk-ext ] CRLF chunk-data
     chunk-size      = 1*HEXDIG
     chunk-data      = 1*OCTET
     last-chunk      = 1*("0") [ chunk-ext ] CRLF
@@ -71,7 +72,7 @@ protected:
         @ref hex_number
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-class chunk_part0
+class chunk_part
     : public chunk_part_base
 {
 public:
@@ -86,7 +87,25 @@ public:
     }
 };
 
-class chunk_part
+/** BNF for parsing parts of chunked encodings
+
+    @par BNF
+    @code
+    chunk-part      = CRLF ( chunk / ( last-chunk trailer-part CRLF ) )
+    chunk           = chunk-size [ chunk-ext ] CRLF chunk-data CRLF
+    chunk-size      = 1*HEXDIG
+    chunk-data      = 1*OCTET
+    last-chunk      = 1*("0") [ chunk-ext ] CRLF
+    trailer-part    = *( header-field CRLF )
+    @endcode
+
+    @see
+        @ref chunk_ext
+        @ref header_fields
+        @ref hex_number
+        https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
+*/
+class chunk_part_next
     : public chunk_part_base
 {
 public:
@@ -96,8 +115,13 @@ public:
         char const* end,
         error_code& ec)
     {
-        return chunk_part_base::parse(
+        auto it = consume_crlf(
             start, end, ec);
+        if(ec)
+            return it;
+        it = chunk_part_base::parse(
+            it, end, ec);
+        return it;
     }
 };
 

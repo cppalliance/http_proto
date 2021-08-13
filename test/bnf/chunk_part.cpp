@@ -28,13 +28,36 @@ public:
     void
     run()
     {
-        using T = chunk_part;
-        test::bad<T>( "");
-        test::good<T>("0\r\n\r\n");
-        test::good<T>("0;x\r\n\r\n");
-        test::good<T>("0;x=y\r\n\r\n");
-        test::good<T>("0;x=y\r\nx: y\r\n\r\n");
-        test::good<T>("1\r\n*\r\n");
+        {
+            using T = chunk_part;
+            test::bad<T>( "");
+            test::bad<T>( "1\r\n*\r\n");
+            test::bad<T>( "1;x\r\n*\r\n");
+            test::bad<T>( "10000000000000000\r\n*");
+            test::good<T>("0\r\n\r\n");
+            test::good<T>("0;x\r\n\r\n");
+            test::good<T>("0;x=y\r\n\r\n");
+            test::good<T>("0;x=y\r\nx: y\r\n\r\n");
+            test::good<T>("1\r\n*");
+            test::good<T>("1;x\r\n*");
+            test::good<T>("3;x\r\n***");
+            test::good<T>("3\r\n*");
+        }
+        {
+            using T = chunk_part_next;
+            test::bad<T>( "");
+            test::bad<T>( "1\r\n*");
+            test::bad<T>( "1;x\r\n*");
+            test::bad<T>( "\r\n10000000000000000\r\n*");
+            test::good<T>("\r\n0\r\n\r\n");
+            test::good<T>("\r\n0;x\r\n\r\n");
+            test::good<T>("\r\n0;x=y\r\n\r\n");
+            test::good<T>("\r\n0;x=y\r\nx: y\r\n\r\n");
+            test::good<T>("\r\n1\r\n*");
+            test::good<T>("\r\n1;x\r\n*");
+            test::good<T>("\r\n3;x\r\n***");
+            test::good<T>("\r\n3\r\n*");
+        }
     }
 };
 

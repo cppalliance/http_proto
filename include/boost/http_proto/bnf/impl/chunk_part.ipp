@@ -44,7 +44,7 @@ parse(
     it = consume_crlf(it, end, ec);
     if(ec)
         return it;
-
+    // chunk / last-chunk...
     if(v_.size > 0)
     {
         // chunk
@@ -54,18 +54,14 @@ parse(
             // complete body
             v_.data = string_view(
                 it, v_.size);
-            it += static_cast<
-                std::size_t>(v_.size);
-            it = consume_crlf(
-                it, end, ec);
-            if(ec)
-                return start;
+            it += v_.size;
+            // Leave the final CRLF
+            // for the next parsed
+            // part to consume
             return it;
         }
         // partial body
         v_.data = string_view(it, n);
-            n = static_cast<
-                std::size_t>(v_.size);
         it += n;
         return it;
     }
