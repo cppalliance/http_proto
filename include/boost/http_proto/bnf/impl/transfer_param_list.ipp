@@ -33,7 +33,7 @@ parse(
     auto it =
         ws.skip(start, end);
     // ";"
-    it = expect(';',
+    it = consume(';',
         it, end, ec);
     if(ec)
         return start;
@@ -48,7 +48,7 @@ parse(
     // OWS
     it = ws.skip(it, end);
     // "="
-    it = expect('=',
+    it = consume('=',
         it, end, ec);
     if(ec)
         return start;

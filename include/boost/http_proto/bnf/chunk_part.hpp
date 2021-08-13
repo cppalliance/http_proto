@@ -19,6 +19,36 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
+/** Base class for chunk part BNFs.
+*/
+class chunk_part_base
+{
+public:
+    struct value_type
+    {
+        std::uint64_t size;
+        range<chunk_ext> ext;
+        range<header_fields> trailer;
+        string_view data;
+    };
+
+    value_type const&
+    value() const noexcept
+    {
+        return v_;
+    }
+
+protected:
+    BOOST_HTTP_PROTO_DECL
+    char const*
+    parse(
+        char const* start,
+        char const* end,
+        error_code& ec);
+
+    value_type v_;
+};
+
 /** BNF for parsing parts of chunked encodings
 
     This is actually just the prefix of a chunk,
@@ -41,39 +71,34 @@ namespace bnf {
         @ref hex_number
         https://datatracker.ietf.org/doc/html/rfc7230#section-4.1.1
 */
-class chunk_part
+class chunk_part0
+    : public chunk_part_base
 {
 public:
-    struct value_type
-    {
-        std::uint64_t size;
-        range<chunk_ext> ext;
-        range<header_fields> trailer;
-        string_view data;
-    };
-
-    value_type const&
-    value() const noexcept
-    {
-        return v_;
-    }
-
-    BOOST_HTTP_PROTO_DECL
     char const*
     parse(
         char const* start,
         char const* end,
-        error_code& ec);
+        error_code& ec)
+    {
+        return chunk_part_base::parse(
+            start, end, ec);
+    }
+};
 
-private:
-    static
+class chunk_part
+    : public chunk_part_base
+{
+public:
     char const*
-    skip_crlf(
+    parse(
         char const* start,
         char const* end,
-        error_code& ec) noexcept;
-
-    value_type v_;
+        error_code& ec)
+    {
+        return chunk_part_base::parse(
+            start, end, ec);
+    }
 };
 
 } // bnf

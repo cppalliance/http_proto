@@ -19,25 +19,7 @@ namespace http_proto {
 namespace bnf {
 
 char const*
-chunk_part::
-skip_crlf(
-    char const* const start,
-    char const* const end,
-    error_code& ec) noexcept
-{
-    auto it = expect(
-        '\r', start, end, ec);
-    if(ec)
-        return it;
-    it = expect(
-        '\n', it, end, ec);
-    if(ec)
-        return it;
-    return it;
-}
-
-char const*
-chunk_part::
+chunk_part_base::
 parse(
     char const* const start,
     char const* const end,
@@ -59,7 +41,7 @@ parse(
     v_.ext = range<chunk_ext>(
         string_view(p, it - p));
     // CRLF
-    it = skip_crlf(it, end, ec);
+    it = consume_crlf(it, end, ec);
     if(ec)
         return it;
 
@@ -74,7 +56,7 @@ parse(
                 it, v_.size);
             it += static_cast<
                 std::size_t>(v_.size);
-            it = skip_crlf(
+            it = consume_crlf(
                 it, end, ec);
             if(ec)
                 return start;

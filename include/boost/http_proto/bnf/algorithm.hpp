@@ -86,7 +86,7 @@ consume(
 */
 inline
 char const*
-expect(
+consume(
     char ch,
     char const* start,
     char const* end,
@@ -103,6 +103,28 @@ expect(
         return start;
     }
     return start + 1;
+}
+
+//------------------------------------------------
+
+/** Require CRLF
+*/
+inline
+char const*
+consume_crlf(
+    char const* const start,
+    char const* const end,
+    error_code& ec) noexcept
+{
+    auto it = consume(
+        '\r', start, end, ec);
+    if(ec)
+        return it;
+    it = consume(
+        '\n', it, end, ec);
+    if(ec)
+        return it;
+    return it;
 }
 
 //------------------------------------------------
