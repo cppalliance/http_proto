@@ -53,22 +53,11 @@ private:
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
-    enum class api
+    enum class state
     {
         header,
         body,
-        chunk,
-    };
-
-    enum class state
-    {
-        nothing_yet = 0,
-        start_line,
-        fields,
-        body,
-        chunk,
-        chunk_next,
-        complete
+        end_of_message
     };
 
     struct config
@@ -76,18 +65,17 @@ private:
         constexpr config() noexcept;
 
         std::size_t header_limit;   // max header size
+        std::size_t body_limit;     // max body size
     };
 
     struct message
     {
-        constexpr message() noexcept;
-
         std::size_t header_size;
         string_view body;           // body part
+        std::size_t stored;         // body stored
+        std::uint64_t remain;       // body remaining
         trivial_optional<
-            std::uint64_t
-                > body_size;
-        std::uint64_t body_remain;
+            std::uint64_t> content_length;
         char version;               // HTTP-version, 0 or 1
         chunk_info chunk;
 
@@ -100,7 +88,6 @@ private:
     std::size_t size_;          // committed part
     std::size_t used_;          // parsed part
     state state_;
-    api api_;
 
     bool got_eof_;
 
@@ -115,13 +102,21 @@ public:
     BOOST_HTTP_PROTO_DECL
     ~basic_parser();
 
+    /** Returns true if the payload uses chunked encoding.
+    */
+    bool
+    is_chunked() const noexcept
+    {
+        return m_.is_chunked;
+    }
+
     /** Returns `true` if a complete message has been parsed.
     */
     bool
-    is_done() const noexcept
+    is_end_of_message() const noexcept
     {
         return state_ ==
-            state::complete;
+            state::end_of_message;
     }
 
     /** Prepare the parser for the next message.
@@ -187,7 +182,6 @@ private:
         char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;
 
-    void do_parse(error_code&);
     char* parse_fields(char*, char const*, error_code&);
     char* parse_field(char*, char const*, error_code&);
     void do_connection(string_view, error_code&);

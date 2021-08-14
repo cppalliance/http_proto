@@ -34,18 +34,7 @@ basic_parser::
 config::
 config() noexcept
     : header_limit(8192)
-{
-}
-
-constexpr
-basic_parser::
-message::
-message() noexcept
-    : header_size(0)
-    , body_size(boost::none)
-    , body_remain(0)
-    , version(0)
-    , is_chunked(false)
+    , body_limit(4*1024*1024)
 {
 }
 
@@ -61,6 +50,7 @@ basic_parser(
     , used_(0)
     , state_(state::nothing_yet)
     , got_eof_(false)
+    , m_{}
 {
 }
 
@@ -141,14 +131,21 @@ void
 basic_parser::
 discard_header() noexcept
 {
+    if(m_.header_size == 0)
+        return;
 }
 
+// discard all of the payload,
+// but don't discard chunk-ext
 void
 basic_parser::
 discard_body() noexcept
 {
+
 }
 
+// discard all of the payload
+// including any chunk-ext
 void
 basic_parser::
 discard_chunk() noexcept
@@ -159,124 +156,54 @@ discard_chunk() noexcept
 
 void
 basic_parser::
-do_parse(
-    error_code& ec)
-{
-    auto const start =
-        buffer_ + used_;
-    auto const end =
-        buffer_ + size_;
-    auto avail = static_cast<
-        std::size_t>(end - start);
-
-    switch(state_)
-    {
-    case state::start_line:
-    {
-        break;
-    }
-    case state::fields:
-    {
-        break;
-    }
-    case state::body:
-    {
-        if(m_.body_size.has_value())
-        {
-            // known body length
-            if( avail > *m_.body_size)
-                avail = static_cast<
-                    std::size_t>(
-                        *m_.body_size);
-#if 0
-            m_.body = string_view(
-                buffer_ + m_.header_size,
-                buffer_ + m_.header_size +
-#endif
-        }
-        else
-        {
-            // unknown body length
-        }
-        break;
-    }
-    case state::chunk:
-    {
-        bnf::chunk_part p;
-        auto it = p.parse(
-            start, end, ec);
-        if(ec)
-            return;
-        break;
-    }
-    default:
-    {
-        break;
-    }
-    }
-}
-
-void
-basic_parser::
 parse_header(
     error_code& ec)
 {
-    ec = {};
-    api_ = api::header;
-
-    auto start = buffer_ + used_;
-    char const* const end = [this]
-    {
-        if(size_ <= cfg_.header_limit)
-            return buffer_ + size_;
-        return buffer_ + cfg_.header_limit;
-    }();
-
     switch(state_)
     {
-    case state::nothing_yet:
-    {
-        state_ = state::start_line;
-        BOOST_FALLTHROUGH;
-    }
-    case state::start_line:
-    {
-        // Nothing can come before start-line
-        BOOST_ASSERT(used_ == 0);
-        start = parse_start_line(
-            start, end, ec);
-        if(ec)
-        {
-            if( ec == error::need_more &&
-                size_ >= cfg_.header_limit)
-                ec = error::header_too_large;
-            goto finish;
-        }
-        state_ = state::fields;
-        BOOST_FALLTHROUGH;
-    }
-    case state::fields:
-    {
-        start = parse_fields(
-            start, end, ec);
-        if(ec)
-        {
-            if( ec == error::need_more &&
-                size_ >= cfg_.header_limit)
-                ec = error::header_too_large;
-            goto finish;
-        }
-        m_.header_size =
-            start - buffer_;
-        state_ = state::body;
-        break;
-    }
-    default:
+    case state::body:
+        ec = {};
+        return;
+    case state::end_of_message:
+        ec = error::end_of_message;
+        return;
+    case state::header:
         break;
     }
 
-finish:
-    used_ = start - buffer_;
+    BOOST_ASSERT(used_ == 0);
+    auto const start = buffer_;
+    auto avail = size_;
+    if( avail > cfg_.header_limit)
+        avail = cfg_.header_limit;
+    auto const end = buffer_ + avail;
+
+    // start-line
+    auto it = parse_start_line(
+        start, end, ec);
+    if(ec == error::need_more)
+    {
+        if(avail >= cfg_.header_limit)
+            ec = error::header_too_large;
+        return;
+    }
+    if(ec.failed())
+        return;
+
+    // header-fields
+    it = parse_fields(it, end, ec);
+    if(ec == error::need_more)
+    {
+        if(avail >= cfg_.header_limit)
+            ec = error::header_too_large;
+        return;
+    }
+    if(ec.failed())
+        return;
+
+    m_.header_size = it - start;
+    used_ += m_.header_size;
+    state_ = state::body;
 }
 
 void
@@ -284,28 +211,47 @@ basic_parser::
 parse_body(
     error_code& ec)
 {
-    ec = {};
-    api_ = api::body;
-
     switch(state_)
     {
-    case state::nothing_yet:
-    case state::start_line:
-    case state::fields:
-    {
+    case state::header:
         parse_header(ec);
         if(ec.failed())
             return;
-        state_ = state::body;
-        BOOST_FALLTHROUGH;
-    }
+        BOOST_ASSERT(
+            state_ == state::body);
+        break;
+    case state::end_of_message:
+        ec = error::end_of_message;
+        return;
     case state::body:
-    {
         break;
     }
 
-    default:
-        break;
+    auto const start = buffer_ + used_;
+    auto const end = buffer_ + size_;
+    auto avail = size_ - used_;
+
+    if(m_.content_length.has_value())
+    {
+        // known body length
+        BOOST_ASSERT(! m_.is_chunked);
+        BOOST_ASSERT(
+            *m_.content_length <
+                cfg_.body_limit);
+        if( avail > m_.remain)
+            avail = static_cast<
+                std::size_t>(m_.remain);
+        used_ += avail;
+        m_.stored += avail;
+        m_.remain -= avail;
+        m_.body = string_view(
+            buffer_ + m_.header_size,
+            m_.stored);
+        if(m_.remain == 0)
+        {
+            state_ = state::end_of_message;
+            ec = error::end_of_message;
+        }
     }
 }
 
@@ -431,7 +377,7 @@ do_content_length(
         ec = error::bad_content_length;
         return;
     }
-    m_.body_size = p.value();
+    m_.content_length = p.value();
 }
 
 void
