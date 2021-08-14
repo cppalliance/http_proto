@@ -14,6 +14,9 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
+#include <boost/http_proto/bnf/chunk_ext.hpp>
+#include <boost/http_proto/bnf/header_fields.hpp>
+#include <boost/http_proto/bnf/range.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -24,6 +27,18 @@ namespace http_proto {
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
 #endif
+
+struct chunk_info
+{
+    constexpr chunk_info() = default;
+
+    std::uint64_t size; // of this chunk
+    bnf::chunk_ext ext; // chunk extensions (can be empty)
+    bnf::range<
+        bnf::header_fields> trailer;
+    bool fresh;         // true if this is a fresh chunk
+    bool last;          // last chunk
+};
 
 /** A parser for HTTP/1 messages.
 
@@ -42,9 +57,7 @@ private:
     {
         header,
         body,
-        body_part,
         chunk,
-        chunk_part,
     };
 
     enum class state
@@ -69,14 +82,14 @@ private:
     {
         constexpr message() noexcept;
 
-        std::size_t header_size;   // full header size
-        string_view payload;       // payload part
+        std::size_t header_size;
+        string_view body;           // body part
         trivial_optional<
             std::uint64_t
-                > payload_size;
-        std::uint64_t
-            payload_remain;
+                > body_size;
+        std::uint64_t body_remain;
         char version;               // HTTP-version, 0 or 1
+        chunk_info chunk;
 
         bool is_chunked : 1;
     };
@@ -88,6 +101,8 @@ private:
     std::size_t used_;          // parsed part
     state state_;
     api api_;
+
+    bool got_eof_;
 
     config cfg_;
     message m_;
@@ -110,7 +125,6 @@ public:
     }
 
     /** Prepare the parser for the next message.
-
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -130,6 +144,18 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
+    discard_header() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    discard_body() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    discard_chunk() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
     parse_header(error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
@@ -138,27 +164,19 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    parse_body_part(error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_chunk_ext(
-        error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_chunk_part(
-        error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_chunk_trailer(
+    parse_chunk(
         error_code& ec);
 
     string_view
-    payload() const noexcept
+    body() const noexcept
     {
-        return m_.payload;
+        return m_.body;
+    }
+
+    chunk_info
+    chunk() const noexcept
+    {
+        return m_.chunk;
     }
 
 private:

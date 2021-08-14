@@ -53,9 +53,9 @@ public:
 
     class iterator;
 
-    range(
+    constexpr range(
         range const&) = default;
-    range& operator=(
+    constexpr range& operator=(
         range const&) = default;
 
     /** Default constructor
@@ -63,7 +63,7 @@ public:
         Iteration of default constructed ranges
         is undefined.
     */
-    range() = default;
+    constexpr range() = default;
 
     /** Constructor
     */

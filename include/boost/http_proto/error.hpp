@@ -57,6 +57,10 @@ enum class error
     */
     ,need_more
 
+,incomplete
+,end_of_message
+,end_of_stream
+
     //
     // Syntax errors (unrecoverable)
     //

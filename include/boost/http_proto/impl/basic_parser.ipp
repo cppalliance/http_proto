@@ -42,9 +42,8 @@ basic_parser::
 message::
 message() noexcept
     : header_size(0)
-    , payload()
-    , payload_size(boost::none)
-    , payload_remain(0)
+    , body_size(boost::none)
+    , body_remain(0)
     , version(0)
     , is_chunked(false)
 {
@@ -61,6 +60,7 @@ basic_parser(
     , size_(0)
     , used_(0)
     , state_(state::nothing_yet)
+    , got_eof_(false)
 {
 }
 
@@ -137,6 +137,24 @@ commit_eof()
 {
 }
 
+void
+basic_parser::
+discard_header() noexcept
+{
+}
+
+void
+basic_parser::
+discard_body() noexcept
+{
+}
+
+void
+basic_parser::
+discard_chunk() noexcept
+{
+}
+
 //------------------------------------------------
 
 void
@@ -148,7 +166,7 @@ do_parse(
         buffer_ + used_;
     auto const end =
         buffer_ + size_;
-    auto n = static_cast<
+    auto avail = static_cast<
         std::size_t>(end - start);
 
     switch(state_)
@@ -163,7 +181,23 @@ do_parse(
     }
     case state::body:
     {
-
+        if(m_.body_size.has_value())
+        {
+            // known body length
+            if( avail > *m_.body_size)
+                avail = static_cast<
+                    std::size_t>(
+                        *m_.body_size);
+#if 0
+            m_.body = string_view(
+                buffer_ + m_.header_size,
+                buffer_ + m_.header_size +
+#endif
+        }
+        else
+        {
+            // unknown body length
+        }
         break;
     }
     case state::chunk:
@@ -277,37 +311,7 @@ parse_body(
 
 void
 basic_parser::
-parse_body_part(
-    error_code& ec)
-{
-    (void)ec;
-    switch(state_)
-    {
-    case state::nothing_yet:
-        state_ = state::start_line;
-        BOOST_FALLTHROUGH;
-    }
-}
-
-void
-basic_parser::
-parse_chunk_ext(
-    error_code& ec)
-{
-    (void)ec;
-}
-
-void
-basic_parser::
-parse_chunk_part(
-    error_code& ec)
-{
-    (void)ec;
-}
-
-void
-basic_parser::
-parse_chunk_trailer(
+parse_chunk(
     error_code& ec)
 {
     (void)ec;
@@ -427,7 +431,7 @@ do_content_length(
         ec = error::bad_content_length;
         return;
     }
-    m_.payload_size = p.value();
+    m_.body_size = p.value();
 }
 
 void
