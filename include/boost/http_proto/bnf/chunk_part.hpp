@@ -27,7 +27,8 @@ class chunk_part_base
 public:
     struct value_type
     {
-        std::uint64_t size;
+        std::uint64_t size; // 0=final
+        std::size_t prefix_size; // including CRLF
         range<chunk_ext> ext;
         range<header_fields> trailer;
         string_view data;
@@ -117,10 +118,12 @@ public:
     {
         auto it = consume_crlf(
             start, end, ec);
-        if(ec)
+        if(ec.failed())
             return it;
         it = chunk_part_base::parse(
             it, end, ec);
+        if(! ec)
+            v_.prefix_size += 2; // for CRLF
         return it;
     }
 };

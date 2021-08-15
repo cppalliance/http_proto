@@ -35,7 +35,7 @@ parse(
     // method
     it = parse_method(
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
 
     // SP
@@ -54,7 +54,7 @@ parse(
     // request-target
     it = parse_target(
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
 
     // SP
@@ -73,7 +73,7 @@ parse(
     // HTTP-version
     it = detail::parse_http_version(
         v_.version, it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
 
     // CRLF

@@ -65,7 +65,7 @@ public:
     using value_type =
         typename Element::value_type;
 
-    value_type const&
+    value_type
     value() const noexcept
     {
         return element_.value();

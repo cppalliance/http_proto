@@ -94,7 +94,7 @@ increment(
     auto it = consume<
         zero_or_more<ows_comma>>(
             start, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     if(it == start)
     {
@@ -127,7 +127,7 @@ increment(
         it, end, ec);
     if(ec == error::need_more)
         return start;
-    if(ec)
+    if(ec.failed())
     {
         if(n_ < N)
         {

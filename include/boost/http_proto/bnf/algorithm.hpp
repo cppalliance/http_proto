@@ -118,11 +118,11 @@ consume_crlf(
 {
     auto it = consume(
         '\r', start, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     it = consume(
         '\n', it, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     return it;
 }

@@ -74,6 +74,14 @@ public:
     {
     }
 
+    /** Return the entire string underlying the range
+    */
+    string_view
+    str() const noexcept
+    {
+        return s_;
+    }
+
     inline iterator begin(
         error_code& ec) const;
 
@@ -109,7 +117,7 @@ class range<T>::iterator
             s.data(), end_, ec);
         if(ec == error::end)
             next_ = nullptr;
-        else if(ec)
+        else if(ec.failed())
             http_proto::detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
     }
@@ -196,7 +204,7 @@ public:
     {
         error_code ec;
         increment(ec);
-        if(ec)
+        if(ec.failed())
             http_proto::detail::throw_system_error(ec,
                 BOOST_CURRENT_LOCATION);
         return *this;
@@ -298,7 +306,7 @@ valid_prefix(
     T impl;
     pos = impl.begin(pos, end, ec);
     // nothing valid
-    if(ec)
+    if(ec.failed())
         return { s.data(), 0 };
     // valid empty list
     if(! pos)
@@ -307,7 +315,7 @@ valid_prefix(
     {
         auto next = impl.increment(
             pos, end, ec);
-        if(ec)
+        if(ec.failed())
             break;
         if(! next)
         {

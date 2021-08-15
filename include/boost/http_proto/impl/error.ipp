@@ -32,7 +32,9 @@ struct http_error_category
     {
         switch(static_cast<error>(ev))
         {
-        case error::end: return "end";
+        case error::end: return "range end";
+        case error::end_of_message: return "end of message";
+        case error::end_of_stream: return "end of stream";
         case error::need_more: return "need more";
 
         case error::bad_method: return "bad method";
@@ -47,7 +49,9 @@ struct http_error_category
         case error::bad_content_length: return "bad content-length";
         case error::syntax: return "syntax error";
 
-        case error::header_too_large: return "header too large";
+        case error::body_limit: return "body limit";
+        case error::header_limit: return "header limit";
+        case error::incomplete: return "incomplete";
         case error::numeric_overflow: return "numeric overflow";
 
         default:
@@ -62,6 +66,8 @@ struct http_error_category
         switch(static_cast<error>(ev))
         {
         case error::end:
+        case error::end_of_message:
+        case error::end_of_stream:
         case error::need_more:
             return condition::partial_success;
 
@@ -78,31 +84,14 @@ struct http_error_category
         case error::syntax:
             return condition::syntax_error;
 
-        case error::header_too_large:
+        case error::body_limit:
+        case error::header_limit:
+        case error::incomplete:
         case error::numeric_overflow:
         default:
             return {ev, *this};
         }
     }
-
-#if 0
-    bool
-    equivalent(int ev,
-        error_condition const& condition
-            ) const noexcept override
-    {
-        return condition.value() == ev &&
-            &condition.category() == this;
-    }
-
-    bool
-    equivalent(error_code const& error,
-        int ev) const noexcept override
-    {
-        return error.value() == ev &&
-            &error.category() == this;
-    }
-#endif
 };
 
 struct http_condition_category

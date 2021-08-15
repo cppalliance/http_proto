@@ -30,7 +30,7 @@ parse(
     token t;
     auto it = t.parse(
         start, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     v_.name = t.value();
     // transfer-param-list
@@ -40,7 +40,7 @@ parse(
             it, end, ec);
     if(ec == error::need_more)
         return it;
-    if(ec)
+    if(ec.failed())
     {
         // leave it out
         ec = {};

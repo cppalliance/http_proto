@@ -35,14 +35,14 @@ parse(
     // ";"
     it = consume(';',
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
     // OWS
     it = ws.skip(it, end);
     // token
     token t;
     it = t.parse(it, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     v_.name = t.value();
     // OWS
@@ -50,7 +50,7 @@ parse(
     // "="
     it = consume('=',
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
     // OWS
     it = ws.skip(it, end);

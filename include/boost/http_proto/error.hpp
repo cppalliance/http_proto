@@ -49,6 +49,14 @@ enum class error
     */
     ,end
 
+    /** A complete message has been parsed
+    */
+    ,end_of_message
+
+    /** The end of input was reached
+    */
+    ,end_of_stream
+
     /** A parser needs more input to make progress
 
         This error is returned when the full input
@@ -56,10 +64,6 @@ enum class error
         more input is needed to complete the match.
     */
     ,need_more
-
-,incomplete
-,end_of_message
-,end_of_stream
 
     //
     // Syntax errors (unrecoverable)
@@ -96,11 +100,26 @@ enum class error
     ,bad_transfer_encoding
 
     //
-    // Context-dependent errors
+    // Other errors (unrecoverable)
     //
 
-    /// Header too large
-    ,header_too_large
+    /** Body limit exceeded.
+
+        The parser detected an incoming message body which
+        exceeded a configured limit.
+    */
+    ,body_limit
+
+    /** Header limit exceeded.
+
+        The parser detected an incoming message header which
+        exceeded a configured limit.
+    */
+    ,header_limit
+
+    /** End of input was reached before the message completed
+    */
+    ,incomplete
 
     /// A number overflowed
     ,numeric_overflow
@@ -174,20 +193,6 @@ enum class error
         exceed the maximum size of the buffer.
     */
     buffer_overflow,
-
-    /** Header limit exceeded.
-
-        The parser detected an incoming message header which
-        exceeded a configured limit.
-    */
-    header_limit,
-
-    /** Body limit exceeded.
-
-        The parser detected an incoming message body which
-        exceeded a configured limit.
-    */
-    body_limit,
 
     //
     // (parser errors)

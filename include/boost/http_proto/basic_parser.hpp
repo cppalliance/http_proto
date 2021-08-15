@@ -30,14 +30,14 @@ class context;
 
 struct chunk_info
 {
-    constexpr chunk_info() = default;
+    chunk_info() = default;
 
     std::uint64_t size; // of this chunk
-    bnf::chunk_ext ext; // chunk extensions (can be empty)
+    bnf::range<
+        bnf::chunk_ext> ext; // chunk extensions (can be empty)
     bnf::range<
         bnf::header_fields> trailer;
     bool fresh;         // true if this is a fresh chunk
-    bool last;          // last chunk
 };
 
 /** A parser for HTTP/1 messages.
@@ -55,29 +55,34 @@ private:
 
     enum class state
     {
-        header,
-        body,
-        end_of_message
+        start_line,
+        header_fields,
+        payload,
+        end_of_message,
+        end_of_stream
     };
 
     struct config
     {
-        constexpr config() noexcept;
+        config() noexcept;
 
         std::size_t header_limit;   // max header size
         std::size_t body_limit;     // max body size
+        bool skip_body;             // no body expected
     };
 
     struct message
     {
-        std::size_t header_size;
-        string_view body;           // body part
-        std::size_t stored;         // body stored
-        std::uint64_t remain;       // body remaining
+        std::size_t n_header;       // bytes of header
+        std::size_t n_chunk;        // bytes of chunk header
+        std::size_t n_payload;      // bytes of body or chunk
+        std::uint64_t n_remain;     // remaining body or chunk
+
+        std::uint64_t payload_seen; // total body received
         trivial_optional<
             std::uint64_t> content_length;
-        char version;               // HTTP-version, 0 or 1
         chunk_info chunk;
+        char version;               // HTTP-version, 0 or 1
 
         bool is_chunked : 1;
     };
@@ -111,6 +116,10 @@ public:
     }
 
     /** Returns `true` if a complete message has been parsed.
+
+        Calling @ref reset prepares the parser
+        to process the next message in the stream.
+
     */
     bool
     is_end_of_message() const noexcept
@@ -118,6 +127,29 @@ public:
         return state_ ==
             state::end_of_message;
     }
+
+    /** Returns `true` if no input remains and no more is coming.
+
+        Calling @ref reset prepares the parser
+        for additional input from a new stream.
+    */
+    bool
+    is_end_of_stream() const noexcept
+    {
+        return state_ ==
+            state::end_of_stream;
+    }
+
+    //http_proto::header_fields
+    //fields() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    chunk_info
+    chunk() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    payload() const noexcept;
 
     /** Prepare the parser for the next message.
     */
@@ -143,7 +175,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    discard_body() noexcept;
+    discard_payload() noexcept;
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -161,18 +193,6 @@ public:
     void
     parse_chunk(
         error_code& ec);
-
-    string_view
-    body() const noexcept
-    {
-        return m_.body;
-    }
-
-    chunk_info
-    chunk() const noexcept
-    {
-        return m_.chunk;
-    }
 
 private:
     friend class request_parser;

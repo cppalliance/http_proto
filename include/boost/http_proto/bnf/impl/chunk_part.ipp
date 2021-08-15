@@ -29,26 +29,29 @@ parse(
     hex_number hn;
     auto it = hn.parse(
         start, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     v_.size = hn.value();
     // [ chunk-ext ]
     auto p = it;
     it = consume<chunk_ext>(
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     v_.ext = range<chunk_ext>(
         string_view(p, it - p));
     // CRLF
     it = consume_crlf(it, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     // chunk / last-chunk...
     if(v_.size > 0)
     {
         // chunk
         std::size_t n = end - it;
+        v_.trailer = {};
+        v_.prefix_size =
+            it - start;
         if(n > v_.size)
         {
             // complete body
@@ -70,7 +73,7 @@ parse(
     p = it;
     it = consume<header_fields>(
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return it;
     v_.trailer =
         range<header_fields>(

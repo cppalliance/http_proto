@@ -44,7 +44,7 @@ parse(
     token t;
     it = t.parse(
         it, end, ec);
-    if(ec)
+    if(ec.failed())
         return start;
     v_.name = t.value();
     if(it == end)

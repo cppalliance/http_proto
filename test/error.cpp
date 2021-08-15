@@ -61,6 +61,8 @@ public:
 
         c = condition::partial_success;
         check(n, error::end, c);
+        check(n, error::end_of_message, c);
+        check(n, error::end_of_stream, c);
         check(n, error::need_more, c);
 
         c = condition::syntax_error;
@@ -76,7 +78,9 @@ public:
         check(n, error::bad_transfer_encoding, c);
         check(n, error::syntax, c);
 
-        check(n, error::header_too_large);
+        check(n, error::body_limit);
+        check(n, error::header_limit);
+        check(n, error::incomplete);
         check(n, error::numeric_overflow);
     }
 };

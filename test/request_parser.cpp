@@ -132,7 +132,7 @@ public:
             p.commit(n);
             p.parse_header(ec);
             BOOST_TEST(! ec);
-            if(ec)
+            if(ec.failed())
                 continue;
             //BOOST_TEST(p.is_done());
             f(p);

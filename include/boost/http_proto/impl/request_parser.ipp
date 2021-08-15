@@ -55,7 +55,7 @@ parse_start_line(
     bnf::request_line p;
     auto it = p.parse(
         start, end, ec);
-    if(ec)
+    if(ec.failed())
         return start + (it - start);
     method_ = string_to_method(
         p.value().method);
