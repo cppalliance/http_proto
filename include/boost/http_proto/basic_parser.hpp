@@ -49,10 +49,7 @@ struct chunk_info
 */
 class basic_parser
 {
-private:
-    friend class request_parser;
-    friend class response_parser;
-
+BOOST_HTTP_PROTO_PROTECTED:
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
@@ -234,7 +231,6 @@ private:
     virtual void finish_header(error_code&) = 0;
 
     char* parse_fields(char*, char const*, error_code&);
-    char* parse_field(char*, char const*, error_code&);
     void do_connection(string_view, error_code&);
     void do_content_length(string_view, error_code&);
     void do_transfer_encoding(string_view, error_code&);
