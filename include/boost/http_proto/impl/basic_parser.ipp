@@ -35,7 +35,6 @@ config::
 config() noexcept
     : header_limit(8192)
     , body_limit(4*1024*1024)
-    , skip_body(false)
 {
 }
 
@@ -75,7 +74,7 @@ payload() const noexcept
 {
     // VFALCO How about some
     // asserts or exceptions?
-    if(! m_.is_chunked)
+    if(! m_.got_chunked)
         return string_view(
             buffer_ +
                 m_.n_header,
@@ -213,7 +212,7 @@ discard_payload() noexcept
         return;
     size_ -= m_.n_payload;
     used_ -= m_.n_payload;
-    if(! m_.is_chunked)
+    if(! m_.got_chunked)
     {
         auto const n = m_.n_header;
         auto const pos = buffer_ + n;
@@ -303,7 +302,6 @@ parse_header(
         if(ec.failed())
             return;
         m_.n_header += it - start;
-        state_ = state::payload;
         break;
     }
     case state::payload:
@@ -324,6 +322,18 @@ parse_header(
         ec = error::end_of_stream;
         return;
     }
+    }
+
+    finish_header(ec);
+    if(ec)
+        return;
+    if(! m_.skip_body)
+    {
+        state_ = state::payload;
+    }
+    else
+    {
+        state_ = state::end_of_message;
     }
 }
 
@@ -358,14 +368,13 @@ parse_body(
 
     auto avail = size_ - used_;
 
-    if(m_.content_length.has_value())
+    if(m_.got_content_length)
     {
         // known payload length
-        BOOST_ASSERT(! m_.is_chunked);
+        BOOST_ASSERT(! m_.got_chunked);
         BOOST_ASSERT(m_.n_remain > 0);
-        BOOST_ASSERT(
-            *m_.content_length <
-                cfg_.body_limit);
+        BOOST_ASSERT(m_.content_length <
+            cfg_.body_limit);
         if(avail == 0)
         {
             if(! got_eof_)
@@ -393,7 +402,7 @@ parse_body(
         return;
     }
 
-    if(! m_.is_chunked)
+    if(! m_.got_chunked)
     {
         // end of body indicated by EOF
         if(avail > 0)
@@ -466,7 +475,7 @@ parse_chunk(
             state::header_fields);
         break;
     case state::payload:
-        if(! m_.is_chunked)
+        if(! m_.got_chunked)
             return parse_body(ec);
         break;
     case state::end_of_message:
@@ -604,12 +613,15 @@ do_connection(
     {
         if(bnf::iequals(v, "close"_sv))
         {
+            m_.got_close = true;
         }
         else if(bnf::iequals(v, "keep-alive"_sv))
         {
+            m_.got_keep_alive = true;
         }
         else if(bnf::iequals(v, "upgrade"_sv))
         {
+            m_.got_upgrade = true;
         }
     }
 }
@@ -636,7 +648,7 @@ do_content_length(
     }
     BOOST_ASSERT(it != list.end());
     auto v = *it;
-    if(! m_.content_length)
+    if(! m_.got_content_length)
     {
         if(v > cfg_.body_limit)
         {
@@ -644,8 +656,9 @@ do_content_length(
             return;
         }
         m_.content_length = v;
+        m_.got_content_length = true;
     }
-    else if(*m_.content_length != v)
+    else if(m_.content_length != v)
     {
         // differing values
         ec = error::bad_content_length;
@@ -662,15 +675,15 @@ do_content_length(
         if(it == list.end())
             break;
         v = *it;
-        if(*m_.content_length != v)
+        if(m_.content_length != v)
         {
             // differing lengths
             ec = error::bad_content_length;
             return;
         }
     }
-    if(! cfg_.skip_body)
-        m_.n_remain = *m_.content_length;
+    if(! m_.skip_body)
+        m_.n_remain = m_.content_length;
 }
 
 void
@@ -692,7 +705,7 @@ do_transfer_encoding(
     BOOST_ASSERT(it != end);
     // handle multiple
     // Transfer-Encoding header lines
-    m_.is_chunked = false;
+    m_.got_chunked = false;
     // get last encoding
     for(;;)
     {
@@ -701,7 +714,7 @@ do_transfer_encoding(
         {
             if(bnf::iequals(
                 it->name, "chunked"_sv))
-                m_.is_chunked = true;
+                m_.got_chunked = true;
             break;
         }
     }

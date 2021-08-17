@@ -50,6 +50,9 @@ struct chunk_info
 class basic_parser
 {
 private:
+    friend class request_parser;
+    friend class response_parser;
+
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
@@ -68,7 +71,6 @@ private:
 
         std::size_t header_limit;   // max header size
         std::size_t body_limit;     // max body size
-        bool skip_body;             // no body expected
     };
 
     struct message
@@ -79,12 +81,17 @@ private:
         std::uint64_t n_remain;     // remaining body or chunk
 
         std::uint64_t payload_seen; // total body received
-        trivial_optional<
-            std::uint64_t> content_length;
+        std::uint64_t content_length;
         chunk_info chunk;
         char version;               // HTTP-version, 0 or 1
 
-        bool is_chunked : 1;
+        bool skip_body : 1;         // no body expected
+        bool got_chunked : 1;
+        bool got_close : 1;
+        bool got_content_length : 1;
+        bool got_keep_alive : 1;
+        bool got_upgrade : 1;
+        bool need_eof : 1;
     };
 
     context& ctx_;
@@ -112,7 +119,7 @@ public:
     bool
     is_chunked() const noexcept
     {
-        return m_.is_chunked;
+        return m_.got_chunked;
     }
 
     /** Returns `true` if a complete message has been parsed.
@@ -181,6 +188,33 @@ public:
     void
     discard_chunk() noexcept;
 
+    /** Indicate that the current message has no payload.
+
+        This informs the parser not to read a payload for
+        the next message, regardless of the presence or
+        absence of certain fields such as Content-Length
+        or a chunked Transfer-Encoding. Depending on the
+        request, some responses do not carry a body. For
+        example, a 200 response to a CONNECT request from
+        a tunneling proxy, or a response to a HEAD request.
+        In these cases, callers may use this function inform
+        the parser that no body is expected. The parser will
+        consider the message complete after the header has
+        been received.
+
+        @par Preconditions
+
+        This function must called before any calls to parse
+        the current message.
+
+        @see
+            https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
+
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    skip_payload();
+
     BOOST_HTTP_PROTO_DECL
     void
     parse_header(error_code& ec);
@@ -195,9 +229,6 @@ public:
         error_code& ec);
 
 private:
-    friend class request_parser;
-    friend class response_parser;
-
     virtual char* parse_start_line(
         char*, char const*, error_code&) = 0;
     virtual void finish_header(error_code&) = 0;

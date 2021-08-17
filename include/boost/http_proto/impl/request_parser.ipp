@@ -73,7 +73,38 @@ request_parser::
 finish_header(
     error_code& ec)
 {
-    (void)ec;
+    // https://tools.ietf.org/html/rfc7230#section-3.3
+    if(m_.skip_body)
+    {
+        ec = error::end_of_message;
+        state_ = state::end_of_message;
+        return;
+    }
+    if(m_.got_content_length)
+    {
+        if( cfg_.body_limit > 0 && // optional?
+            m_.content_length >
+                cfg_.body_limit)
+        {
+            ec = error::body_limit;
+            return;
+        }
+        if(m_.content_length > 0)
+        {
+            state_ = state::payload;
+            return;
+        }
+        ec = error::end_of_message;
+        state_ = state::end_of_message;
+        return;
+    }
+    else if(m_.got_chunked)
+    {
+        state_ = state::payload;
+        return;
+    }
+    ec = error::end_of_message;
+    state_ = state::end_of_message;
 }
 
 } // http_proto

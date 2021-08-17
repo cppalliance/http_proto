@@ -39,6 +39,8 @@ private:
     void
     finish_header(
         error_code& ec) override;
+
+    int status_;
 };
 
 } // http_proto
