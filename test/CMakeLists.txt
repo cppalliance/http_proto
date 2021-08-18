@@ -25,13 +25,16 @@ set(PFILES
     field.cpp
     fields_view.cpp
     method.cpp
+    request.cpp
     request_parser.cpp
     request_view.cpp
+    response.cpp
     response_parser.cpp
     response_view.cpp
     status.cpp
     string_view.cpp
     trivial_optional.cpp
+    version.cpp
     bnf/algorithm.cpp
     bnf/char_set.cpp
     bnf/chunk_ext.cpp

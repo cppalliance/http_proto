@@ -12,9 +12,66 @@
 
 #include <boost/http_proto/basic_message.hpp>
 #include <boost/http_proto/field.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
+
+#if 0
+std::size_t
+basic_message::
+next_pow2(
+    std::size_t n) noexcept
+{
+
+}
+#endif
+
+class basic_message::resizer
+{
+    basic_message* self_;
+    char* buf_;
+    std::size_t cap_;
+    std::size_t size_;
+    std::size_t n_field_;
+
+public:
+    resizer(
+        basic_message* self,
+        std::size_t new_size,
+        std::size_t new_fields)
+        : self_(self)
+        , buf_(self->buf_)
+        , cap_(self->cap_)
+        , size_(self->size_)
+        , n_field_(self->n_field_)
+    {
+        auto const n = new_size +
+            new_fields * sizeof(entry);
+        auto cap = cap_;
+        if( cap < 32)
+            cap = 32;
+        for(;;)
+        {
+            if(cap >= n)
+                goto alloc;
+            cap *= 2;
+        }
+        cap = std::size_t(-1);
+    alloc:
+        self_->buf_ =
+            new char[cap];
+        self_->cap_ = cap;
+    }
+
+    ~resizer()
+    {
+        if(buf_)
+            delete[] buf_;
+    }
+};
+
+//------------------------------------------------
 
 basic_message::
 basic_message() = default;
@@ -28,19 +85,43 @@ basic_message(
     (void)start_line;
 }
 
+string_view
+basic_message::
+data() const noexcept
+{
+    if(buf_)
+        return string_view(
+            buf_, size_);
+    return empty_string();
+}
+
 void
 basic_message::
-emplace_back(
+append(
     field f,
     string_view name,
     string_view value)
 {
     auto const needed =
-        size_ +
+        size_ - 2 +
         name.size() + 2 +
-        value.size() + 2;
+        value.size() + 2 + 2;
 
+    if(! buf_)
+    {
+        
+    }    
+}
 
+char*
+basic_message::
+resize_start_line(
+    std::size_t n)
+{
+    buf_ = new char[n] + 2;
+    cap_ = n + 2;
+    size_ = n + 2;
+    return buf_;
 }
 
 } // http_proto

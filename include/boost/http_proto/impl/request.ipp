@@ -16,14 +16,16 @@
 namespace boost {
 namespace http_proto {
 
+request::
+request() = default;
+
 string_view
 request::
-default_data() const noexcept
+empty_string() const noexcept
 {
-    using namespace detail::string_literals;
     return
         "GET / HTTP/1.1\r\n"
-        "\r\n"_sv;
+        "\r\n";
 }
 
 } // http_proto

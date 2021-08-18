@@ -131,7 +131,8 @@ public:
                 b.first, s.data() + i, n);
             p.commit(n);
             p.parse_header(ec);
-            BOOST_TEST(! ec);
+            BOOST_TEST(! ec ||
+                ec == error::end_of_message);
             if(ec.failed())
                 continue;
             //BOOST_TEST(p.is_done());

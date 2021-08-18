@@ -12,6 +12,8 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/basic_message.hpp>
+#include <boost/http_proto/status.hpp>
+#include <boost/http_proto/version.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,10 +22,56 @@ namespace http_proto {
 */
 class response : public basic_message
 {
-private:
+    status result_ = status::ok;
+
+public:
+    BOOST_HTTP_PROTO_DECL
+    response();
+
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    response(
+        status result_code,
+        http_proto::version http_version =
+            http_proto::version::http_1_1,
+        string_view reason =
+            http_proto::obsolete_reason(status::ok));
+
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
+
+    BOOST_HTTP_PROTO_DECL
+    status
+    result() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    unsigned
+    result_int() const noexcept;
+
     BOOST_HTTP_PROTO_DECL
     string_view
-    default_data() const noexcept;
+    reason() const noexcept;
+
+    //--------------------------------------------
+    //
+    // Modifiers
+    //
+    //--------------------------------------------
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    status_line(
+        status result_code,
+        http_proto::version http_version =
+            http_proto::version::http_1_1,
+        string_view reason = "");
+
+private:
+    string_view
+    empty_string() const noexcept override;
 };
 
 } // http_proto

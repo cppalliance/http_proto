@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/version.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -25,27 +26,58 @@ class basic_message
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
 
+    // entry[] is placed at the
+    // end of buf_ in reverse order
+    struct entry
+    {
+        field f;    
+        off_t pos;      // in buffer
+        off_t len;     // key length
+        // offset of value is pos+len+2
+        // length of value is calculated
+        //   from offset of the next entry
+    };
+
     char* buf_ = nullptr;
     std::size_t cap_ = 0;
     std::size_t size_ = 0;
     std::size_t n_start_ = 0;
     std::size_t n_field_ = 0;
 
+BOOST_HTTP_PROTO_PROTECTED:
+    version version_ = version::http_1_1;
+
 public:
     BOOST_HTTP_PROTO_DECL
     basic_message();
 
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
+
     /** Return a string representing the entire serialized message
     */
+    BOOST_HTTP_PROTO_DECL
     string_view
-    data() const noexcept
+    data() const noexcept;
+
+    /** Returns the HTTP-version of this message.
+
+        Only HTTP/1.0 and HTTP/1.1 are supported.
+    */
+    http_proto::version
+    version() const noexcept
     {
-        // VFALCO Should this be null-terminated?
-        if(buf_)
-            return string_view(
-                buf_, size_);
-        return default_data();
+        return version_;
     }
+
+    //--------------------------------------------
+    //
+    // Modifiers
+    //
+    //--------------------------------------------
 
     /** Append the header with the given name and value.
 
@@ -58,11 +90,11 @@ public:
         @note HTTP field names are case-insensitive.
     */
     void
-    emplace_back(
+    append(
         field f,
         string_view value)
     {
-        emplace_back(
+        append(
             to_string(f), value);
     }
 
@@ -77,11 +109,11 @@ public:
         @note HTTP field names are case-insensitive.
     */
     void
-    emplace_back(
+    append(
         string_view name,
         string_view value)
     {
-        emplace_back(
+        append(
             string_to_field(name),
             name, value);
     }
@@ -152,13 +184,18 @@ BOOST_HTTP_PROTO_PROTECTED:
 
     BOOST_HTTP_PROTO_DECL
     void
-    emplace_back(
+    append(
         field f,
         string_view name,
         string_view value);
 
+    char* resize_start_line(std::size_t n);
+
 private:
-    virtual string_view default_data() const noexcept = 0;
+    class resizer;
+
+    static std::size_t next_pow2(std::size_t) noexcept;
+    virtual string_view empty_string() const noexcept = 0;
 };
 
 } // http_proto

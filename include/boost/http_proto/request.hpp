@@ -20,10 +20,13 @@ namespace http_proto {
 */
 class request : public basic_message
 {
-private:
+public:
     BOOST_HTTP_PROTO_DECL
+    request();
+
+private:
     string_view
-    default_data() const noexcept;
+    empty_string() const noexcept override;
 };
 
 } // http_proto
