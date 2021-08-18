@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_BASIC_MESSAGE_IPP
 
 #include <boost/http_proto/basic_message.hpp>
+#include <boost/http_proto/field.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -25,6 +26,21 @@ basic_message(
     string_view start_line)
 {
     (void)start_line;
+}
+
+void
+basic_message::
+emplace_back(
+    field f,
+    string_view name,
+    string_view value)
+{
+    auto const needed =
+        size_ +
+        name.size() + 2 +
+        value.size() + 2;
+
+
 }
 
 } // http_proto

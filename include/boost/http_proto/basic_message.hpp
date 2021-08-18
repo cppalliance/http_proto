@@ -29,6 +29,7 @@ class basic_message
     std::size_t cap_ = 0;
     std::size_t size_ = 0;
     std::size_t n_start_ = 0;
+    std::size_t n_field_ = 0;
 
 public:
     BOOST_HTTP_PROTO_DECL
@@ -40,7 +41,49 @@ public:
     data() const noexcept
     {
         // VFALCO Should this be null-terminated?
-        return string_view(buf_, size_);
+        if(buf_)
+            return string_view(
+                buf_, size_);
+        return default_data();
+    }
+
+    /** Append the header with the given name and value.
+
+        The name and value must contain only valid characters
+        as specified in the HTTP protocol. The value should
+        not include a trailing CRLF. If a matching header with
+        the same name exists, it is not replaced. Instead, an
+        additional header with the same field name is appended.
+
+        @note HTTP field names are case-insensitive.
+    */
+    void
+    emplace_back(
+        field f,
+        string_view value)
+    {
+        emplace_back(
+            to_string(f), value);
+    }
+
+    /** Append the header with the given field enum and value.
+
+        The value must contain only valid characters as
+        specified in the HTTP protocol. The value should
+        not include a trailing CRLF. If a matching header with
+        the same name exists, it is not replaced. Instead, an
+        additional header with the same name is appended.
+
+        @note HTTP field names are case-insensitive.
+    */
+    void
+    emplace_back(
+        string_view name,
+        string_view value)
+    {
+        emplace_back(
+            string_to_field(name),
+            name, value);
     }
 
 #if 0
@@ -106,6 +149,16 @@ BOOST_HTTP_PROTO_PROTECTED:
     explicit
     basic_message(
         string_view start_line);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    emplace_back(
+        field f,
+        string_view name,
+        string_view value);
+
+private:
+    virtual string_view default_data() const noexcept = 0;
 };
 
 } // http_proto
