@@ -28,18 +28,15 @@ public:
 
     class value_type;
 
-    headers_view(headers_view const&) = default;
+    headers_view(
+        headers_view const&) = default;
     headers_view& operator=(
         headers_view const&) = default;
 
-    std::size_t
-    size() const noexcept;
-
-    bool
-    empty() const noexcept
-    {
-        return size() == 0;
-    }
+    /** Return a string representing the entire serialized message
+    */
+    string_view
+    data() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
     const_iterator

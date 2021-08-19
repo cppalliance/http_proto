@@ -125,65 +125,78 @@ public:
     }
 
 #if 0
-    /** Returns the value of a field if it exists, otherwise throws
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    at(field f) const noexcept;
+    /// Return a string representing the entire serialized header
+    string_view str() const noexcept;
 
-    /** Returns the value of the first matching field if it exists, otherwise throws
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    at(string_view f) const noexcept;
+    /// Returns the number of field/value pairs
+    std::size_t size() const noexcept;
 
-    /** Returns the value of the first matching field if it exists, otherwise an empty string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value(field f) const noexcept;
+    struct iterator;
+    struct const_iterator;
 
-    /** Returns the value of the first matching field if it exists, otherwise an empty string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value(string_view f) const noexcept;
+    iterator begin() noexcept;
+    iterator end() noexcept;
 
-    /** Returns the value of the first matching field if it exists, otherwise the given string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value_or(
-        field f,
-        string_view) const noexcept;
+    const_iterator begin() noexcept;
+    const_iterator end() noexcept;
 
-    /** Returns the value of a field if it exists, otherwise the given string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value_or(
-        string_view f,
-        string_view) const noexcept;
+    /// Returns the HTTP-version of this message
+    http_proto::version version() const noexcept;
 
-    struct matching_range;
+    string_view const operator[](std::size_t) const noexcept;
+    
+    string_view const operator[](field f) const noexcept;
 
-    /** Returns a forward range of values for all matching fields
-    */
-    BOOST_HTTP_PROTO_DECL
-    matching_range
-    matching(field f) const noexcept;
+    string_view const operator[](string_view s) const noexcept;
 
-    /** Returns a forward range of values for all matching fields
-    */
-    BOOST_HTTP_PROTO_DECL
-    matching_range
-    matching(string_view f) const noexcept;
+    /// Returns the value of a field if it exists, otherwise throws
+    string_view at(field f) const noexcept;
+    string_view at(std::size_t index) const noexcept;
 
-    /** Returns a range which contains all field-value pairs
-    */
+    /// Returns the value of the first matching field if it exists, otherwise throws
+    string_view at(string_view f) const noexcept;
+
+    /// Returns the value of the first matching field if it exists, otherwise the given string
+    string_view value_or(field f, string_view) const noexcept;
+
+    /// Returns the value of a field if it exists, otherwise the given string
+    string_view value_or(string_view f, string_view) const noexcept;
+
+    struct subrange;
+
+    /// Returns a forward range of values for all matching fields
+    subrange matching(field f) const noexcept;
+
+    /// Returns a forward range of values for all matching fields
+    subrange matching(string_view name) const noexcept;
+
+    iterator find(field f);
+    iterator find(string_view f);
+
+    /// Clears the contents but not the capacity
+    void clear() noexcept;
+
+    void append(field f, string_view value);
+
+    void append(string_view name, string_view value);
+
+    void set(std::size_t index, string_view value);
+
+    void set(field f, string_view value);
+
+    void set(string_view name, string_view value);
+
+    const_iterator erase(const_iterator it);
+
+    void erase_first(field f);
+
+    void erase_first(string_view name);
+
+    void erase_all(field f);
+
+    void erase_all(string_view name);
 #endif
 
-BOOST_HTTP_PROTO_PROTECTED:
     explicit
     headers(
         string_view start_line);

@@ -146,6 +146,7 @@ resize_start_line(
         n_start_ = n;
         return buf_;
     }
+    return nullptr;
 }
 
 } // http_proto
