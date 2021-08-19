@@ -38,16 +38,18 @@ class basic_message
         //   from offset of the next entry
     };
 
+BOOST_HTTP_PROTO_PROTECTED:
     char* buf_ = nullptr;
     std::size_t cap_ = 0;
     std::size_t size_ = 0;
     std::size_t n_start_ = 0;
     std::size_t n_field_ = 0;
-
-BOOST_HTTP_PROTO_PROTECTED:
     version version_ = version::http_1_1;
 
 public:
+    BOOST_HTTP_PROTO_DECL
+    ~basic_message();
+
     BOOST_HTTP_PROTO_DECL
     basic_message();
 
@@ -79,6 +81,12 @@ public:
     //
     //--------------------------------------------
 
+    /** Clear the contents, but not the capacity
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
+
     /** Append the header with the given name and value.
 
         The name and value must contain only valid characters
@@ -94,8 +102,7 @@ public:
         field f,
         string_view value)
     {
-        append(
-            to_string(f), value);
+        append(f, to_string(f), value);
     }
 
     /** Append the header with the given field enum and value.
@@ -113,8 +120,7 @@ public:
         string_view name,
         string_view value)
     {
-        append(
-            string_to_field(name),
+        append(string_to_field(name),
             name, value);
     }
 
@@ -196,6 +202,7 @@ private:
 
     static std::size_t next_pow2(std::size_t) noexcept;
     virtual string_view empty_string() const noexcept = 0;
+    virtual void do_clear() noexcept = 0;
 };
 
 } // http_proto

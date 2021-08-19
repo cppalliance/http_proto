@@ -54,7 +54,9 @@ string_view
 response::
 reason() const noexcept
 {
-    return "";
+    return string_view(
+        data().data() + 13,
+        n_start_ - (13 + 2));
 }
 
 //------------------------------------------------
@@ -86,14 +88,28 @@ status_line(
     *dest++ = ' ';
 
     // status-code
-    detail::number_string ns;
-    std::memcpy(
-        dest + s.size() + 1,
-        ns.data(),
-        ns.size());
+    auto const i =
+        static_cast<unsigned>(
+            result_);
+    *dest++ = '0' + ((i / 100) % 10);
+    *dest++ = '0' + ((i /  10) % 10);
+    *dest++ = '0' + ((i /   1) % 10);
 
-    //std::memcpy(
+    // SP
+    *dest++ = ' ';
+
+    // obsolete-reason
+    dest += reason.copy(
+        dest, reason.size());
+
+    // CRLF
+    dest[0] = '\r';
+    dest[1] = '\n';
+
+    version_ = http_version;
 }
+
+//------------------------------------------------
 
 string_view
 response::
@@ -102,6 +118,13 @@ empty_string() const noexcept
     return
         "HTTP/1.1 200 OK\r\n"
         "\r\n";
+}
+
+void
+response::
+do_clear() noexcept
+{
+    result_ = status::ok;
 }
 
 } // http_proto

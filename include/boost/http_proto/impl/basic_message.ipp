@@ -74,6 +74,13 @@ public:
 //------------------------------------------------
 
 basic_message::
+~basic_message()
+{
+    if(buf_)
+        delete[] buf_;
+}
+
+basic_message::
 basic_message() = default;
 
 //------------------------------------------------
@@ -93,6 +100,18 @@ data() const noexcept
         return string_view(
             buf_, size_);
     return empty_string();
+}
+
+//------------------------------------------------
+
+void
+basic_message::
+clear() noexcept
+{
+    if(! buf_)
+        return;
+    version_ = version::http_1_1;
+    do_clear();
 }
 
 void
@@ -118,10 +137,16 @@ basic_message::
 resize_start_line(
     std::size_t n)
 {
-    buf_ = new char[n] + 2;
-    cap_ = n + 2;
-    size_ = n + 2;
-    return buf_;
+    if(! buf_)
+    {
+        buf_ = new char[n + 2];
+        cap_ = n + 2;
+        size_ = n + 2;
+        buf_[n] = '\r';
+        buf_[n+1] = '\n';
+        n_start_ = n;
+        return buf_;
+    }
 }
 
 } // http_proto

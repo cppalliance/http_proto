@@ -70,8 +70,9 @@ public:
         string_view reason = "");
 
 private:
-    string_view
-    empty_string() const noexcept override;
+    string_view empty_string()
+        const noexcept override;
+    void do_clear() noexcept override;
 };
 
 } // http_proto

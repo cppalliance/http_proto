@@ -21,6 +21,9 @@ public:
     void
     run()
     {
+        response res;
+        res.status_line(
+            status::ok, version::http_1_1);
     }
 };
 
