@@ -126,10 +126,9 @@ append(
         name.size() + 2 +
         value.size() + 2 + 2;
 
-    if(! buf_)
-    {
-        
-    }    
+    // VFALCO realize "fake" start-line
+    BOOST_ASSERT(buf_);
+
 }
 
 char*
