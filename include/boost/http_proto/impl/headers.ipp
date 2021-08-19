@@ -7,10 +7,10 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_IPP
-#define BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_IPP
+#ifndef BOOST_HTTP_PROTO_IMPL_HEADERS_IPP
+#define BOOST_HTTP_PROTO_IMPL_HEADERS_IPP
 
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/field.hpp>
 #include <utility>
 
@@ -19,7 +19,7 @@ namespace http_proto {
 
 #if 0
 std::size_t
-basic_header::
+headers::
 next_pow2(
     std::size_t n) noexcept
 {
@@ -27,9 +27,9 @@ next_pow2(
 }
 #endif
 
-class basic_header::resizer
+class headers::resizer
 {
-    basic_header* self_;
+    headers* self_;
     char* buf_;
     std::size_t cap_;
     std::size_t size_;
@@ -37,7 +37,7 @@ class basic_header::resizer
 
 public:
     resizer(
-        basic_header* self,
+        headers* self,
         std::size_t new_size,
         std::size_t new_fields)
         : self_(self)
@@ -73,27 +73,27 @@ public:
 
 //------------------------------------------------
 
-basic_header::
-~basic_header()
+headers::
+~headers()
 {
     if(buf_)
         delete[] buf_;
 }
 
-basic_header::
-basic_header() = default;
+headers::
+headers() = default;
 
 //------------------------------------------------
 
-basic_header::
-basic_header(
+headers::
+headers(
     string_view start_line)
 {
     (void)start_line;
 }
 
 string_view
-basic_header::
+headers::
 data() const noexcept
 {
     if(buf_)
@@ -105,7 +105,7 @@ data() const noexcept
 //------------------------------------------------
 
 void
-basic_header::
+headers::
 clear() noexcept
 {
     if(! buf_)
@@ -115,7 +115,7 @@ clear() noexcept
 }
 
 void
-basic_header::
+headers::
 append(
     field f,
     string_view name,
@@ -132,7 +132,7 @@ append(
 }
 
 char*
-basic_header::
+headers::
 resize_start_line(
     std::size_t n)
 {

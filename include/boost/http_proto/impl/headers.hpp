@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_HPP
-#define BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_HPP
+#ifndef BOOST_HTTP_PROTO_IMPL_HEADERS_HPP
+#define BOOST_HTTP_PROTO_IMPL_HEADERS_HPP
 
 namespace boost {
 namespace http_proto {

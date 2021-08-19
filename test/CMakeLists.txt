@@ -15,7 +15,6 @@ set(TFILES
 
 set(PFILES
     CMakeLists.txt
-    basic_header.cpp
     basic_parser.cpp
     context.cpp
     decoder.cpp
@@ -24,6 +23,7 @@ set(PFILES
     error.cpp
     field.cpp
     fields_view.cpp
+    headers.cpp
     method.cpp
     request.cpp
     request_parser.cpp

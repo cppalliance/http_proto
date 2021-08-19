@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -20,7 +20,7 @@ namespace http_proto {
 
 /** Container for HTTP requests
 */
-class response : public basic_header
+class response : public headers
 {
     status result_ = status::ok;
 
