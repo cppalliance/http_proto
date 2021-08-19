@@ -19,7 +19,7 @@ namespace http_proto {
 response_parser::
 response_parser(
     context& ctx) noexcept
-    : basic_parser(ctx)
+    : parser(ctx)
 {
 }
 

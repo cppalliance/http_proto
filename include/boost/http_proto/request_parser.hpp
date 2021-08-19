@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_REQUEST_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/method.hpp>
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstddef>
@@ -22,7 +22,7 @@ namespace boost {
 namespace http_proto {
 
 class request_parser
-    : public basic_parser
+    : public parser
 {
     http_proto::method method_;
     off_t n_method_;

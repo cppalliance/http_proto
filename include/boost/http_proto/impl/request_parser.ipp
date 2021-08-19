@@ -23,7 +23,7 @@ namespace http_proto {
 request_parser::
 request_parser(
     context& ctx) noexcept
-    : basic_parser(ctx)
+    : parser(ctx)
     , method_(http_proto::method::unknown)
     , n_method_(0)
     , n_target_(0)

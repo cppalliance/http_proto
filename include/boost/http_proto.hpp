@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
-#include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/decoder.hpp>
 #include <boost/http_proto/deflate_service.hpp>
@@ -20,6 +19,7 @@
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/method.hpp>
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/request_view.hpp>

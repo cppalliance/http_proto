@@ -15,7 +15,7 @@ set(TFILES
 
 set(PFILES
     CMakeLists.txt
-    basic_parser.cpp
+    parser.cpp
     context.cpp
     decoder.cpp
     deflate_service.cpp

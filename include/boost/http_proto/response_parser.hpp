@@ -11,17 +11,17 @@
 #define BOOST_HTTP_PROTO_RESPONSE_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/status.hpp>
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/response_view.hpp>
+#include <boost/http_proto/status.hpp>
 #include <cstddef>
 
 namespace boost {
 namespace http_proto {
 
 class response_parser
-    : public basic_parser
+    : public parser
 {
 public:
     BOOST_HTTP_PROTO_DECL

@@ -47,7 +47,7 @@ struct chunk_info
     HTTP ABNFs is treated as an
     unrecoverable error.
 */
-class basic_parser
+class parser
 {
 BOOST_HTTP_PROTO_PROTECTED:
     // headers have a maximum size of 65536 chars
@@ -104,12 +104,12 @@ BOOST_HTTP_PROTO_PROTECTED:
     message m_;
 
     explicit
-    basic_parser(
+    parser(
         context& ctx) noexcept;
 
 public:
     BOOST_HTTP_PROTO_DECL
-    ~basic_parser();
+    ~parser();
 
     /** Returns true if the payload uses chunked encoding.
     */

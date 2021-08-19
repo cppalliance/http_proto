@@ -7,11 +7,11 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_BASIC_PARSER_IPP
-#define BOOST_HTTP_PROTO_IMPL_BASIC_PARSER_IPP
+#ifndef BOOST_HTTP_PROTO_IMPL_PARSER_IPP
+#define BOOST_HTTP_PROTO_IMPL_PARSER_IPP
 
-#include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/detail/sv.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
@@ -30,7 +30,7 @@ namespace http_proto {
 
 //------------------------------------------------
 
-basic_parser::
+parser::
 config::
 config() noexcept
     : header_limit(8192)
@@ -40,8 +40,8 @@ config() noexcept
 
 //------------------------------------------------
 
-basic_parser::
-basic_parser(
+parser::
+parser(
     context& ctx) noexcept
     : ctx_(ctx)
     , buffer_(nullptr)
@@ -54,22 +54,22 @@ basic_parser(
 {
 }
 
-basic_parser::
-~basic_parser()
+parser::
+~parser()
 {
     if(buffer_)
         delete[] buffer_;
 }
 
 chunk_info
-basic_parser::
+parser::
 chunk() const noexcept
 {
     return m_.chunk;
 }
 
 string_view
-basic_parser::
+parser::
 payload() const noexcept
 {
     // VFALCO How about some
@@ -89,7 +89,7 @@ payload() const noexcept
 //------------------------------------------------
 
 void
-basic_parser::
+parser::
 reset()
 {
     if(got_eof_)
@@ -124,7 +124,7 @@ reset()
 }
 
 std::pair<void*, std::size_t>
-basic_parser::
+parser::
 prepare()
 {
     if(got_eof_)
@@ -161,7 +161,7 @@ prepare()
 }
 
 void
-basic_parser::
+parser::
 commit(
     std::size_t n)
 {
@@ -177,14 +177,14 @@ commit(
 }
 
 void
-basic_parser::
+parser::
 commit_eof()
 {
     got_eof_ = true;
 }
 
 void
-basic_parser::
+parser::
 discard_header() noexcept
 {
     if(m_.n_header == 0)
@@ -203,7 +203,7 @@ discard_header() noexcept
 // discard all of the payload,
 // but don't discard chunk-ext
 void
-basic_parser::
+parser::
 discard_payload() noexcept
 {
     if(state_ != state::payload)
@@ -232,7 +232,7 @@ discard_payload() noexcept
 // discard all of the payload
 // including any chunk-ext
 void
-basic_parser::
+parser::
 discard_chunk() noexcept
 {
 }
@@ -240,7 +240,7 @@ discard_chunk() noexcept
 //------------------------------------------------
 
 void
-basic_parser::
+parser::
 parse_header(
     error_code& ec)
 {
@@ -338,7 +338,7 @@ parse_header(
 }
 
 void
-basic_parser::
+parser::
 parse_body(
     error_code& ec)
 {
@@ -459,7 +459,7 @@ parse_body(
 }
 
 void
-basic_parser::
+parser::
 parse_chunk(
     error_code& ec)
 {
@@ -537,7 +537,7 @@ parse_chunk(
 //------------------------------------------------
 
 char*
-basic_parser::
+parser::
 parse_fields(
     char* const start,
     char const* const end,
@@ -602,7 +602,7 @@ parse_fields(
 
 // https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
 void
-basic_parser::
+parser::
 do_connection(
     string_view s, error_code& ec)
 {
@@ -627,7 +627,7 @@ do_connection(
 }
 
 void
-basic_parser::
+parser::
 do_content_length(
     string_view s,
     error_code& ec)
@@ -687,7 +687,7 @@ do_content_length(
 }
 
 void
-basic_parser::
+parser::
 do_transfer_encoding(
     string_view s, error_code& ec)
 {
@@ -721,7 +721,7 @@ do_transfer_encoding(
 }
 
 void
-basic_parser::
+parser::
 do_upgrade(
     string_view s, error_code& ec)
 {
