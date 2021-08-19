@@ -11,14 +11,14 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_message.hpp>
+#include <boost/http_proto/basic_header.hpp>
 
 namespace boost {
 namespace http_proto {
 
 /** Container for HTTP requests
 */
-class request : public basic_message
+class request : public basic_header
 {
 public:
     BOOST_HTTP_PROTO_DECL

@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
-#include <boost/http_proto/basic_message.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/basic_parser.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/decoder.hpp>

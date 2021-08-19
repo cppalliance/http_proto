@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BASIC_MESSAGE_HPP
-#define BOOST_HTTP_PROTO_BASIC_MESSAGE_HPP
+#ifndef BOOST_HTTP_PROTO_BASIC_HEADER_HPP
+#define BOOST_HTTP_PROTO_BASIC_HEADER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/field.hpp>
@@ -19,9 +19,9 @@
 namespace boost {
 namespace http_proto {
 
-/** Base class for request and response messages
+/** Base class for request and response headers
 */
-class basic_message
+class basic_header
 {
     // headers have a maximum size of 65536 chars
     using off_t = std::uint16_t;
@@ -48,10 +48,10 @@ BOOST_HTTP_PROTO_PROTECTED:
 
 public:
     BOOST_HTTP_PROTO_DECL
-    ~basic_message();
+    ~basic_header();
 
     BOOST_HTTP_PROTO_DECL
-    basic_message();
+    basic_header();
 
     //--------------------------------------------
     //
@@ -185,7 +185,7 @@ public:
 
 BOOST_HTTP_PROTO_PROTECTED:
     explicit
-    basic_message(
+    basic_header(
         string_view start_line);
 
     BOOST_HTTP_PROTO_DECL
@@ -208,6 +208,6 @@ private:
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/basic_message.hpp>
+#include <boost/http_proto/impl/basic_header.hpp>
 
 #endif
