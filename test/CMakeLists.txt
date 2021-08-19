@@ -22,8 +22,8 @@ set(PFILES
     encoder.cpp
     error.cpp
     field.cpp
-    fields_view.cpp
     headers.cpp
+    headers_view.cpp
     method.cpp
     request.cpp
     request_parser.cpp

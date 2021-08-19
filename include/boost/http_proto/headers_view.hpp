@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_FIELDS_VIEW_HPP
-#define BOOST_HTTP_PROTO_FIELDS_VIEW_HPP
+#ifndef BOOST_HTTP_PROTO_HEADERS_VIEW_HPP
+#define BOOST_HTTP_PROTO_HEADERS_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/field.hpp>
@@ -18,7 +18,7 @@
 namespace boost {
 namespace http_proto {
 
-class fields_view
+class headers_view
 {
     using size_type = std::uint16_t;
 
@@ -28,9 +28,9 @@ public:
 
     class value_type;
 
-    fields_view(fields_view const&) = default;
-    fields_view& operator=(
-        fields_view const&) = default;
+    headers_view(headers_view const&) = default;
+    headers_view& operator=(
+        headers_view const&) = default;
 
     std::size_t
     size() const noexcept;
@@ -52,9 +52,9 @@ public:
 
 //------------------------------------------------
 
-class fields_view::value_type
+class headers_view::value_type
 {
-    friend class fields_view;
+    friend class headers_view;
 
 public:
     string_view
@@ -76,6 +76,6 @@ public:
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/fields_view.hpp>
+#include <boost/http_proto/impl/headers_view.hpp>
 
 #endif

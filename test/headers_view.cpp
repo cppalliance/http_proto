@@ -8,14 +8,14 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/fields_view.hpp>
+#include <boost/http_proto/headers_view.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class fields_view_test
+class headers_view_test
 {
 public:
     void run()
@@ -23,7 +23,9 @@ public:
     }
 };
 
-TEST_SUITE(fields_view_test, "boost.http_proto.fields_view");
+TEST_SUITE(
+    headers_view_test,
+    "boost.http_proto.headers_view");
 
 } // http_proto
 } // boost

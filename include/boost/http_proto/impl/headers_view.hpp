@@ -7,10 +7,8 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_IPP
-#define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_IPP
-
-#include <boost/http_proto/fields_view.hpp>
+#ifndef BOOST_HTTP_PROTO_IMPL_HEADERS_VIEW_HPP
+#define BOOST_HTTP_PROTO_IMPL_HEADERS_VIEW_HPP
 
 namespace boost {
 namespace http_proto {
