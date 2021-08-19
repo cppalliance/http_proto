@@ -54,9 +54,7 @@ string_view
 response::
 reason() const noexcept
 {
-    return string_view(
-        data().data() + 13,
-        n_start_ - (13 + 2));
+    return {};
 }
 
 //------------------------------------------------
@@ -68,6 +66,7 @@ status_line(
     http_proto::version http_version,
     string_view reason)
 {
+#if 0
     if(reason.empty())
         reason = http_proto::obsolete_reason(
             result_code);
@@ -107,24 +106,7 @@ status_line(
     dest[1] = '\n';
 
     version_ = http_version;
-}
-
-//------------------------------------------------
-
-string_view
-response::
-empty_string() const noexcept
-{
-    return
-        "HTTP/1.1 200 OK\r\n"
-        "\r\n";
-}
-
-void
-response::
-do_clear() noexcept
-{
-    result_ = status::ok;
+#endif
 }
 
 } // http_proto

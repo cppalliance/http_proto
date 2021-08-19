@@ -20,14 +20,25 @@ namespace detail {
 // headers have a maximum size of 65536 chars
 using off_t = std::uint16_t;
 
-struct field_hint
+struct fields_array
 {
-    field f;    
-    off_t pos;      // in buffer
-    off_t len;     // key length
-    // offset of value is pos+len+2
-    // length of value is calculated
-    //   from offset of the next entry
+    struct item
+    {
+        field f;    
+        off_t pos;
+        off_t len;
+    };
+
+    item const* base;
+
+    item const&
+    operator[](
+        std::size_t i) const noexcept
+    {
+        return base[-1 * (
+            static_cast<long>(i) + 1)];
+    }
+
 };
 
 } // detail

@@ -24,8 +24,6 @@ set(PFILES
     field.cpp
     fields.cpp
     fields_view.cpp
-    headers.cpp
-    headers_view.cpp
     method.cpp
     request.cpp
     request_parser.cpp

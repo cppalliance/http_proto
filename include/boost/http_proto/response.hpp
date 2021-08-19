@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/headers.hpp>
+#include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -20,11 +20,13 @@ namespace http_proto {
 
 /** Container for HTTP requests
 */
-class response : public headers
+class response
 {
     status result_ = status::ok;
 
 public:
+    http_proto::fields fields;
+
     BOOST_HTTP_PROTO_DECL
     response();
 
@@ -68,11 +70,6 @@ public:
         http_proto::version http_version =
             http_proto::version::http_1_1,
         string_view reason = "");
-
-private:
-    string_view empty_string()
-        const noexcept override;
-    void do_clear() noexcept override;
 };
 
 } // http_proto

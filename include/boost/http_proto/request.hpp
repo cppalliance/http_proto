@@ -11,22 +11,20 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/headers.hpp>
+#include <boost/http_proto/fields.hpp>
 
 namespace boost {
 namespace http_proto {
 
 /** Container for HTTP requests
 */
-class request : public headers
+class request
 {
 public:
+    http_proto::fields fields;
+
     BOOST_HTTP_PROTO_DECL
     request();
-
-private:
-    string_view
-    empty_string() const noexcept override;
 };
 
 } // http_proto

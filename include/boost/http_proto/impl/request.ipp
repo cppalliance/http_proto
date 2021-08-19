@@ -19,15 +19,6 @@ namespace http_proto {
 request::
 request() = default;
 
-string_view
-request::
-empty_string() const noexcept
-{
-    return
-        "GET / HTTP/1.1\r\n"
-        "\r\n";
-}
-
 } // http_proto
 } // boost
 
