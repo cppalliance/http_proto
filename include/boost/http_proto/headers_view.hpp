@@ -34,6 +34,13 @@ class headers_view
         std::size_t size);
 
 public:
+    struct value_type
+    {
+        field id;
+        string_view name;
+        string_view value;
+    };
+
     headers_view(
         headers_view const&) = default;
     headers_view& operator=(
@@ -95,12 +102,12 @@ public:
         @endcode
     */
     BOOST_HTTP_PROTO_DECL
-    string_view const
+    value_type const
     operator[](std::size_t i) const noexcept;  
 
     /// Returns the value of the i-th field, or throws if i>=size()
     BOOST_HTTP_PROTO_DECL
-    string_view
+    value_type const
     at(std::size_t i) const;
 
     /// Returns the value of the first matching field if it exists, otherwise throws

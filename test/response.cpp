@@ -30,6 +30,13 @@ public:
             res.fields.append(
                 field::connection,
                 "close");
+            res.fields.append(
+                field::server,
+                "Boost.HTTP-proto");
+            for(auto v : res.fields)
+            {
+                v.id = v.id;
+            }
         }
     }
 };

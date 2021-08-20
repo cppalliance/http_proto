@@ -33,17 +33,30 @@ class headers
         std::size_t n) noexcept;
 
 public:
+    struct value_type
+    {
+        field id;
+        string_view name;
+        string_view value;
+    };
+
+    class iterator;
+    class subrange;
+
     BOOST_HTTP_PROTO_DECL
     ~headers();
 
     BOOST_HTTP_PROTO_DECL
     headers() noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    char*
-    resize_prefix(
-        std::size_t n);
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
 
+    /** Return the serialized fields as a string
+    */
     string_view
     str() const noexcept
     {
@@ -52,20 +65,112 @@ public:
             fields_bytes_ + 2);
     }
 
-    //--------------------------------------------
-    //
-    // Observers
-    //
-    //--------------------------------------------
+    /** Returns the number of fields in the container
+    */
+    std::size_t
+    size() const noexcept
+    {
+        return count_;
+    }
 
-    /// Returns the number of field/value pairs
-    std::size_t size() const noexcept;
+    /** Returns the value of the i-th field
+
+        @par Preconditions
+        @code
+        i < size()
+        @endcode
+    */
+    BOOST_HTTP_PROTO_DECL
+    value_type const
+    operator[](std::size_t i) const noexcept;  
+
+    inline
+    iterator
+    begin() const noexcept;
+
+    inline
+    iterator
+    end() const noexcept;
+
+    /// Returns true if a field exists
+    BOOST_HTTP_PROTO_DECL
+    bool
+    exists(field id) const noexcept;
+
+    /// Returns true if a field exists
+    BOOST_HTTP_PROTO_DECL
+    bool
+    exists(string_view name) const noexcept;
+
+    /// Returns the number of matching fields
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    count(field id) const noexcept;
+
+    /// Returns the number of matching fields
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    count(string_view name) const noexcept;
+
+    /// Returns the value of the i-th field, or throws if i>=size()
+    BOOST_HTTP_PROTO_DECL
+    value_type const
+    at(std::size_t i) const;
+
+    /// Returns the value of the first matching field if it exists, otherwise throws
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    at(field id) const;
+
+    /// Returns the value of the first matching field if it exists, otherwise throws
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    at(string_view name) const;
+
+    /// Returns the value of the first matching field, otherwise returns the given string
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    value_or(
+        field id,
+        string_view v) const noexcept;
+
+    /// Returns the value of the first matching field, otherwise returns the given string
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    value_or(
+        string_view name,
+        string_view v) const noexcept;
+
+    /// Returns an iterator to the first matching field, otherwise returns end()
+    BOOST_HTTP_PROTO_DECL
+    iterator
+    find(field id) const noexcept;
+
+    /// Returns an iterator to the first matching field, otherwise returns end()
+    BOOST_HTTP_PROTO_DECL
+    iterator
+    find(string_view name) const noexcept;
+
+    /// Return a forward range containing values for all matching fields
+    BOOST_HTTP_PROTO_DECL
+    subrange
+    matching(field id) const noexcept;
+
+    /// Return a forward range containing values for all matching fields
+    BOOST_HTTP_PROTO_DECL
+    subrange
+    matching(string_view name) const noexcept;
 
     //--------------------------------------------
     //
     // Modifiers
     //
     //--------------------------------------------
+
+    BOOST_HTTP_PROTO_DECL
+    char*
+    resize_prefix(
+        std::size_t n);
 
     /** Reserve additional storage
     */

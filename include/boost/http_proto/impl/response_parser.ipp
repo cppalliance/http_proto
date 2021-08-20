@@ -30,6 +30,9 @@ parse_start_line(
     char const* const last,
     error_code& ec)
 {
+    (void)in;
+    (void)ec;
+    (void)last;
     // https://tools.ietf.org/html/rfc7230#section-3.3
     if(
         (status_ / 100 == 1) || // 1xx e.g. Continue

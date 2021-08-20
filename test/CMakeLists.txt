@@ -15,7 +15,7 @@ set(TFILES
 
 set(PFILES
     CMakeLists.txt
-    parser.cpp
+    arrow_proxy.cpp
     context.cpp
     decoder.cpp
     deflate_service.cpp
@@ -25,6 +25,7 @@ set(PFILES
     headers.cpp
     headers_view.cpp
     method.cpp
+    parser.cpp
     request.cpp
     request_parser.cpp
     request_view.cpp

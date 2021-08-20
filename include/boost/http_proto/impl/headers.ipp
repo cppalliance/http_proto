@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/ftab.hpp>
 #include <utility>
@@ -38,6 +39,187 @@ headers::
 headers::
 headers() noexcept = default;
 
+//------------------------------------------------
+
+auto
+headers::
+operator[](
+    std::size_t i) const noexcept ->
+        value_type const
+{
+    auto const ft =
+        detail::get_ftab(
+            buf_ + capacity_)[i];
+    return value_type {
+        ft.id,
+        string_view(
+            buf_ + ft.name_pos,
+            ft.name_len),
+        string_view(
+            buf_ + ft.value_pos,
+            ft.value_len) };
+}
+
+bool
+headers::
+exists(
+    field id) const noexcept
+{
+    return find(id) != end();
+}
+
+bool
+headers::
+exists(
+    string_view name) const noexcept
+{
+    return find(name) != end();
+}
+
+std::size_t
+headers::
+count(field id) const noexcept
+{
+    std::size_t n = 0;
+    for(auto v : *this)
+        if(v.id == id)
+            ++n;
+    return n;
+}
+
+std::size_t
+headers::
+count(string_view name) const noexcept
+{
+    std::size_t n = 0;
+    for(auto v : *this)
+        if(bnf::iequals(
+            v.name, name))
+            ++n;
+    return n;
+}
+
+auto
+headers::
+at(std::size_t i) const ->
+    value_type const
+{
+    if(i < count_)
+    {
+        auto const ft =
+            detail::get_ftab(
+                buf_ + capacity_)[i];
+        return value_type {
+            ft.id,
+            string_view(
+                buf_ + ft.name_pos,
+                ft.name_len),
+            string_view(
+                buf_ + ft.value_pos,
+                ft.value_len) };
+    }
+    detail::throw_invalid_argument(
+        "bad index", BOOST_CURRENT_LOCATION);
+}
+
+string_view
+headers::
+at(field id) const
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    detail::throw_invalid_argument(
+        "not found", BOOST_CURRENT_LOCATION);
+}
+
+string_view
+headers::
+at(string_view name) const
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    detail::throw_invalid_argument(
+        "not found", BOOST_CURRENT_LOCATION);
+}
+
+string_view
+headers::
+value_or(
+    field id,
+    string_view v) const noexcept
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    return v;
+}
+
+string_view
+headers::
+value_or(
+    string_view name,
+    string_view v) const noexcept
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    return v;
+}
+
+auto
+headers::
+find(field id) const noexcept ->
+    iterator
+{
+    auto it = begin();
+    auto const last = end();
+    while(it != last)
+    {
+        if(it->id == id)
+            break;
+        ++it;
+    }
+    return it;
+}
+
+auto
+headers::
+find(string_view name) const noexcept ->
+    iterator
+{
+    auto it = begin();
+    auto const last = end();
+    while(it != last)
+    {
+        if(bnf::iequals(
+            it->name, name))
+            break;
+        ++it;
+    }
+    return it;
+}
+
+auto
+headers::
+matching(field id) const noexcept ->
+    subrange
+{
+    return {};
+}
+
+auto
+headers::
+matching(
+    string_view name) const noexcept ->
+        subrange
+{
+    return {};
+}
+
+//------------------------------------------------
+
 char*
 headers::
 resize_prefix(
@@ -57,8 +239,6 @@ resize_prefix(
 
     return buf_;
 }
-
-//------------------------------------------------
 
 void
 headers::
@@ -161,11 +341,11 @@ append(
     dest += value.size();
     *dest++ = '\r';
     *dest++ = '\n';
-    *dest++ = '\r';
-    *dest++ = '\n';
     fields_bytes_ =
         dest - buf_ -
             prefix_bytes_;
+    *dest++ = '\r';
+    *dest++ = '\n';
     ++count_;
 }
 

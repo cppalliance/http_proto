@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_BNF_RANGE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/arrow_proxy.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -22,18 +23,6 @@
 namespace boost {
 namespace http_proto {
 namespace bnf {
-
-template<class T>
-struct arrow_proxy
-{
-    T t;
-
-    T const*
-    operator->() const noexcept
-    {
-        return std::addressof(t);
-    }
-};
 
 template<class List>
 class range
