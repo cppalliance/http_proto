@@ -7,25 +7,13 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-// Test that header file is self-contained.
-#include <boost/http_proto/fields_view.hpp>
-
-#include "test_suite.hpp"
+#ifndef BOOST_HTTP_PROTO_IMPL_HEADERS_VIEW_HPP
+#define BOOST_HTTP_PROTO_IMPL_HEADERS_VIEW_HPP
 
 namespace boost {
 namespace http_proto {
 
-class fields_view_test
-{
-public:
-    void run()
-    {
-    }
-};
-
-TEST_SUITE(
-    fields_view_test,
-    "boost.http_proto.fields_view");
-
 } // http_proto
 } // boost
+
+#endif

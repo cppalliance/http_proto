@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/headers.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -21,7 +21,7 @@ namespace http_proto {
 class request
 {
 public:
-    http_proto::fields fields;
+    headers fields;
 
     BOOST_HTTP_PROTO_DECL
     request();

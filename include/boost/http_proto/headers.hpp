@@ -7,23 +7,77 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_FIELDS_HPP
-#define BOOST_HTTP_PROTO_FIELDS_HPP
+#ifndef BOOST_HTTP_PROTO_HEADERS_HPP
+#define BOOST_HTTP_PROTO_HEADERS_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
 
-class fields
+// forward declared
+enum class field : unsigned short;
+
+class headers
 {
-#if 0
+    using off_t = std::uint16_t;
+
+    char* buf_ = nullptr;
+    std::size_t count_ = 0;
+    std::size_t capacity_ = 0;
+    std::size_t fields_bytes_ = 0;
+    std::size_t prefix_bytes_ = 0;
+
+    static std::size_t align_up(
+        std::size_t n) noexcept;
+
+public:
+    BOOST_HTTP_PROTO_DECL
+    ~headers();
+
+    BOOST_HTTP_PROTO_DECL
+    headers() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    char*
+    resize_prefix(
+        std::size_t n);
+
+    string_view
+    str() const noexcept
+    {
+        return string_view(buf_,
+            prefix_bytes_ +
+            fields_bytes_ + 2);
+    }
+
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
+
+    /// Returns the number of field/value pairs
+    std::size_t size() const noexcept;
 
     //--------------------------------------------
     //
     // Modifiers
     //
     //--------------------------------------------
+
+    /** Reserve additional storage
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reserve(std::size_t n);
+
+    /** Remove excess capacity
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    shrink_to_fit();
 
     /** Clear the contents, but not the capacity
     */
@@ -41,13 +95,11 @@ class fields
 
         @note HTTP field names are case-insensitive.
     */
+    BOOST_HTTP_PROTO_DECL
     void
     append(
         field f,
-        string_view value)
-    {
-        append(f, to_string(f), value);
-    }
+        string_view value);
 
     /** Append the header with the given field enum and value.
 
@@ -59,20 +111,19 @@ class fields
 
         @note HTTP field names are case-insensitive.
     */
+    BOOST_HTTP_PROTO_DECL
     void
     append(
         string_view name,
-        string_view value)
-    {
-        append(string_to_field(name),
-            name, value);
-    }
+        string_view value);
 
-    /// Return a string representing the entire serialized header
-    string_view str() const noexcept;
+#if 0
 
-    /// Returns the number of field/value pairs
-    std::size_t size() const noexcept;
+    //--------------------------------------------
+    //
+    // Modifiers
+    //
+    //--------------------------------------------
 
     struct iterator;
     struct const_iterator;
@@ -107,10 +158,10 @@ class fields
 
     struct subrange;
 
-    /// Returns a forward range of values for all matching fields
+    /// Returns a forward range of values for all matching headers
     subrange matching(field f) const noexcept;
 
-    /// Returns a forward range of values for all matching fields
+    /// Returns a forward range of values for all matching headers
     subrange matching(string_view name) const noexcept;
 
     iterator find(field f);
@@ -139,11 +190,19 @@ class fields
 
     void erase_all(string_view name);
 #endif
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    void
+    append(
+        field id,
+        string_view name,
+        string_view value);
 };
 
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/fields.hpp>
+#include <boost/http_proto/impl/headers.hpp>
 
 #endif

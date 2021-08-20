@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -22,22 +22,21 @@ namespace http_proto {
 */
 class response
 {
+    using off_t = std::uint16_t;
+
+    http_proto::version
+        version_ = version::http_1_1;
     status result_ = status::ok;
 
 public:
-    http_proto::fields fields;
+    /** Container holding the response header fields
+    */
+    headers fields;
 
+    /** Constructor
+    */
     BOOST_HTTP_PROTO_DECL
     response();
-
-    BOOST_HTTP_PROTO_DECL
-    explicit
-    response(
-        status result_code,
-        http_proto::version http_version =
-            http_proto::version::http_1_1,
-        string_view reason =
-            http_proto::obsolete_reason(status::ok));
 
     //--------------------------------------------
     //
@@ -45,14 +44,34 @@ public:
     //
     //--------------------------------------------
 
+    /** Returns a string representing the serialized response
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    str() const noexcept;
+
+    /** Return the HTTP-version of this message
+    */
+    http_proto::version
+    version() const noexcept
+    {
+        return version_;
+    }
+
+    /** Return the status enumeration of the response result
+    */
     BOOST_HTTP_PROTO_DECL
     status
     result() const noexcept;
 
+    /** Return the status of the response result as an integer
+    */
     BOOST_HTTP_PROTO_DECL
     unsigned
     result_int() const noexcept;
 
+    /** Return the obsolete reason phrase of the response
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     reason() const noexcept;
@@ -65,11 +84,10 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    status_line(
-        status result_code,
-        http_proto::version http_version =
-            http_proto::version::http_1_1,
-        string_view reason = "");
+    set_result(
+        status code,
+        http_proto::version http_version,
+        string_view reason = {});
 };
 
 } // http_proto

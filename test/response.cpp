@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/response.hpp>
 
+#include <boost/http_proto/field.hpp>
 #include "test_suite.hpp"
 
 namespace boost {
@@ -21,9 +22,15 @@ public:
     void
     run()
     {
-        response res;
-        res.status_line(
-            status::ok, version::http_1_1);
+        {
+            response res;
+            res.set_result(
+                status::ok,
+                version::http_1_1);
+            res.fields.append(
+                field::connection,
+                "close");
+        }
     }
 };
 

@@ -20,18 +20,6 @@ namespace http_proto {
 response::
 response() = default;
 
-response::
-response(
-    status result_code,
-    http_proto::version http_version,
-    string_view reason)
-{
-    status_line(
-        result_code,
-        http_version,
-        reason);
-}
-
 //------------------------------------------------
 
 status
@@ -61,18 +49,16 @@ reason() const noexcept
 
 void
 response::
-status_line(
-    http_proto::status result_code,
+set_result(
+    status code,
     http_proto::version http_version,
     string_view reason)
 {
-#if 0
     if(reason.empty())
-        reason = http_proto::obsolete_reason(
-            result_code);
+        reason = obsolete_reason(code);
 
     // "HTTP/1.1 200 OK\r\n"
-    auto dest = resize_start_line(
+    auto dest = fields.resize_prefix(
         8 + 1 + 3 + 1 + reason.size() + 2);
 
     string_view s;
@@ -106,7 +92,7 @@ status_line(
     dest[1] = '\n';
 
     version_ = http_version;
-#endif
+    result_ = code;
 }
 
 } // http_proto
