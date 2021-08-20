@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <string>
 
 namespace boost {
 namespace http_proto {
@@ -223,86 +224,85 @@ public:
         string_view value);
 
 #if 0
-
-    //--------------------------------------------
-    //
-    // Modifiers
-    //
-    //--------------------------------------------
-
-    struct iterator;
-    struct const_iterator;
-
-    iterator begin() noexcept;
-    iterator end() noexcept;
-
-    const_iterator begin() noexcept;
-    const_iterator end() noexcept;
-
-    /// Returns the HTTP-version of this message
-    http_proto::version version() const noexcept;
-
-    string_view const operator[](std::size_t) const noexcept;
-    
-    string_view const operator[](field f) const noexcept;
-
-    string_view const operator[](string_view s) const noexcept;
-
-    /// Returns the value of a field if it exists, otherwise throws
-    string_view at(field f) const noexcept;
-    string_view at(std::size_t index) const noexcept;
-
-    /// Returns the value of the first matching field if it exists, otherwise throws
-    string_view at(string_view f) const noexcept;
-
-    /// Returns the value of the first matching field if it exists, otherwise the given string
-    string_view value_or(field f, string_view) const noexcept;
-
-    /// Returns the value of a field if it exists, otherwise the given string
-    string_view value_or(string_view f, string_view) const noexcept;
-
-    struct subrange;
-
-    /// Returns a forward range of values for all matching headers
-    subrange matching(field f) const noexcept;
-
-    /// Returns a forward range of values for all matching headers
-    subrange matching(string_view name) const noexcept;
-
-    iterator find(field f);
-    iterator find(string_view f);
-
-    /// Clears the contents but not the capacity
     void clear() noexcept;
-
     void append(field f, string_view value);
-
     void append(string_view name, string_view value);
-
     void set(std::size_t index, string_view value);
-
     void set(field f, string_view value);
-
     void set(string_view name, string_view value);
-
     const_iterator erase(const_iterator it);
-
     void erase_first(field f);
-
     void erase_first(string_view name);
-
     void erase_all(field f);
-
     void erase_all(string_view name);
 #endif
 
 private:
+    std::size_t
+    find(
+        std::size_t after,
+        field id) const noexcept;
+
+    std::size_t
+    find(
+        std::size_t after,
+        string_view name) const noexcept;
+
     BOOST_HTTP_PROTO_DECL
     void
     append(
         field id,
         string_view name,
         string_view value);
+};
+
+//------------------------------------------------
+
+class headers::subrange
+{
+    headers const* h_ = nullptr;
+    std::size_t first_ = 0;
+
+    friend class headers;
+
+    inline
+    subrange(
+        headers const* h,
+        std::size_t first) noexcept;
+
+public:
+    using value_type =
+        headers::value_type;
+
+    class iterator;
+
+    subrange(
+        subrange const&) = default;
+    subrange& operator=(
+        subrange const&) = default;
+
+    /** Constructor
+
+        Default-constructed subranges are empty.
+    */
+    subrange() = default;
+
+    inline
+    iterator
+    begin() const noexcept;
+
+    inline
+    iterator
+    end() const noexcept;
+
+    /** Return all values as a comma separated string
+
+        @see
+            https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.2
+    */
+    BOOST_HTTP_PROTO_DECL
+    std::string
+    make_list() const;
 };
 
 } // http_proto

@@ -206,7 +206,8 @@ headers::
 matching(field id) const noexcept ->
     subrange
 {
-    return {};
+    return subrange(
+        this, find(id).i_);
 }
 
 auto
@@ -215,10 +216,38 @@ matching(
     string_view name) const noexcept ->
         subrange
 {
-    return {};
+    return subrange(
+        this, find(name).i_);
 }
 
 //------------------------------------------------
+
+std::size_t
+headers::
+find(
+    std::size_t after,
+    field id) const noexcept
+{
+    std::size_t i = after;
+    while(++i < count_)
+        if((*this)[i].id == id)
+            break;
+    return i;
+}
+
+std::size_t
+headers::
+find(
+    std::size_t after,
+    string_view name) const noexcept
+{
+    std::size_t i = after;
+    while(++i < count_)
+        if(bnf::iequals(
+            (*this)[i].name, name))
+            break;
+    return i;
+}
 
 char*
 headers::
@@ -347,6 +376,53 @@ append(
     *dest++ = '\r';
     *dest++ = '\n';
     ++count_;
+}
+
+//------------------------------------------------
+
+std::string
+headers::
+subrange::
+make_list() const
+{
+    auto it = begin();
+    auto const end_ = end();
+    std::string s;
+    if(it == end_)
+        return s;
+    s.append(
+        it->value.data(),
+        it->value.size());
+    while(++it != end_)
+    {
+        s.push_back(',');
+        s.append(it->value.data(),
+            it->value.size());
+    }
+    return s;
+}
+
+auto
+headers::
+subrange::
+iterator::
+operator++() noexcept ->
+    iterator&
+{
+    BOOST_ASSERT(
+        i_ < h_->size());
+    if((*h_)[i_].id !=
+        field::unknown)
+    {
+        i_ = h_->find(i_,
+            (*h_)[i_].id);
+    }
+    else
+    {
+        i_ = h_->find(i_,
+            (*h_)[i_].name);
+    }
+    return *this;
 }
 
 } // http_proto

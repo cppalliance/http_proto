@@ -91,8 +91,8 @@ public:
 template<class T>
 class range<T>::iterator
 {
-    char const* next_;
-    char const* end_;
+    char const* next_ = nullptr;
+    char const* end_ = nullptr;
     T impl_;
 
     friend class range;
@@ -140,11 +140,7 @@ public:
     using iterator_category =
         std::forward_iterator_tag;
 
-    iterator() noexcept
-        : next_(nullptr)
-        , end_(nullptr)
-    {
-    }
+    iterator() noexcept = default;
 
     bool
     operator==(
