@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_PARSER_IPP
 
 #include <boost/http_proto/request_parser.hpp>
+#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/version.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
@@ -32,11 +34,14 @@ request_parser(
 
 request_view
 request_parser::
-header() const noexcept
+get() const noexcept
 {
     return request_view(
         buffer_,
-        used_,
+        m_.fields,
+        cap_,
+        m_.n_header - 2,
+        0, // prefix bytes
         n_method_,
         n_target_,
         method_,
@@ -63,8 +68,16 @@ parse_start_line(
         off_t>(p.value().method.size());
     n_target_ = static_cast<
         off_t>(p.value().target.size());
-    m_.version = static_cast<char>(
-        p.value().version);
+    switch(p.value().version)
+    {
+    case 10:
+        m_.version = http_proto::version::http_1_0;
+        break;
+    default:
+    case 11:
+        m_.version = http_proto::version::http_1_1;
+        break;
+    }
     return start + (it - start);
 }
 

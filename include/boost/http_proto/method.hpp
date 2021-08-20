@@ -22,7 +22,7 @@ namespace http_proto {
     Each item corresponds to a particular method string
     used in HTTP request messages.
 */
-enum class method
+enum class method : char
 {
     /** An unknown method.
 

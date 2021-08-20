@@ -21,10 +21,10 @@ namespace http_proto {
 
     Only versions 1.0 and 1.1 are recognized.
 */
-enum class version
+enum class version : char
 {
-    http_1_0,
-    http_1_1
+    http_1_0 = 10,
+    http_1_1 = 11
 };
 
 /** Return the serialized string representing the HTTP version

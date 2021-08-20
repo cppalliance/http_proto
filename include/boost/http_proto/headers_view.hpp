@@ -18,20 +18,46 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+// forward declared
+enum class field : unsigned short;
+#endif
+
 /** A read-only, random access container of HTTP fields
 */
 class headers_view
 {
-    char const* base_;
-    std::size_t flen_;  // length of serialized fields
-    std::size_t len_;   // size of storage
-    std::size_t size_;  // number of fields
+    using off_t = std::uint16_t;
+
+    char const* buf_ = nullptr;
+    std::size_t count_ = 0;
+    std::size_t capacity_ = 0;
+    std::size_t fields_bytes_ = 0;
+    std::size_t prefix_bytes_ = 0;
+
+    friend class headers;
+    friend class request_view;
+    friend class response_view;
+
+    char const*
+    base() const noexcept
+    {
+        return buf_;
+    }
 
     headers_view(
-        char const* base,
-        std::size_t flen,
-        std::size_t len,
-        std::size_t size);
+        char const* buf,
+        std::size_t count,
+        std::size_t capacity,
+        std::size_t fields_bytes,
+        std::size_t prefix_bytes) noexcept
+        : buf_(buf)
+        , count_(count)
+        , capacity_(capacity)
+        , fields_bytes_(fields_bytes)
+        , prefix_bytes_(prefix_bytes)
+    {
+    }
 
 public:
     struct value_type
@@ -41,6 +67,9 @@ public:
         string_view value;
     };
 
+    class iterator;
+    class subrange;
+
     headers_view(
         headers_view const&) = default;
     headers_view& operator=(
@@ -48,18 +77,32 @@ public:
 
     /** Constructor
 
-        Default-constructed views have no elements.
+        Default-constructed headers have no fields.
     */
-    BOOST_HTTP_PROTO_DECL
-    headers_view();
+    headers_view() = default;
+
+    inline
+    iterator
+    begin() const noexcept;
+
+    inline
+    iterator
+    end() const noexcept;
+
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
 
     /** Return the serialized fields as a string
     */
     string_view
     str() const noexcept
     {
-        return string_view(
-            base_, flen_);
+        return string_view(buf_,
+            prefix_bytes_ +
+            fields_bytes_ + 2);
     }
 
     /** Returns the number of fields in the container
@@ -67,32 +110,8 @@ public:
     std::size_t
     size() const noexcept
     {
-        return size_;
+        return count_;
     }
-
-    struct iterator;
-
-    BOOST_HTTP_PROTO_DECL
-    iterator begin() const noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    iterator end() const noexcept;
-
-    /// Returns true if a field exists
-    BOOST_HTTP_PROTO_DECL
-    bool exists(field id);
-
-    /// Returns true if a field exists
-    BOOST_HTTP_PROTO_DECL
-    bool exists(string_view name);
-
-    /// Returns the number of matching fields
-    BOOST_HTTP_PROTO_DECL
-    std::size_t count(field id);
-
-    /// Returns the number of matching fields
-    BOOST_HTTP_PROTO_DECL
-    std::size_t count(string_view name);
 
     /** Returns the value of the i-th field
 
@@ -104,6 +123,26 @@ public:
     BOOST_HTTP_PROTO_DECL
     value_type const
     operator[](std::size_t i) const noexcept;  
+
+    /// Returns true if a field exists
+    BOOST_HTTP_PROTO_DECL
+    bool
+    exists(field id) const noexcept;
+
+    /// Returns true if a field exists
+    BOOST_HTTP_PROTO_DECL
+    bool
+    exists(string_view name) const noexcept;
+
+    /// Returns the number of matching fields
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    count(field id) const noexcept;
+
+    /// Returns the number of matching fields
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    count(string_view name) const noexcept;
 
     /// Returns the value of the i-th field, or throws if i>=size()
     BOOST_HTTP_PROTO_DECL
@@ -137,29 +176,82 @@ public:
     /// Returns an iterator to the first matching field, otherwise returns end()
     BOOST_HTTP_PROTO_DECL
     iterator
-    find(field id);
+    find(field id) const noexcept;
 
     /// Returns an iterator to the first matching field, otherwise returns end()
     BOOST_HTTP_PROTO_DECL
     iterator
-    find(string_view name);
-
-    struct subrange;
+    find(string_view name) const noexcept;
 
     /// Return a forward range containing values for all matching fields
     BOOST_HTTP_PROTO_DECL
     subrange
-    matching(field id);
+    matching(field id) const noexcept;
 
     /// Return a forward range containing values for all matching fields
     BOOST_HTTP_PROTO_DECL
     subrange
-    matching(string_view name);
+    matching(string_view name) const noexcept;
 
-    /// Return a string containing a comma-separated list of values for all matching fields
-    // VFALCO subrange::make_list() could subsume this
-    //std::string list_all(field id);
-    //std::string list_all(string_view name);
+private:
+    std::size_t
+    find(
+        std::size_t after,
+        field id) const noexcept;
+
+    std::size_t
+    find(
+        std::size_t after,
+        string_view name) const noexcept;
+};
+
+//------------------------------------------------
+
+class headers_view::subrange
+{
+    headers_view const* h_ = nullptr;
+    std::size_t first_ = 0;
+
+    friend class headers_view;
+
+    inline
+    subrange(
+        headers_view const* h,
+        std::size_t first) noexcept;
+
+public:
+    using value_type =
+        headers_view::value_type;
+
+    class iterator;
+
+    subrange(
+        subrange const&) = default;
+    subrange& operator=(
+        subrange const&) = default;
+
+    /** Constructor
+
+        Default-constructed subranges are empty.
+    */
+    subrange() = default;
+
+    inline
+    iterator
+    begin() const noexcept;
+
+    inline
+    iterator
+    end() const noexcept;
+
+    /** Return all values as a comma separated string
+
+        @see
+            https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.2
+    */
+    BOOST_HTTP_PROTO_DECL
+    std::string
+    make_list() const;
 };
 
 } // http_proto

@@ -47,7 +47,7 @@ is_pchar(char c) noexcept
 
 char const*
 parse_http_version(
-    int& result,
+    char& result,
     char const* const start,
     char const* const end,
     error_code& ec) noexcept
@@ -77,11 +77,11 @@ parse_http_version(
     }
     if(*it == '0')
     {
-        result = 0;
+        result = 10;
     }
     else if(*it == '1')
     {
-        result = 1;
+        result = 11;
     }
     else
     {

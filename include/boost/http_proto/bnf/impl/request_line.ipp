@@ -71,10 +71,25 @@ parse(
     ++it;
 
     // HTTP-version
-    it = detail::parse_http_version(
-        v_.version, it, end, ec);
-    if(ec.failed())
-        return start;
+    {
+        char v;
+        it = detail::parse_http_version(
+            v, it, end, ec);
+        if(ec.failed())
+            return start;
+        switch(v)
+        {
+        case 10:
+        case 11:
+            v_.version = v;
+            break;
+        default:
+            ec = error::bad_version;
+            break;
+        }
+        if(ec.failed())
+            return start;
+    }
 
     // CRLF
     if(end - it < 2)

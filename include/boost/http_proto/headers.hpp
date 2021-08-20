@@ -17,8 +17,11 @@
 namespace boost {
 namespace http_proto {
 
-// forward declared
+#ifndef BOOST_HTTP_PROTO_DOCS
+// forward declarations
 enum class field : unsigned short;
+class headers_view;
+#endif
 
 class headers
 {
@@ -47,8 +50,22 @@ public:
     BOOST_HTTP_PROTO_DECL
     ~headers();
 
+    /** Constructor
+
+        Default-constructed headers have no fields.
+    */
+    headers() noexcept = default;
+
+    inline
+    iterator
+    begin() const noexcept;
+
+    inline
+    iterator
+    end() const noexcept;
+
     BOOST_HTTP_PROTO_DECL
-    headers() noexcept;
+    operator headers_view() const noexcept;
 
     //--------------------------------------------
     //
@@ -84,14 +101,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     value_type const
     operator[](std::size_t i) const noexcept;  
-
-    inline
-    iterator
-    begin() const noexcept;
-
-    inline
-    iterator
-    end() const noexcept;
 
     /// Returns true if a field exists
     BOOST_HTTP_PROTO_DECL

@@ -11,6 +11,7 @@
 #include <boost/http_proto/request_parser.hpp>
 
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/version.hpp>
 
 #include "test_suite.hpp"
 
@@ -47,7 +48,8 @@ public:
             p.parse_header(ec);
             if(ec == error::need_more)
                 continue;
-            return ! ec.failed();
+            return ec ==
+                error::end_of_message;
         }
         return false;
     }
@@ -72,13 +74,13 @@ public:
     check(
         method m,
         string_view t,
-        int v,
+        version v,
         string_view const s)
     {
         auto const f =
             [&](request_parser const& p)
         {
-            auto const req = p.header();
+            auto const req = p.get();
             BOOST_TEST(req.method() == m);
             BOOST_TEST(req.method_str() ==
                 to_string(m));
@@ -103,7 +105,7 @@ public:
             if(! ec)
                 f(p);
         }
-
+#if 0
         // two buffers
         for(std::size_t i = 1;
             i < s.size(); ++i)
@@ -138,12 +140,14 @@ public:
             //BOOST_TEST(p.is_done());
             f(p);
         }
+#endif
     }
 
     void
     testParse()
     {
-        check(method::get, "/", 1,
+        check(method::get, "/",
+            version::http_1_1,
             "GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
             "Content-Length: 42\r\n"
@@ -197,6 +201,11 @@ public:
     void
     run()
     {
+        BOOST_TEST(valid(
+            "GET / HTTP/1.1\r\n"
+            "x:\r\n"
+            "\r\n", 1));
+
         testParse();
         testParseField();
     }

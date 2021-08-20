@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/headers_view.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/ftab.hpp>
@@ -37,8 +38,17 @@ headers::
 }
 
 headers::
-headers() noexcept = default;
+operator headers_view() const noexcept
+{
+    return headers_view(
+        buf_, count_, capacity_,
+        fields_bytes_, prefix_bytes_);
+}
 
+//------------------------------------------------
+//
+// Observers
+//
 //------------------------------------------------
 
 auto
@@ -248,6 +258,12 @@ find(
             break;
     return i;
 }
+
+//------------------------------------------------
+//
+// Modifiers
+//
+//------------------------------------------------
 
 char*
 headers::

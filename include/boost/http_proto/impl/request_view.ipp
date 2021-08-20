@@ -17,31 +17,30 @@ namespace http_proto {
 
 request_view::
 request_view(
-    char const* base,
-    std::size_t size,
-    unsigned short n_method,
-    unsigned short n_target,
+    char const* buf,
+    std::size_t count,
+    std::size_t capacity,
+    std::size_t fields_bytes,
+    std::size_t prefix_bytes,
+    std::size_t method_len,
+    std::size_t target_len,
     http_proto::method method,
-    int version) noexcept
-    : base_(base)
-    , size_(size)
-    , n_method_(n_method)
-    , n_target_(n_target)
+    http_proto::version version) noexcept
+    : method_len_(method_len)
+    , target_len_(target_len)
     , method_(method)
     , version_(version)
+    , fields(
+        buf,
+        count,
+        capacity,
+        fields_bytes,
+        prefix_bytes)
 {
 }
 
 request_view::
-request_view() noexcept
-    : base_("")
-    , size_(0)
-    , method_(http_proto::method::unknown)
-    , version_(0)
-    , n_method_(0)
-    , n_target_(0)
-{
-}
+request_view() noexcept = default;
 
 } // http_proto
 } // boost

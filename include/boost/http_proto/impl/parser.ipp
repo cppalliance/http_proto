@@ -119,7 +119,7 @@ reset()
         }
     }
 
-    m_ = message();
+    m_ = message{};
     state_ = state::start_line;
 }
 
@@ -593,6 +593,7 @@ parse_fields(
         default:
             break;
         }
+        ++m_.fields;
         cit = p.increment(cit, end, ec);
     }
     return it;

@@ -26,6 +26,7 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
+enum class version : char;
 #endif
 
 struct chunk_info
@@ -72,6 +73,7 @@ BOOST_HTTP_PROTO_PROTECTED:
 
     struct message
     {
+        std::size_t fields;         // number of fields
         std::size_t n_header;       // bytes of header
         std::size_t n_chunk;        // bytes of chunk header
         std::size_t n_payload;      // bytes of body or chunk
@@ -80,7 +82,7 @@ BOOST_HTTP_PROTO_PROTECTED:
         std::uint64_t payload_seen; // total body received
         std::uint64_t content_length;
         chunk_info chunk;
-        char version;               // HTTP-version, 0 or 1
+        http_proto::version version;// HTTP-version
 
         bool skip_body : 1;         // no body expected
         bool got_chunked : 1;

@@ -42,7 +42,7 @@ public:
     {
         string_view method;
         string_view target;
-        int version;
+        char version; // 2 digits
     };
 
     value_type const&

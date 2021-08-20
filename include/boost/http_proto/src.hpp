@@ -34,7 +34,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/error.ipp>
 #include <boost/http_proto/impl/field.ipp>
 #include <boost/http_proto/impl/headers.ipp>
-#include <boost/http_proto/impl/headers.ipp>
+#include <boost/http_proto/impl/headers_view.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>

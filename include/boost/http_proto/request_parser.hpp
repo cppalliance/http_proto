@@ -25,6 +25,7 @@ class request_parser
     : public parser
 {
     http_proto::method method_;
+
     off_t n_method_;
     off_t n_target_;
 
@@ -34,9 +35,11 @@ public:
     request_parser(
         context& ctx) noexcept;
 
+    /** Return a reference to the parsed request header.
+    */
     BOOST_HTTP_PROTO_DECL
     request_view
-    header() const noexcept;
+    get() const noexcept;
 
 private:
     char*

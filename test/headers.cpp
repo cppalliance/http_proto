@@ -11,6 +11,7 @@
 #include <boost/http_proto/headers.hpp>
 
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/headers_view.hpp>
 #include "test_suite.hpp"
 
 namespace boost {
@@ -19,6 +20,12 @@ namespace http_proto {
 class headers_test
 {
 public:
+    void
+    testConversion(
+        headers_view)
+    {
+    }
+
     void run()
     {
         headers h;
@@ -81,6 +88,8 @@ public:
             "b").make_list() == "2");
         BOOST_TEST(h.matching(
             "a").make_list() == "1,3");
+
+        testConversion(h);
     }
 };
 

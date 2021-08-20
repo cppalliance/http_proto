@@ -27,7 +27,7 @@ using pchar_set =
 static
 char const*
 parse_http_version(
-    int& result,
+    char& result,
     char const* start,
     char const* end,
     error_code& ec) noexcept;

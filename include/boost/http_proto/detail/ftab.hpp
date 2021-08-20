@@ -36,10 +36,12 @@ struct fitem
 template<class Char>
 struct ftab
 {
+#if 0
     BOOST_STATIC_ASSERT(
         std::is_same<Char,
         typename std::remove_const<
             Char>::type>::value);
+#endif
 
     using value_type = 
         typename std::conditional<
