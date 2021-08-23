@@ -19,9 +19,9 @@ request_view::
 request_view(
     char const* buf,
     std::size_t count,
-    std::size_t capacity,
+    std::size_t start_bytes,
     std::size_t fields_bytes,
-    std::size_t prefix_bytes,
+    std::size_t capacity,
     std::size_t method_len,
     std::size_t target_len,
     http_proto::method method,
@@ -33,9 +33,9 @@ request_view(
     , fields(
         buf,
         count,
-        capacity,
+        start_bytes,
         fields_bytes,
-        prefix_bytes)
+        capacity)
 {
 }
 

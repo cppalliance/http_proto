@@ -85,7 +85,7 @@ at(std::size_t i) const ->
 {
     if(i < count_)
     {
-        auto const ft =
+        auto const& ft =
             detail::get_ftab(
                 buf_ + capacity_)[i];
         return value_type {

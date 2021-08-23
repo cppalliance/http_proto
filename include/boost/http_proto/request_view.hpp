@@ -29,8 +29,8 @@ class request_view
 
     friend class request_parser;
 
-    off_t method_len_ = 0;
-    off_t target_len_ = 0;
+    std::size_t method_len_ = 0;
+    std::size_t target_len_ = 0;
     http_proto::method method_;
     http_proto::version version_;
 
@@ -38,9 +38,9 @@ class request_view
     request_view(
         char const* buf,
         std::size_t count,
-        std::size_t capacity,
+        std::size_t start_bytes,
         std::size_t fields_bytes,
-        std::size_t prefix_bytes,
+        std::size_t capacity,
         std::size_t method_len,
         std::size_t target_len,
         http_proto::method method,

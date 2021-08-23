@@ -14,13 +14,37 @@
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/headers_view.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/ftab.hpp>
+#include <cstring>
 #include <utility>
 
 namespace boost {
 namespace http_proto {
 
+class headers::growth
+{
+    char* buf_ = nullptr;
+    char* old_ = nullptr;
+
+public:
+    ~growth()
+    {
+        if(old_)
+            delete[] old_;
+    }
+
+    growth(
+        std::size_t size_extra,
+        std::size_t count_extra)
+    {
+    }
+};
+
+//------------------------------------------------
+
+constexpr
 std::size_t
 headers::
 align_up(std::size_t n) noexcept
@@ -28,6 +52,28 @@ align_up(std::size_t n) noexcept
     auto const a = sizeof(
         detail::fitem);
     return a * ((n + a - 1) / a);
+}
+
+// returns minimum capacity to hold
+// size characters and count table
+// entries, including alignment.
+constexpr
+std::size_t
+headers::
+bytes_needed(
+    std::size_t size,
+    std::size_t count) noexcept
+{
+    return align_up(size +
+        count * sizeof(
+            detail::fitem));
+}
+
+headers::
+headers(
+    string_view empty_start) noexcept
+    : empty_start_(empty_start)
+{
 }
 
 headers::
@@ -41,8 +87,11 @@ headers::
 operator headers_view() const noexcept
 {
     return headers_view(
-        buf_, count_, capacity_,
-        fields_bytes_, prefix_bytes_);
+        buf_,
+        count_,
+        start_bytes_,
+        fields_bytes_,
+        capacity_);
 }
 
 //------------------------------------------------
@@ -231,6 +280,65 @@ matching(
 }
 
 //------------------------------------------------
+//
+// Modifiers
+//
+//------------------------------------------------
+
+void
+headers::
+clear() noexcept
+{
+}
+
+void
+headers::
+reserve(std::size_t n)
+{
+    (void)n;
+}
+
+void
+headers::
+shrink_to_fit() noexcept
+{
+}
+
+void
+headers::
+append(
+    field f,
+    string_view value)
+{
+    append(f, to_string(f), value);
+}
+
+void
+headers::
+append(
+    string_view name,
+    string_view value)
+{
+    append(string_to_field(name),
+        name, value);
+}
+
+//------------------------------------------------
+//
+// private observers
+//
+//------------------------------------------------
+
+string_view
+headers::
+str_impl() const noexcept
+{
+    if(buf_)
+        return string_view(buf_,
+            start_bytes_ +
+                fields_bytes_);
+    return empty_start_;
+}
 
 std::size_t
 headers::
@@ -261,50 +369,112 @@ find(
 
 //------------------------------------------------
 //
-// Modifiers
+// private modifiers
 //
 //------------------------------------------------
 
+auto
+headers::
+alloc(
+    std::size_t size,
+    std::size_t count) ->
+        alloc_t
+{
+    if(size > max_header_size_)
+        detail::throw_length_error(
+            "header too big",
+            BOOST_CURRENT_LOCATION);
+    if(! buf_)
+    {
+        // apply minimums to the
+        // first allocation to prevent
+        // many small reallocations.
+        if( size < 256)
+            size = 256; // bytes of header
+        if( count < 8)
+            count = 8;  // number of fields
+        auto n = bytes_needed(
+            size, count);
+        return { new char[n], n };
+    }
+
+    // reallocate
+    auto n = bytes_needed(size, count);
+    BOOST_ASSERT(capacity_ < n);
+    auto const growth = align_up(
+        (capacity_ + capacity_ / 2));
+    if(growth < capacity_)
+    {
+        // unsigned overflow
+        detail::throw_length_error(
+            "header too big",
+            BOOST_CURRENT_LOCATION);
+    }
+    if( n < growth)
+        n = growth;
+    return { new char[n], n };
+}
+
 char*
 headers::
-resize_prefix(
+resize_start_line(
     std::size_t n)
 {
     if(! buf_)
     {
-        buf_ = new char[1024];
+        // new buffer
+        auto al =
+            alloc(n + 2, 0);
+        buf_ = al.buf;
+        capacity_ =
+            al.capacity;
         count_ = 0;
-        capacity_ = 1024;
-        prefix_bytes_ = n;
-        fields_bytes_ = 0;
-
+        start_bytes_ = n;
+        fields_bytes_ = 2;
         buf_[n] = '\r';
         buf_[n+1] = '\n';
+        return buf_;
     }
 
+    if(n == fields_bytes_)
+    {
+        // no change in size
+        return buf_;
+    }
+
+    auto const need =
+        bytes_needed(
+            n + fields_bytes_,
+            count_);
+    if(need <= capacity_)
+    {
+        // existing buffer
+        std::memmove(
+            buf_ + n,
+            buf_ + start_bytes_,
+            fields_bytes_);
+        start_bytes_ = n;
+        buf_[n] = '\r';
+        buf_[n+1] = '\n';
+        return buf_;
+    }
+
+    // grow
+    auto al = alloc(
+        n + fields_bytes_,
+        count_);
+    std::memmove(
+        al.buf + n,
+        buf_ + start_bytes_,
+        fields_bytes_);
+    delete[] buf_;
+    buf_ = al.buf;
+    start_bytes_ = n;
+    capacity_ = al.capacity;
+    buf_[n] = '\r';
+    buf_[n+1] = '\n';
     return buf_;
 }
-
-void
-headers::
-append(
-    field f,
-    string_view value)
-{
-    append(f, to_string(f), value);
-}
-
-void
-headers::
-append(
-    string_view name,
-    string_view value)
-{
-    append(string_to_field(name),
-        name, value);
-}
-
-//------------------------------------------------
 
 void
 headers::
@@ -313,31 +483,28 @@ append(
     string_view name,
     string_view value)
 {
-    auto const n =
-        name.size() + 2 +
-        value.size() + 2;
+    detail::copied_strings cs(
+        str_impl());
+    name = cs.maybe_copy(name);
+    value = cs.maybe_copy(value);
 
-    // calculate new size
-    auto const need = align_up(
-        prefix_bytes_ +
-        fields_bytes_ + n + 2 +
-        sizeof(detail::fitem) *
-            (count_ + 1));
-    // VFALCO we shouldn't count the
-    // fields table towards the max
-    if(need > off_t(-1))
-        detail::throw_length_error(
-            "too long",
-            BOOST_CURRENT_LOCATION);
+    auto const need =
+        bytes_needed(
+            name.size() + 2 +
+                value.size() + 2,
+            count_ + 1);
 
     if(buf_ != nullptr)
     {
         if(capacity_ < need)
         {
+            BOOST_ASSERT(
+                start_bytes_ +
+                fields_bytes_ >= 2);
             char* buf = new char[need];
             std::memcpy(buf, buf_,
-                prefix_bytes_ +
-                fields_bytes_);
+                start_bytes_ +
+                fields_bytes_ - 2);
             auto const tabsize = sizeof(
                 detail::fitem) * count_;
             std::memcpy(
@@ -351,15 +518,19 @@ append(
     }
     else
     {
-        buf_ = new char[need];
+        //auto al = alloc(
+
+        //buf_ = new char[need];
         count_ = 0;
+        start_bytes_ = 0;
+        fields_bytes_ = 2;
         capacity_ = need;
-        fields_bytes_ = 0;
-        prefix_bytes_ = 0;
+        buf_[0] = '\r';
+        buf_[1] = '\n';
     }
 
     auto dest = buf_ +
-        prefix_bytes_ +
+        start_bytes_ +
         fields_bytes_;
     auto& ft = detail::get_ftab(
         buf_ + capacity_)[count_];
@@ -386,11 +557,11 @@ append(
     dest += value.size();
     *dest++ = '\r';
     *dest++ = '\n';
-    fields_bytes_ =
-        dest - buf_ -
-            prefix_bytes_;
     *dest++ = '\r';
     *dest++ = '\n';
+    fields_bytes_ =
+        dest - buf_ -
+            start_bytes_;
     ++count_;
 }
 

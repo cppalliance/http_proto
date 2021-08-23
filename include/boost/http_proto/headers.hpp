@@ -28,13 +28,35 @@ class headers
     using off_t = std::uint16_t;
 
     char* buf_ = nullptr;
+    string_view empty_start_;
     std::size_t count_ = 0;
-    std::size_t capacity_ = 0;
+    std::size_t start_bytes_ = 0;
     std::size_t fields_bytes_ = 0;
-    std::size_t prefix_bytes_ = 0;
+    std::size_t capacity_ = 0;
 
-    static std::size_t align_up(
+    friend class request;
+    friend class response;
+    class growth;
+
+    static constexpr std::size_t
+        max_header_size_ = ((off_t)(-1));
+
+    constexpr
+    static
+    std::size_t
+    align_up(
         std::size_t n) noexcept;
+
+    constexpr
+    static
+    std::size_t
+    bytes_needed(
+        std::size_t size,
+        std::size_t count) noexcept;
+
+    explicit
+    headers(
+        string_view empty_start) noexcept;
 
 public:
     struct value_type
@@ -78,9 +100,11 @@ public:
     string_view
     str() const noexcept
     {
-        return string_view(buf_,
-            prefix_bytes_ +
-            fields_bytes_ + 2);
+        if(buf_)
+            return string_view(buf_,
+                start_bytes_ +
+                fields_bytes_);
+        return empty_start_;
     }
 
     /** Returns the number of fields in the container
@@ -177,10 +201,11 @@ public:
     //
     //--------------------------------------------
 
+    /** Clear the contents, but not the capacity
+    */
     BOOST_HTTP_PROTO_DECL
-    char*
-    resize_prefix(
-        std::size_t n);
+    void
+    clear() noexcept;
 
     /** Reserve additional storage
     */
@@ -192,13 +217,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    shrink_to_fit();
-
-    /** Clear the contents, but not the capacity
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
+    shrink_to_fit() noexcept;
 
     /** Append the header with the given name and value.
 
@@ -247,6 +266,10 @@ public:
 #endif
 
 private:
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    str_impl() const noexcept;
+
     std::size_t
     find(
         std::size_t after,
@@ -256,6 +279,22 @@ private:
     find(
         std::size_t after,
         string_view name) const noexcept;
+
+    struct alloc_t
+    {
+        char* buf;
+        std::size_t capacity;
+    };
+
+    alloc_t
+    alloc(
+        std::size_t size,
+        std::size_t count);
+
+    BOOST_HTTP_PROTO_DECL
+    char*
+    resize_start_line(
+        std::size_t n);
 
     BOOST_HTTP_PROTO_DECL
     void

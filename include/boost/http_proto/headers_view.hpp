@@ -31,9 +31,9 @@ class headers_view
 
     char const* buf_ = nullptr;
     std::size_t count_ = 0;
-    std::size_t capacity_ = 0;
+    std::size_t start_bytes_ = 0;
     std::size_t fields_bytes_ = 0;
-    std::size_t prefix_bytes_ = 0;
+    std::size_t capacity_ = 0;
 
     friend class headers;
     friend class request_view;
@@ -48,14 +48,14 @@ class headers_view
     headers_view(
         char const* buf,
         std::size_t count,
-        std::size_t capacity,
+        std::size_t start_bytes,
         std::size_t fields_bytes,
-        std::size_t prefix_bytes) noexcept
+        std::size_t capacity) noexcept
         : buf_(buf)
         , count_(count)
-        , capacity_(capacity)
+        , start_bytes_(start_bytes)
         , fields_bytes_(fields_bytes)
-        , prefix_bytes_(prefix_bytes)
+        , capacity_(capacity)
     {
     }
 
@@ -101,8 +101,8 @@ public:
     str() const noexcept
     {
         return string_view(buf_,
-            prefix_bytes_ +
-            fields_bytes_ + 2);
+            start_bytes_ +
+            fields_bytes_);
     }
 
     /** Returns the number of fields in the container

@@ -16,6 +16,7 @@
 #include "test_suite.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <string>
 
 namespace boost {
@@ -25,6 +26,38 @@ class request_parser_test
 {
 public:
     context ctx_;
+
+    bool
+    feed(
+        parser& p,
+        string_view s)
+    {
+        while(! s.empty())
+        {
+            auto b = p.prepare();
+            auto n = b.second;
+            if( n > s.size())
+                n = s.size();
+            std::memcpy(b.first,
+                s.data(), n);
+            p.commit(n);
+            s.remove_prefix(n);
+            error_code ec;
+            p.parse_header(ec);
+            if(ec == error::end_of_message
+                || ! ec)
+                break;
+            if(! BOOST_TEST(
+                ec == error::need_more))
+            {
+                test_suite::debug_stream dout(
+                    std::cout);
+                dout << ec.message() << "\n";
+                return false;
+            }
+        }
+        return true;
+    }
 
     bool
     valid(
@@ -105,7 +138,7 @@ public:
             if(! ec)
                 f(p);
         }
-#if 0
+
         // two buffers
         for(std::size_t i = 1;
             i < s.size(); ++i)
@@ -140,7 +173,6 @@ public:
             //BOOST_TEST(p.is_done());
             f(p);
         }
-#endif
     }
 
     void
@@ -199,6 +231,83 @@ public:
     }
 
     void
+    testGet()
+    {
+        request_parser p(ctx_);
+        feed(p,
+            "GET / HTTP/1.1\r\n"
+            "User-Agent: x\r\n"
+            "Connection: close\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "a: 1\r\n"
+            "b: 2\r\n"
+            "a: 3\r\n"
+            "c: 4\r\n"
+            "\r\n");
+
+        auto const rv = p.get();
+        BOOST_TEST(
+            rv.method() == method::get);
+        BOOST_TEST(
+            rv.method_str() == "GET");
+        BOOST_TEST(rv.target() == "/");
+        BOOST_TEST(rv.version() ==
+            version::http_1_1);
+        auto const h = rv.fields;
+        BOOST_TEST(h.str() ==
+            "User-Agent: x\r\n"
+            "Connection: close\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "a: 1\r\n"
+            "b: 2\r\n"
+            "a: 3\r\n"
+            "c: 4\r\n"
+            "\r\n");
+        BOOST_TEST(h.size() == 7);
+        BOOST_TEST(h[0].value == "x");
+        BOOST_TEST(
+            h.exists(field::connection));
+        BOOST_TEST(! h.exists(field::age));
+        BOOST_TEST(h.exists("Connection"));
+        BOOST_TEST(h.exists("CONNECTION"));
+        BOOST_TEST(! h.exists("connector"));
+        BOOST_TEST(h.count(
+            field::transfer_encoding) == 1);
+        BOOST_TEST(
+            h.count(field::age) == 0);
+        BOOST_TEST(
+            h.count("connection") == 1);
+        BOOST_TEST(h.count("a") == 2);
+        BOOST_TEST_NO_THROW(
+            h.at(field::user_agent) == "x");
+        BOOST_TEST_NO_THROW(
+            h.at("a") == "1");
+        BOOST_TEST_THROWS(h.at(field::age),
+            std::exception);
+        BOOST_TEST_THROWS(h.at("d"),
+            std::exception);
+        BOOST_TEST(
+            h.value_or("a", "x") == "1");
+        BOOST_TEST(
+            h.value_or("d", "x") == "x");
+        BOOST_TEST(h.value_or(
+            field::age, "x") == "x");
+        BOOST_TEST(h.value_or(
+            field::user_agent, {}) == "x");
+        BOOST_TEST(h.find(
+            field::connection)->id ==
+                field::connection);
+        BOOST_TEST(
+            h.find("a")->value == "1");
+        BOOST_TEST(h.matching(
+            field::user_agent).make_list() == "x");
+        BOOST_TEST(h.matching(
+            "b").make_list() == "2");
+        BOOST_TEST(h.matching(
+            "a").make_list() == "1,3");
+    }
+
+    void
     run()
     {
         BOOST_TEST(valid(
@@ -208,6 +317,7 @@ public:
 
         testParse();
         testParseField();
+        testGet();
     }
 };
 

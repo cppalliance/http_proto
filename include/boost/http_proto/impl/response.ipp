@@ -58,7 +58,7 @@ set_result(
         reason = obsolete_reason(code);
 
     // "HTTP/1.1 200 OK\r\n"
-    auto dest = fields.resize_prefix(
+    auto dest = fields.resize_start_line(
         8 + 1 + 3 + 1 + reason.size() + 2);
 
     string_view s;

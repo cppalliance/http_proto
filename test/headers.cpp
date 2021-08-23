@@ -37,7 +37,7 @@ public:
         h.append("a", "3" );
         h.append("c", "4" );
 
-        BOOST_TEST(h.str() ==
+        string_view s =
             "User-Agent: x\r\n"
             "Connection: close\r\n"
             "Transfer-Encoding: chunked\r\n"
@@ -45,7 +45,8 @@ public:
             "b: 2\r\n"
             "a: 3\r\n"
             "c: 4\r\n"
-            "\r\n");
+            "\r\n";
+        BOOST_TEST(h.str() == s);
         BOOST_TEST(h.size() == 7);
         BOOST_TEST(h[0].value == "x");
         BOOST_TEST(

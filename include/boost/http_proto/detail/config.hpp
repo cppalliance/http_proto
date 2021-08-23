@@ -14,6 +14,10 @@
 //#include <boost/assert.hpp>
 //#include <boost/throw_exception.hpp>
 
+namespace boost {
+namespace http_proto {
+namespace detail {
+
 #if defined(BOOST_HTTP_PROTO_DOCS)
 # define BOOST_HTTP_PROTO_DECL
 # define BOOST_HTTP_PROTO_PROTECTED private
@@ -40,5 +44,9 @@
 #  include <boost/config/auto_link.hpp>
 # endif
 #endif
+
+} // detail
+} // http_proto
+} // boost
 
 #endif

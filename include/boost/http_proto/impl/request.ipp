@@ -11,13 +11,81 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_IPP
 
 #include <boost/http_proto/request.hpp>
-#include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/detail/copied_strings.hpp>
 
 namespace boost {
 namespace http_proto {
 
 request::
-request() = default;
+request()
+    : method_(method::get)
+    , version_(http_proto::version::http_1_1)
+    , method_size_(3)
+    , target_size_(1)
+    , fields(
+        "GET / HTTP/1.1\r\n"
+        "\r\n")
+{
+}
+
+//------------------------------------------------
+
+void
+request::
+clear() noexcept
+{
+    version_ =
+        http_proto::version::http_1_1;
+    method_size_ = 3;
+    target_size_ = 1;
+    fields.clear();
+}
+
+void
+request::
+set(http_proto::method m,
+    string_view ms,
+    string_view t,
+    http_proto::version v)
+{
+    detail::copied_strings cs(
+        fields.str_impl());
+    ms = cs.maybe_copy(ms);
+    t = cs.maybe_copy(t);
+
+    auto const vs =
+        to_string(v);
+    auto const n =
+        ms.size() + 1 +
+        t.size() + 1 +
+        vs.size() + 2;
+    auto dest =
+        fields.resize_start_line(n);
+    std::memcpy(
+        dest,
+        ms.data(),
+        ms.size());
+    dest += ms.size();
+    *dest++ = ' ';
+    std::memcpy(
+        dest,
+        t.data(),
+        t.size());
+    dest += t.size();
+    *dest++ = ' ';
+    std::memcpy(
+        dest,
+        vs.data(),
+        vs.size());
+    dest += vs.size();
+    *dest++ = '\r';
+    *dest++ = '\n';
+
+    method_ = m;
+    version_ = v;
+    method_size_ = ms.size();
+    target_size_ = t.size();
+}
 
 } // http_proto
 } // boost
