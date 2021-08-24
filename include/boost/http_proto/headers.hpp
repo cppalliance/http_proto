@@ -27,12 +27,12 @@ class headers
 {
     using off_t = std::uint16_t;
 
-    char* buf_ = nullptr;
-    string_view empty_start_;
-    std::size_t count_ = 0;
-    std::size_t start_bytes_ = 0;
-    std::size_t fields_bytes_ = 0;
-    std::size_t capacity_ = 0;
+    char* buf_;
+    string_view empty_;
+    std::size_t count_;
+    std::size_t start_bytes_;
+    std::size_t fields_bytes_;
+    std::size_t capacity_;
 
     friend class request;
     friend class response;
@@ -56,7 +56,7 @@ class headers
 
     explicit
     headers(
-        string_view empty_start) noexcept;
+        string_view empty) noexcept;
 
 public:
     struct value_type
@@ -74,9 +74,11 @@ public:
 
     /** Constructor
 
-        Default-constructed headers have no fields.
+        Default-constructed headers have no
+        initial fields.
     */
-    headers() noexcept = default;
+    BOOST_HTTP_PROTO_DECL
+    headers() noexcept;
 
     inline
     iterator
@@ -104,7 +106,7 @@ public:
             return string_view(buf_,
                 start_bytes_ +
                 fields_bytes_);
-        return empty_start_;
+        return empty_;
     }
 
     /** Returns the number of fields in the container
@@ -293,8 +295,16 @@ private:
 
     BOOST_HTTP_PROTO_DECL
     char*
-    resize_start_line(
+    set_start_line(
         std::size_t n);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    insert(
+        field id,
+        string_view name,
+        string_view value,
+        std::size_t before);
 
     BOOST_HTTP_PROTO_DECL
     void

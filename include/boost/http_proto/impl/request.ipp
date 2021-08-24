@@ -60,7 +60,7 @@ set(http_proto::method m,
         t.size() + 1 +
         vs.size() + 2;
     auto dest =
-        fields.resize_start_line(n);
+        fields.set_start_line(n);
     std::memcpy(
         dest,
         ms.data(),

@@ -23,22 +23,90 @@
 namespace boost {
 namespace http_proto {
 
+// algorithm for allocating
 class headers::growth
 {
-    char* buf_ = nullptr;
-    char* old_ = nullptr;
+    headers& self_;
+    std::size_t extra_;
+    char* old_buf_ = nullptr;
+
+    static
+    constexpr
+    std::size_t
+    align_up(std::size_t n) noexcept
+    {
+        constexpr auto a =
+            sizeof(detail::fitem);
+        return a * ((n + a - 1) / a);
+    }
 
 public:
+    char const*
+    old_buf() const noexcept
+    {
+        return old_buf_;
+    }
+
     ~growth()
     {
-        if(old_)
-            delete[] old_;
+        if(old_buf_)
+            delete[] old_buf_;
     }
 
     growth(
-        std::size_t size_extra,
-        std::size_t count_extra)
+        std::size_t extra,
+        headers& self)
+        : self_(self)
+        , extra_(extra)
     {
+        // assume we also need room
+        // for one more table entry
+        auto need = align_up(
+            self_.start_bytes_ +
+            self_.fields_bytes_ +
+            extra_ + (self_.count_ + 1) *
+                sizeof(detail::fitem));
+        if(! self_.buf_)
+        {
+            // initial allocation
+            BOOST_ASSERT(
+                self_.empty_.size() < 40);
+            auto constexpr initial_size =
+                align_up(256 + 8 *
+                sizeof(detail::fitem));
+            // prevent small allocs
+            if( need < initial_size)
+                need = initial_size;
+            self_.buf_ = new char[need];
+            old_buf_ = nullptr;
+            BOOST_ASSERT(
+                self_.empty_.size() >= 2);
+            self_.start_bytes_ =
+                self_.empty_.size() - 2;
+            self_.fields_bytes_ = 2;
+            self_.capacity_ = need;
+            auto dest = self_.buf_ +
+                self_.start_bytes_;
+            dest[0] = '\r';
+            dest[1] = '\n';
+            return;
+        }
+        if(need <= self_.capacity_)
+        {
+            old_buf_ = nullptr;
+
+        }
+    }
+
+    void
+    insert(std::size_t before)
+    {
+    }
+
+    char*
+    set_start_line()
+    {
+
     }
 };
 
@@ -71,10 +139,18 @@ bytes_needed(
 
 headers::
 headers(
-    string_view empty_start) noexcept
-    : empty_start_(empty_start)
+    string_view empty) noexcept
+    : buf_(nullptr)
+    , empty_(empty)
+    , count_(0)
+    , start_bytes_(
+        empty.size() - 2)
+    , fields_bytes_(2) // CRLF
+    , capacity_(empty.size())
 {
 }
+
+//------------------------------------------------
 
 headers::
 ~headers()
@@ -84,10 +160,17 @@ headers::
 }
 
 headers::
+headers() noexcept
+    : headers(
+        string_view("\r\n"))
+{
+}
+
+headers::
 operator headers_view() const noexcept
 {
     return headers_view(
-        buf_,
+        str_impl().data(),
         count_,
         start_bytes_,
         fields_bytes_,
@@ -337,7 +420,7 @@ str_impl() const noexcept
         return string_view(buf_,
             start_bytes_ +
                 fields_bytes_);
-    return empty_start_;
+    return empty_;
 }
 
 std::size_t
@@ -417,7 +500,7 @@ alloc(
 
 char*
 headers::
-resize_start_line(
+set_start_line(
     std::size_t n)
 {
     if(! buf_)
@@ -478,11 +561,112 @@ resize_start_line(
 
 void
 headers::
+insert(
+    field id,
+    string_view name,
+    string_view value,
+    std::size_t before)
+{
+    detail::copied_strings cs(
+        str_impl());
+    auto const extra =
+        name.size() + 2 +
+        value.size() + 2;
+    // assume we also need room
+    // for one more table entry
+    auto new_cap = align_up(
+        start_bytes_ +
+        fields_bytes_ +
+        extra + (count_ + 1) *
+            sizeof(detail::fitem));
+
+    if(! buf_)
+    {
+        // first allocation
+        BOOST_ASSERT(
+            empty_.size() < 40);
+        auto constexpr min_cap =
+            align_up(256 + 8 *
+            sizeof(detail::fitem));
+        // prevent small allocs
+        if( new_cap < min_cap)
+            new_cap = min_cap;
+        buf_ = new char[new_cap];
+        BOOST_ASSERT(
+            empty_.size() >= 2);
+        BOOST_ASSERT(start_bytes_ ==
+            empty_.size() - 2);
+        BOOST_ASSERT(
+            fields_bytes_ == 2);
+
+        // copy default start-line
+        // since we are inserting a field
+        std::memcpy(
+            buf_,
+            empty_.data(),
+            empty_.size());
+        capacity_ = new_cap;
+    }
+    else if(new_cap > capacity_)
+    {
+        // reallocate
+
+    }
+    else
+    {
+        // handle self modifying params
+        name = cs.maybe_copy(name);
+        value = cs.maybe_copy(value);
+    }
+
+    // write the inserted field
+    auto dest = buf_ +
+        start_bytes_ +
+        fields_bytes_;
+    auto& ft = detail::get_ftab(
+        buf_ + capacity_)[count_];
+    ft.id = id;
+    ft.name_len = static_cast<
+        off_t>(name.size());
+    ft.value_len = static_cast<
+        off_t>(value.size());
+    ft.name_pos = static_cast<
+        off_t>(dest - buf_);
+    std::memcpy(
+        dest,
+        name.data(),
+        name.size());
+    dest += name.size();
+    *dest++ = ':';
+    *dest++ = ' ';
+    ft.value_pos = static_cast<
+        off_t>(dest - buf_);
+    std::memcpy(
+        dest,
+        value.data(),
+        value.size());
+    dest += value.size();
+    *dest++ = '\r';
+    *dest++ = '\n';
+    *dest++ = '\r';
+    *dest++ = '\n';
+    fields_bytes_ =
+        dest - buf_ -
+            start_bytes_;
+    ++count_;
+
+}
+
+void
+headers::
 append(
     field id,
     string_view name,
     string_view value)
 {
+#if 1
+    insert(id, name, value, count_);
+#else
     detail::copied_strings cs(
         str_impl());
     name = cs.maybe_copy(name);
@@ -563,6 +747,7 @@ append(
         dest - buf_ -
             start_bytes_;
     ++count_;
+#endif
 }
 
 //------------------------------------------------
