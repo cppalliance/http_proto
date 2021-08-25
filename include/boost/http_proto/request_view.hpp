@@ -25,7 +25,8 @@ enum class version : char;
 
 class request_view
 {
-    using off_t = std::uint16_t;
+    // headers have a maximum size of 2^32-1 chars
+    using off_t = std::uint32_t;
 
     friend class request_parser;
 

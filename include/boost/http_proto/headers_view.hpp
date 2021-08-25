@@ -27,7 +27,8 @@ enum class field : unsigned short;
 */
 class headers_view
 {
-    using off_t = std::uint16_t;
+    // headers have a maximum size of 2^32-1 chars
+    using off_t = std::uint32_t;
 
     char const* buf_ = nullptr;
     std::size_t count_ = 0;

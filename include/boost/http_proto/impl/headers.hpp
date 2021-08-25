@@ -109,24 +109,6 @@ public:
 
 //------------------------------------------------
 
-auto
-headers::
-begin() const noexcept ->
-    iterator
-{
-    return iterator(this, 0);
-}
-
-auto
-headers::
-end() const noexcept ->
-    iterator
-{
-    return iterator(this, count_);
-}
-
-//------------------------------------------------
-
 class headers::subrange::iterator
 {
     headers const* h_ = nullptr;
@@ -227,6 +209,104 @@ end() const noexcept ->
 }
 
 //------------------------------------------------
+
+auto
+headers::
+begin() const noexcept ->
+    iterator
+{
+    return iterator(this, 0);
+}
+
+auto
+headers::
+end() const noexcept ->
+    iterator
+{
+    return iterator(this, count_);
+}
+
+bool
+headers::
+exists(
+    field id) const noexcept
+{
+    return find(id) != end();
+}
+
+bool
+headers::
+exists(
+    string_view name) const noexcept
+{
+    return find(name) != end();
+}
+
+string_view
+headers::
+at(field id) const
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    detail::throw_invalid_argument(
+        "not found", BOOST_CURRENT_LOCATION);
+}
+
+string_view
+headers::
+at(string_view name) const
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    detail::throw_invalid_argument(
+        "not found", BOOST_CURRENT_LOCATION);
+}
+
+string_view
+headers::
+value_or(
+    field id,
+    string_view v) const noexcept
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    return v;
+}
+
+string_view
+headers::
+value_or(
+    string_view name,
+    string_view v) const noexcept
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    return v;
+}
+
+auto
+headers::
+matching(
+    field id) const noexcept ->
+        subrange
+{
+    return subrange(
+        this, find(id).i_);
+}
+
+auto
+headers::
+matching(
+    string_view name) const noexcept ->
+        subrange
+{
+    return subrange(
+        this, find(name).i_);
+}
 
 } // http_proto
 } // boost

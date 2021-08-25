@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <string>
 
 namespace boost {
@@ -25,7 +26,8 @@ class headers_view;
 
 class headers
 {
-    using off_t = std::uint16_t;
+    // headers have a maximum size of 2^32-1 chars
+    using off_t = std::uint32_t;
 
     char* buf_;
     string_view empty_;
@@ -36,7 +38,6 @@ class headers
 
     friend class request;
     friend class response;
-    class growth;
 
     static constexpr std::size_t
         max_header_size_ = ((off_t)(-1));
@@ -105,7 +106,7 @@ public:
         if(buf_)
             return string_view(buf_,
                 start_bytes_ +
-                fields_bytes_);
+                fields_bytes_ + 2);
         return empty_;
     }
 
@@ -129,12 +130,12 @@ public:
     operator[](std::size_t i) const noexcept;  
 
     /// Returns true if a field exists
-    BOOST_HTTP_PROTO_DECL
+    inline
     bool
     exists(field id) const noexcept;
 
     /// Returns true if a field exists
-    BOOST_HTTP_PROTO_DECL
+    inline
     bool
     exists(string_view name) const noexcept;
 
@@ -149,29 +150,34 @@ public:
     count(string_view name) const noexcept;
 
     /// Returns the value of the i-th field, or throws if i>=size()
-    BOOST_HTTP_PROTO_DECL
     value_type const
-    at(std::size_t i) const;
+    at(std::size_t i) const
+    {
+        if(i < count_)
+            return (*this)[i];
+        detail::throw_invalid_argument(
+            "bad index", BOOST_CURRENT_LOCATION);
+    }
 
     /// Returns the value of the first matching field if it exists, otherwise throws
-    BOOST_HTTP_PROTO_DECL
+    inline
     string_view
     at(field id) const;
 
     /// Returns the value of the first matching field if it exists, otherwise throws
-    BOOST_HTTP_PROTO_DECL
+    inline
     string_view
     at(string_view name) const;
 
     /// Returns the value of the first matching field, otherwise returns the given string
-    BOOST_HTTP_PROTO_DECL
+    inline
     string_view
     value_or(
         field id,
         string_view v) const noexcept;
 
     /// Returns the value of the first matching field, otherwise returns the given string
-    BOOST_HTTP_PROTO_DECL
+    inline
     string_view
     value_or(
         string_view name,
@@ -188,12 +194,12 @@ public:
     find(string_view name) const noexcept;
 
     /// Return a forward range containing values for all matching fields
-    BOOST_HTTP_PROTO_DECL
+    inline
     subrange
     matching(field id) const noexcept;
 
     /// Return a forward range containing values for all matching fields
-    BOOST_HTTP_PROTO_DECL
+    inline
     subrange
     matching(string_view name) const noexcept;
 

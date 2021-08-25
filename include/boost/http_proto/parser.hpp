@@ -51,8 +51,8 @@ struct chunk_info
 class parser
 {
 BOOST_HTTP_PROTO_PROTECTED:
-    // headers have a maximum size of 65536 chars
-    using off_t = std::uint16_t;
+    // headers have a maximum size of 2^32-1 chars
+    using off_t = std::uint32_t;
 
     enum class state
     {

@@ -22,7 +22,8 @@ namespace http_proto {
 */
 class response
 {
-    using off_t = std::uint16_t;
+    // headers have a maximum size of 2^32-1 chars
+    using off_t = std::uint32_t;
 
     http_proto::version
         version_ = version::http_1_1;

@@ -20,15 +20,27 @@ namespace http_proto {
 namespace detail {
 
 // headers have a maximum size of 65536 chars
-using off_t = std::uint16_t;
+using off_t = std::uint32_t;
 
 struct fitem
 {
-    off_t name_pos;     // name start
+    off_t pos;          // start of field
+    off_t name_pos;     // name offset
     off_t name_len;     // name length
-    off_t value_pos;    // value start
+    off_t value_pos;    // value offset
     off_t value_len;    // value length
     field id;
+
+    void
+    add(std::size_t amount) noexcept
+    {
+        pos += static_cast<
+            off_t>(amount);
+        name_pos += static_cast<
+            off_t>(amount);
+        value_pos += static_cast<
+            off_t>(amount);
+    }
 };
 
 // field array stored at the

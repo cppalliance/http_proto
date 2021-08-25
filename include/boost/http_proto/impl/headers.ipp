@@ -23,95 +23,6 @@
 namespace boost {
 namespace http_proto {
 
-// algorithm for allocating
-class headers::growth
-{
-    headers& self_;
-    std::size_t extra_;
-    char* old_buf_ = nullptr;
-
-    static
-    constexpr
-    std::size_t
-    align_up(std::size_t n) noexcept
-    {
-        constexpr auto a =
-            sizeof(detail::fitem);
-        return a * ((n + a - 1) / a);
-    }
-
-public:
-    char const*
-    old_buf() const noexcept
-    {
-        return old_buf_;
-    }
-
-    ~growth()
-    {
-        if(old_buf_)
-            delete[] old_buf_;
-    }
-
-    growth(
-        std::size_t extra,
-        headers& self)
-        : self_(self)
-        , extra_(extra)
-    {
-        // assume we also need room
-        // for one more table entry
-        auto need = align_up(
-            self_.start_bytes_ +
-            self_.fields_bytes_ +
-            extra_ + (self_.count_ + 1) *
-                sizeof(detail::fitem));
-        if(! self_.buf_)
-        {
-            // initial allocation
-            BOOST_ASSERT(
-                self_.empty_.size() < 40);
-            auto constexpr initial_size =
-                align_up(256 + 8 *
-                sizeof(detail::fitem));
-            // prevent small allocs
-            if( need < initial_size)
-                need = initial_size;
-            self_.buf_ = new char[need];
-            old_buf_ = nullptr;
-            BOOST_ASSERT(
-                self_.empty_.size() >= 2);
-            self_.start_bytes_ =
-                self_.empty_.size() - 2;
-            self_.fields_bytes_ = 2;
-            self_.capacity_ = need;
-            auto dest = self_.buf_ +
-                self_.start_bytes_;
-            dest[0] = '\r';
-            dest[1] = '\n';
-            return;
-        }
-        if(need <= self_.capacity_)
-        {
-            old_buf_ = nullptr;
-
-        }
-    }
-
-    void
-    insert(std::size_t before)
-    {
-    }
-
-    char*
-    set_start_line()
-    {
-
-    }
-};
-
-//------------------------------------------------
-
 constexpr
 std::size_t
 headers::
@@ -145,7 +56,7 @@ headers(
     , count_(0)
     , start_bytes_(
         empty.size() - 2)
-    , fields_bytes_(2) // CRLF
+    , fields_bytes_(0) // excludes CRLF
     , capacity_(empty.size())
 {
 }
@@ -189,7 +100,7 @@ operator[](
     std::size_t i) const noexcept ->
         value_type const
 {
-    auto const ft =
+    auto const& ft =
         detail::get_ftab(
             buf_ + capacity_)[i];
     return value_type {
@@ -202,29 +113,17 @@ operator[](
             ft.value_len) };
 }
 
-bool
-headers::
-exists(
-    field id) const noexcept
-{
-    return find(id) != end();
-}
-
-bool
-headers::
-exists(
-    string_view name) const noexcept
-{
-    return find(name) != end();
-}
-
 std::size_t
 headers::
 count(field id) const noexcept
 {
     std::size_t n = 0;
-    for(auto v : *this)
-        if(v.id == id)
+    auto const* ft =
+        &detail::get_ftab(
+            buf_ + capacity_)[0];
+    for(auto i = count_;
+            i > 0; --i, --ft)
+        if(ft->id == id)
             ++n;
     return n;
 }
@@ -243,87 +142,17 @@ count(string_view name) const noexcept
 
 auto
 headers::
-at(std::size_t i) const ->
-    value_type const
-{
-    if(i < count_)
-    {
-        auto const ft =
-            detail::get_ftab(
-                buf_ + capacity_)[i];
-        return value_type {
-            ft.id,
-            string_view(
-                buf_ + ft.name_pos,
-                ft.name_len),
-            string_view(
-                buf_ + ft.value_pos,
-                ft.value_len) };
-    }
-    detail::throw_invalid_argument(
-        "bad index", BOOST_CURRENT_LOCATION);
-}
-
-string_view
-headers::
-at(field id) const
-{
-    auto it = find(id);
-    if(it != end())
-        return it->value;
-    detail::throw_invalid_argument(
-        "not found", BOOST_CURRENT_LOCATION);
-}
-
-string_view
-headers::
-at(string_view name) const
-{
-    auto it = find(name);
-    if(it != end())
-        return it->value;
-    detail::throw_invalid_argument(
-        "not found", BOOST_CURRENT_LOCATION);
-}
-
-string_view
-headers::
-value_or(
-    field id,
-    string_view v) const noexcept
-{
-    auto it = find(id);
-    if(it != end())
-        return it->value;
-    return v;
-}
-
-string_view
-headers::
-value_or(
-    string_view name,
-    string_view v) const noexcept
-{
-    auto it = find(name);
-    if(it != end())
-        return it->value;
-    return v;
-}
-
-auto
-headers::
 find(field id) const noexcept ->
     iterator
 {
-    auto it = begin();
-    auto const last = end();
-    while(it != last)
-    {
-        if(it->id == id)
-            break;
-        ++it;
-    }
-    return it;
+    auto const* ft =
+        &detail::get_ftab(
+            buf_ + capacity_)[0];
+    for(auto i = 0;
+            i < count_; ++i, --ft)
+        if(ft->id == id)
+            return iterator(this, i);
+    return iterator(this, count_);
 }
 
 auto
@@ -341,25 +170,6 @@ find(string_view name) const noexcept ->
         ++it;
     }
     return it;
-}
-
-auto
-headers::
-matching(field id) const noexcept ->
-    subrange
-{
-    return subrange(
-        this, find(id).i_);
-}
-
-auto
-headers::
-matching(
-    string_view name) const noexcept ->
-        subrange
-{
-    return subrange(
-        this, find(name).i_);
 }
 
 //------------------------------------------------
@@ -402,8 +212,8 @@ append(
     string_view name,
     string_view value)
 {
-    append(string_to_field(name),
-        name, value);
+    append(string_to_field(
+        name), name, value);
 }
 
 //------------------------------------------------
@@ -419,7 +229,7 @@ str_impl() const noexcept
     if(buf_)
         return string_view(buf_,
             start_bytes_ +
-                fields_bytes_);
+            fields_bytes_ + 2);
     return empty_;
 }
 
@@ -430,8 +240,12 @@ find(
     field id) const noexcept
 {
     std::size_t i = after;
-    while(++i < count_)
-        if((*this)[i].id == id)
+    auto const* ft =
+        &detail::get_ftab(
+            buf_ + capacity_)[
+                after];
+    for(;--ft,++i < count_;)
+        if(ft->id == id)
             break;
     return i;
 }
@@ -572,12 +386,11 @@ insert(
     auto const extra =
         name.size() + 2 +
         value.size() + 2;
-    // assume we also need room
-    // for one more table entry
     auto new_cap = align_up(
         start_bytes_ +
-        fields_bytes_ +
-        extra + (count_ + 1) *
+            fields_bytes_ +
+            extra + 2 +
+        (count_ + 1) + 2 *
             sizeof(detail::fitem));
 
     if(! buf_)
@@ -592,19 +405,19 @@ insert(
         if( new_cap < min_cap)
             new_cap = min_cap;
         buf_ = new char[new_cap];
+
+        // copy default start-line
+        // since we are inserting a field
         BOOST_ASSERT(
             empty_.size() >= 2);
         BOOST_ASSERT(start_bytes_ ==
             empty_.size() - 2);
         BOOST_ASSERT(
-            fields_bytes_ == 2);
-
-        // copy default start-line
-        // since we are inserting a field
+            fields_bytes_ == 0);
         std::memcpy(
             buf_,
             empty_.data(),
-            empty_.size());
+            start_bytes_);
         capacity_ = new_cap;
     }
     else if(new_cap > capacity_)
@@ -619,18 +432,48 @@ insert(
         value = cs.maybe_copy(value);
     }
 
+    auto const ft = detail::get_ftab(
+        buf_ + capacity_);
+    auto* fi = &ft[before];
+    if(before < count_)
+    {
+        std::memmove(
+            buf_ + fi->pos + extra,
+            buf_ + fi->pos,
+            fields_bytes_ - fi->pos);
+        std::memmove(
+            &ft[count_],
+            &ft[count_ - 1],
+            (count_ - before) *
+                sizeof(*fi));
+        for(std::size_t i = count_;
+                i > before; ++i)
+        {
+            ft[i] = ft[i-1];
+            ft[i].add(extra);
+        }
+    }
+    else
+    {
+        fi->pos = static_cast<
+            off_t>(fields_bytes_);
+        auto dest = buf_ +
+            start_bytes_ +
+                fields_bytes_ +
+                extra;
+        dest[0] = '\r';
+        dest[1] = '\n'; 
+    }
+
     // write the inserted field
     auto dest = buf_ +
-        start_bytes_ +
-        fields_bytes_;
-    auto& ft = detail::get_ftab(
-        buf_ + capacity_)[count_];
-    ft.id = id;
-    ft.name_len = static_cast<
+        start_bytes_ + fi->pos;
+    fi->id = id;
+    fi->name_len = static_cast<
         off_t>(name.size());
-    ft.value_len = static_cast<
+    fi->value_len = static_cast<
         off_t>(value.size());
-    ft.name_pos = static_cast<
+    fi->name_pos = static_cast<
         off_t>(dest - buf_);
     std::memcpy(
         dest,
@@ -639,7 +482,7 @@ insert(
     dest += name.size();
     *dest++ = ':';
     *dest++ = ' ';
-    ft.value_pos = static_cast<
+    fi->value_pos = static_cast<
         off_t>(dest - buf_);
     std::memcpy(
         dest,
@@ -648,13 +491,8 @@ insert(
     dest += value.size();
     *dest++ = '\r';
     *dest++ = '\n';
-    *dest++ = '\r';
-    *dest++ = '\n';
-    fields_bytes_ =
-        dest - buf_ -
-            start_bytes_;
+    fields_bytes_ += extra;
     ++count_;
-
 }
 
 void
