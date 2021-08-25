@@ -28,6 +28,12 @@ request()
 {
 }
 
+request::
+request(request&&) noexcept = default;
+
+request::
+request(request const&) = default;
+
 //------------------------------------------------
 
 void

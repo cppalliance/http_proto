@@ -77,6 +77,43 @@ headers() noexcept
 }
 
 headers::
+headers(headers const& other)
+{
+    // VFALCO TODO this needs
+    // to respect the minimum capacity
+    auto new_cap = align_up(
+        other.start_bytes_ +
+        other.fields_bytes_ +
+        other.count_ *
+            sizeof(detail::fitem));
+    buf_ = new char[new_cap];
+    empty_ = other.empty_;
+    count_ = other.count_;
+    start_bytes_ = other.start_bytes_;
+    fields_bytes_ = other.fields_bytes_;
+    capacity_ = new_cap;
+}
+
+headers::
+headers(headers&& other) noexcept
+{
+    buf_ = other.buf_;
+    empty_ = other.empty_;
+    count_ = other.count_;
+    start_bytes_ = other.start_bytes_;
+    fields_bytes_ = other.fields_bytes_;
+    capacity_ = other.capacity_;
+
+    other.buf_ = nullptr;
+    other.count_ = 0;
+    other.start_bytes_ =
+        other.empty_.size() - 2;
+    other.fields_bytes_ = 0; // excludes CRLF
+    other.capacity_ =
+        other.empty_.size();
+}
+
+headers::
 operator headers_view() const noexcept
 {
     return headers_view(

@@ -20,6 +20,12 @@ namespace http_proto {
 response::
 response() = default;
 
+response::
+response(response&&) noexcept = default;
+
+response::
+response(response const&) = default;
+
 //------------------------------------------------
 
 status

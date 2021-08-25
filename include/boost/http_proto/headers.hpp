@@ -82,6 +82,16 @@ public:
     BOOST_HTTP_PROTO_DECL
     headers() noexcept;
 
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    headers(headers const& other);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    headers(headers&& other) noexcept;
+
     inline
     iterator
     begin() const noexcept;

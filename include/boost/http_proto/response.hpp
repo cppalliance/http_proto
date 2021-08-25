@@ -39,6 +39,12 @@ public:
     BOOST_HTTP_PROTO_DECL
     response();
 
+    BOOST_HTTP_PROTO_DECL
+    response(response&&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    response(response const&);
+
     //--------------------------------------------
     //
     // Observers
