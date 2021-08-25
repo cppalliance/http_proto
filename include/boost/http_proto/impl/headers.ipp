@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_IMPL_HEADERS_IPP
 
 #include <boost/http_proto/headers.hpp>
-#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/headers_view.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
@@ -172,6 +171,37 @@ find(string_view name) const noexcept ->
     return it;
 }
 
+std::size_t
+headers::
+find_next(
+    std::size_t after,
+    field id) const noexcept
+{
+    std::size_t i = after;
+    auto const* ft =
+        &detail::get_ftab(
+            buf_ + capacity_)[
+                after];
+    for(;--ft,++i < count_;)
+        if(ft->id == id)
+            break;
+    return i;
+}
+
+std::size_t
+headers::
+find_next(
+    std::size_t after,
+    string_view name) const noexcept
+{
+    std::size_t i = after;
+    while(++i < count_)
+        if(bnf::iequals(
+            (*this)[i].name, name))
+            break;
+    return i;
+}
+
 //------------------------------------------------
 //
 // Modifiers
@@ -197,25 +227,6 @@ shrink_to_fit() noexcept
 {
 }
 
-void
-headers::
-append(
-    field f,
-    string_view value)
-{
-    append(f, to_string(f), value);
-}
-
-void
-headers::
-append(
-    string_view name,
-    string_view value)
-{
-    append(string_to_field(
-        name), name, value);
-}
-
 //------------------------------------------------
 //
 // private observers
@@ -231,37 +242,6 @@ str_impl() const noexcept
             start_bytes_ +
             fields_bytes_ + 2);
     return empty_;
-}
-
-std::size_t
-headers::
-find(
-    std::size_t after,
-    field id) const noexcept
-{
-    std::size_t i = after;
-    auto const* ft =
-        &detail::get_ftab(
-            buf_ + capacity_)[
-                after];
-    for(;--ft,++i < count_;)
-        if(ft->id == id)
-            break;
-    return i;
-}
-
-std::size_t
-headers::
-find(
-    std::size_t after,
-    string_view name) const noexcept
-{
-    std::size_t i = after;
-    while(++i < count_)
-        if(bnf::iequals(
-            (*this)[i].name, name))
-            break;
-    return i;
 }
 
 //------------------------------------------------
@@ -495,99 +475,6 @@ insert(
     ++count_;
 }
 
-void
-headers::
-append(
-    field id,
-    string_view name,
-    string_view value)
-{
-#if 1
-    insert(id, name, value, count_);
-#else
-    detail::copied_strings cs(
-        str_impl());
-    name = cs.maybe_copy(name);
-    value = cs.maybe_copy(value);
-
-    auto const need =
-        bytes_needed(
-            name.size() + 2 +
-                value.size() + 2,
-            count_ + 1);
-
-    if(buf_ != nullptr)
-    {
-        if(capacity_ < need)
-        {
-            BOOST_ASSERT(
-                start_bytes_ +
-                fields_bytes_ >= 2);
-            char* buf = new char[need];
-            std::memcpy(buf, buf_,
-                start_bytes_ +
-                fields_bytes_ - 2);
-            auto const tabsize = sizeof(
-                detail::fitem) * count_;
-            std::memcpy(
-                buf + need - tabsize,
-                buf_ + capacity_ - tabsize,
-                tabsize);
-            std::swap(buf_, buf);
-            delete[] buf;
-            capacity_ = need;
-        }
-    }
-    else
-    {
-        //auto al = alloc(
-
-        //buf_ = new char[need];
-        count_ = 0;
-        start_bytes_ = 0;
-        fields_bytes_ = 2;
-        capacity_ = need;
-        buf_[0] = '\r';
-        buf_[1] = '\n';
-    }
-
-    auto dest = buf_ +
-        start_bytes_ +
-        fields_bytes_;
-    auto& ft = detail::get_ftab(
-        buf_ + capacity_)[count_];
-    ft.id = id;
-    ft.name_len = static_cast<
-        off_t>(name.size());
-    ft.value_len = static_cast<
-        off_t>(value.size());
-    ft.name_pos = static_cast<
-        off_t>(dest - buf_);
-    std::memcpy(
-        dest,
-        name.data(),
-        name.size());
-    dest += name.size();
-    *dest++ = ':';
-    *dest++ = ' ';
-    ft.value_pos = static_cast<
-        off_t>(dest - buf_);
-    std::memcpy(
-        dest,
-        value.data(),
-        value.size());
-    dest += value.size();
-    *dest++ = '\r';
-    *dest++ = '\n';
-    *dest++ = '\r';
-    *dest++ = '\n';
-    fields_bytes_ =
-        dest - buf_ -
-            start_bytes_;
-    ++count_;
-#endif
-}
-
 //------------------------------------------------
 
 std::string
@@ -624,13 +511,13 @@ operator++() noexcept ->
     if((*h_)[i_].id !=
         field::unknown)
     {
-        i_ = h_->find(i_,
-            (*h_)[i_].id);
+        i_ = h_->find_next(
+            i_, (*h_)[i_].id);
     }
     else
     {
-        i_ = h_->find(i_,
-            (*h_)[i_].name);
+        i_ = h_->find_next(
+            i_, (*h_)[i_].name);
     }
     return *this;
 }

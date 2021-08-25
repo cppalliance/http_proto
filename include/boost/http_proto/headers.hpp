@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_HEADERS_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <string>
@@ -193,6 +194,30 @@ public:
     iterator
     find(string_view name) const noexcept;
 
+    inline
+    iterator
+    find_next(
+        iterator after,
+        field id) const noexcept;
+
+    inline
+    iterator
+    find_next(
+        iterator after,
+        string_view name) const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    find_next(
+        std::size_t after,
+        field id) const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    find_next(
+        std::size_t after,
+        string_view name) const noexcept;
+
     /// Return a forward range containing values for all matching fields
     inline
     subrange
@@ -237,11 +262,14 @@ public:
 
         @note HTTP field names are case-insensitive.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     append(
         field f,
-        string_view value);
+        string_view value)
+    {
+        insert(f, to_string(f),
+            value, count_);
+    }
 
     /** Append the header with the given field enum and value.
 
@@ -253,11 +281,14 @@ public:
 
         @note HTTP field names are case-insensitive.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     append(
         string_view name,
-        string_view value);
+        string_view value)
+    {
+        insert(string_to_field(name),
+            name, value, count_);
+    }
 
 #if 0
     void clear() noexcept;
@@ -277,16 +308,6 @@ private:
     BOOST_HTTP_PROTO_DECL
     string_view
     str_impl() const noexcept;
-
-    std::size_t
-    find(
-        std::size_t after,
-        field id) const noexcept;
-
-    std::size_t
-    find(
-        std::size_t after,
-        string_view name) const noexcept;
 
     struct alloc_t
     {
@@ -311,13 +332,6 @@ private:
         string_view name,
         string_view value,
         std::size_t before);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    append(
-        field id,
-        string_view name,
-        string_view value);
 };
 
 //------------------------------------------------

@@ -290,6 +290,28 @@ value_or(
 
 auto
 headers::
+find_next(
+    iterator after,
+    field id) const noexcept ->
+        iterator
+{
+    return iterator(this,
+        find_next(after.i_, id));
+}
+
+auto
+headers::
+find_next(
+    iterator after,
+    string_view name) const noexcept ->
+        iterator
+{
+    return iterator(this,
+        find_next(after.i_, name));
+}
+
+auto
+headers::
 matching(
     field id) const noexcept ->
         subrange

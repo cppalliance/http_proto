@@ -21,12 +21,7 @@ class headers_test
 {
 public:
     void
-    testConversion(
-        headers_view)
-    {
-    }
-
-    void run()
+    testAppend()
     {
         headers h;
         h.append(field::user_agent, "x");
@@ -90,7 +85,50 @@ public:
         BOOST_TEST(h.matching(
             "a").make_list() == "1,3");
 
-        testConversion(h);
+        auto it = h.begin();
+        BOOST_TEST(it->id == field::user_agent);
+        BOOST_TEST(it->name == "User-Agent");
+        BOOST_TEST(it->value == "x");
+        ++it;
+        BOOST_TEST(it->id == field::connection);
+        BOOST_TEST(it->name == "Connection");
+        BOOST_TEST(it->value == "close");
+        ++it;
+        BOOST_TEST(it->id == field::transfer_encoding);
+        BOOST_TEST(it->name == "Transfer-Encoding");
+        BOOST_TEST(it->value == "chunked");
+        ++it;
+        BOOST_TEST(it->id == field::unknown);
+        BOOST_TEST(it->name == "a");
+        BOOST_TEST(it->value == "1");
+        ++it;
+        BOOST_TEST(it->id == field::unknown);
+        BOOST_TEST(it->name == "b");
+        BOOST_TEST(it->value == "2");
+        ++it;
+        BOOST_TEST(it->id == field::unknown);
+        BOOST_TEST(it->name == "a");
+        BOOST_TEST(it->value == "3");
+        ++it;
+        BOOST_TEST(it->id == field::unknown);
+        BOOST_TEST(it->name == "c");
+        BOOST_TEST(it->value == "4");
+        ++it;
+    }
+
+    void
+    testConversion()
+    {
+        auto const f =
+            [](headers_view){};
+        headers h;
+        // must compile
+        f(h);
+    }
+
+    void run()
+    {
+        testAppend();
     }
 };
 
