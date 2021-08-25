@@ -37,11 +37,11 @@ request_parser::
 get() const noexcept
 {
     return request_view(
-        buffer_,
+        buf_,
         m_.fields,
+        start_len_,
+        m_.n_header - start_len_ - 2,
         cap_,
-        m_.n_header - 2,
-        0, // prefix bytes
         n_method_,
         n_target_,
         method_,
@@ -78,6 +78,8 @@ parse_start_line(
         m_.version = http_proto::version::http_1_1;
         break;
     }
+    start_len_ = static_cast<
+        off_t>(it - start);
     return start + (it - start);
 }
 

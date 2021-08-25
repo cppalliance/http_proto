@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
+#include <boost/http_proto/detail/ftab.hpp>
 #include <boost/http_proto/detail/sv.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
@@ -44,7 +45,7 @@ parser::
 parser(
     context& ctx) noexcept
     : ctx_(ctx)
-    , buffer_(nullptr)
+    , buf_(nullptr)
     , cap_(0)
     , size_(0)
     , used_(0)
@@ -57,8 +58,8 @@ parser(
 parser::
 ~parser()
 {
-    if(buffer_)
-        delete[] buffer_;
+    if(buf_)
+        delete[] buf_;
 }
 
 chunk_info
@@ -76,11 +77,11 @@ payload() const noexcept
     // asserts or exceptions?
     if(! m_.got_chunked)
         return string_view(
-            buffer_ +
+            buf_ +
                 m_.n_header,
             m_.n_payload);
     return string_view(
-        buffer_ +
+        buf_ +
             m_.n_header +
             m_.n_chunk,
         m_.n_payload);
@@ -111,8 +112,8 @@ reset()
         {
             // move unused octets to front
             std::memcpy(
-                buffer_,
-                buffer_ + used_,
+                buf_,
+                buf_ + used_,
                 size_ - used_);
             size_ -= used_;
             used_ = 0;
@@ -134,11 +135,11 @@ prepare()
         detail::throw_invalid_argument(
             "eof", BOOST_CURRENT_LOCATION);
     }
-    if(! buffer_)
+    if(! buf_)
     {
         // VFALCO This should be
         // configurable or something
-        buffer_ = new char[4096];
+        buf_ = new char[4096];
         cap_ = 4096;
     }
     else if(cap_ <= size_)
@@ -149,14 +150,14 @@ prepare()
         auto buffer = new char[
             cap_ + amount];
         std::memcpy(buffer,
-            buffer_, used_);
-        delete[] buffer_;
-        buffer_ = buffer;
+            buf_, used_);
+        delete[] buf_;
+        buf_ = buffer;
         cap_ =
             cap_ + amount;
     }
     return {
-        buffer_ + size_,
+        buf_ + size_,
         cap_ - size_ };
 }
 
@@ -194,8 +195,8 @@ discard_header() noexcept
     size_ -= m_.n_header;
     used_ -= m_.n_header;
     std::memmove(
-        buffer_,
-        buffer_ + m_.n_header,
+        buf_,
+        buf_ + m_.n_header,
         size_);
     m_.n_header = 0;
 }
@@ -215,7 +216,7 @@ discard_payload() noexcept
     if(! m_.got_chunked)
     {
         auto const n = m_.n_header;
-        auto const pos = buffer_ + n;
+        auto const pos = buf_ + n;
         std::memmove(pos, pos + n,
             size_ - n - m_.n_payload);
         m_.n_payload = 0;
@@ -223,7 +224,7 @@ discard_payload() noexcept
     }
     auto const n =
         m_.n_header + m_.n_chunk;
-    auto const pos = buffer_ + n;
+    auto const pos = buf_ + n;
     std::memmove(pos, pos + n,
         size_ - n - m_.n_payload);
     m_.n_payload = 0;
@@ -260,8 +261,8 @@ parse_header(
             n = cfg_.header_limit;
         ec = {};
         auto it = parse_start_line(
-            buffer_, buffer_ + n, ec);
-        used_ += it - buffer_;
+            buf_, buf_ + n, ec);
+        used_ += it - buf_;
         if(ec == error::need_more)
         {
             if(! limit)
@@ -271,7 +272,7 @@ parse_header(
         }
         if(ec.failed())
             return;
-        m_.n_header += it - buffer_;
+        m_.n_header += it - buf_;
         state_ = state::header_fields;
         BOOST_FALLTHROUGH;
     }
@@ -288,9 +289,9 @@ parse_header(
             n >= m_.n_header);
         ec = {};
         auto start =
-            buffer_ + m_.n_header;
+            buf_ + m_.n_header;
         auto it = parse_fields(
-            start, buffer_ + n, ec);
+            start, buf_ + n, ec);
         used_ += it - start;
         if(ec == error::need_more)
         {
@@ -435,8 +436,8 @@ parse_body(
         // start of chunk
         bnf::chunk_part p;
         auto it = p.parse(
-            buffer_ + used_,
-            buffer_ + (
+            buf_ + used_,
+            buf_ + (
                 size_ - used_),
             ec);
         if(ec)
@@ -490,7 +491,7 @@ parse_chunk(
     }
 
     auto const avail = size_ - used_;
-    auto const start = buffer_ + used_;
+    auto const start = buf_ + used_;
     if(m_.payload_left == 0)
     {
         // start of chunk
@@ -499,7 +500,7 @@ parse_chunk(
             used_ == m_.header_size);
         bnf::chunk_part p;
         auto it = p.parse(start,
-            buffer_ + (
+            buf_ + (
                 size_ - used_), ec);
         BOOST_ASSERT(it == start);
         if(ec)
@@ -551,48 +552,62 @@ parse_fields(
     {
         if(ec == error::end)
         {
+            it = start +
+                (cit - start);
             ec = {};
             break;
         }
         if(ec.failed())
-            return start + (
-                cit - start);
-        if(p.value().has_obs_fold)
+            return start + (cit - start);
+        auto const v = p.value();
+        if(v.has_obs_fold)
             bnf::replace_obs_fold(it, cit);
         it = start + (cit - start);
-        auto const f =
-            string_to_field(
-                p.value().name);
-        switch(f)
+        auto const id =
+            string_to_field(v.name);
+        switch(id)
         {
         case field::connection:
         case field::proxy_connection:
             do_connection(
-                p.value().value, ec);
+                v.value, ec);
             if(ec.failed())
                 return it;
             break;
         case field::content_length:
             do_content_length(
-                p.value().value, ec);
+                v.value, ec);
             if(ec.failed())
                 return it;
             break;
         case field::transfer_encoding:
             do_transfer_encoding(
-                p.value().value, ec);
+                v.value, ec);
             if(ec.failed())
                 return it;
             break;
         case field::upgrade:
-            do_upgrade(
-                p.value().value, ec);
+            do_upgrade(v.value, ec);
             if(ec.failed())
                 return it;
             break;
         default:
             break;
         }
+        auto ft = detail::get_ftab(
+            buf_ + cap_);
+        auto& fi = ft[m_.fields];
+        fi.id = id;
+        fi.pos = static_cast<
+            off_t>(start - buf_);
+        fi.name_pos = static_cast<
+            off_t>(v.name.data() - buf_);
+        fi.name_len = static_cast<
+            off_t>(v.name.size());
+        fi.value_pos = static_cast<
+            off_t>(v.value.data() - buf_);
+        fi.value_len = static_cast<
+            off_t>(v.value.size());
         ++m_.fields;
         cit = p.increment(cit, end, ec);
     }

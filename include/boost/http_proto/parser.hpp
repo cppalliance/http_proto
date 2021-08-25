@@ -94,7 +94,7 @@ BOOST_HTTP_PROTO_PROTECTED:
     };
 
     context& ctx_;
-    char* buffer_;
+    char* buf_;
     std::size_t cap_;           // allocated size
     std::size_t size_;          // committed part
     std::size_t used_;          // parsed part

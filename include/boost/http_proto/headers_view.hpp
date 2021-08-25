@@ -101,9 +101,9 @@ public:
     string_view
     str() const noexcept
     {
-        return string_view(buf_,
-            start_bytes_ +
-            fields_bytes_);
+        return string_view(
+            buf_ + start_bytes_,
+            fields_bytes_ + 2);
     }
 
     /** Returns the number of fields in the container

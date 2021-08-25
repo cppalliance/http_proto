@@ -254,6 +254,8 @@ public:
         BOOST_TEST(rv.version() ==
             version::http_1_1);
         auto const h = rv.fields;
+        //User-Agent: xrnConnection: closernTransfer-Encoding: chunkedrna: 1rnb: 2rna: 3rnc: 4rnrn
+
         BOOST_TEST(h.str() ==
             "User-Agent: x\r\n"
             "Connection: close\r\n"
@@ -325,4 +327,5 @@ TEST_SUITE(request_parser_test, "boost.http_proto.request_parser");
 
 } // http_proto
 } // boost
+
 

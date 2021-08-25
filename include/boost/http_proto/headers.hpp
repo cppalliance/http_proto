@@ -105,8 +105,8 @@ public:
     str() const noexcept
     {
         if(buf_)
-            return string_view(buf_,
-                start_bytes_ +
+            return string_view(
+                buf_ + start_bytes_,
                 fields_bytes_ + 2);
         return empty_;
     }
