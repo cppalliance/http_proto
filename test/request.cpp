@@ -68,6 +68,14 @@ public:
                 req.method_str() == "BOOST");
             BOOST_TEST(req.str() ==
                 "BOOST / HTTP/1.1\r\n\r\n");
+
+            req.fields.append(field::user_agent, "x");
+            req.fields.append(field::connection, "close");
+            req.fields.append(field::transfer_encoding, "chunked");
+            req.fields.append("a", "1" );
+            req.fields.append("b", "2" );
+            req.fields.append("a", "3" );
+            req.fields.append("c", "4" );
         }
 
         // set_method

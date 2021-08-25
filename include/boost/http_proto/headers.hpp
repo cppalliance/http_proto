@@ -31,11 +31,11 @@ class headers
     using off_t = std::uint32_t;
 
     char* buf_;
+    std::size_t cap_;
     string_view empty_;
     std::size_t count_;
     std::size_t start_bytes_;
     std::size_t fields_bytes_;
-    std::size_t capacity_;
 
     friend class request;
     friend class response;

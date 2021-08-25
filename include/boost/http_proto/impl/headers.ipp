@@ -56,7 +56,7 @@ headers(
     , start_bytes_(
         empty.size() - 2)
     , fields_bytes_(0) // excludes CRLF
-    , capacity_(empty.size())
+    , cap_(empty.size())
 {
 }
 
@@ -91,7 +91,7 @@ headers(headers const& other)
     count_ = other.count_;
     start_bytes_ = other.start_bytes_;
     fields_bytes_ = other.fields_bytes_;
-    capacity_ = new_cap;
+    cap_ = new_cap;
 }
 
 headers::
@@ -102,14 +102,14 @@ headers(headers&& other) noexcept
     count_ = other.count_;
     start_bytes_ = other.start_bytes_;
     fields_bytes_ = other.fields_bytes_;
-    capacity_ = other.capacity_;
+    cap_ = other.cap_;
 
     other.buf_ = nullptr;
     other.count_ = 0;
     other.start_bytes_ =
         other.empty_.size() - 2;
     other.fields_bytes_ = 0; // excludes CRLF
-    other.capacity_ =
+    other.cap_ =
         other.empty_.size();
 }
 
@@ -121,7 +121,7 @@ operator headers_view() const noexcept
         count_,
         start_bytes_,
         fields_bytes_,
-        capacity_);
+        cap_);
 }
 
 //------------------------------------------------
@@ -138,7 +138,7 @@ operator[](
 {
     auto const& ft =
         detail::get_ftab(
-            buf_ + capacity_)[i];
+            buf_ + cap_)[i];
     return value_type {
         ft.id,
         string_view(
@@ -156,7 +156,7 @@ count(field id) const noexcept
     std::size_t n = 0;
     auto const* ft =
         &detail::get_ftab(
-            buf_ + capacity_)[0];
+            buf_ + cap_)[0];
     for(auto i = count_;
             i > 0; --i, --ft)
         if(ft->id == id)
@@ -183,7 +183,7 @@ find(field id) const noexcept ->
 {
     auto const* ft =
         &detail::get_ftab(
-            buf_ + capacity_)[0];
+            buf_ + cap_)[0];
     for(auto i = 0;
             i < count_; ++i, --ft)
         if(ft->id == id)
@@ -217,7 +217,7 @@ find_next(
     std::size_t i = after;
     auto const* ft =
         &detail::get_ftab(
-            buf_ + capacity_)[
+            buf_ + cap_)[
                 after];
     for(;--ft,++i < count_;)
         if(ft->id == id)
@@ -314,10 +314,10 @@ alloc(
 
     // reallocate
     auto n = bytes_needed(size, count);
-    BOOST_ASSERT(capacity_ < n);
+    BOOST_ASSERT(cap_ < n);
     auto const growth = align_up(
-        (capacity_ + capacity_ / 2));
-    if(growth < capacity_)
+        (cap_ + cap_ / 2));
+    if(growth < cap_)
     {
         // unsigned overflow
         detail::throw_length_error(
@@ -340,11 +340,11 @@ set_start_line(
         auto al =
             alloc(n + 2, 0);
         buf_ = al.buf;
-        capacity_ =
+        cap_ =
             al.capacity;
         count_ = 0;
         start_bytes_ = n;
-        fields_bytes_ = 2;
+        fields_bytes_ = 0;
         buf_[n] = '\r';
         buf_[n+1] = '\n';
         return buf_;
@@ -360,7 +360,7 @@ set_start_line(
         bytes_needed(
             n + fields_bytes_,
             count_);
-    if(need <= capacity_)
+    if(need <= cap_)
     {
         // existing buffer
         std::memmove(
@@ -383,8 +383,8 @@ set_start_line(
         fields_bytes_);
     delete[] buf_;
     buf_ = al.buf;
+    cap_ = al.capacity;
     start_bytes_ = n;
-    capacity_ = al.capacity;
     buf_[n] = '\r';
     buf_[n+1] = '\n';
     return buf_;
@@ -435,9 +435,9 @@ insert(
             buf_,
             empty_.data(),
             start_bytes_);
-        capacity_ = new_cap;
+        cap_ = new_cap;
     }
-    else if(new_cap > capacity_)
+    else if(new_cap > cap_)
     {
         // reallocate
 
@@ -450,7 +450,7 @@ insert(
     }
 
     auto const ft = detail::get_ftab(
-        buf_ + capacity_);
+        buf_ + cap_);
     auto* fi = &ft[before];
     if(before < count_)
     {
