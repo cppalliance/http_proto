@@ -32,6 +32,7 @@ set(PFILES
     response.cpp
     response_parser.cpp
     response_view.cpp
+    serializer.cpp
     status.cpp
     string_view.cpp
     trivial_optional.cpp
