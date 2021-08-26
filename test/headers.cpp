@@ -21,6 +21,70 @@ class headers_test
 {
 public:
     void
+    testSpecial()
+    {
+        // default ctor
+        {
+            headers h;
+            BOOST_TEST(h.begin() == h.end());
+            BOOST_TEST(h.size() == 0);
+        }
+
+        // move ctor
+        {
+            headers h1;
+            h1.append("x", "1");
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            headers h2(std::move(h1));
+            BOOST_TEST(h1.size() == 0);
+            BOOST_TEST(! h1.exists("x"));
+            BOOST_TEST(h2.size() == 1);
+            BOOST_TEST(h2.at("x") == "1");
+        }
+
+        // copy ctor
+        {
+            headers h1;
+            h1.append("x", "1");
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            headers h2(h1);
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            BOOST_TEST(h2.size() == 1);
+            BOOST_TEST(h2.at("x") == "1");
+        }
+
+        // move assign
+        {
+            headers h1;
+            h1.append("x", "1");
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            headers h2;
+            h2 = std::move(h1);
+            BOOST_TEST(h1.size() == 0);
+            BOOST_TEST(! h1.exists("x"));
+            BOOST_TEST(h2.size() == 1);
+            BOOST_TEST(h2.at("x") == "1");
+        }
+
+        // copy assign
+        {
+            headers h1;
+            h1.append("x", "1");
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            headers h2(h1);
+            BOOST_TEST(h1.size() == 1);
+            BOOST_TEST(h1.at("x") == "1");
+            BOOST_TEST(h2.size() == 1);
+            BOOST_TEST(h2.at("x") == "1");
+        }
+    }
+
+    void
     testAppend()
     {
         headers h;
@@ -128,6 +192,7 @@ public:
 
     void run()
     {
+        testSpecial();
         testAppend();
     }
 };

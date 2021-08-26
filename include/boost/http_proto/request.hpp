@@ -44,15 +44,17 @@ public:
     BOOST_HTTP_PROTO_DECL
     request(request const&);
 
+    BOOST_HTTP_PROTO_DECL
+    request& operator=(request&&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    request& operator=(request const&);
+
+    //--------------------------------------------
     //
     // Observers
     //
-
-    /** Return the serialized string of this request
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    get_const_buffer() const noexcept override;
+    //--------------------------------------------
 
     /** Return the method of this request as a known-method enum
 
@@ -96,6 +98,12 @@ public:
         return version_;
     }
 
+    /** Return the serialized string of this request
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    get_const_buffer() const noexcept override;
+
     //--------------------------------------------
     //
     // Modifiers
@@ -113,8 +121,7 @@ public:
     void
     set_method(http_proto::method m)
     {
-        set(
-            m, to_string(m),
+        set(m, to_string(m),
             target(), version());
     }
 
@@ -123,8 +130,7 @@ public:
     void
     set_method(string_view s)
     {
-        set(
-            string_to_method(s), s,
+        set(string_to_method(s), s,
             target(), version());
     }
 
@@ -164,9 +170,7 @@ public:
         string_view t,
         http_proto::version v)
     {
-        set(
-            m, to_string(m),
-            t, v);
+        set(m, to_string(m), t, v);
     }
 
     /** Set the method, target, and version of the request
@@ -179,9 +183,7 @@ public:
         string_view t,
         http_proto::version v)
     {
-        set(
-            string_to_method(m), m,
-            t, v);
+        set(string_to_method(m), m, t, v);
     }
 
 private:

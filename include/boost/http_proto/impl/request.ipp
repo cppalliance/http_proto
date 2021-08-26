@@ -34,6 +34,14 @@ request(request&&) noexcept = default;
 request::
 request(request const&) = default;
 
+request&
+request::
+operator=(request&&) noexcept = default;
+
+request&
+request::
+operator=(request const&) = default;
+
 //------------------------------------------------
 
 string_view

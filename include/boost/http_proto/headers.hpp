@@ -72,6 +72,14 @@ public:
     class iterator;
     class subrange;
 
+    //--------------------------------------------
+    //
+    // Special Members
+    //
+    //--------------------------------------------
+
+    /** Destructor
+    */
     BOOST_HTTP_PROTO_DECL
     ~headers();
 
@@ -86,12 +94,28 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    headers(headers const& other);
+    headers(headers&& other) noexcept;
 
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    headers(headers&& other) noexcept;
+    headers(headers const& other);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    headers& operator=(headers&&) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    headers& operator=(headers const&);
+
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
 
     inline
     iterator
@@ -104,24 +128,20 @@ public:
     BOOST_HTTP_PROTO_DECL
     operator headers_view() const noexcept;
 
-    //--------------------------------------------
-    //
-    // Observers
-    //
-    //--------------------------------------------
-
-    /** Return the serialized fields as a string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    get_const_buffer() const noexcept override;
-
     /** Returns the number of fields in the container
     */
     std::size_t
     size() const noexcept
     {
         return count_;
+    }
+
+    /** Returns the total number of bytes allocated by the container
+    */
+    std::size_t
+    capacity_in_bytes() const noexcept
+    {
+        return cap_;
     }
 
     /** Returns the value of the i-th field
@@ -233,6 +253,12 @@ public:
     subrange
     matching(string_view name) const noexcept;
 
+    /** Return the serialized fields as a string
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    get_const_buffer() const noexcept override;
+
     //--------------------------------------------
     //
     // Modifiers
@@ -293,6 +319,21 @@ public:
     {
         insert(string_to_field(name),
             name, value, count_);
+    }
+
+    /** Swap this with another header
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(headers& h) noexcept;
+
+    /** Swap two headers
+    */
+    friend
+    void
+    swap(headers& h1, headers& h2) noexcept
+    {
+        h1.swap(h2);
     }
 
 #if 0

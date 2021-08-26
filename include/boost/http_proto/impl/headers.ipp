@@ -81,17 +81,27 @@ headers(headers const& other)
 {
     // VFALCO TODO this needs
     // to respect the minimum capacity
+    auto const tab_size =
+        other.count_ *
+            sizeof(detail::fitem);
     auto new_cap = align_up(
         other.start_len_ +
-        other.fields_len_ +
-        other.count_ *
-            sizeof(detail::fitem));
+            other.fields_len_ +
+            tab_size);
     buf_ = new char[new_cap];
     empty_ = other.empty_;
     count_ = other.count_;
     start_len_ = other.start_len_;
     fields_len_ = other.fields_len_;
     cap_ = new_cap;
+    std::memcpy(
+        buf_, other.buf_,
+        start_len_ +
+            fields_len_ + 2);
+    std::memcpy(
+        buf_ + cap_ - tab_size,
+        other.buf_ + other.cap_ - tab_size,
+        tab_size);
 }
 
 headers::
@@ -113,6 +123,33 @@ headers(headers&& other) noexcept
         other.empty_.size();
 }
 
+headers&
+headers::
+operator=(
+    headers&& other) noexcept
+{
+    headers temp(
+        std::move(other));
+    swap(temp);
+    return *this;
+}
+
+headers&
+headers::
+operator=(
+    headers const& other)
+{
+    headers temp(other);
+    swap(temp);
+    return *this;
+}
+
+//------------------------------------------------
+//
+// Observers
+//
+//------------------------------------------------
+
 headers::
 operator headers_view() const noexcept
 {
@@ -122,23 +159,6 @@ operator headers_view() const noexcept
         start_len_,
         fields_len_,
         cap_);
-}
-
-//------------------------------------------------
-//
-// Observers
-//
-//------------------------------------------------
-
-string_view
-headers::
-get_const_buffer() const noexcept
-{
-    if(buf_)
-        return string_view(
-            buf_ + start_len_,
-            fields_len_ + 2);
-    return empty_;
 }
 
 auto
@@ -250,6 +270,17 @@ find_next(
     return i;
 }
 
+string_view
+headers::
+get_const_buffer() const noexcept
+{
+    if(buf_)
+        return string_view(
+            buf_ + start_len_,
+            fields_len_ + 2);
+    return empty_;
+}
+
 //------------------------------------------------
 //
 // Modifiers
@@ -279,6 +310,18 @@ void
 headers::
 shrink_to_fit() noexcept
 {
+}
+
+void
+headers::
+swap(headers& h) noexcept
+{
+    std::swap(buf_, h.buf_);
+    std::swap(cap_, h.cap_);
+    std::swap(empty_, h.empty_);
+    std::swap(count_, h.count_);
+    std::swap(start_len_, h.start_len_);
+    std::swap(fields_len_, h.fields_len_);
 }
 
 //------------------------------------------------
