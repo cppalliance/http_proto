@@ -67,6 +67,12 @@ public:
     {
         return size_;
     }
+
+    operator string_view() const noexcept
+    {
+        return string_view(
+            data(), size());
+    }
 };
 
 } // detail

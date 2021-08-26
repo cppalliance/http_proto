@@ -55,6 +55,15 @@ reason() const noexcept
 
 void
 response::
+clear() noexcept
+{
+    if(! fields.buf_)
+        return;
+
+}
+
+void
+response::
 set_result(
     status code,
     http_proto::version http_version,

@@ -17,6 +17,48 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class context;
+#endif
+
+struct buffers_pair
+{
+    string_view first;
+    string_view second;
+};
+
+class serializer
+{
+    context& ctx_;
+    char* buf_ = nullptr;
+    std::size_t cap_ = 0;
+    std::size_t size_ = 0;
+    string_view header;
+
+public:
+    serializer(context& ctx)
+        : ctx_(ctx)
+    {
+    }
+
+    bool
+    is_complete() const noexcept;
+
+    buffers_pair
+    prepare(error_code& ec);
+
+    void
+    consume(std::size_t n);
+
+#if 0
+    template<class Body>
+    void
+    staple(
+        http_proto::request_view req,
+        Body);
+#endif
+};
+
 } // http_proto
 } // boost
 

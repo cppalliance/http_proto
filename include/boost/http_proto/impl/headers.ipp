@@ -53,9 +53,9 @@ headers(
     : buf_(nullptr)
     , empty_(empty)
     , count_(0)
-    , start_bytes_(
+    , start_len_(
         empty.size() - 2)
-    , fields_bytes_(0) // excludes CRLF
+    , fields_len_(0) // excludes CRLF
     , cap_(empty.size())
 {
 }
@@ -82,15 +82,15 @@ headers(headers const& other)
     // VFALCO TODO this needs
     // to respect the minimum capacity
     auto new_cap = align_up(
-        other.start_bytes_ +
-        other.fields_bytes_ +
+        other.start_len_ +
+        other.fields_len_ +
         other.count_ *
             sizeof(detail::fitem));
     buf_ = new char[new_cap];
     empty_ = other.empty_;
     count_ = other.count_;
-    start_bytes_ = other.start_bytes_;
-    fields_bytes_ = other.fields_bytes_;
+    start_len_ = other.start_len_;
+    fields_len_ = other.fields_len_;
     cap_ = new_cap;
 }
 
@@ -100,15 +100,15 @@ headers(headers&& other) noexcept
     buf_ = other.buf_;
     empty_ = other.empty_;
     count_ = other.count_;
-    start_bytes_ = other.start_bytes_;
-    fields_bytes_ = other.fields_bytes_;
+    start_len_ = other.start_len_;
+    fields_len_ = other.fields_len_;
     cap_ = other.cap_;
 
     other.buf_ = nullptr;
     other.count_ = 0;
-    other.start_bytes_ =
+    other.start_len_ =
         other.empty_.size() - 2;
-    other.fields_bytes_ = 0; // excludes CRLF
+    other.fields_len_ = 0; // excludes CRLF
     other.cap_ =
         other.empty_.size();
 }
@@ -119,8 +119,8 @@ operator headers_view() const noexcept
     return headers_view(
         str_impl().data(),
         count_,
-        start_bytes_,
-        fields_bytes_,
+        start_len_,
+        fields_len_,
         cap_);
 }
 
@@ -249,6 +249,12 @@ void
 headers::
 clear() noexcept
 {
+    if(! buf_)
+        return;
+    count_ = 0;
+    start_len_ =
+        empty_.size() - 2;
+    fields_len_ = 0;
 }
 
 void
@@ -276,8 +282,8 @@ str_impl() const noexcept
 {
     if(buf_)
         return string_view(buf_,
-            start_bytes_ +
-            fields_bytes_ + 2);
+            start_len_ +
+            fields_len_ + 2);
     return empty_;
 }
 
@@ -343,14 +349,14 @@ set_start_line(
         cap_ =
             al.capacity;
         count_ = 0;
-        start_bytes_ = n;
-        fields_bytes_ = 0;
+        start_len_ = n;
+        fields_len_ = 0;
         buf_[n] = '\r';
         buf_[n+1] = '\n';
         return buf_;
     }
 
-    if(n == fields_bytes_)
+    if(n == fields_len_)
     {
         // no change in size
         return buf_;
@@ -358,16 +364,16 @@ set_start_line(
 
     auto const need =
         bytes_needed(
-            n + fields_bytes_,
+            n + fields_len_,
             count_);
     if(need <= cap_)
     {
         // existing buffer
         std::memmove(
             buf_ + n,
-            buf_ + start_bytes_,
-            fields_bytes_);
-        start_bytes_ = n;
+            buf_ + start_len_,
+            fields_len_);
+        start_len_ = n;
         buf_[n] = '\r';
         buf_[n+1] = '\n';
         return buf_;
@@ -375,16 +381,16 @@ set_start_line(
 
     // grow
     auto al = alloc(
-        n + fields_bytes_,
+        n + fields_len_,
         count_);
     std::memmove(
         al.buf + n,
-        buf_ + start_bytes_,
-        fields_bytes_);
+        buf_ + start_len_,
+        fields_len_);
     delete[] buf_;
     buf_ = al.buf;
     cap_ = al.capacity;
-    start_bytes_ = n;
+    start_len_ = n;
     buf_[n] = '\r';
     buf_[n+1] = '\n';
     return buf_;
@@ -404,8 +410,8 @@ insert(
         name.size() + 2 +
         value.size() + 2;
     auto new_cap = align_up(
-        start_bytes_ +
-            fields_bytes_ +
+        start_len_ +
+            fields_len_ +
             extra + 2 +
         (count_ + 1) + 2 *
             sizeof(detail::fitem));
@@ -427,14 +433,14 @@ insert(
         // since we are inserting a field
         BOOST_ASSERT(
             empty_.size() >= 2);
-        BOOST_ASSERT(start_bytes_ ==
+        BOOST_ASSERT(start_len_ ==
             empty_.size() - 2);
         BOOST_ASSERT(
-            fields_bytes_ == 0);
+            fields_len_ == 0);
         std::memcpy(
             buf_,
             empty_.data(),
-            start_bytes_);
+            start_len_);
         cap_ = new_cap;
     }
     else if(new_cap > cap_)
@@ -457,7 +463,7 @@ insert(
         std::memmove(
             buf_ + fi->pos + extra,
             buf_ + fi->pos,
-            fields_bytes_ - fi->pos);
+            fields_len_ - fi->pos);
         std::memmove(
             &ft[count_],
             &ft[count_ - 1],
@@ -473,10 +479,10 @@ insert(
     else
     {
         fi->pos = static_cast<
-            off_t>(fields_bytes_);
+            off_t>(fields_len_);
         auto dest = buf_ +
-            start_bytes_ +
-                fields_bytes_ +
+            start_len_ +
+                fields_len_ +
                 extra;
         dest[0] = '\r';
         dest[1] = '\n'; 
@@ -484,7 +490,7 @@ insert(
 
     // write the inserted field
     auto dest = buf_ +
-        start_bytes_ + fi->pos;
+        start_len_ + fi->pos;
     fi->id = id;
     fi->name_len = static_cast<
         off_t>(name.size());
@@ -508,7 +514,7 @@ insert(
     dest += value.size();
     *dest++ = '\r';
     *dest++ = '\n';
-    fields_bytes_ += extra;
+    fields_len_ += extra;
     ++count_;
 }
 

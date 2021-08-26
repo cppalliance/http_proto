@@ -34,8 +34,8 @@ class headers
     std::size_t cap_;
     string_view empty_;
     std::size_t count_;
-    std::size_t start_bytes_;
-    std::size_t fields_bytes_;
+    std::size_t start_len_;
+    std::size_t fields_len_;
 
     friend class request;
     friend class response;
@@ -116,8 +116,8 @@ public:
     {
         if(buf_)
             return string_view(
-                buf_ + start_bytes_,
-                fields_bytes_ + 2);
+                buf_ + start_len_,
+                fields_len_ + 2);
         return empty_;
     }
 

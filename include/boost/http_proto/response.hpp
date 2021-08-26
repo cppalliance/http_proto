@@ -89,6 +89,12 @@ public:
     //
     //--------------------------------------------
 
+    /** Clear the contents, leaving capacity unchanged
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
+
     BOOST_HTTP_PROTO_DECL
     void
     set_result(

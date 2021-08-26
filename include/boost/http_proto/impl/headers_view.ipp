@@ -28,7 +28,7 @@ operator[](
 {
     auto const ft =
         detail::get_ftab(
-            buf_ + capacity_)[i];
+            buf_ + cap_)[i];
     return value_type {
         ft.id,
         string_view(
@@ -87,7 +87,7 @@ at(std::size_t i) const ->
     {
         auto const& ft =
             detail::get_ftab(
-                buf_ + capacity_)[i];
+                buf_ + cap_)[i];
         return value_type {
             ft.id,
             string_view(
