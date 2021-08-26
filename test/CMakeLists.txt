@@ -16,6 +16,7 @@ set(TFILES
 set(PFILES
     CMakeLists.txt
     arrow_proxy.cpp
+    basic_header.cpp
     context.cpp
     decoder.cpp
     deflate_service.cpp

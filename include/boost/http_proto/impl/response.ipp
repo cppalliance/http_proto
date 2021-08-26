@@ -10,7 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_RESPONSE_IPP
 #define BOOST_HTTP_PROTO_IMPL_RESPONSE_IPP
 
-#include <boost/http_proto/request.hpp>
+#include <boost/http_proto/response.hpp>
+#include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/detail/number_string.hpp>
 #include <boost/http_proto/detail/sv.hpp>
 
@@ -27,6 +28,13 @@ response::
 response(response const&) = default;
 
 //------------------------------------------------
+
+string_view
+response::
+get_const_buffer() const noexcept 
+{
+    return fields.str_impl();
+}
 
 status
 response::
@@ -47,6 +55,12 @@ result_int() const noexcept
 string_view
 response::
 reason() const noexcept
+{
+    return {};
+}
+
+response::
+operator response_view() const noexcept
 {
     return {};
 }

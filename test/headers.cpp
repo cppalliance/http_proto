@@ -41,7 +41,7 @@ public:
             "a: 3\r\n"
             "c: 4\r\n"
             "\r\n";
-        BOOST_TEST(h.str() == s);
+        BOOST_TEST(h.get_const_buffer() == s);
         BOOST_TEST(h.size() == 7);
         BOOST_TEST(h[0].value == "x");
         BOOST_TEST(

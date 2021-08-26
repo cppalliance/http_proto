@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
@@ -18,9 +19,13 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class response_view;
+#endif
+
 /** Container for HTTP requests
 */
-class response
+class response : public basic_header
 {
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;
@@ -55,7 +60,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     string_view
-    str() const noexcept;
+    get_const_buffer() const noexcept override;
 
     /** Return the HTTP-version of this message
     */
@@ -82,6 +87,12 @@ public:
     BOOST_HTTP_PROTO_DECL
     string_view
     reason() const noexcept;
+
+    /** Return a read-only view to the response
+    */
+    BOOST_HTTP_PROTO_DECL
+    operator
+    response_view() const noexcept;
 
     //--------------------------------------------
     //

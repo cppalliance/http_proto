@@ -25,7 +25,7 @@ public:
         // default-ctor
         {
             request req;
-            BOOST_TEST(req.str() ==
+            BOOST_TEST(req.get_const_buffer() ==
                 "GET / HTTP/1.1\r\n\r\n");
             BOOST_TEST(
                 req.method() == method::get);
@@ -45,7 +45,7 @@ public:
                 req.method() == method::delete_);
             BOOST_TEST(
                 req.method_str() == "DELETE");
-            BOOST_TEST(req.str() ==
+            BOOST_TEST(req.get_const_buffer() ==
                 "DELETE / HTTP/1.1\r\n\r\n");
         }
 
@@ -58,7 +58,7 @@ public:
                 req.method() == method::post);
             BOOST_TEST(
                 req.method_str() == "POST");
-            BOOST_TEST(req.str() ==
+            BOOST_TEST(req.get_const_buffer() ==
                 "POST / HTTP/1.1\r\n\r\n");
 
             req.set_method("BOOST");
@@ -66,7 +66,7 @@ public:
                 req.method() == method::unknown);
             BOOST_TEST(
                 req.method_str() == "BOOST");
-            BOOST_TEST(req.str() ==
+            BOOST_TEST(req.get_const_buffer() ==
                 "BOOST / HTTP/1.1\r\n\r\n");
 
             req.fields.append(field::user_agent, "x");

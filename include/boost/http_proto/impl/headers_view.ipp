@@ -20,6 +20,15 @@
 namespace boost {
 namespace http_proto {
 
+string_view
+headers_view::
+get_const_buffer() const noexcept
+{
+    return string_view(
+        buf_ + start_len_,
+        fields_len_ + 2);
+}
+
 auto
 headers_view::
 operator[](
@@ -200,6 +209,16 @@ matching(
 }
 
 //------------------------------------------------
+
+string_view
+headers_view::
+str_impl() const noexcept
+{
+    return string_view(
+        buf_,
+        start_len_ +
+            fields_len_ + 2);
+}
 
 std::size_t
 headers_view::

@@ -42,6 +42,13 @@ request_view(
 request_view::
 request_view() noexcept = default;
 
+string_view
+request_view::
+get_const_buffer() const noexcept
+{
+    return fields.str_impl();
+}
+
 } // http_proto
 } // boost
 

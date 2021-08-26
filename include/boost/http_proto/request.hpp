@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
@@ -20,12 +21,12 @@ namespace http_proto {
 
 /** Container for HTTP requests
 */
-class request
+class request : public basic_header
 {
     http_proto::method method_;
     http_proto::version version_;
-    std::size_t method_size_;
-    std::size_t target_size_;
+    std::size_t method_len_;
+    std::size_t target_len_;
 
 public:
     /** The field values for this request
@@ -49,11 +50,9 @@ public:
 
     /** Return the serialized string of this request
     */
+    BOOST_HTTP_PROTO_DECL
     string_view
-    str() const noexcept
-    {
-        return fields.str_impl();
-    }
+    get_const_buffer() const noexcept override;
 
     /** Return the method of this request as a known-method enum
 
@@ -75,7 +74,7 @@ public:
     {
         return string_view(
             fields.str_impl().data(),
-            method_size_);
+            method_len_);
     }
 
     /** Return the target of this request as a string
@@ -85,8 +84,8 @@ public:
     {
         return string_view(
             fields.str_impl().data() +
-                method_size_ + 1,
-            target_size_);
+                method_len_ + 1,
+            target_len_);
     }
 
     /** Return the HTTP version of this request

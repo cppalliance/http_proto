@@ -23,7 +23,7 @@ public:
     void testView(
         headers_view h)
     {
-        BOOST_TEST(h.str() ==
+        BOOST_TEST(h.get_const_buffer() ==
             "User-Agent: x\r\n"
             "Connection: close\r\n"
             "Transfer-Encoding: chunked\r\n"

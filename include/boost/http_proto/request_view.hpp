@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/headers_view.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdint>
@@ -23,7 +24,7 @@ enum class method : char;
 enum class version : char;
 #endif
 
-class request_view
+class request_view : public basic_header
 {
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;
@@ -65,6 +66,10 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     request_view() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    get_const_buffer() const noexcept override;
 
     http_proto::method
     method() const noexcept

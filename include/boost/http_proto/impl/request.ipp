@@ -20,8 +20,8 @@ request::
 request()
     : method_(method::get)
     , version_(http_proto::version::http_1_1)
-    , method_size_(3)
-    , target_size_(1)
+    , method_len_(3)
+    , target_len_(1)
     , fields(
         "GET / HTTP/1.1\r\n"
         "\r\n")
@@ -36,14 +36,23 @@ request(request const&) = default;
 
 //------------------------------------------------
 
+string_view
+request::
+get_const_buffer() const noexcept
+{
+    return fields.str_impl();
+}
+
+//------------------------------------------------
+
 void
 request::
 clear() noexcept
 {
     version_ =
         http_proto::version::http_1_1;
-    method_size_ = 3;
-    target_size_ = 1;
+    method_len_ = 3;
+    target_len_ = 1;
     fields.clear();
 }
 
@@ -89,8 +98,8 @@ set(http_proto::method m,
 
     method_ = m;
     version_ = v;
-    method_size_ = ms.size();
-    target_size_ = t.size();
+    method_len_ = ms.size();
+    target_len_ = t.size();
 }
 
 } // http_proto

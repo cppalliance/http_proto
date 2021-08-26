@@ -19,6 +19,8 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
+class request_view;
+class response_view;
 #endif
 
 struct buffers_pair
@@ -50,13 +52,17 @@ public:
     void
     consume(std::size_t n);
 
-#if 0
     template<class Body>
     void
     staple(
         http_proto::request_view req,
         Body);
-#endif
+
+    template<class Body>
+    void
+    staple(
+        http_proto::response_view res,
+        Body);
 };
 
 } // http_proto

@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_HEADERS_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdlib>
@@ -25,7 +26,7 @@ enum class field : unsigned short;
 
 /** A read-only, random access container of HTTP fields
 */
-class headers_view
+class headers_view : public basic_header
 {
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;
@@ -98,13 +99,9 @@ public:
 
     /** Return the serialized fields as a string
     */
+    BOOST_HTTP_PROTO_DECL
     string_view
-    str() const noexcept
-    {
-        return string_view(
-            buf_ + start_len_,
-            fields_len_ + 2);
-    }
+    get_const_buffer() const noexcept override;
 
     /** Returns the number of fields in the container
     */
@@ -195,6 +192,9 @@ public:
     matching(string_view name) const noexcept;
 
 private:
+    string_view
+    str_impl() const noexcept;
+
     std::size_t
     find(
         std::size_t after,

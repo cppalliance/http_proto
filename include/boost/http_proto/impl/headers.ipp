@@ -130,6 +130,17 @@ operator headers_view() const noexcept
 //
 //------------------------------------------------
 
+string_view
+headers::
+get_const_buffer() const noexcept
+{
+    if(buf_)
+        return string_view(
+            buf_ + start_len_,
+            fields_len_ + 2);
+    return empty_;
+}
+
 auto
 headers::
 operator[](

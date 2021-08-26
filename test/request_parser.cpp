@@ -234,7 +234,7 @@ public:
     testGet()
     {
         request_parser p(ctx_);
-        feed(p,
+        string_view s = 
             "GET / HTTP/1.1\r\n"
             "User-Agent: x\r\n"
             "Connection: close\r\n"
@@ -243,7 +243,9 @@ public:
             "b: 2\r\n"
             "a: 3\r\n"
             "c: 4\r\n"
-            "\r\n");
+            "\r\n";
+
+        feed(p, s);
 
         auto const rv = p.get();
         BOOST_TEST(
@@ -256,7 +258,8 @@ public:
         auto const h = rv.fields;
         //User-Agent: xrnConnection: closernTransfer-Encoding: chunkedrna: 1rnb: 2rna: 3rnc: 4rnrn
 
-        BOOST_TEST(h.str() ==
+        BOOST_TEST(rv.get_const_buffer() == s);
+        BOOST_TEST(h.get_const_buffer() ==
             "User-Agent: x\r\n"
             "Connection: close\r\n"
             "Transfer-Encoding: chunked\r\n"
