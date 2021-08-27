@@ -31,14 +31,22 @@ s_empty_[3] = {
     { "HTTP/1.1 200 OK\r\n\r\n" }
 };
 
+// also applies min capacity
 constexpr
 std::size_t
 headers::
 align_up(std::size_t n) noexcept
 {
+    constexpr std::size_t
+        min_cap = 256 +
+        8 * sizeof(detail::fitem);
+    if( n < min_cap)
+        n = min_cap;
     auto const a = sizeof(
         detail::fitem);
-    return a * ((n + a - 1) / a);
+    auto const new_cap =
+        a * ((n + a - 1) / a);
+    return new_cap;
 }
 
 // returns minimum capacity to hold
@@ -60,12 +68,23 @@ headers::
 headers(
     string_view empty) noexcept
     : buf_(nullptr)
+    , cap_(empty.size())
     , empty_(empty)
     , count_(0)
     , start_len_(
         empty.size() - 2)
     , fields_len_(0) // excludes CRLF
-    , cap_(empty.size())
+{
+}
+
+headers::
+headers(
+    int owner) noexcept
+    : buf_(nullptr)
+    , cap_(0)
+    , count_(0)
+    , start_len_(0)
+    , fields_len_(0)
 {
 }
 
@@ -81,8 +100,7 @@ headers::
 headers::
 headers() noexcept
     : headers(
-        string_view("\r\n"))
-{
+        string_view("\r\n")){
 }
 
 headers::
@@ -164,6 +182,7 @@ operator[](
     std::size_t i) const noexcept ->
         value_type const
 {
+    BOOST_ASSERT(i < count_);
     auto const& ft =
         detail::get_ftab(
             buf_ + cap_)[i];

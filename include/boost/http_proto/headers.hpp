@@ -37,17 +37,12 @@ class headers : public basic_header
     std::size_t count_;
     std::size_t start_len_;
     std::size_t fields_len_;
-
-    // 0=none
-    // 1=request
-    // 2=response
     int owner_; 
 
     friend class request;
     friend class response;
 
     static string_view const s_empty_[3];
-
     static constexpr std::size_t
         max_header_size_ = ((off_t)(-1));
 
@@ -68,6 +63,9 @@ class headers : public basic_header
     headers(
         string_view empty) noexcept;
 
+    // 0=none
+    // 1=request
+    // 2=response
     explicit
     headers(
         int owner) noexcept;
@@ -333,6 +331,9 @@ public:
     }
 
     /** Swap this with another instance
+
+        If headers belongs to a container of a
+        different type, an exception is thrown.
     */
     BOOST_HTTP_PROTO_DECL
     void
