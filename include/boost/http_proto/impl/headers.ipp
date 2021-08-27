@@ -23,6 +23,14 @@
 namespace boost {
 namespace http_proto {
 
+string_view const
+headers::
+s_empty_[3] = {
+    { "\r\n" },
+    { "GET / HTTP/1.1\r\n\r\n" },
+    { "HTTP/1.1 200 OK\r\n\r\n" }
+};
+
 constexpr
 std::size_t
 headers::

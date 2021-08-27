@@ -38,8 +38,15 @@ class headers : public basic_header
     std::size_t start_len_;
     std::size_t fields_len_;
 
+    // 0=none
+    // 1=request
+    // 2=response
+    int owner_; 
+
     friend class request;
     friend class response;
+
+    static string_view const s_empty_[3];
 
     static constexpr std::size_t
         max_header_size_ = ((off_t)(-1));
@@ -60,6 +67,10 @@ class headers : public basic_header
     explicit
     headers(
         string_view empty) noexcept;
+
+    explicit
+    headers(
+        int owner) noexcept;
 
 public:
     struct value_type
