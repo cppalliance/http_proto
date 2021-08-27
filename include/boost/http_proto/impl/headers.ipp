@@ -66,7 +66,8 @@ bytes_needed(
 
 headers::
 headers(
-    string_view empty) noexcept
+    string_view empty,
+    int owner) noexcept
     : buf_(nullptr)
     , cap_(empty.size())
     , empty_(empty)
@@ -74,17 +75,7 @@ headers(
     , start_len_(
         empty.size() - 2)
     , fields_len_(0) // excludes CRLF
-{
-}
-
-headers::
-headers(
-    int owner) noexcept
-    : buf_(nullptr)
-    , cap_(0)
-    , count_(0)
-    , start_len_(0)
-    , fields_len_(0)
+    , owner_(owner)
 {
 }
 
@@ -100,7 +91,7 @@ headers::
 headers::
 headers() noexcept
     : headers(
-        string_view("\r\n")){
+        string_view("\r\n"), 0){
 }
 
 headers::
@@ -133,7 +124,9 @@ headers(headers const& other)
 
 headers::
 headers(headers&& other) noexcept
-    : headers(other.empty_)
+    : headers(
+        other.empty_,
+        other.owner_)
 {
     swap(other);
 }
@@ -330,7 +323,7 @@ shrink_to_fit() noexcept
 
 void
 headers::
-swap(headers& h) noexcept
+swap(headers& h)
 {
     std::swap(buf_, h.buf_);
     std::swap(cap_, h.cap_);

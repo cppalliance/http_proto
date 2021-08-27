@@ -25,7 +25,7 @@ response()
     , result_(status::ok)
     , fields(
         "HTTP/1.1 200 OK\r\n"
-        "\r\n")
+        "\r\n", 2)
 {
 }
 

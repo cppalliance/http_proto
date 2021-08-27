@@ -26,7 +26,7 @@ request()
     , target_len_(1)
     , fields(
         "GET / HTTP/1.1\r\n"
-        "\r\n")
+        "\r\n", 1)
 {
 }
 

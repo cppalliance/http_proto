@@ -59,15 +59,13 @@ class headers : public basic_header
         std::size_t size,
         std::size_t count) noexcept;
 
+    // owner:
+    //  0=none
+    //  1=request
+    //  2=response
     explicit
     headers(
-        string_view empty) noexcept;
-
-    // 0=none
-    // 1=request
-    // 2=response
-    explicit
-    headers(
+        string_view empty,
         int owner) noexcept;
 
 public:
@@ -332,12 +330,26 @@ public:
 
     /** Swap this with another instance
 
-        If headers belongs to a container of a
-        different type, an exception is thrown.
+        This function executes in constant time
+        and without the possibility of exceptions
+        if:
+
+        @li Both instances are members of
+            @ref request objects, or
+
+        @li Both instances are members of
+            @ref response objects, or
+
+        @li Neither instances are members of
+            @ref request or @ref response objects.
+
+        Otherwise, the swap is performed in linear
+        time, can allocate memory, and may throw an
+        exception.
     */
     BOOST_HTTP_PROTO_DECL
     void
-    swap(headers& other) noexcept;
+    swap(headers& other);
 
     /** Swap two instances
     */
@@ -345,7 +357,7 @@ public:
     void
     swap(
         headers& v1,
-        headers& v2) noexcept
+        headers& v2)
     {
         v1.swap(v2);
     }
