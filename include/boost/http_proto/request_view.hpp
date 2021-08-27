@@ -29,6 +29,7 @@ class request_view : public basic_header
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;
 
+    friend class request;
     friend class request_parser;
 
     std::size_t method_len_ = 0;

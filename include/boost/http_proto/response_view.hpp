@@ -20,6 +20,7 @@ namespace http_proto {
 
 class response_view
 {
+    friend class response;
     friend class response_parser;
 
 public:

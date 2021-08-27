@@ -19,6 +19,10 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class request_view;
+#endif
+
 /** Container for HTTP requests
 */
 class request : public basic_header
@@ -97,6 +101,12 @@ public:
     {
         return version_;
     }
+
+    /** Return a read-only view to the request
+    */
+    BOOST_HTTP_PROTO_DECL
+    operator
+    request_view() const noexcept;
 
     /** Return the serialized string of this request
     */
@@ -184,6 +194,23 @@ public:
         http_proto::version v)
     {
         set(string_to_method(m), m, t, v);
+    }
+
+    /** Swap this with another instance
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(request& other) noexcept;
+
+    /** Swap two instances
+    */
+    friend
+    void
+    swap(
+        request& v1,
+        request& v2) noexcept
+    {
+        v1.swap(v2);
     }
 
 private:

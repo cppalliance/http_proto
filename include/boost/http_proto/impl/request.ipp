@@ -11,7 +11,9 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_IPP
 
 #include <boost/http_proto/request.hpp>
+#include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -29,20 +31,51 @@ request()
 }
 
 request::
-request(request&&) noexcept = default;
+request(request&& other) noexcept
+    : request()
+{
+    swap(other);
+}
 
 request::
 request(request const&) = default;
 
 request&
 request::
-operator=(request&&) noexcept = default;
+operator=(request&& other) noexcept
+{
+    request temp(
+        std::move(other));
+    swap(temp);
+    return *this;
+}
 
 request&
 request::
-operator=(request const&) = default;
+operator=(request const& other)
+{
+    request temp(other);
+    swap(temp);
+    return *this;
+}
 
 //------------------------------------------------
+
+request::
+operator
+request_view() const noexcept
+{
+    return request_view(
+        fields.buf_,
+        fields.count_,
+        fields.start_len_,
+        fields.fields_len_,
+        fields.cap_,
+        method_len_,
+        target_len_,
+        method_,
+        version_);
+}
 
 string_view
 request::
@@ -63,6 +96,19 @@ clear() noexcept
     target_len_ = 1;
     fields.clear();
 }
+
+void
+request::
+swap(request& other) noexcept
+{
+    std::swap(fields, other.fields);
+    std::swap(method_, other.method_);
+    std::swap(version_, other.version_);
+    std::swap(method_len_, other.method_len_);
+    std::swap(target_len_, other.target_len_);
+}
+
+//------------------------------------------------
 
 void
 request::

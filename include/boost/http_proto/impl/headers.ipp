@@ -17,6 +17,7 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/ftab.hpp>
 #include <cstring>
+#include <new>
 #include <utility>
 
 namespace boost {
@@ -106,21 +107,9 @@ headers(headers const& other)
 
 headers::
 headers(headers&& other) noexcept
+    : headers(other.empty_)
 {
-    buf_ = other.buf_;
-    empty_ = other.empty_;
-    count_ = other.count_;
-    start_len_ = other.start_len_;
-    fields_len_ = other.fields_len_;
-    cap_ = other.cap_;
-
-    other.buf_ = nullptr;
-    other.count_ = 0;
-    other.start_len_ =
-        other.empty_.size() - 2;
-    other.fields_len_ = 0; // excludes CRLF
-    other.cap_ =
-        other.empty_.size();
+    swap(other);
 }
 
 headers&

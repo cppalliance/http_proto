@@ -321,19 +321,21 @@ public:
             name, value, count_);
     }
 
-    /** Swap this with another header
+    /** Swap this with another instance
     */
     BOOST_HTTP_PROTO_DECL
     void
-    swap(headers& h) noexcept;
+    swap(headers& other) noexcept;
 
-    /** Swap two headers
+    /** Swap two instances
     */
     friend
     void
-    swap(headers& h1, headers& h2) noexcept
+    swap(
+        headers& v1,
+        headers& v2) noexcept
     {
-        h1.swap(h2);
+        v1.swap(v2);
     }
 
 #if 0

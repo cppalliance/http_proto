@@ -30,9 +30,8 @@ class response : public basic_header
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;
 
-    http_proto::version
-        version_ = version::http_1_1;
-    status result_ = status::ok;
+    http_proto::version version_;
+    status result_;
 
 public:
     /** Container holding the response header fields
@@ -50,17 +49,17 @@ public:
     BOOST_HTTP_PROTO_DECL
     response(response const&);
 
+    BOOST_HTTP_PROTO_DECL
+    response& operator=(response&&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    response& operator=(response const&);
+
     //--------------------------------------------
     //
     // Observers
     //
     //--------------------------------------------
-
-    /** Returns a string representing the serialized response
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    get_const_buffer() const noexcept override;
 
     /** Return the HTTP-version of this message
     */
@@ -94,6 +93,12 @@ public:
     operator
     response_view() const noexcept;
 
+    /** Returns a string representing the serialized response
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    get_const_buffer() const noexcept override;
+
     //--------------------------------------------
     //
     // Modifiers
@@ -112,6 +117,23 @@ public:
         status code,
         http_proto::version http_version,
         string_view reason = {});
+
+    /** Swap this with another instance
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(response& other) noexcept;
+
+    /** Swap two instances
+    */
+    friend
+    void
+    swap(
+        response& v1,
+        response& v2) noexcept
+    {
+        v1.swap(v2);
+    }
 };
 
 } // http_proto

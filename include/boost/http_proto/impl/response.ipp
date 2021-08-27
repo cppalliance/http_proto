@@ -14,27 +14,51 @@
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/detail/number_string.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
 
 response::
-response() = default;
+response()
+    : version_(version::http_1_1)
+    , result_(status::ok)
+    , fields(
+        "HTTP/1.1 200 OK\r\n"
+        "\r\n")
+{
+}
 
 response::
-response(response&&) noexcept = default;
+response(response&& other) noexcept
+    : response()
+{
+    swap(other);
+}
 
 response::
 response(response const&) = default;
 
-//------------------------------------------------
-
-string_view
+response&
 response::
-get_const_buffer() const noexcept 
+operator=(response&& other) noexcept
 {
-    return fields.str_impl();
+    response temp(
+        std::move(other));
+    swap(temp);
+    return *this;
 }
+
+response&
+response::
+operator=(response const& other)
+{
+    response temp(other);
+    swap(temp);
+    return *this;
+}
+
+//------------------------------------------------
 
 status
 response::
@@ -63,6 +87,13 @@ response::
 operator response_view() const noexcept
 {
     return {};
+}
+
+string_view
+response::
+get_const_buffer() const noexcept 
+{
+    return fields.str_impl();
 }
 
 //------------------------------------------------
@@ -123,6 +154,15 @@ set_result(
     version_ = http_version;
     result_ = code;
 }
+
+void
+response::
+swap(response& other) noexcept
+{
+    std::swap(version_, other.version_);
+    std::swap(result_, other.result_);
+}
+
 
 } // http_proto
 } // boost
