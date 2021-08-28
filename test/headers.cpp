@@ -231,6 +231,39 @@ public:
     }
 
     void
+    testObservers()
+    {
+        // operator header_view
+        {
+            // no start line
+            {
+                headers h;
+                h.append("x", "1");
+                h.append("y", "2");
+                headers_view hv = h;
+                BOOST_TEST(hv.count("x") == 1);
+                BOOST_TEST(hv.count("y") == 1);
+                BOOST_TEST(hv.get_const_buffer() ==
+                    "x: 1\r\ny: 2\r\n\r\n");
+            }
+
+            // start line
+            {
+                response res;
+                res.fields.append("x", "1");
+                res.fields.append("y", "2");
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 200 OK\r\nx: 1\r\ny: 2\r\n\r\n");
+                headers_view hv = res.fields;
+                BOOST_TEST(hv.count("x") == 1);
+                BOOST_TEST(hv.count("y") == 1);
+                BOOST_TEST(hv.get_const_buffer() ==
+                    "x: 1\r\ny: 2\r\n\r\n");
+            }
+        }
+    }
+
+    void
     testAppend()
     {
         headers h;
@@ -339,6 +372,7 @@ public:
     void run()
     {
         testSpecial();
+        testObservers();
         testAppend();
     }
 };

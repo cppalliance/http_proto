@@ -18,10 +18,10 @@ namespace http_proto {
 request_view::
 request_view(
     char const* buf,
+    std::size_t cap,
     std::size_t count,
-    std::size_t start_bytes,
-    std::size_t fields_bytes,
-    std::size_t capacity,
+    std::size_t start_len,
+    std::size_t fields_len,
     std::size_t method_len,
     std::size_t target_len,
     http_proto::method method,
@@ -32,10 +32,10 @@ request_view(
     , version_(version)
     , fields(
         buf,
+        cap,
         count,
-        start_bytes,
-        fields_bytes,
-        capacity)
+        start_len,
+        fields_len)
 {
 }
 

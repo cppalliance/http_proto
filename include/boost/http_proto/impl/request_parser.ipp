@@ -27,8 +27,8 @@ request_parser(
     context& ctx) noexcept
     : parser(ctx)
     , method_(http_proto::method::unknown)
-    , n_method_(0)
-    , n_target_(0)
+    , method_len_(0)
+    , target_len_(0)
 {
 }
 
@@ -38,12 +38,13 @@ get() const noexcept
 {
     return request_view(
         buf_,
+        cap_,
         m_.fields,
         start_len_,
-        m_.n_header - start_len_ - 2,
-        cap_,
-        n_method_,
-        n_target_,
+        m_.n_header -
+            start_len_ - 2,
+        method_len_,
+        target_len_,
         method_,
         m_.version);
 }
@@ -64,9 +65,9 @@ parse_start_line(
         return start + (it - start);
     method_ = string_to_method(
         p.value().method);
-    n_method_ = static_cast<
+    method_len_ = static_cast<
         off_t>(p.value().method.size());
-    n_target_ = static_cast<
+    target_len_ = static_cast<
         off_t>(p.value().target.size());
     switch(p.value().version)
     {

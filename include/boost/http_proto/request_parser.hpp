@@ -26,8 +26,8 @@ class request_parser
 {
     http_proto::method method_;
 
-    off_t n_method_;
-    off_t n_target_;
+    off_t method_len_;
+    off_t target_len_;
     off_t start_len_;
 
 public:

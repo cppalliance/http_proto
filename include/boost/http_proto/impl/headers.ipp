@@ -306,13 +306,11 @@ operator=(
 headers::
 operator headers_view() const noexcept
 {
-    // VFALCO Fix this, the table uses
-    // offsets from buf_ not buf_+start_len_...
     return headers_view(
-        get_const_buffer().data(),
-        cap_ - start_len_,
+        owner_str().data(),
+        cap_,
         count_,
-        0,
+        start_len_,
         fields_len_);
 }
 

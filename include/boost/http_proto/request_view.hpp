@@ -40,10 +40,10 @@ class request_view : public basic_header
     BOOST_HTTP_PROTO_DECL
     request_view(
         char const* buf,
+        std::size_t cap,
         std::size_t count,
-        std::size_t start_bytes,
-        std::size_t fields_bytes,
-        std::size_t capacity,
+        std::size_t start_len,
+        std::size_t fields_len,
         std::size_t method_len,
         std::size_t target_len,
         http_proto::method method,
