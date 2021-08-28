@@ -94,6 +94,11 @@ void f1()
         p.discard_payload();
     }
 
+    // read into file
+    read_header(sock, p);
+    file_body::parser fp;
+    fp.open(req.target().to_path(doc_root), file_mode::write);
+    read_body(sock, fp); // ?
 }}
 
 } // http_proto

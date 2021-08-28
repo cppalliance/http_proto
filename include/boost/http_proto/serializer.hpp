@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdint>
@@ -22,12 +23,6 @@ namespace http_proto {
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
 #endif
-
-struct const_buffer_pair
-{
-    char const* data[2];
-    std::size_t size[2];
-};
 
 class serializer
 {
@@ -75,6 +70,12 @@ public:
         return p;
     }
 
+    void
+    consume(std::size_t n) noexcept
+    {
+        (void)n;
+    }
+
     /** Staple a header and body together for serialization
 
         Any previous header or body is cleared.
@@ -89,6 +90,8 @@ public:
         hs_ = h.get_const_buffer();
         bs_ = b;
     }
+
+    // VFALCO chunked?
 };
 
 } // http_proto

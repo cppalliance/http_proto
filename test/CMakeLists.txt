@@ -17,6 +17,7 @@ set(PFILES
     CMakeLists.txt
     arrow_proxy.cpp
     basic_header.cpp
+    buffer.cpp
     context.cpp
     error.cpp
     field.cpp
