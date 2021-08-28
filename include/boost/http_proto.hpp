@@ -12,9 +12,6 @@
 
 #include <boost/http_proto/arrow_proxy.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/decoder.hpp>
-#include <boost/http_proto/deflate_service.hpp>
-#include <boost/http_proto/encoder.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/headers.hpp>
@@ -48,5 +45,9 @@
 #include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
+
+#include <boost/http_proto/codec/decoder.hpp>
+#include <boost/http_proto/codec/deflate_service.hpp>
+#include <boost/http_proto/codec/encoder.hpp>
 
 #endif

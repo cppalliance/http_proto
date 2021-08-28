@@ -7,18 +7,24 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_DECODER_IPP
-#define BOOST_HTTP_PROTO_IMPL_DECODER_IPP
+// Test that header file is self-contained.
+#include <boost/http_proto/codec/encoder.hpp>
 
-#include <boost/http_proto/decoder.hpp>
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-decoder::
-~decoder() = default;
+class encoder_test
+{
+public:
+    void
+    run()
+    {
+    }
+};
+
+TEST_SUITE(encoder_test, "boost.http_proto.encoder");
 
 } // http_proto
 } // boost
-
-#endif

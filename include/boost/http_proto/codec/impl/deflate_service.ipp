@@ -7,13 +7,13 @@
 // Official repository: https://github.com/vinniefalco/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_DEFLATE_SERVICE_IPP
-#define BOOST_HTTP_PROTO_IMPL_DEFLATE_SERVICE_IPP
+#ifndef BOOST_HTTP_PROTO_CODEC_IMPL_DEFLATE_SERVICE_IPP
+#define BOOST_HTTP_PROTO_CODEC_IMPL_DEFLATE_SERVICE_IPP
 
-#include <boost/http_proto/deflate_service.hpp>
+#include <boost/http_proto/codec/deflate_service.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/decoder.hpp>
-#include <boost/http_proto/encoder.hpp>
+#include <boost/http_proto/codec/decoder.hpp>
+#include <boost/http_proto/codec/encoder.hpp>
 #include <boost/beast/zlib/deflate_stream.hpp>
 #include <boost/beast/zlib/inflate_stream.hpp>
 

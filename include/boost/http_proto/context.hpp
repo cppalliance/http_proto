@@ -18,8 +18,10 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
 class decoder_type;
 class encoder_type;
+#endif
 
 class context
 {

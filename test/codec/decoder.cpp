@@ -8,40 +8,23 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/deflate_service.hpp>
+#include <boost/http_proto/codec/decoder.hpp>
 
-#include <boost/http_proto/context.hpp>
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class deflate_codec_test
+class decoder_test
 {
 public:
     void
-    testDecoder()
-    {
-        context ctx;
-        install_deflate_decoder(ctx);
-    }
-
-    void
-    testEncoder()
-    {
-        context ctx;
-        install_deflate_encoder(ctx);
-    }
-
-    void
     run()
     {
-        testDecoder();
-        testEncoder();
     }
 };
 
-TEST_SUITE(deflate_codec_test, "boost.http_proto.deflate_service");
+TEST_SUITE(decoder_test, "boost.http_proto.decoder");
 
 } // http_proto
 } // boost

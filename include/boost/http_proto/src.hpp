@@ -29,9 +29,6 @@ in a translation unit of the program.
 
 #include <boost/http_proto/impl/basic_header.ipp>
 #include <boost/http_proto/impl/context.ipp>
-#include <boost/http_proto/impl/decoder.ipp>
-#include <boost/http_proto/impl/deflate_service.ipp>
-#include <boost/http_proto/impl/encoder.ipp>
 #include <boost/http_proto/impl/error.ipp>
 #include <boost/http_proto/impl/field.ipp>
 #include <boost/http_proto/impl/headers.ipp>
@@ -60,6 +57,10 @@ in a translation unit of the program.
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
 
 #include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
+
+#include <boost/http_proto/codec/impl/decoder.ipp>
+#include <boost/http_proto/codec/impl/deflate_service.ipp>
+#include <boost/http_proto/codec/impl/encoder.ipp>
 
 // VFALCO These are tucked away here temporarily
 #include <boost/beast/zlib/detail/deflate_stream.ipp>

@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_ENCODER_IPP
 #define BOOST_HTTP_PROTO_IMPL_ENCODER_IPP
 
-#include <boost/http_proto/encoder.hpp>
+#include <boost/http_proto/codec/encoder.hpp>
 
 namespace boost {
 namespace http_proto {

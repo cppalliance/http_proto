@@ -18,9 +18,6 @@ set(PFILES
     arrow_proxy.cpp
     basic_header.cpp
     context.cpp
-    decoder.cpp
-    deflate_service.cpp
-    encoder.cpp
     error.cpp
     field.cpp
     headers.cpp
@@ -55,6 +52,9 @@ set(PFILES
     bnf/transfer_encoding.cpp
     bnf/transfer_param_list.cpp
     bnf/type_traits.cpp
+    codec/decoder.cpp
+    codec/deflate_service.cpp
+    codec/encoder.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
