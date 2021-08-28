@@ -21,11 +21,14 @@ namespace http_proto {
 #ifndef BOOST_HTTP_PROTO_DOCS
 class decoder_type;
 class encoder_type;
+class codecs;
 #endif
 
 class context
 {
     struct data;
+
+    codecs* codecs_;
 
 public:
     struct service
@@ -43,34 +46,11 @@ public:
     BOOST_HTTP_PROTO_DECL
     context() noexcept;
 
-    //--------------------------------------------
-    //
-    // Content-Encoding
-    // Transfer-Encoding
-    //
-    //--------------------------------------------
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    add_decoder(
-        string_view name,
-        decoder_type&);
-
-    BOOST_HTTP_PROTO_DECL
-    decoder_type*
-    find_decoder(
-        string_view name) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    add_encoder(
-        string_view name,
-        encoder_type&);
-
-    BOOST_HTTP_PROTO_DECL
-    encoder_type*
-    find_encoder(
-        string_view name) noexcept;
+    codecs&
+    get_codecs() noexcept
+    {
+        return *codecs_;
+    }
 
     //--------------------------------------------
 

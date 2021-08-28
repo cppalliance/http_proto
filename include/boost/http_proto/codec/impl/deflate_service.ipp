@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/codec/deflate_service.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/codec/codecs.hpp>
 #include <boost/http_proto/codec/decoder.hpp>
 #include <boost/http_proto/codec/encoder.hpp>
 #include <boost/beast/zlib/deflate_stream.hpp>
@@ -20,7 +21,7 @@
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
+namespace detail {
 
 class deflate_decoder_service_impl
     : public context::service
@@ -31,7 +32,7 @@ public:
     deflate_decoder_service_impl(
         context& ctx)
     {
-        ctx.add_decoder(
+        ctx.get_codecs().add_decoder(
             "deflate", *this);
     }
 
@@ -88,7 +89,7 @@ public:
     deflate_encoder_service_impl(
         context& ctx)
     {
-        ctx.add_encoder(
+        ctx.get_codecs().add_encoder(
             "deflate", *this);
     }
 
@@ -116,6 +117,8 @@ public:
     }
 };
 
+} // detail
+
 //------------------------------------------------
 
 void
@@ -129,9 +132,8 @@ void
 install_deflate_decoder(
     context& ctx)
 {
-    auto& svc = make_service<
-        deflate_decoder_service_impl>(ctx);
-    (void)svc;
+    make_service<
+        detail::deflate_decoder_service_impl>(ctx);
 }
 
 } // http_proto

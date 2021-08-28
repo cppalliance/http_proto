@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/context.hpp>
 
+#include <boost/http_proto/codec/codecs.hpp>
 #include <boost/http_proto/codec/decoder.hpp>
 
 #include "test_suite.hpp"
@@ -37,7 +38,7 @@ public:
     test_service(
         context& ctx)
     {
-        ctx.add_decoder(
+        ctx.get_codecs().add_decoder(
             "test-decoder", td);
     }
 };
@@ -60,7 +61,7 @@ public:
         context ctx;
         auto& ts = make_service<
             test_service>(ctx);
-        BOOST_TEST(ctx.find_decoder("test-decoder") == &ts.td);
+        BOOST_TEST(ctx.get_codecs().find_decoder("test-decoder") == &ts.td);
     }
 
     void

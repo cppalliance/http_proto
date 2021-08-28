@@ -12,12 +12,15 @@
 
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/container/map.hpp>
 //#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet
 #include <unordered_map>
 
 namespace boost {
 namespace http_proto {
+
+namespace detail {
+codecs& install_codecs_service(context& ctx);
+} // detail
 
 struct context::data
 {
@@ -26,20 +29,6 @@ struct context::data
         std::type_index,
         std::unique_ptr<service>
             > services;
-
-    // List of decoders
-    boost::container::map<
-        std::string,
-        decoder_type*,
-        bnf::iless_pred
-            > decoders;
-
-    // List of encoders
-    boost::container::map<
-        std::string,
-        encoder_type*,
-        bnf::iless_pred
-            > encoders;
 };
 
 //------------------------------------------------
@@ -59,62 +48,7 @@ context::
 context() noexcept
     : p_(new data)
 {
-}
-
-void
-context::
-add_decoder(
-    string_view name,
-    decoder_type& dt)
-{
-    auto const result =
-        p_->decoders.emplace(
-            name.to_string(), &dt);
-    if(result.second)
-        return;
-    detail::throw_out_of_range(
-        BOOST_CURRENT_LOCATION);
-}
-
-decoder_type*
-context::
-find_decoder(
-    string_view name) noexcept
-{
-    auto const result =
-        p_->decoders.find(name);
-    if(result !=
-        p_->decoders.end())
-        return result->second;
-    return nullptr;
-}
-
-void
-context::
-add_encoder(
-    string_view name,
-    encoder_type& dt)
-{
-    auto const result =
-        p_->encoders.emplace(
-            name.to_string(), &dt);
-    if(result.second)
-        return;
-    detail::throw_out_of_range(
-        BOOST_CURRENT_LOCATION);
-}
-
-encoder_type*
-context::
-find_encoder(
-    string_view name) noexcept
-{
-    auto const result =
-        p_->encoders.find(name);
-    if(result !=
-        p_->encoders.end())
-        return result->second;
-    return nullptr;
+    codecs_ = &detail::install_codecs_service(*this);
 }
 
 //------------------------------------------------

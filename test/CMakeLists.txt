@@ -52,6 +52,7 @@ set(PFILES
     bnf/transfer_encoding.cpp
     bnf/transfer_param_list.cpp
     bnf/type_traits.cpp
+    codec/codecs.cpp
     codec/decoder.cpp
     codec/deflate_service.cpp
     codec/encoder.cpp

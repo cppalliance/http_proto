@@ -58,6 +58,7 @@ in a translation unit of the program.
 
 #include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
 
+#include <boost/http_proto/codec/impl/codecs.ipp>
 #include <boost/http_proto/codec/impl/decoder.ipp>
 #include <boost/http_proto/codec/impl/deflate_service.ipp>
 #include <boost/http_proto/codec/impl/encoder.ipp>
