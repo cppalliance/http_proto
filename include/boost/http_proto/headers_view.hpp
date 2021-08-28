@@ -49,12 +49,12 @@ class headers_view : public basic_header
 
     headers_view(
         char const* buf,
+        std::size_t cap,
         std::size_t count,
         std::size_t start_len,
-        std::size_t fields_len,
-        std::size_t capacity) noexcept
+        std::size_t fields_len) noexcept
         : buf_(buf)
-        , cap_(capacity)
+        , cap_(cap)
         , count_(count)
         , start_len_(start_len)
         , fields_len_(fields_len)

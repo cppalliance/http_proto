@@ -79,7 +79,7 @@ public:
     method_str() const noexcept
     {
         return string_view(
-            fields.str_impl().data(),
+            fields.owner_str().data(),
             method_len_);
     }
 
@@ -89,7 +89,7 @@ public:
     target() const noexcept
     {
         return string_view(
-            fields.str_impl().data() +
+            fields.owner_str().data() +
                 method_len_ + 1,
             target_len_);
     }

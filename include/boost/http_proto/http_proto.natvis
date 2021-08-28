@@ -2,7 +2,7 @@
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="boost::http_proto::headers">
-    <DisplayString>{buf_,[start_bytes_]s} [{count_}]</DisplayString>
+    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>
@@ -21,7 +21,7 @@
 
 
   <Type Name="boost::http_proto::headers_view">
-    <DisplayString>{buf_,[start_bytes_]s} [{count_}]</DisplayString>
+    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>

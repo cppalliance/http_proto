@@ -24,9 +24,7 @@ request()
     , version_(http_proto::version::http_1_1)
     , method_len_(3)
     , target_len_(1)
-    , fields(
-        "GET / HTTP/1.1\r\n"
-        "\r\n", 1)
+    , fields(1)
 {
 }
 
@@ -38,7 +36,14 @@ request(request&& other) noexcept
 }
 
 request::
-request(request const&) = default;
+request(request const& other)
+    : method_(other.method_)
+    , version_(other.version_)
+    , method_len_(other.method_len_)
+    , target_len_(other.target_len_)
+    , fields(other.fields, 1)
+{
+}
 
 request&
 request::
@@ -81,7 +86,7 @@ string_view
 request::
 get_const_buffer() const noexcept
 {
-    return fields.str_impl();
+    return fields.owner_str();
 }
 
 //------------------------------------------------
@@ -101,11 +106,11 @@ void
 request::
 swap(request& other) noexcept
 {
-    std::swap(fields, other.fields);
     std::swap(method_, other.method_);
     std::swap(version_, other.version_);
     std::swap(method_len_, other.method_len_);
     std::swap(target_len_, other.target_len_);
+    fields.owner_swap(other.fields);
 }
 
 //------------------------------------------------
@@ -118,7 +123,7 @@ set(http_proto::method m,
     http_proto::version v)
 {
     detail::copied_strings cs(
-        fields.str_impl());
+        fields.owner_str());
     ms = cs.maybe_copy(ms);
     t = cs.maybe_copy(t);
 

@@ -33,16 +33,15 @@ class headers : public basic_header
 
     char* buf_;
     std::size_t cap_;
-    string_view empty_;
     std::size_t count_;
     std::size_t start_len_;
     std::size_t fields_len_;
-    int owner_; 
+    int const owner_; 
 
     friend class request;
     friend class response;
 
-    static string_view const s_empty_[3];
+    static string_view const s_owner_[3];
     static constexpr std::size_t
         max_header_size_ = ((off_t)(-1));
 
@@ -63,10 +62,13 @@ class headers : public basic_header
     //  0=none
     //  1=request
     //  2=response
-    explicit
-    headers(
-        string_view empty,
-        int owner) noexcept;
+    explicit headers(int owner) noexcept;
+    headers(headers const&, int owner);
+    void owner_swap(headers&) noexcept;
+    void owner_default() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    string_view owner_str() const noexcept;
 
 public:
     struct value_type
@@ -108,10 +110,9 @@ public:
     BOOST_HTTP_PROTO_DECL
     headers(headers const& other);
 
-    /** Assignment
+    /** Assignment (deleted)
     */
-    BOOST_HTTP_PROTO_DECL
-    headers& operator=(headers&&) noexcept;
+    headers& operator=(headers&&) = delete;
 
     /** Assignment
     */
@@ -329,23 +330,6 @@ public:
     }
 
     /** Swap this with another instance
-
-        This function executes in constant time
-        and without the possibility of exceptions
-        if:
-
-        @li Both instances are members of
-            @ref request objects, or
-
-        @li Both instances are members of
-            @ref response objects, or
-
-        @li Neither instances are members of
-            @ref request or @ref response objects.
-
-        Otherwise, the swap is performed in linear
-        time, can allocate memory, and may throw an
-        exception.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -377,10 +361,6 @@ public:
 #endif
 
 private:
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    str_impl() const noexcept;
-
     struct alloc_t
     {
         char* buf;

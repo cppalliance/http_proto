@@ -23,9 +23,7 @@ response::
 response()
     : version_(version::http_1_1)
     , result_(status::ok)
-    , fields(
-        "HTTP/1.1 200 OK\r\n"
-        "\r\n", 2)
+    , fields(2)
 {
 }
 
@@ -37,7 +35,12 @@ response(response&& other) noexcept
 }
 
 response::
-response(response const&) = default;
+response(response const& other)
+    : version_(other.version_)
+    , result_(other.result_)
+    , fields(other.fields, 2)
+{
+}
 
 response&
 response::
@@ -93,7 +96,7 @@ string_view
 response::
 get_const_buffer() const noexcept 
 {
-    return fields.str_impl();
+    return fields.owner_str();
 }
 
 //------------------------------------------------
@@ -135,7 +138,7 @@ set_result(
     // status-code
     auto const i =
         static_cast<unsigned>(
-            result_);
+            code);
     *dest++ = '0' + ((i / 100) % 10);
     *dest++ = '0' + ((i /  10) % 10);
     *dest++ = '0' + ((i /   1) % 10);
@@ -161,8 +164,8 @@ swap(response& other) noexcept
 {
     std::swap(version_, other.version_);
     std::swap(result_, other.result_);
+    fields.owner_swap(other.fields);
 }
-
 
 } // http_proto
 } // boost

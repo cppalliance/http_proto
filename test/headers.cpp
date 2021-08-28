@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/headers_view.hpp>
+#include <boost/http_proto/response.hpp>
 #include "test_suite.hpp"
 
 namespace boost {
@@ -28,59 +29,204 @@ public:
             headers h;
             BOOST_TEST(h.begin() == h.end());
             BOOST_TEST(h.size() == 0);
+            BOOST_TEST(
+                h.get_const_buffer() == "\r\n");
+            BOOST_TEST(
+                h.capacity_in_bytes() == 0);
         }
 
         // move ctor
         {
-            headers h1;
-            h1.append("x", "1");
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            headers h2(std::move(h1));
-            BOOST_TEST(h1.size() == 0);
-            BOOST_TEST(! h1.exists("x"));
-            BOOST_TEST(h2.size() == 1);
-            BOOST_TEST(h2.at("x") == "1");
+            // no start line
+            {
+                headers h1;
+                h1.append("x", "1");
+                BOOST_TEST(h1.size() == 1);
+                BOOST_TEST(
+                    h1.capacity_in_bytes() > 0);
+                BOOST_TEST(h1.at("x") == "1");
+                headers h2(std::move(h1));
+                BOOST_TEST(
+                    h1.capacity_in_bytes() == 0);
+                BOOST_TEST(h1.size() == 0);
+                BOOST_TEST(! h1.exists("x"));
+                BOOST_TEST(h2.size() == 1);
+                BOOST_TEST(h2.at("x") == "1");
+                BOOST_TEST(
+                    h2.capacity_in_bytes() > 0);
+            }
+
+            // start line
+            {
+                response res;
+                res.set_result(
+                    status::bad_request,
+                    version::http_1_1);
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 400 Bad Request\r\n\r\n");
+                res.fields.append("x", "1");
+                headers h(std::move(res.fields));
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST(res.fields.size() == 0);
+                // start-line is removed on move
+                BOOST_TEST(h.get_const_buffer() ==
+                    "x: 1\r\n\r\n");
+                BOOST_TEST(h.size() == 1);
+                BOOST_TEST(h.count("x") == 1);
+            }
         }
 
         // copy ctor
         {
-            headers h1;
-            h1.append("x", "1");
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            headers h2(h1);
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            BOOST_TEST(h2.size() == 1);
-            BOOST_TEST(h2.at("x") == "1");
-        }
+            // no buffer
+            {
+                headers h1;
+                BOOST_TEST(h1.size() == 0);
+                BOOST_TEST(h1.get_const_buffer()
+                    == "\r\n");
+                BOOST_TEST(
+                    h1.capacity_in_bytes() == 0);
+                headers h2(h1);
+                BOOST_TEST(h2.size() == 0);
+                BOOST_TEST(h2.get_const_buffer()
+                    == "\r\n");
+                BOOST_TEST(
+                    h2.capacity_in_bytes() == 0);
+            }
 
-        // move assign
-        {
-            headers h1;
-            h1.append("x", "1");
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            headers h2;
-            h2 = std::move(h1);
-            BOOST_TEST(h1.size() == 0);
-            BOOST_TEST(! h1.exists("x"));
-            BOOST_TEST(h2.size() == 1);
-            BOOST_TEST(h2.at("x") == "1");
+            // no start-line
+            {
+                headers h1;
+                h1.append("x", "1");
+                BOOST_TEST(
+                    h1.capacity_in_bytes() > 0);
+                BOOST_TEST(h1.size() == 1);
+                BOOST_TEST(h1.at("x") == "1");
+                headers h2(h1);
+                BOOST_TEST(
+                    h1.capacity_in_bytes() > 0);
+                BOOST_TEST(
+                    h2.capacity_in_bytes() > 0);
+                BOOST_TEST(h1.size() == 1);
+                BOOST_TEST(h1.at("x") == "1");
+                BOOST_TEST(h2.size() == 1);
+                BOOST_TEST(h2.at("x") == "1");
+                BOOST_TEST(h2.count("x") == 1);
+            }
+
+            // start line
+            {
+                response res;
+                res.set_result(
+                    status::bad_request,
+                    version::http_1_1);
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 400 Bad Request\r\n\r\n");
+                res.fields.append("x", "1");
+                headers h(res.fields);
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 400 Bad Request\r\nx: 1\r\n\r\n");
+                BOOST_TEST(res.fields.size() == 1);
+                // start-line is removed on move
+                BOOST_TEST(h.get_const_buffer() ==
+                    "x: 1\r\n\r\n");
+                BOOST_TEST(h.size() == 1);
+                BOOST_TEST(h.count("x") == 1);
+            }
         }
 
         // copy assign
         {
-            headers h1;
-            h1.append("x", "1");
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            headers h2(h1);
-            BOOST_TEST(h1.size() == 1);
-            BOOST_TEST(h1.at("x") == "1");
-            BOOST_TEST(h2.size() == 1);
-            BOOST_TEST(h2.at("x") == "1");
+            // empty container
+            {
+                headers h1;
+                BOOST_TEST(h1.size() == 0);
+                BOOST_TEST(
+                    h1.capacity_in_bytes() == 0);
+                headers h2;
+                h2 = h1;
+                BOOST_TEST(h2.size() == 0);
+                BOOST_TEST(
+                    h1.capacity_in_bytes() == 0);
+                BOOST_TEST(
+                    h2.capacity_in_bytes() == 0);
+            }
+
+            // keep capacity
+            {
+                headers h1;
+                h1.append("x", "1");
+                BOOST_TEST(
+                    h1.capacity_in_bytes() > 0);
+                headers h2;
+                h1 = h2;
+                BOOST_TEST(
+                    h1.capacity_in_bytes() > 0);
+                BOOST_TEST(h1.size() == 0);
+                BOOST_TEST(
+                    h1.begin() == h1.end());
+            }
+
+            // use existing capacity
+            {
+                headers h1;
+                h1.append("x", "1");
+                h1.append("y", "2");
+                h1.append("z", "3");
+                headers h2;
+                h2.append("a", "1");
+                BOOST_TEST(
+                    h1.capacity_in_bytes() >=
+                    h2.capacity_in_bytes());
+                h1 = h2;
+                BOOST_TEST(h1.size() == 1);
+                BOOST_TEST(h1.count("a") == 1);
+                BOOST_TEST(h1.count("x") == 0);
+                BOOST_TEST(h1.count("y") == 0);
+                BOOST_TEST(h1.count("z") == 0);
+            }
+
+            // realize start-line
+            {
+                response res;
+                BOOST_TEST(
+                    res.fields.capacity_in_bytes() == 0);
+                headers h;
+                h.append("x", "1");
+                res.fields = h;
+                BOOST_TEST(res.get_const_buffer() ==
+                    "HTTP/1.1 200 OK\r\nx: 1\r\n\r\n");
+            }
+
+            // force allocation
+            {
+                headers h1;
+                h1.append("x", "1");
+                h1.append("y", "2");
+                h1.append("z", "3");
+                headers h2;
+                h2.append("a",
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789"
+                    "01234567890123456789012345678901234567890123456789");
+                BOOST_TEST(
+                    h1.capacity_in_bytes() <
+                    h2.capacity_in_bytes());
+                h1 = h2;
+                BOOST_TEST(h1.size() == 1);
+                BOOST_TEST(h1.count("a") == 1);
+                BOOST_TEST(h1.count("x") == 0);
+                BOOST_TEST(h1.count("y") == 0);
+                BOOST_TEST(h1.count("z") == 0);
+            }
         }
     }
 

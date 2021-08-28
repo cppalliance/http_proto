@@ -23,9 +23,18 @@
 namespace boost {
 namespace http_proto {
 
+/*  Implementation notes
+
+    When buf_ == nullptr, the serialized string
+        is equivalent to s_owner_[owner_]
+
+    fields_len_ does not include the final CRLF,
+        which is always present.
+*/
+
 string_view const
 headers::
-s_empty_[3] = {
+s_owner_[3] = {
     { "\r\n" },
     { "GET / HTTP/1.1\r\n\r\n" },
     { "HTTP/1.1 200 OK\r\n\r\n" }
@@ -66,17 +75,92 @@ bytes_needed(
 
 headers::
 headers(
-    string_view empty,
     int owner) noexcept
-    : buf_(nullptr)
-    , cap_(empty.size())
-    , empty_(empty)
-    , count_(0)
-    , start_len_(
-        empty.size() - 2)
-    , fields_len_(0) // excludes CRLF
-    , owner_(owner)
+    : owner_(owner)
 {
+    owner_default();
+}
+
+// copy-construct as owner,
+// extra param is just a placeholder
+// to create a separate overload
+headers::
+headers(
+    headers const& other,
+    int owner)
+    : owner_(owner)
+{
+    BOOST_ASSERT(
+        owner_ == other.owner_);
+    if(other.buf_ == nullptr)
+    {
+        owner_default();
+        return;
+    }
+    auto const tab_size =
+        other.count_ *
+            sizeof(detail::fitem);
+    // copy the start line
+    auto new_cap = align_up(
+        other.start_len_ +
+        other.fields_len_ +
+            2 + tab_size);
+    buf_ = new char[new_cap];
+    cap_ = new_cap;
+    count_ = other.count_;
+    start_len_ = other.start_len_;
+    fields_len_ =
+        other.fields_len_;
+    std::memcpy(
+        buf_,
+        other.buf_,
+        start_len_ +
+            fields_len_ + 2);
+    std::memcpy(
+        buf_ + cap_ - tab_size,
+        other.buf_ +
+            other.cap_ - tab_size,
+        tab_size);
+}
+
+// swap everything
+void
+headers::
+owner_swap(
+    headers& other) noexcept
+{
+    std::swap(buf_, other.buf_);
+    std::swap(cap_, other.cap_);
+    std::swap(count_, other.count_);
+    std::swap(start_len_, other.start_len_);
+    std::swap(fields_len_, other.fields_len_);
+}
+
+// set default-constructed
+// state for owner
+void
+headers::
+owner_default() noexcept
+{
+    buf_ = nullptr;
+    cap_ = 0;
+    count_ = 0;
+    start_len_ = s_owner_[
+      owner_].size() - 2;
+    fields_len_ = 0;
+}
+
+// return serialized string
+// including the start-line
+string_view
+headers::
+owner_str() const noexcept
+{
+    if(buf_)
+        return string_view(buf_,
+            start_len_ +
+            fields_len_ + 2);
+    return s_owner_[owner_];
 }
 
 //------------------------------------------------
@@ -90,65 +174,125 @@ headers::
 
 headers::
 headers() noexcept
-    : headers(
-        string_view("\r\n"), 0){
+    : headers(0)
+{
 }
 
+// other becomes defaulted,
+// this gets only fields
+headers::
+headers(headers&& other) noexcept
+    : owner_(0)
+{
+    buf_ = other.buf_;
+    cap_ = other.cap_;
+    count_ = other.count_;
+    start_len_ = 0;
+    fields_len_ = other.fields_len_;
+    if(buf_ && other.start_len_ > 0)
+    {
+        // remove start-line
+        std::memmove(
+            buf_, buf_ +
+                other.start_len_,
+            fields_len_ + 2);
+    }
+    other.owner_default();
+}
+
+// doesn't copy start-line
 headers::
 headers(headers const& other)
+    : headers(0)
 {
-    // VFALCO TODO this needs
-    // to respect the minimum capacity
+    if(other.buf_ == nullptr)
+        return;
     auto const tab_size =
         other.count_ *
             sizeof(detail::fitem);
+    // don't copy the start line
     auto new_cap = align_up(
-        other.start_len_ +
-            other.fields_len_ +
-            tab_size);
+        other.fields_len_ +
+            2 + tab_size);
     buf_ = new char[new_cap];
-    empty_ = other.empty_;
-    count_ = other.count_;
-    start_len_ = other.start_len_;
-    fields_len_ = other.fields_len_;
     cap_ = new_cap;
+    count_ = other.count_;
+    fields_len_ =
+        other.fields_len_;
     std::memcpy(
-        buf_, other.buf_,
-        start_len_ +
-            fields_len_ + 2);
+        buf_,
+        other.buf_ +
+            other.start_len_,
+        fields_len_ + 2);
     std::memcpy(
         buf_ + cap_ - tab_size,
-        other.buf_ + other.cap_ - tab_size,
+        other.buf_ +
+            other.cap_ - tab_size,
         tab_size);
+    auto ft = detail::get_ftab(
+        buf_ + cap_);
+    for(std::size_t i = 0;
+            i < count_; ++i)
+        ft[i].add(
+            0 - other.start_len_);
 }
 
-headers::
-headers(headers&& other) noexcept
-    : headers(
-        other.empty_,
-        other.owner_)
-{
-    swap(other);
-}
-
-headers&
-headers::
-operator=(
-    headers&& other) noexcept
-{
-    headers temp(
-        std::move(other));
-    swap(temp);
-    return *this;
-}
-
+// copy fields only
 headers&
 headers::
 operator=(
     headers const& other)
 {
-    headers temp(other);
-    swap(temp);
+    if(other.buf_ == nullptr)
+    {
+        // empty container,
+        // keep capacity
+        count_ = 0;
+        start_len_ = 0;
+        fields_len_ = 0;
+        return *this;
+    }
+    auto const tab_size =
+        other.count_ *
+            sizeof(detail::fitem);
+    auto const new_cap = align_up(
+        start_len_ +
+        other.fields_len_ + 2 +
+        tab_size);
+    if(cap_ < new_cap)
+    {
+        // allocate new
+        auto buf = new char[new_cap];
+        if(buf_)
+        {
+            std::memcpy(
+                buf,
+                buf_,
+                start_len_);
+            delete[] buf_;
+        }
+        else
+        {
+            std::memcpy(
+                buf,
+                s_owner_[owner_].data(),
+                start_len_);
+        }
+        buf_ = buf;
+        cap_ = new_cap;
+    }
+    count_ = other.count_;
+    fields_len_ = other.fields_len_;
+    std::memcpy(
+        buf_ + start_len_,
+        other.buf_ +
+            other.start_len_,
+        fields_len_ + 2);
+    std::memcpy(
+        buf_ + cap_ - tab_size,
+        other.buf_ +
+            other.cap_ - tab_size,
+        tab_size);
     return *this;
 }
 
@@ -158,15 +302,18 @@ operator=(
 //
 //------------------------------------------------
 
+// excludes start-line
 headers::
 operator headers_view() const noexcept
 {
+    // VFALCO Fix this, the table uses
+    // offsets from buf_ not buf_+start_len_...
     return headers_view(
-        str_impl().data(),
+        get_const_buffer().data(),
+        cap_ - start_len_,
         count_,
-        start_len_,
-        fields_len_,
-        cap_);
+        0,
+        fields_len_);
 }
 
 auto
@@ -287,7 +434,7 @@ get_const_buffer() const noexcept
         return string_view(
             buf_ + start_len_,
             fields_len_ + 2);
-    return empty_;
+    return s_owner_[owner_];
 }
 
 //------------------------------------------------
@@ -303,8 +450,8 @@ clear() noexcept
     if(! buf_)
         return;
     count_ = 0;
-    start_len_ =
-        empty_.size() - 2;
+    start_len_ = s_owner_[
+        owner_].size() - 2;
     fields_len_ = 0;
 }
 
@@ -321,13 +468,13 @@ shrink_to_fit() noexcept
 {
 }
 
+// swap ONLY the fields
 void
 headers::
 swap(headers& h)
 {
     std::swap(buf_, h.buf_);
     std::swap(cap_, h.cap_);
-    std::swap(empty_, h.empty_);
     std::swap(count_, h.count_);
     std::swap(start_len_, h.start_len_);
     std::swap(fields_len_, h.fields_len_);
@@ -335,24 +482,7 @@ swap(headers& h)
 
 //------------------------------------------------
 //
-// private observers
-//
-//------------------------------------------------
-
-string_view
-headers::
-str_impl() const noexcept
-{
-    if(buf_)
-        return string_view(buf_,
-            start_len_ +
-            fields_len_ + 2);
-    return empty_;
-}
-
-//------------------------------------------------
-//
-// private modifiers
+// private
 //
 //------------------------------------------------
 
@@ -419,7 +549,7 @@ set_start_line(
         return buf_;
     }
 
-    if(n == fields_len_)
+    if(n == start_len_)
     {
         // no change in size
         return buf_;
@@ -468,7 +598,7 @@ insert(
     std::size_t before)
 {
     detail::copied_strings cs(
-        str_impl());
+        owner_str());
     auto const extra =
         name.size() + 2 +
         value.size() + 2;
@@ -482,8 +612,7 @@ insert(
     if(! buf_)
     {
         // first allocation
-        BOOST_ASSERT(
-            empty_.size() < 40);
+        auto empty = s_owner_[owner_];
         auto constexpr min_cap =
             align_up(256 + 8 *
             sizeof(detail::fitem));
@@ -494,15 +623,13 @@ insert(
 
         // copy default start-line
         // since we are inserting a field
-        BOOST_ASSERT(
-            empty_.size() >= 2);
         BOOST_ASSERT(start_len_ ==
-            empty_.size() - 2);
+            empty.size() - 2);
         BOOST_ASSERT(
             fields_len_ == 0);
         std::memcpy(
             buf_,
-            empty_.data(),
+            empty.data(),
             start_len_);
         cap_ = new_cap;
     }
