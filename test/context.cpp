@@ -38,7 +38,7 @@ public:
     test_service(
         context& ctx)
     {
-        ctx.get_codecs().add_decoder(
+        ctx.codecs().add_decoder(
             "test-decoder", td);
     }
 };
@@ -61,7 +61,7 @@ public:
         context ctx;
         auto& ts = make_service<
             test_service>(ctx);
-        BOOST_TEST(ctx.get_codecs().find_decoder("test-decoder") == &ts.td);
+        BOOST_TEST(ctx.codecs().find_decoder("test-decoder") == &ts.td);
     }
 
     void

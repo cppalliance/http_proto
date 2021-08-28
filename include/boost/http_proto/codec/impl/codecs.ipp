@@ -107,8 +107,7 @@ codecs&
 install_codecs_service(
     context& ctx)
 {
-    return make_service<
-        codecs_impl>(ctx);
+    return make_service<codecs_impl>(ctx);
 }
 
 } // detail

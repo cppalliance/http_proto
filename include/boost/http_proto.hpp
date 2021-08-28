@@ -46,8 +46,11 @@
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
 
+#include <boost/http_proto/codec/codecs.hpp>
 #include <boost/http_proto/codec/decoder.hpp>
 #include <boost/http_proto/codec/deflate_service.hpp>
 #include <boost/http_proto/codec/encoder.hpp>
+
+#include <boost/http_proto/mime/mime.hpp>
 
 #endif

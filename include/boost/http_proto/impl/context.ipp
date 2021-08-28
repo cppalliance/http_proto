@@ -20,6 +20,7 @@ namespace http_proto {
 
 namespace detail {
 codecs& install_codecs_service(context& ctx);
+mime& install_mime_service(context& ctx);
 } // detail
 
 struct context::data
@@ -49,6 +50,7 @@ context() noexcept
     : p_(new data)
 {
     codecs_ = &detail::install_codecs_service(*this);
+    mime_ = &detail::install_mime_service(*this);
 }
 
 //------------------------------------------------

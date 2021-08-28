@@ -19,9 +19,8 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
-class decoder_type;
-class encoder_type;
 class codecs;
+class mime;
 #endif
 
 class context
@@ -29,6 +28,7 @@ class context
     struct data;
 
     codecs* codecs_;
+    mime* mime_;
 
 public:
     struct service
@@ -46,10 +46,16 @@ public:
     BOOST_HTTP_PROTO_DECL
     context() noexcept;
 
-    codecs&
-    get_codecs() noexcept
+    http_proto::codecs&
+    codecs() noexcept
     {
         return *codecs_;
+    }
+
+    http_proto::mime&
+    mime() noexcept
+    {
+        return *mime_;
     }
 
     //--------------------------------------------

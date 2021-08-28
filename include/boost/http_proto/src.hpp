@@ -63,6 +63,8 @@ in a translation unit of the program.
 #include <boost/http_proto/codec/impl/deflate_service.ipp>
 #include <boost/http_proto/codec/impl/encoder.ipp>
 
+#include <boost/http_proto/mime/impl/mime.ipp>
+
 // VFALCO These are tucked away here temporarily
 #include <boost/beast/zlib/detail/deflate_stream.ipp>
 #include <boost/beast/zlib/detail/inflate_stream.ipp>

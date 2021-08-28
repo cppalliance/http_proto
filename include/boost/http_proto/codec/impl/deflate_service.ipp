@@ -32,7 +32,7 @@ public:
     deflate_decoder_service_impl(
         context& ctx)
     {
-        ctx.get_codecs().add_decoder(
+        ctx.codecs().add_decoder(
             "deflate", *this);
     }
 
@@ -89,7 +89,7 @@ public:
     deflate_encoder_service_impl(
         context& ctx)
     {
-        ctx.get_codecs().add_encoder(
+        ctx.codecs().add_encoder(
             "deflate", *this);
     }
 
