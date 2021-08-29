@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_BASIC_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/trivial_optional.hpp>
@@ -164,7 +165,7 @@ public:
     reset();
 
     BOOST_HTTP_PROTO_DECL
-    std::pair<void*, std::size_t>
+    mutable_buffer
     prepare();
 
     BOOST_HTTP_PROTO_DECL
@@ -226,6 +227,18 @@ public:
     void
     parse_chunk(
         error_code& ec);
+
+    template<class Body>
+    void
+    attach_body(Body&)
+    {
+    }
+
+    template<class Body>
+    void
+    attach_body(Body&&)
+    {
+    }
 
 private:
     virtual char* parse_start_line(

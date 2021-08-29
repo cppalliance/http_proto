@@ -124,7 +124,7 @@ reset()
     state_ = state::start_line;
 }
 
-std::pair<void*, std::size_t>
+mutable_buffer
 parser::
 prepare()
 {

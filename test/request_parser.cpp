@@ -35,10 +35,10 @@ public:
         while(! s.empty())
         {
             auto b = p.prepare();
-            auto n = b.second;
+            auto n = b.size();
             if( n > s.size())
                 n = s.size();
-            std::memcpy(b.first,
+            std::memcpy(b.data(),
                 s.data(), n);
             p.commit(n);
             s.remove_prefix(n);
@@ -68,12 +68,12 @@ public:
         while(! s.empty())
         {
             auto b = p.prepare();
-            auto n = b.second;
+            auto n = b.size();
             if( n > s.size())
                 n = s.size();
             if( n > nmax)
                 n = nmax;
-            std::memcpy(b.first,
+            std::memcpy(b.data(),
                 s.data(), n);
             p.commit(n);
             s.remove_prefix(n);
@@ -127,10 +127,10 @@ public:
             request_parser p(ctx_);
             auto const b = p.prepare();
             auto const n = (std::min)(
-                b.second, s.size());
+                b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
-                b.first, s.data(), n);
+                b.data(), s.data(), n);
             p.commit(n);
             p.parse_header(ec);
             BOOST_TEST(! ec);
@@ -148,10 +148,10 @@ public:
             // first buffer
             auto b = p.prepare();
             auto n = (std::min)(
-                b.second, i);
+                b.size(), i);
             BOOST_TEST(n == i);
             std::memcpy(
-                b.first, s.data(), n);
+                b.data(), s.data(), n);
             p.commit(n);
             p.parse_header(ec);
             if(! BOOST_TEST(
@@ -160,10 +160,10 @@ public:
             // second buffer
             b = p.prepare();
             n = (std::min)(
-                b.second, s.size());
+                b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
-                b.first, s.data() + i, n);
+                b.data(), s.data() + i, n);
             p.commit(n);
             p.parse_header(ec);
             BOOST_TEST(! ec ||

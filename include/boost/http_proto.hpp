@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/arrow_proxy.hpp>
+#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>

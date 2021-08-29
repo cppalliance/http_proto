@@ -10,97 +10,55 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/parser.hpp>
 
-#if 0
-
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/bnf/chunk_ext.hpp>
-#include <boost/http_proto/bnf/header_fields.hpp>
-#include <boost/http_proto/bnf/range.hpp>
-#include <iostream>
+
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
 struct socket {};
+template<class Stream>
+void read_header(Stream&, parser&) {}
+template<class Stream>
+void read_body(Stream&, parser&) {}
+struct string_body { string_body(std::string&) {} };
+struct value {};
+struct json_body { json_body(value&) {} };
 
-void read_more(socket&, basic_parser&) {}
-
-void f1()
+class parser_test
 {
-    error_code ec;
-    context ctx;
-    request_parser p(ctx);
-    socket s; {
-
-    // Read complete body
-    for(;;)
+public:
+    void
+    run()
     {
-        p.parse_body( ec );
-        if( ec == error::need_more )
         {
-            read_more( s, p );
-            continue;
+            // read body into string
+            socket sock;
+            context ctx;
+            request_parser p(ctx);
+            read_header(sock, p);
+            std::string s;
+            p.attach_body(string_body(s));
+            read_body(sock, p);
         }
-        if( ec == error::end_of_message )
-            break;
-        if( ec )
-            throw ec;
+        {
+            // read body into json
+            socket sock;
+            context ctx;
+            request_parser p(ctx);
+            read_header(sock, p);
+            value v;
+            p.attach_body(json_body(v));
+            read_body(sock, p);
+        }
     }
-    std::cout << p.payload();
+};
 
-    // Ready body incrementally
-    for(;;)
-    {
-        p.parse_body( ec );
-        if( ec == error::need_more )
-        {
-            read_more( s, p );
-            continue;
-        }
-        if( ec == error::end_of_message )
-            break;
-        if( ec )
-            throw ec;
-        std::cout << p.payload();
-        p.discard_payload();
-    }
-
-    // Read chunked body incrementally
-    for(;;)
-    {
-        auto const ci = p.parse_chunk(ec);
-        if( ec == error::need_more )
-        {
-            read_more(s, p);
-            continue;
-        }
-        if( ec == error::end_of_message )
-        {
-            for(auto it : p.trailer())
-                std::cout << it->name << ": " << it->value << "\n";
-            return;
-        }
-        if( ec == error::end_of_chunk )
-        {
-            for( auto it : p.chunk_ext())
-                std::cout << it->name << "=" << it->value << "\n";
-            ec = {};
-        }
-        if( ec )
-            throw ec;
-        std::cout << p.payload();
-        p.discard_payload();
-    }
-
-    // read into file
-    read_header(sock, p);
-    file_body::parser fp;
-    fp.open(req.target().to_path(doc_root), file_mode::write);
-    read_body(sock, fp); // ?
-}}
+TEST_SUITE(
+    parser_test,
+    "boost.http_proto.parser");
 
 } // http_proto
 } // boost
-#endif
