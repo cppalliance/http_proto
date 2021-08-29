@@ -14,6 +14,14 @@
 #include <cstdlib>
 
 namespace boost {
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+namespace asio {
+class const_buffer;
+class mutable_buffer;
+} // asio
+#endif
+
 namespace http_proto {
 
 /** Holds a buffer that can be modified
@@ -56,6 +64,12 @@ public:
         size_ -= n;
         return *this;
     }
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+    inline
+    operator
+    asio::mutable_buffer() const noexcept;
+#endif
 };
 
 //------------------------------------------------
@@ -107,6 +121,12 @@ public:
         size_ -= n;
         return *this;
     }
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+    inline
+    operator
+    asio::const_buffer() const noexcept;
+#endif
 };
 
 //------------------------------------------------
