@@ -78,11 +78,13 @@ payload() const noexcept
     if(! m_.got_chunked)
         return string_view(
             buf_ +
-                m_.n_header,
+                m_.start_len +
+                m_.fields_len,
             m_.n_payload);
     return string_view(
         buf_ +
-            m_.n_header +
+            m_.start_len +
+            m_.fields_len +
             m_.n_chunk,
         m_.n_payload);
 }
@@ -188,17 +190,24 @@ void
 parser::
 discard_header() noexcept
 {
-    if(m_.n_header == 0)
+    auto const n =
+        m_.start_len +
+        m_.fields_len;
+    if(n == 0)
         return;
     if(state_ < state::payload)
         return;
-    size_ -= m_.n_header;
-    used_ -= m_.n_header;
+    size_ -= n;
+    used_ -= n;
     std::memmove(
         buf_,
-        buf_ + m_.n_header,
+        buf_ + n,
         size_);
-    m_.n_header = 0;
+    m_.count = 0;
+    m_.start_len = 0;
+    m_.fields_len = 0;
+    // VFALCO NOTE The field
+    // table is also discarded...
 }
 
 // discard all of the payload,
@@ -215,7 +224,9 @@ discard_payload() noexcept
     used_ -= m_.n_payload;
     if(! m_.got_chunked)
     {
-        auto const n = m_.n_header;
+        auto const n =
+            m_.start_len +
+            m_.fields_len;
         auto const pos = buf_ + n;
         std::memmove(pos, pos + n,
             size_ - n - m_.n_payload);
@@ -223,7 +234,9 @@ discard_payload() noexcept
         return;
     }
     auto const n =
-        m_.n_header + m_.n_chunk;
+        m_.start_len +
+        m_.fields_len +
+        m_.n_chunk;
     auto const pos = buf_ + n;
     std::memmove(pos, pos + n,
         size_ - n - m_.n_payload);
@@ -250,8 +263,8 @@ parse_header(
     case state::start_line:
     {
         BOOST_ASSERT(used_ == 0);
-        BOOST_ASSERT(
-            m_.n_header == 0);
+        BOOST_ASSERT(m_.start_len == 0);
+        BOOST_ASSERT(m_.fields_len == 0);
         std::size_t n;
         auto const limit =
             size_ > cfg_.header_limit;
@@ -273,7 +286,6 @@ parse_header(
         if(ec.failed())
             return;
         m_.start_len = it - buf_;
-        m_.n_header += it - buf_;
         state_ = state::header_fields;
         BOOST_FALLTHROUGH;
     }
@@ -286,11 +298,10 @@ parse_header(
             n = size_;
         else
             n = cfg_.header_limit;
-        BOOST_ASSERT(
-            n >= m_.n_header);
         ec = {};
-        auto start =
-            buf_ + m_.n_header;
+        auto start = buf_ +
+            m_.start_len +
+            m_.fields_len;
         auto it = parse_fields(
             start, buf_ + n, ec);
         used_ += it - start;
@@ -306,7 +317,6 @@ parse_header(
         m_.fields_len =
             (it - buf_) -
                 m_.start_len;
-        m_.n_header += it - start;
         break;
     }
     case state::payload:
