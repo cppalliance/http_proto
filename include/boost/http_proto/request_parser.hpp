@@ -28,7 +28,6 @@ class request_parser
 
     off_t method_len_;
     off_t target_len_;
-    off_t start_len_;
 
 public:
     BOOST_HTTP_PROTO_DECL

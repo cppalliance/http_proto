@@ -64,6 +64,7 @@ BOOST_HTTP_PROTO_PROTECTED:
         end_of_stream
     };
 
+    // applies to all messages
     struct config
     {
         config() noexcept;
@@ -72,9 +73,13 @@ BOOST_HTTP_PROTO_PROTECTED:
         std::size_t body_limit;     // max body size
     };
 
+    // per-message state
     struct message
     {
-        std::size_t fields;         // number of fields
+        std::size_t count;          // number of fields
+        std::size_t start_len;      // chars in start-line
+        std::size_t fields_len;     // chars in fields,
+                                    //  including last CRLF
         std::size_t n_header;       // bytes of header
         std::size_t n_chunk;        // bytes of chunk header
         std::size_t n_payload;      // bytes of body or chunk

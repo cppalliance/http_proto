@@ -272,6 +272,7 @@ parse_header(
         }
         if(ec.failed())
             return;
+        m_.start_len = it - buf_;
         m_.n_header += it - buf_;
         state_ = state::header_fields;
         BOOST_FALLTHROUGH;
@@ -302,6 +303,9 @@ parse_header(
         }
         if(ec.failed())
             return;
+        m_.fields_len =
+            (it - buf_) -
+                m_.start_len;
         m_.n_header += it - start;
         break;
     }
@@ -596,7 +600,7 @@ parse_fields(
         }
         auto ft = detail::get_ftab(
             buf_ + cap_);
-        auto& fi = ft[m_.fields];
+        auto& fi = ft[m_.count];
         fi.id = id;
         fi.pos = static_cast<
             off_t>(start - buf_);
@@ -608,7 +612,7 @@ parse_fields(
             off_t>(v.value.data() - buf_);
         fi.value_len = static_cast<
             off_t>(v.value.size());
-        ++m_.fields;
+        ++m_.count;
         cit = p.increment(cit, end, ec);
     }
     return it;

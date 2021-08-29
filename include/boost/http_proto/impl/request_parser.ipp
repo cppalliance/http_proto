@@ -39,10 +39,9 @@ get() const noexcept
     return request_view(
         buf_,
         cap_,
-        m_.fields,
-        start_len_,
-        m_.n_header -
-            start_len_ - 2,
+        m_.count,
+        m_.start_len,
+        m_.fields_len - 2,
         method_len_,
         target_len_,
         method_,
@@ -79,8 +78,6 @@ parse_start_line(
         m_.version = http_proto::version::http_1_1;
         break;
     }
-    start_len_ = static_cast<
-        off_t>(it - start);
     return start + (it - start);
 }
 
