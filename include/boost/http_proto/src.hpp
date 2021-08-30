@@ -52,6 +52,7 @@ in a translation unit of the program.
 #include <boost/http_proto/bnf/impl/number.ipp>
 #include <boost/http_proto/bnf/impl/quoted_string.ipp>
 #include <boost/http_proto/bnf/impl/request_line.ipp>
+#include <boost/http_proto/bnf/impl/status_line.ipp>
 #include <boost/http_proto/bnf/impl/token.ipp>
 #include <boost/http_proto/bnf/impl/transfer_encoding.ipp>
 #include <boost/http_proto/bnf/impl/transfer_param_list.ipp>

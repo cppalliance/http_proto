@@ -219,6 +219,22 @@ public:
     void
     skip_payload();
 
+    /** Parse the message header using buffered input
+
+        If the message header is incomplete, this
+        function attempts to parse buffered input
+        until a complete message header is parsed.
+        Otherwise, if the header is already complete
+        this function does nothing.
+
+        If there is insufficient buffered input, the
+        error will be set to @ref error::need_more.
+        In this case the caller should transfer more
+        input to the parser and call this function
+        again.
+
+        @param ec Set to the error, if any occurred.
+    */
     BOOST_HTTP_PROTO_DECL
     void
     parse_header(error_code& ec);

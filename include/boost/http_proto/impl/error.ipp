@@ -37,16 +37,19 @@ struct http_error_category
         case error::end_of_stream: return "end of stream";
         case error::need_more: return "need more";
 
-        case error::bad_method: return "bad method";
+        case error::bad_content_length: return "bad content-length";
         case error::bad_field_name: return "bad field name";
         case error::bad_field_value: return "bad field value";
         case error::bad_line_ending: return "bad line ending";
         case error::bad_list: return "bad list";
+        case error::bad_method: return "bad method";
         case error::bad_number: return "bad number";
         case error::bad_version: return "bad version";
+        case error::bad_reason: return "bad reason-phrase";
         case error::bad_request_target: return "bad request-target";
+        case error::bad_status_code: return "bad status-code";
+        case error::bad_status_line: return "bad status-line";
         case error::bad_transfer_encoding: return "bad transfer-encoding";
-        case error::bad_content_length: return "bad content-length";
         case error::syntax: return "syntax error";
 
         case error::body_limit: return "body limit";
@@ -72,14 +75,17 @@ struct http_error_category
             return condition::partial_success;
 
         case error::bad_content_length:
-        case error::bad_method:
         case error::bad_field_name:
         case error::bad_field_value:
         case error::bad_line_ending:
         case error::bad_list:
+        case error::bad_method:
         case error::bad_number:
         case error::bad_version:
+        case error::bad_reason:
         case error::bad_request_target:
+        case error::bad_status_code:
+        case error::bad_status_line:
         case error::bad_transfer_encoding:
         case error::syntax:
             return condition::syntax_error;

@@ -178,7 +178,8 @@ public:
     void
     set(http_proto::method m,
         string_view t,
-        http_proto::version v)
+        http_proto::version v =
+            http_proto::version::http_1_1)
     {
         set(m, to_string(m), t, v);
     }
@@ -191,7 +192,8 @@ public:
     void
     set(string_view m,
         string_view t,
-        http_proto::version v)
+        http_proto::version v =
+            http_proto::version::http_1_1)
     {
         set(string_to_method(m), m, t, v);
     }

@@ -49,6 +49,8 @@ set(PFILES
     bnf/range.cpp
     bnf/request_line.cpp
     bnf/sequence.cpp
+    bnf/status_line.cpp
+    bnf/test_bnf.hpp
     bnf/token.cpp
     bnf/transfer_encoding.cpp
     bnf/transfer_param_list.cpp

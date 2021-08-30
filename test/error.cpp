@@ -67,14 +67,17 @@ public:
 
         c = condition::syntax_error;
         check(n, error::bad_content_length, c);
-        check(n, error::bad_method, c);
         check(n, error::bad_field_name, c);
         check(n, error::bad_field_value, c);
         check(n, error::bad_line_ending, c);
         check(n, error::bad_list, c);
+        check(n, error::bad_method, c);
         check(n, error::bad_number, c);
         check(n, error::bad_version, c);
+        check(n, error::bad_reason, c);
         check(n, error::bad_request_target, c);
+        check(n, error::bad_status_code, c);
+        check(n, error::bad_status_line, c);
         check(n, error::bad_transfer_encoding, c);
         check(n, error::syntax, c);
 

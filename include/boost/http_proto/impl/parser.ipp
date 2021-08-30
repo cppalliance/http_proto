@@ -258,6 +258,11 @@ parser::
 parse_header(
     error_code& ec)
 {
+    if(! buf_)
+    {
+        ec = error::need_more;
+        return;
+    }
     switch(state_)
     {
     case state::start_line:

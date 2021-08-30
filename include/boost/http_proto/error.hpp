@@ -72,9 +72,6 @@ enum class error
     /// Syntax error in Content-Length
     ,bad_content_length
 
-    /// Syntax error in method
-    ,bad_method
-
     /// Syntax error in field-name
     ,bad_field_name
 
@@ -87,17 +84,32 @@ enum class error
     /// Syntax error in list
     ,bad_list
 
+    /// Syntax error in method
+    ,bad_method
+
     /// Syntax error in number
     ,bad_number
 
     /// Syntax error in HTTP-Version
     ,bad_version
 
+    /// Syntax error in reason-phrase
+    ,bad_reason
+
     /// Syntax error in request-target
     ,bad_request_target
 
+    /// Syntax error in status-code
+    ,bad_status_code
+
+    /// Syntax error in status-line
+    ,bad_status_line
+
     /// Syntax error in transfer-encoding
     ,bad_transfer_encoding
+
+    /// Unspecified syntax error
+    ,syntax
 
     //
     // Other errors (unrecoverable)
@@ -127,9 +139,6 @@ enum class error
     //
     //
     //
-
-    /// Unspecified syntax error
-    ,syntax
 
 #if 0
     /** The end of the stream was reached.
@@ -205,7 +214,7 @@ enum class error
     bad_target,
 
     /// The status-code is invalid.
-    bad_status,
+    bad_status_code,
 
     /// The reason-phrase is invalid.
     bad_reason,
