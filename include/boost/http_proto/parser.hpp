@@ -59,7 +59,7 @@ BOOST_HTTP_PROTO_PROTECTED:
     {
         start_line,
         header_fields,
-        payload,
+        body,
         end_of_message,
         end_of_stream
     };
@@ -70,7 +70,8 @@ BOOST_HTTP_PROTO_PROTECTED:
         config() noexcept;
 
         std::size_t header_limit;   // max header size
-        std::size_t body_limit;     // max body size
+        optional<std::uint64_t>
+            body_limit;             // max body size
     };
 
     // per-message state
@@ -85,10 +86,12 @@ BOOST_HTTP_PROTO_PROTECTED:
         std::uint64_t n_remain;     // remaining body or chunk
 
         std::uint64_t payload_seen; // total body received
+        chunk_info chunk;
+
         optional<std::uint64_t>
             content_len;            // value of Content-Length
-        chunk_info chunk;
-        http_proto::version version;// HTTP-version
+        http_proto::version
+            version;                // HTTP-version
 
         bool skip_body : 1;         // no body expected
         bool got_chunked : 1;
@@ -160,7 +163,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     string_view
-    payload() const noexcept;
+    body() const noexcept;
 
     /** Prepare the parser for the next message.
     */
@@ -186,7 +189,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     void
-    discard_payload() noexcept;
+    discard_body() noexcept;
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -217,7 +220,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    skip_payload();
+    skip_body();
 
     /** Parse the message header using buffered input
 

@@ -13,7 +13,6 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/detail/ftab.hpp>
-#include <boost/http_proto/detail/sv.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
@@ -71,7 +70,7 @@ chunk() const noexcept
 
 string_view
 parser::
-payload() const noexcept
+body() const noexcept
 {
     // VFALCO How about some
     // asserts or exceptions?
@@ -195,7 +194,7 @@ discard_header() noexcept
         m_.fields_len;
     if(n == 0)
         return;
-    if(state_ < state::payload)
+    if(state_ < state::body)
         return;
     size_ -= n;
     used_ -= n;
@@ -210,13 +209,13 @@ discard_header() noexcept
     // table is also discarded...
 }
 
-// discard all of the payload,
+// discard all of the body,
 // but don't discard chunk-ext
 void
 parser::
-discard_payload() noexcept
+discard_body() noexcept
 {
-    if(state_ != state::payload)
+    if(state_ != state::body)
         return;
     if(m_.n_payload == 0)
         return;
@@ -258,11 +257,6 @@ parser::
 parse_header(
     error_code& ec)
 {
-    if(! buf_)
-    {
-        ec = error::need_more;
-        return;
-    }
     switch(state_)
     {
     case state::start_line:
@@ -270,9 +264,14 @@ parse_header(
         BOOST_ASSERT(used_ == 0);
         BOOST_ASSERT(m_.start_len == 0);
         BOOST_ASSERT(m_.fields_len == 0);
+        if(! buf_)
+        {
+            ec = error::need_more;
+            return;
+        }
         std::size_t n;
-        auto const limit =
-            size_ > cfg_.header_limit;
+        auto const limit = size_ >
+            cfg_.header_limit;
         if(! limit)
             n = size_;
         else
@@ -297,12 +296,16 @@ parse_header(
     case state::header_fields:
     {
         std::size_t n;
-        auto const limit =
-            size_ > cfg_.header_limit;
+        auto const limit = size_ >
+            cfg_.header_limit;
         if(! limit)
             n = size_;
         else
             n = cfg_.header_limit;
+        BOOST_ASSERT(
+            m_.start_len +
+            m_.fields_len <
+                cfg_.header_limit);
         ec = {};
         auto start = buf_ +
             m_.start_len +
@@ -319,12 +322,11 @@ parse_header(
         }
         if(ec.failed())
             return;
-        m_.fields_len =
-            (it - buf_) -
-                m_.start_len;
+        m_.fields_len = (it - buf_) -
+            m_.start_len;
         break;
     }
-    case state::payload:
+    case state::body:
     {
         ec = {};
         return;
@@ -349,7 +351,7 @@ parse_header(
         return;
     if(! m_.skip_body)
     {
-        state_ = state::payload;
+        state_ = state::body;
     }
     else
     {
@@ -373,7 +375,7 @@ parse_body(
         BOOST_ASSERT(state_ >
             state::header_fields);
         break;
-    case state::payload:
+    case state::body:
         break;
     case state::end_of_message:
         ec = error::end_of_message;
@@ -494,7 +496,7 @@ parse_chunk(
         BOOST_ASSERT(state_ >
             state::header_fields);
         break;
-    case state::payload:
+    case state::body:
         if(! m_.got_chunked)
             return parse_body(ec);
         break;
@@ -643,18 +645,17 @@ do_connection(
 {
     (void)ec;
 
-    using namespace detail::string_literals;
     for(auto v : bnf::range<bnf::connection>(s))
     {
-        if(bnf::iequals(v, "close"_sv))
+        if(bnf::iequals(v, "close"))
         {
             m_.got_close = true;
         }
-        else if(bnf::iequals(v, "keep-alive"_sv))
+        else if(bnf::iequals(v, "keep-alive"))
         {
             m_.got_keep_alive = true;
         }
-        else if(bnf::iequals(v, "upgrade"_sv))
+        else if(bnf::iequals(v, "upgrade"))
         {
             m_.got_upgrade = true;
         }
@@ -747,7 +748,7 @@ do_transfer_encoding(
         if(it == end)
         {
             if(bnf::iequals(
-                it->name, "chunked"_sv))
+                it->name, "chunked"))
                 m_.got_chunked = true;
             break;
         }

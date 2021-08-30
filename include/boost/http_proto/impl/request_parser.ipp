@@ -95,16 +95,15 @@ finish_header(
     }
     if(m_.content_len.has_value())
     {
-        if( cfg_.body_limit > 0 && // optional?
-            m_.content_len >
-                cfg_.body_limit)
+        if( cfg_.body_limit.has_value() &&
+            *m_.content_len > *cfg_.body_limit)
         {
             ec = error::body_limit;
             return;
         }
         if(*m_.content_len > 0)
         {
-            state_ = state::payload;
+            state_ = state::body;
             return;
         }
         ec = error::end_of_message;
@@ -113,7 +112,7 @@ finish_header(
     }
     else if(m_.got_chunked)
     {
-        state_ = state::payload;
+        state_ = state::body;
         return;
     }
     ec = error::end_of_message;

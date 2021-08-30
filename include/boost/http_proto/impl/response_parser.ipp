@@ -59,7 +59,7 @@ finish_header(
     ec = {};
 
     // https://tools.ietf.org/html/rfc7230#section-3.3
-    if((status_ / 100 == 1) ||  // 1xx e.g. Continue
+    if((status_ /  100 == 1) || // 1xx e.g. Continue
         status_ == 204 ||       // No Content
         status_ == 304)         // Not Modified
     {
@@ -67,6 +67,21 @@ finish_header(
         // treat the message as not having a body.
         m_.skip_body = true;
         return;
+    }
+    else if(m_.content_len.has_value())
+    {
+        if(*m_.content_len > 0)
+        {
+            //has_body_ = true;
+            state_ = state::body;
+
+            if( cfg_.body_limit.has_value() &&
+                *m_.content_len > *cfg_.body_limit)
+            {
+                ec = error::body_limit;
+                return;
+            }
+        }
     }
 }
 
