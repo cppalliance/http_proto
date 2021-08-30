@@ -85,14 +85,14 @@ BOOST_HTTP_PROTO_PROTECTED:
         std::uint64_t n_remain;     // remaining body or chunk
 
         std::uint64_t payload_seen; // total body received
-        std::uint64_t content_len;  // value of Content-Length
+        optional<std::uint64_t>
+            content_len;            // value of Content-Length
         chunk_info chunk;
         http_proto::version version;// HTTP-version
 
         bool skip_body : 1;         // no body expected
         bool got_chunked : 1;
         bool got_close : 1;
-        bool got_content_length : 1;
         bool got_keep_alive : 1;
         bool got_upgrade : 1;
         bool need_eof : 1;

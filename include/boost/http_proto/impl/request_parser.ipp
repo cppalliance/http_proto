@@ -93,7 +93,7 @@ finish_header(
         state_ = state::end_of_message;
         return;
     }
-    if(m_.got_content_length)
+    if(m_.content_len.has_value())
     {
         if( cfg_.body_limit > 0 && // optional?
             m_.content_len >
@@ -102,7 +102,7 @@ finish_header(
             ec = error::body_limit;
             return;
         }
-        if(m_.content_len > 0)
+        if(*m_.content_len > 0)
         {
             state_ = state::payload;
             return;

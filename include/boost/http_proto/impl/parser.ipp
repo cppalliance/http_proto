@@ -388,7 +388,7 @@ parse_body(
 
     auto avail = size_ - used_;
 
-    if(m_.got_content_length)
+    if(m_.content_len.has_value())
     {
         // known payload length
         BOOST_ASSERT(! m_.got_chunked);
@@ -683,7 +683,7 @@ do_content_length(
     }
     BOOST_ASSERT(it != list.end());
     auto v = *it;
-    if(! m_.got_content_length)
+    if(! m_.content_len.has_value())
     {
         if(v > cfg_.body_limit)
         {
@@ -691,9 +691,8 @@ do_content_length(
             return;
         }
         m_.content_len = v;
-        m_.got_content_length = true;
     }
-    else if(m_.content_len != v)
+    else if(*m_.content_len != v)
     {
         // differing values
         ec = error::bad_content_length;
@@ -718,7 +717,7 @@ do_content_length(
         }
     }
     if(! m_.skip_body)
-        m_.n_remain = m_.content_len;
+        m_.n_remain = *m_.content_len;
 }
 
 void
