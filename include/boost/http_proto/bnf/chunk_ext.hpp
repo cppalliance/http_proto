@@ -13,8 +13,8 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/trivial_optional.hpp>
 #include <boost/http_proto/bnf/sequence.hpp>
+#include <boost/optional.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -39,8 +39,7 @@ public:
     struct value_type
     {
         string_view name;
-        trivial_optional<
-            string_view> value;
+        optional<string_view> value;
     };
 
     value_type const&

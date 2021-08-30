@@ -14,10 +14,10 @@
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/trivial_optional.hpp>
 #include <boost/http_proto/bnf/chunk_ext.hpp>
 #include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/range.hpp>
+#include <boost/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <utility>

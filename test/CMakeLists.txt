@@ -23,6 +23,7 @@ set(PFILES
     field.cpp
     headers.cpp
     headers_view.cpp
+    http_proto.cpp
     method.cpp
     parser.cpp
     request.cpp
@@ -34,7 +35,6 @@ set(PFILES
     serializer.cpp
     status.cpp
     string_view.cpp
-    trivial_optional.cpp
     version.cpp
     bnf/algorithm.cpp
     bnf/char_set.cpp
