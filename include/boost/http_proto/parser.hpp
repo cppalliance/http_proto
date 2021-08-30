@@ -148,6 +148,7 @@ public:
         for additional input from a new stream.
     */
     bool
+    //end_of_stream() const noexcept // ??
     is_end_of_stream() const noexcept
     {
         return state_ ==

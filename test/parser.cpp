@@ -33,6 +33,95 @@ public:
     void
     run()
     {
+/*
+    parser::parse_header()
+        Postcondition: header is fully parsed
+
+        * When the postcondition is met, the error
+          indicates success
+
+        * If the postcondition is not met when the
+          call returns, the error indicates failure
+
+          - failure can be terminal (i.e. syntax)
+          - or failure is recoverable (need_more)
+
+        Effects:
+            Buffered octets are parsed as message
+            header until a complete header is
+            parsed or a terminal error occurs.
+
+            If the semantics of the header indicate
+            that there is no payload, has_body()
+            will return false, and subsequent
+            parsing calls will return immediately
+            with error::end_of_message
+
+    parser::parse_body()
+        Postcondition: body is fully parsed
+
+        * When the postcondition is met, the error
+          indicates success
+
+        * If the postcondition is not met when the
+          call returns, the error indicates failure
+
+          - failure can be terminal (i.e. syntax)
+          - or failure is recoverable (need_more)
+
+        Effects:
+            Buffered octets are parsed as message
+            body until the entire body is parsed
+            (which may require seeing the end of
+            stream), or a terminal error occurs.
+
+            Any chunked transfer-encoding is removed
+            first. Chunk extensions or trailers are
+            discarded.
+
+            If a decoder is selected, body octets
+            are passed through the decoder, after
+            any de-chunking, and stored in the
+            buffer.
+
+            If a body sink is selected, dechunked and
+            decoded body octets are passed to the
+            body sink.
+
+    parser::parse_body_part()
+        Postcondition: additional body octets have been parsed
+
+        * When the postcondition is met, the error
+          indicates success
+
+        * If the postcondition is not met when the
+          call returns, the error indicates failure
+
+          - failure can be terminal, for example a
+            syntax error or end_of_message,
+          - or failure is recoverable (need_more)
+
+        Effects:
+            Buffered octets are parsed as message
+            body until either the entire buffered
+            input is consumed, the entire body is
+            parsed (which may require seeing the
+            end of stream), or a terminal error
+            occurs.
+
+            Any chunked transfer-encoding is removed
+            first. Chunk extensions or trailers are
+            discarded.
+
+            If a decoder is selected, body octets
+            are passed through the decoder, after
+            any de-chunking, and stored in the
+            buffer.
+
+            If a body sink is selected, dechunked and
+            decoded body octets are passed to the
+            body sink.
+*/
         {
             // read body into string
             socket sock;

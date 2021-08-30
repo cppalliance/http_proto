@@ -260,6 +260,9 @@ enum class condition
     /// A recoverable, partial success
     partial_success = 1
 
+    // /// More input is required to meet a postcondition
+    // ,need_more
+
     /// Inputs are not standards-conforming
     ,syntax_error
 };
