@@ -393,7 +393,7 @@ parse_body(
         // known payload length
         BOOST_ASSERT(! m_.got_chunked);
         BOOST_ASSERT(m_.n_remain > 0);
-        BOOST_ASSERT(m_.content_length <
+        BOOST_ASSERT(m_.content_len <
             cfg_.body_limit);
         if(avail == 0)
         {
@@ -690,10 +690,10 @@ do_content_length(
             ec = error::body_limit;
             return;
         }
-        m_.content_length = v;
+        m_.content_len = v;
         m_.got_content_length = true;
     }
-    else if(m_.content_length != v)
+    else if(m_.content_len != v)
     {
         // differing values
         ec = error::bad_content_length;
@@ -710,7 +710,7 @@ do_content_length(
         if(it == list.end())
             break;
         v = *it;
-        if(m_.content_length != v)
+        if(m_.content_len != v)
         {
             // differing lengths
             ec = error::bad_content_length;
@@ -718,7 +718,7 @@ do_content_length(
         }
     }
     if(! m_.skip_body)
-        m_.n_remain = m_.content_length;
+        m_.n_remain = m_.content_len;
 }
 
 void

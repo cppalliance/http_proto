@@ -79,13 +79,13 @@ BOOST_HTTP_PROTO_PROTECTED:
         std::size_t count;          // number of fields
         std::size_t start_len;      // chars in start-line
         std::size_t fields_len;     // chars in fields,
-                                    //  including last CRLF
+                                    //   including last CRLF
         std::size_t n_chunk;        // bytes of chunk header
         std::size_t n_payload;      // bytes of body or chunk
         std::uint64_t n_remain;     // remaining body or chunk
 
         std::uint64_t payload_seen; // total body received
-        std::uint64_t content_length;
+        std::uint64_t content_len;  // value of Content-Length
         chunk_info chunk;
         http_proto::version version;// HTTP-version
 

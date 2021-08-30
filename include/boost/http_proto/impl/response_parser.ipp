@@ -48,14 +48,6 @@ parse_start_line(
     }
     status_ = p.value().status_code;
     
-    // https://tools.ietf.org/html/rfc7230#section-3.3
-    if(
-        (status_ / 100 == 1) || // 1xx e.g. Continue
-        status_ == 204 ||       // No Content
-        status_ == 304)         // Not Modified
-    {
-        m_.skip_body = true;
-    }
     return first + (it - first);
 }
 
@@ -64,7 +56,18 @@ response_parser::
 finish_header(
     error_code& ec)
 {
-    (void)ec;
+    ec = {};
+
+    // https://tools.ietf.org/html/rfc7230#section-3.3
+    if((status_ / 100 == 1) ||  // 1xx e.g. Continue
+        status_ == 204 ||       // No Content
+        status_ == 304)         // Not Modified
+    {
+        // Content-Length may be present, but we
+        // treat the message as not having a body.
+        m_.skip_body = true;
+        return;
+    }
 }
 
 } // http_proto

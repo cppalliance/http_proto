@@ -96,13 +96,13 @@ finish_header(
     if(m_.got_content_length)
     {
         if( cfg_.body_limit > 0 && // optional?
-            m_.content_length >
+            m_.content_len >
                 cfg_.body_limit)
         {
             ec = error::body_limit;
             return;
         }
-        if(m_.content_length > 0)
+        if(m_.content_len > 0)
         {
             state_ = state::payload;
             return;
