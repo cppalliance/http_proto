@@ -67,8 +67,10 @@ in a translation unit of the program.
 #include <boost/http_proto/mime/impl/mime.ipp>
 
 // VFALCO These are tucked away here temporarily
+#if 0
 #include <boost/beast/zlib/detail/deflate_stream.ipp>
 #include <boost/beast/zlib/detail/inflate_stream.ipp>
 #include <boost/beast/zlib/impl/error.ipp>
+#endif
 
 #endif

@@ -4,10 +4,10 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/vinniefalco/http_proto
+# Official repository: https://github.com/CPPAlliance/http_proto
 #
 
-cmake_minimum_required(VERSION 3.5...3.16)
+cmake_minimum_required(VERSION 3.8...3.16)
 
 set(BOOST_HTTP_PROTO_VERSION 1)
 if(BOOST_SUPERPROJECT_VERSION)
@@ -16,54 +16,39 @@ endif()
 
 project(boost_http_proto VERSION "${BOOST_HTTP_PROTO_VERSION}" LANGUAGES CXX)
 
-file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS $<$<VERSION_GREATER_EQUAL:${CMAKE_VERSION},3.12>:CONFIGURE_DEPENDS>
-    include/boost/*.hpp
-    include/boost/*.ipp
-    include/boost/*.natvis
-)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    include(CTest)
+    option(BOOST_HTTP_PROTO_BUILD_TESTS "Build boost::http_proto tests" ${BUILD_TESTING})
+    set(BOOST_HTTP_PROTO_IS_ROOT ON)
+else()
+    set(BOOST_HTTP_PROTO_BUILD_TESTS ${BUILD_TESTING})
+    set(BOOST_HTTP_PROTO_IS_ROOT OFF)
+endif()
 
-set(BOOST_HTTP_PROTO_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/src.cpp
-)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "" FILES ${BOOST_HTTP_PROTO_SOURCES})
-
-# TODO: For Boost superproject, do we want to support header-only mode?
-#       Then, this needs to read `add_library(boost_http_proto INTERFACE)`
-#       and related settings need to be INTERFACE-ed as well.
-add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES})
-add_library(Boost::http_proto ALIAS boost_http_proto)
-
-target_compile_features(boost_http_proto PUBLIC cxx_constexpr)
-
-# TODO: For Boost superproject, this may need to be INTERFACE setting.
 include(GNUInstallDirs)
-if(BOOST_SUPERPROJECT_VERSION)
-    target_include_directories(boost_http_proto PUBLIC include)
-else()
-    target_include_directories(boost_http_proto
-        PUBLIC
-            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    )
+if(BOOST_HTTP_PROTO_IS_ROOT)
+    set(BOOST_INCLUDE_LIBRARIES http_proto url)
+    set(BOOST_EXCLUDE_LIBRARIES http_proto)
+    set(CMAKE_FOLDER _deps)
+    add_subdirectory(../.. _deps/boost EXCLUDE_FROM_ALL)
+    unset(CMAKE_FOLDER)
 endif()
 
-target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_NO_LIB=1)
+function(boost_http_proto_setup_properties target)
+    target_compile_features(${target} PUBLIC cxx_constexpr)
+    target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_NO_LIB=1)
 
-if(BUILD_SHARED_LIBS)
-    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_DYN_LINK=1)
-else()
-    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_STATIC_LINK=1)
-endif()
+    if(BOOST_SUPERPROJECT_VERSION)
+        target_include_directories(${target} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+    else()
+        target_include_directories(${target}
+            PUBLIC
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        )
+    endif()
 
-if(BOOST_SUPERPROJECT_VERSION)
-    #
-    # Building as part of Boost superproject tree, with Boost as dependency.
-    #
-    target_link_libraries(boost_http_proto
+    target_link_libraries(${target}
         PUBLIC
             Boost::align
             Boost::assert
@@ -72,69 +57,34 @@ if(BOOST_SUPERPROJECT_VERSION)
             Boost::exception
             Boost::system
             Boost::throw_exception
+            Boost::url
             Boost::utility
     )
+endfunction()
 
-elseif(BOOST_HTTP_PROTO_IN_BOOST_TREE)
-    #
-    # Building inside Boost tree, out of Boost superproject tree, with Boost as dependency.
-    # e.g. on Travis or other CI, or when producing Visual Studio Solution and Projects.
-    #
-    get_filename_component(BOOST_ROOT ../.. ABSOLUTE)
-    target_include_directories(boost_http_proto PUBLIC ${BOOST_ROOT})
-    target_link_directories(boost_http_proto PUBLIC ${BOOST_ROOT}/stage/lib)
+file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS
+    include/boost/*.hpp
+    include/boost/*.ipp
+    include/boost/*.natvis
+)
 
+set(BOOST_HTTP_PROTO_SOURCES src/src.cpp)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "" FILES ${BOOST_HTTP_PROTO_SOURCES})
+
+add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES})
+add_library(Boost::http_proto ALIAS boost_http_proto)
+boost_http_proto_setup_properties(boost_http_proto)
+
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_DYN_LINK=1)
 else()
-    #
-    # Building out of Boost tree, out of Boost superproject tree, with Boost as dependency.
-    # e.g. for packaging or added with add_subdirectory.
-    #
-    find_package(Boost REQUIRED COMPONENTS container system)
-    target_link_libraries(boost_http_proto
-        PUBLIC
-            Boost::container
-            Boost::system
-    )
+    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_STATIC_LINK=1)
 endif()
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND NOT BOOST_HTTP_PROTO_IN_BOOST_TREE)
-    set_target_properties(boost_http_proto PROPERTIES EXPORT_NAME http_proto)
-    install(TARGETS boost_http_proto
-        EXPORT boost_http_proto_targets
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    )
-
-    install(EXPORT boost_http_proto_targets
-        FILE boost_http_proto-targets.cmake
-        NAMESPACE Boost::
-        DESTINATION lib/cmake/boost_http_proto
-    )
-
-    include(CMakePackageConfigHelpers)
-
-    configure_package_config_file(cmake/config.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/boost_http_proto-config.cmake
-        INSTALL_DESTINATION lib/cmake/boost_http_proto
-    )
-
-    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/boost_http_proto-config-version.cmake
-        VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion
-    )
-
-    install(FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/boost_http_proto-config.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/boost_http_proto-config-version.cmake
-        DESTINATION lib/cmake/boost_http_proto
-    )
-
-    install(DIRECTORY include/ DESTINATION include)
-endif()
-
-include(CTest)
-if(BUILD_TESTING)
+if(BOOST_HTTP_PROTO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
-
-#add_subdirectory (example)

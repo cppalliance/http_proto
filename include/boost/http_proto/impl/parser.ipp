@@ -485,6 +485,7 @@ parser::
 parse_chunk(
     error_code& ec)
 {
+    (void)ec;
 #if 0
     switch(state_)
     {

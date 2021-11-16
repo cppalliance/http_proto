@@ -4,18 +4,20 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/vinniefalco/http_proto
+# Official repository: https://github.com/CPPAlliance/http_proto
 #
 
+import testing ;
 
-set(TFILES
-    ./include/main.cpp
-    ./include/test_suite.hpp
-    )
+project
+    : requirements
+      $(c11-requires)
+      <source>../../url/extra/test_main.cpp
+      <include>.
+      <include>../../url/extra/include
+    ;
 
-set(PFILES
-    CMakeLists.txt
-    Jamfile
+local SOURCES =
     arrow_proxy.cpp
     basic_header.cpp
     buffer.cpp
@@ -61,10 +63,8 @@ set(PFILES
     codec/deflate_service.cpp
     codec/encoder.cpp
     mime/mime.cpp
-    )
-
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "include" FILES ${TFILES})
-add_executable(boost_http_proto_tests ${PFILES} ${TFILES})
-target_include_directories(boost_http_proto_tests PRIVATE . ./include)
-target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto)
+    ;
+for local f in $(SOURCES)
+{
+    run $(f) /boost/http_proto//boost_http_proto ;
+}

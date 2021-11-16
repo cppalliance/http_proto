@@ -33,6 +33,7 @@ class context
 public:
     struct service
     {
+        BOOST_HTTP_PROTO_DECL
         virtual ~service() = 0;
     };
 

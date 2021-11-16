@@ -33,6 +33,8 @@ BOOST_HTTP_PROTO_DECL
 string_view
 to_string(version v) noexcept;
 
+/** Format the version to an output stream.
+*/
 BOOST_HTTP_PROTO_DECL
 std::ostream&
 operator<<(std::ostream& os, version v);

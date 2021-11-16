@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "../../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!--
+  Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+
+  Distributed under the Boost Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+  Official repository: https://github.com/CPPAlliance/http_proto
+-->
+
+<informaltable frame="all">
+  <tgroup cols="4">
+    <colspec colname="a"/><colspec colname="b"/><colspec colname="c"/><colspec colname="d"/>
+    <thead><row>
+      <entry valign="center" namest="a" nameend="c">
+        <bridgehead renderas="sect2">HTTP</bridgehead>
+      </entry>
+      <entry valign="center" namest="d" nameend="d">
+        <bridgehead renderas="sect2">Encoding</bridgehead>
+      </entry>
+    </row></thead>
+    <tbody><row>
+      <entry valign="top">
+        <bridgehead renderas="sect3">Classes</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__basic_header">basic_header</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__context">context</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__headers">headers</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__headers_view">headers_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__parser">parser</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__request">request</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__request_parser">request_parser</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__request_view">request_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__response">response</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__response_parser">response_parser</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__response_view">response_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
+        </simplelist>
+        <bridgehead renderas="sect3">Type Traits</bridgehead>
+        <simplelist type="vert" columns="1">
+        </simplelist>
+      </entry>
+     
+      <entry valign="top">
+        <bridgehead renderas="sect3">Functions</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__int_to_status">int_to_status</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__obsolete_reason">obsolete_reason</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__string_to_method">string_to_method</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__string_to_field">string_to_field</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__to_string">to_string</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__to_status_class">to_status_class</link></member>
+        </simplelist>
+        <bridgehead renderas="sect3">Operators</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__operator_lt__lt_">operator&lt;&lt;</link></member>
+        </simplelist>
+      </entry>
+      <entry valign="top">
+        <bridgehead renderas="sect3">Aliases</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__error_category">error_category</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__error_code">error_code</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__error_condition">error_condition</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__string_view">string_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__system_error">system_error</link></member>
+        </simplelist>
+        <bridgehead renderas="sect3">Constants</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__condition">condition</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__error">error</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__field">field</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__method">method</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__status">status</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__status_class">status_class</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__version">version</link></member>
+        </simplelist>
+      </entry>
+      <entry valign="top">
+        <bridgehead renderas="sect3">Functions</bridgehead>
+        <simplelist type="vert" columns="1">
+        </simplelist>
+        <bridgehead renderas="sect3">Types</bridgehead>
+        <simplelist type="vert" columns="1">
+        </simplelist>
+        <bridgehead renderas="sect3">Concepts</bridgehead>
+        <simplelist type="vert" columns="1">
+        </simplelist>
+      </entry>
+    </row></tbody>
+  </tgroup>
+</informaltable>

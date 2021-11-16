@@ -15,8 +15,11 @@
 #include <boost/http_proto/codec/codecs.hpp>
 #include <boost/http_proto/codec/decoder.hpp>
 #include <boost/http_proto/codec/encoder.hpp>
+
+#if 0
 #include <boost/beast/zlib/deflate_stream.hpp>
 #include <boost/beast/zlib/inflate_stream.hpp>
+#endif
 
 namespace boost {
 namespace http_proto {
@@ -39,7 +42,9 @@ public:
     class decoder_impl
         : public decoder
     {
+#if 0
         beast::zlib::inflate_stream is_;
+#endif
 
     public:
         void
@@ -47,6 +52,9 @@ public:
             buffers& b,
             error_code& ec)
         {
+            (void)b;
+            (void)ec;
+#if 0
             beast::zlib::z_params zs;
             zs.next_in = b.input;
             zs.avail_in = b.input_avail;
@@ -67,6 +75,7 @@ public:
                 char*>(zs.next_out);
             b.output_avail = zs.avail_out;
             b.output_used = zs.total_out;
+#endif
         }
     };
 
@@ -96,7 +105,9 @@ public:
     class encoder_impl
         : public encoder
     {
+#if 0
         beast::zlib::deflate_stream is_;
+#endif
 
     public:
         void
