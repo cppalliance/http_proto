@@ -1,4 +1,4 @@
-[![Boost.Http.Proto](https://raw.githubusercontent.com/CPPAlliance/http_proto/master/doc/images/repo-logo.png)](http://master.http_proto.cpp.al/)
+[![Boost.Http.Proto](https://raw.githubusercontent.com/CPPAlliance/http_proto/master/doc/images/repo-logo.png)](http://master.http-proto.cpp.al/)
 
 # Boost.Http.Proto
 
