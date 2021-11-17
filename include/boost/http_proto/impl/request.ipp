@@ -20,7 +20,7 @@ namespace http_proto {
 
 request::
 request()
-    : method_(method::get)
+    : method_(http_proto::method::get)
     , version_(http_proto::version::http_1_1)
     , method_len_(3)
     , target_len_(1)

@@ -62,7 +62,7 @@ local SOURCES =
     codec/decoder.cpp
     codec/deflate_service.cpp
     codec/encoder.cpp
-    mime/mime.cpp
+    mime/mime_types.cpp
     ;
 for local f in $(SOURCES)
 {

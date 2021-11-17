@@ -37,6 +37,9 @@ public:
     serializer(context& ctx)
         : ctx_(ctx)
     {
+        (void)ctx_;
+        (void)cap_;
+        (void)size_;
     }
 
     ~serializer()

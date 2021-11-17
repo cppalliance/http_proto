@@ -19,7 +19,8 @@
 namespace boost {
 namespace http_proto {
 
-class encoder
+class BOOST_SYMBOL_VISIBLE
+    encoder
 {
 public:
     struct buffers
@@ -41,7 +42,8 @@ public:
 
 //------------------------------------------------
 
-class encoder_type
+class BOOST_SYMBOL_VISIBLE
+    encoder_type
 {
 public:
     virtual

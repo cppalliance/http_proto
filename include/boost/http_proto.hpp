@@ -52,6 +52,6 @@
 #include <boost/http_proto/codec/deflate_service.hpp>
 #include <boost/http_proto/codec/encoder.hpp>
 
-#include <boost/http_proto/mime/mime.hpp>
+#include <boost/http_proto/mime/mime_types.hpp>
 
 #endif

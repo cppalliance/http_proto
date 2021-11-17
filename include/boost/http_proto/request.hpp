@@ -25,7 +25,9 @@ class request_view;
 
 /** Container for HTTP requests
 */
-class request : public basic_header
+class BOOST_SYMBOL_VISIBLE
+    request
+    : public basic_header
 {
     http_proto::method method_;
     http_proto::version version_;

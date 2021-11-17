@@ -20,15 +20,15 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class codecs;
-class mime;
+class mime_types;
 #endif
 
 class context
 {
     struct data;
 
-    codecs* codecs_;
-    mime* mime_;
+    http_proto::codecs* codecs_;
+    http_proto::mime_types* mime_types_;
 
 public:
     struct service
@@ -53,10 +53,10 @@ public:
         return *codecs_;
     }
 
-    http_proto::mime&
-    mime() noexcept
+    http_proto::mime_types&
+    mime_types() noexcept
     {
-        return *mime_;
+        return *mime_types_;
     }
 
     //--------------------------------------------

@@ -42,10 +42,8 @@ public:
 
     class iterator;
 
-    constexpr range(
-        range const&) = default;
-    constexpr range& operator=(
-        range const&) = default;
+    range(range const&) = default;
+    range& operator=(range const&) = default;
 
     /** Default constructor
 

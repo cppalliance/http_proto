@@ -21,8 +21,8 @@ namespace http_proto {
 
 response::
 response()
-    : version_(version::http_1_1)
-    , result_(status::ok)
+    : version_(http_proto::version::http_1_1)
+    , result_(http_proto::status::ok)
     , fields(2)
 {
 }

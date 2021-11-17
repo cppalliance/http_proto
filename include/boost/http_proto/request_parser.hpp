@@ -21,7 +21,8 @@
 namespace boost {
 namespace http_proto {
 
-class request_parser
+class BOOST_SYMBOL_VISIBLE
+    request_parser
     : public parser
 {
     http_proto::method method_;

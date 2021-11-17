@@ -23,7 +23,8 @@ namespace http_proto {
         @ref request, @ref request_view,
         @ref response, @ref response_view
 */
-class basic_header
+class BOOST_SYMBOL_VISIBLE
+    basic_header
 {
 public:
     /** Destructor

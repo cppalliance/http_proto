@@ -18,7 +18,8 @@
 namespace boost {
 namespace http_proto {
 
-class response_view
+class BOOST_SYMBOL_VISIBLE
+    response_view
 {
     friend class response;
     friend class response_parser;

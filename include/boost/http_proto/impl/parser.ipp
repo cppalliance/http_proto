@@ -749,7 +749,7 @@ do_transfer_encoding(
         if(it == end)
         {
             if(bnf::iequals(
-                it->name, "chunked"))
+                prev->name, "chunked"))
                 m_.got_chunked = true;
             break;
         }

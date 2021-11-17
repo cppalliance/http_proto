@@ -41,7 +41,6 @@ s_owner_[3] = {
 };
 
 // also applies min capacity
-constexpr
 std::size_t
 headers::
 align_up(std::size_t n) noexcept
@@ -61,7 +60,6 @@ align_up(std::size_t n) noexcept
 // returns minimum capacity to hold
 // size characters and count table
 // entries, including alignment.
-constexpr
 std::size_t
 headers::
 bytes_needed(
@@ -369,7 +367,7 @@ find(field id) const noexcept ->
     auto const* ft =
         &detail::get_ftab(
             buf_ + cap_)[0];
-    for(auto i = 0;
+    for(std::size_t i = 0;
             i < count_; ++i, --ft)
         if(ft->id == id)
             return iterator(this, i);
@@ -611,7 +609,7 @@ insert(
     {
         // first allocation
         auto empty = s_owner_[owner_];
-        auto constexpr min_cap =
+        auto const min_cap =
             align_up(256 + 8 *
             sizeof(detail::fitem));
         // prevent small allocs

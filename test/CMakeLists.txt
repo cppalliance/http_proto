@@ -60,7 +60,7 @@ set(PFILES
     codec/decoder.cpp
     codec/deflate_service.cpp
     codec/encoder.cpp
-    mime/mime.cpp
+    mime/mime_types.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

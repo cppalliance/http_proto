@@ -8,4 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/mime/mime.hpp>
+#include <boost/http_proto/mime/mime_types.hpp>

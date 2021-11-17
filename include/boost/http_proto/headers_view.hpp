@@ -26,7 +26,9 @@ enum class field : unsigned short;
 
 /** A read-only, random access container of HTTP fields
 */
-class headers_view : public basic_header
+class BOOST_SYMBOL_VISIBLE
+    headers_view
+    : public basic_header
 {
     // headers have a maximum size of 2^32-1 chars
     using off_t = std::uint32_t;

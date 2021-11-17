@@ -25,8 +25,8 @@ public:
     {
         context ctx;
         response_parser p(ctx);
-        error_code ec;
 #if 0
+        error_code ec;
         p.commit(socket.read(p.prepare()));
         p.parse_header(ec);
         //...

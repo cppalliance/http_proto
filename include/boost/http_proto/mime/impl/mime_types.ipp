@@ -7,30 +7,30 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_MIME_IMPL_MIME_IPP
-#define BOOST_HTTP_PROTO_MIME_IMPL_MIME_IPP
+#ifndef BOOST_HTTP_PROTO_MIME_IMPL_MIME_TYPES_IPP
+#define BOOST_HTTP_PROTO_MIME_IMPL_MIME_TYPES_IPP
 
-#include <boost/http_proto/mime/mime.hpp>
+#include <boost/http_proto/mime/mime_types.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 
 namespace boost {
 namespace http_proto {
 
-mime::
-~mime() noexcept = default;
+mime_types::
+~mime_types() noexcept = default;
 
 namespace detail {
 
-class mime_impl
-    : public mime
+class mime_types_impl
+    : public mime_types
     , public context::service
 {
 public:
-    using key_type = mime;
+    using key_type = mime_types;
 
     explicit
-    mime_impl(
+    mime_types_impl(
         context&) noexcept
     {
     }
@@ -43,11 +43,11 @@ public:
     }
 };
 
-mime&
-install_mime_service(
+mime_types&
+install_mime_types_service(
     context& ctx)
 {
-    return make_service<mime_impl>(ctx);
+    return make_service<mime_types_impl>(ctx);
 }
 
 } // detail

@@ -64,7 +64,7 @@ in a translation unit of the program.
 #include <boost/http_proto/codec/impl/deflate_service.ipp>
 #include <boost/http_proto/codec/impl/encoder.ipp>
 
-#include <boost/http_proto/mime/impl/mime.ipp>
+#include <boost/http_proto/mime/impl/mime_types.ipp>
 
 // VFALCO These are tucked away here temporarily
 #if 0

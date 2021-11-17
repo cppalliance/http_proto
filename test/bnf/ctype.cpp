@@ -23,7 +23,7 @@ public:
     void
     check_set(T cs, string_view s)
     {
-        int n = 0;
+        std::size_t n = 0;
         unsigned char u = 0;
         do
         {

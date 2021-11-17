@@ -57,10 +57,13 @@ struct is_element<T, boost::void_t<
         std::declval<char const*>(),
         std::declval<char const*>(),
         std::declval<error_code&>())
-            )>> : std::integral_constant<bool,
+            )>> : std::true_type
+#if 0
+std::integral_constant<bool,
     std::is_default_constructible<T>::value &&
     std::is_copy_constructible<T>::value &&
     std::is_copy_assignable<T>::value>
+#endif
 {
 };
 
@@ -101,10 +104,13 @@ struct is_list<T, boost::void_t<decltype(
         std::declval<char const*>(),
         std::declval<char const*>(),
         std::declval<error_code&>())
-            )>> : std::integral_constant<bool,
+    )>> : std::true_type
+#if 0
+    std::integral_constant<bool,
     std::is_default_constructible<T>::value &&
     std::is_copy_constructible<T>::value &&
     std::is_copy_assignable<T>::value>
+#endif
 {
 };
 
