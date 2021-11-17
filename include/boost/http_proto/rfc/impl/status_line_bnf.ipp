@@ -7,18 +7,17 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_STATUS_LINE_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_STATUS_LINE_IPP
+#ifndef BOOST_HTTP_PROTO_RFC_IMPL_STATUS_LINE_BNF_PP
+#define BOOST_HTTP_PROTO_RFC_IMPL_STATUS_LINE_BNF_PP
 
-#include <boost/http_proto/bnf/status_line.hpp>
+#include <boost/http_proto/rfc/status_line_bnf.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
 char const*
-status_line::
+status_line_bnf::
 parse(
     char const* start,
     char const* end,
@@ -31,23 +30,16 @@ parse(
 
     // HTTP-version
     {
-        char v;
-        it = detail::parse_http_version(
-            v, it, end, ec);
+        it = bnf::detail::parse_http_version(
+            version, it, end, ec);
         if(ec.failed())
             return start;
-        switch(v)
+        if( version != 10 &&
+            version != 11)
         {
-        case 10:
-        case 11:
-            v_.version = v;
-            break;
-        default:
             ec = error::bad_version;
-            break;
-        }
-        if(ec.failed())
             return start;
+        }
     }
 
     // SP
@@ -69,36 +61,36 @@ parse(
         ec = error::need_more;
         return start;
     }
-    if(! is_digit(*it))
+    if(! bnf::is_digit(*it))
     {
         ec = error::bad_status_code;
         return start;
     }
-    v_.status_code = 100 * (*it - '0');
+    status_code = 100 * (*it - '0');
     ++it;
     if(it == end)
     {
         ec = error::need_more;
         return start;
     }
-    if(! is_digit(*it))
+    if(! bnf::is_digit(*it))
     {
         ec = error::bad_status_code;
         return start;
     }
-    v_.status_code += 10 * (*it - '0');
+    status_code += 10 * (*it - '0');
     ++it;
     if(it == end)
     {
         ec = error::need_more;
         return start;
     }
-    if(! is_digit(*it))
+    if(! bnf::is_digit(*it))
     {
         ec = error::bad_status_code;
         return start;
     }
-    v_.status_code += 1 * (*it - '0');
+    status_code += 1 * (*it - '0');
     ++it;
 
     // SP
@@ -118,7 +110,7 @@ parse(
     bnf::qpchar_set qs;
     start = it;
     it = qs.skip(it, end);
-    v_.reason = string_view(
+    reason = string_view(
         start, it - start);
 
     // CRLF
@@ -148,7 +140,6 @@ parse(
     return it;
 }
 
-} // bnf
 } // http_proto
 } // boost
 

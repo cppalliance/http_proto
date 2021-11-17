@@ -11,12 +11,10 @@
 #define BOOST_HTTP_PROTO_DETAIL_CONFIG_HPP
 
 #include <boost/config.hpp>
-//#include <boost/assert.hpp>
-//#include <boost/throw_exception.hpp>
 
 namespace boost {
+
 namespace http_proto {
-namespace detail {
 
 #if defined(BOOST_HTTP_PROTO_DOCS)
 # define BOOST_HTTP_PROTO_DECL
@@ -45,8 +43,16 @@ namespace detail {
 # endif
 #endif
 
-} // detail
 } // http_proto
+
+#if 0
+// lift bnf into our namespace
+namespace urls { namespace bnf {} }
+namespace http_proto {
+namespace bnf = ::boost::urls::bnf;
+} // http_proto
+#endif
+
 } // boost
 
 #endif

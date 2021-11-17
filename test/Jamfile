@@ -50,9 +50,7 @@ local SOURCES =
     bnf/number.cpp
     bnf/quoted_string.cpp
     bnf/range.cpp
-    bnf/request_line.cpp
     bnf/sequence.cpp
-    bnf/status_line.cpp
     bnf/test_bnf.hpp
     bnf/token.cpp
     bnf/transfer_encoding.cpp
@@ -63,7 +61,13 @@ local SOURCES =
     codec/deflate_service.cpp
     codec/encoder.cpp
     mime/mime_types.cpp
+    rfc/charsets.cpp
+    rfc/list_bnf.cpp
+    rfc/request_line_bnf.cpp
+    rfc/status_line_bnf.cpp
+    rfc/token_bnf.cpp
     ;
+
 for local f in $(SOURCES)
 {
     run $(f) /boost/http_proto//boost_http_proto ;

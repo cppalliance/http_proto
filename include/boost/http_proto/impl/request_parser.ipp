@@ -14,8 +14,8 @@
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
+#include <boost/http_proto/rfc/request_line_bnf.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -57,18 +57,17 @@ parse_start_line(
     char const* const end,
     error_code& ec)
 {
-    bnf::request_line p;
-    auto it = p.parse(
-        start, end, ec);
+    request_line_bnf t;
+    auto it = t.parse(start, end, ec);
     if(ec.failed())
         return start + (it - start);
     method_ = string_to_method(
-        p.value().method);
+        t.method);
     method_len_ = static_cast<
-        off_t>(p.value().method.size());
+        off_t>(t.method.size());
     target_len_ = static_cast<
-        off_t>(p.value().target.size());
-    switch(p.value().version)
+        off_t>(t.target.size());
+    switch(t.version)
     {
     case 10:
         m_.version = http_proto::version::http_1_0;

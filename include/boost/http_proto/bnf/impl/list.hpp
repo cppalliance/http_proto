@@ -120,9 +120,9 @@ increment(
         return it;
     }
     // [ OWS element ]
-    ws_set ws;
+    ws_set ws_;
     start = it;
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
     it = element_.parse(
         it, end, ec);
     if(ec == error::need_more)
@@ -152,10 +152,10 @@ parse(
     char const* end,
     error_code& ec)
 {
-    ws_set ws;
+    ws_set ws_;
     if(start == end)
         return start;
-    auto it = ws.skip(
+    auto it = ws_.skip(
         start, end);
     if(it == end)
     {
@@ -180,7 +180,7 @@ parse(
     char const* end,
     error_code& ec)
 {
-    ws_set ws;
+    ws_set ws_;
     if(start == end)
     {
         // expected comma
@@ -195,7 +195,7 @@ parse(
         return it;
     }
     ++it;
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
     return it;
 }
 

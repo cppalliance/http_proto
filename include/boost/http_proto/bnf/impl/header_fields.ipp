@@ -31,7 +31,7 @@ increment(
         = nullptr;
     char const* v1; // end of value
 
-    ws_set ws;
+    ws_set ws_;
     tchar_set ts;
     field_vchar_set fvs;
 
@@ -85,7 +85,7 @@ increment(
     ++it;
 
     // OWS
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
 
     // *( field-content / obs-fold )
     for(;;)
@@ -116,10 +116,10 @@ increment(
         }
 
         // OWS
-        if(ws.contains(*it))
+        if(ws_.contains(*it))
         {
             ++it;
-            it = ws.skip(it, end);
+            it = ws_.skip(it, end);
             continue;
         }
 
@@ -137,7 +137,7 @@ increment(
                 ec = error::bad_line_ending;
                 return start;
             }
-            if(! ws.contains(it[2]))
+            if(! ws_.contains(it[2]))
             {
                 // end of line
                 if(! v0)
@@ -154,7 +154,7 @@ increment(
             */
             it += 3;
             // *( SP / HTAB )
-            it = ws.skip(it, end);
+            it = ws_.skip(it, end);
             continue;
         }
 
@@ -175,7 +175,7 @@ replace_obs_fold(
     char* it,
     char const* const end) noexcept
 {
-    ws_set ws;
+    ws_set ws_;
     while(it != end)
     {
         if(*it != '\r')
@@ -187,7 +187,7 @@ replace_obs_fold(
             break;
         BOOST_ASSERT(it[1] == '\n');
         if( it[1] == '\n' &&
-            ws.contains(it[2]))
+            ws_.contains(it[2]))
         {
             it[0] = ' ';
             it[1] = ' ';

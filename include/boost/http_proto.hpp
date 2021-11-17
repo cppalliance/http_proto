@@ -39,9 +39,7 @@
 #include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/range.hpp>
-#include <boost/http_proto/bnf/request_line.hpp>
 #include <boost/http_proto/bnf/sequence.hpp>
-#include <boost/http_proto/bnf/status_line.hpp>
 #include <boost/http_proto/bnf/token.hpp>
 #include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
@@ -53,5 +51,11 @@
 #include <boost/http_proto/codec/encoder.hpp>
 
 #include <boost/http_proto/mime/mime_types.hpp>
+
+#include <boost/http_proto/rfc/charsets.hpp>
+#include <boost/http_proto/rfc/list_bnf.hpp>
+#include <boost/http_proto/rfc/request_line_bnf.hpp>
+#include <boost/http_proto/rfc/status_line_bnf.hpp>
+#include <boost/http_proto/rfc/token_bnf.hpp>
 
 #endif

@@ -13,6 +13,7 @@
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/url/bnf/charset.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -30,7 +31,7 @@ parse(
         ec = error::need_more;
         return start;
     }
-    digit_set ds;
+    auto ds = urls::bnf::digit_chars;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max10 = max / 10;
@@ -38,7 +39,7 @@ parse(
     v_ = 0;
     do
     {
-        if(! ds.contains(*it))
+        if(! ds(*it))
         {
             if(it == start)
             {
@@ -81,7 +82,7 @@ parse(
         ec = error::need_more;
         return start;
     }
-    hexdig_set hs;
+    auto const hs = urls::bnf::hexdig_chars;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max16 = max / 16;
@@ -89,7 +90,7 @@ parse(
     v_ = 0;
     do
     {
-        if(! hs.contains(*it))
+        if(! hs(*it))
         {
             if(it == start)
             {
@@ -106,7 +107,7 @@ parse(
         }
         v_ *= 16;
         std::uint64_t const d =
-            hs.value(*it);
+            urls::bnf::hexdig_value(*it);
         if(max - v_ < d)
         {
             ec = error::numeric_overflow;

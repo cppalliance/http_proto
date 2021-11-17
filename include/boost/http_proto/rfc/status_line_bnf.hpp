@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_STATUS_LINE_HPP
-#define BOOST_HTTP_PROTO_BNF_STATUS_LINE_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_STATUS_LINE_BNF_HPP
+#define BOOST_HTTP_PROTO_RFC_STATUS_LINE_BNF_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -16,7 +16,6 @@
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
 /** BNF for status-line
 
@@ -34,21 +33,12 @@ namespace bnf {
         @ref version
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2
 */
-class status_line
+class status_line_bnf
 {
 public:
-    struct value_type
-    {
-        char version; // 2 digits
-        short status_code;
-        string_view reason;
-    };
-
-    value_type const&
-    value() const noexcept
-    {
-        return v_;
-    }
+    char version; // 2 digits
+    short status_code;
+    string_view reason;
 
     BOOST_HTTP_PROTO_DECL
     char const*
@@ -56,12 +46,8 @@ public:
         char const* start,
         char const* end,
         error_code& ec);
-
-private:
-    value_type v_;
 };
 
-} // bnf
 } // http_proto
 } // boost
 

@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_IMPL_RESPONSE_PARSER_IPP
 
 #include <boost/http_proto/response_parser.hpp>
-#include <boost/http_proto/bnf/status_line.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
+#include <boost/http_proto/rfc/status_line_bnf.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -31,12 +31,11 @@ parse_start_line(
     char const* const last,
     error_code& ec)
 {
-    bnf::status_line p;
-    auto it = p.parse(
-        first, last, ec);
+    status_line_bnf t;
+    auto it = t.parse(first, last, ec);
     if(ec)
         return first;
-    switch(p.value().version)
+    switch(t.version)
     {
     case 10:
         m_.version = version::http_1_0;
@@ -46,8 +45,8 @@ parse_start_line(
         m_.version = version::http_1_1;
         break;
     }
-    status_ = p.value().status_code;
-    
+    status_ = t.status_code;
+  
     return first + (it - first);
 }
 

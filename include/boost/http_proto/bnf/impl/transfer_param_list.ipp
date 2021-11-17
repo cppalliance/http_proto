@@ -29,16 +29,16 @@ parse(
     error_code& ec)
 {
     // OWS
-    ws_set ws;
+    ws_set ws_;
     auto it =
-        ws.skip(start, end);
+        ws_.skip(start, end);
     // ";"
     it = consume(';',
         it, end, ec);
     if(ec.failed())
         return start;
     // OWS
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
     // token
     token t;
     it = t.parse(it, end, ec);
@@ -46,14 +46,14 @@ parse(
         return it;
     v_.name = t.value();
     // OWS
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
     // "="
     it = consume('=',
         it, end, ec);
     if(ec.failed())
         return start;
     // OWS
-    it = ws.skip(it, end);
+    it = ws_.skip(it, end);
     // ( token / quoted-string )
     it = t.parse(it, end, ec);
     if(! ec)

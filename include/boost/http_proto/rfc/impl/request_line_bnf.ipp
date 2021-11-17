@@ -7,28 +7,25 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_REQUEST_LINE_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_REQUEST_LINE_IPP
+#ifndef BOOST_HTTP_PROTO_RFC_IMPL_REQUEST_LINE_BNF_IPP
+#define BOOST_HTTP_PROTO_RFC_IMPL_REQUEST_LINE_BNF_IPP
 
-#include <boost/http_proto/bnf/request_line.hpp>
+#include <boost/http_proto/rfc/request_line_bnf.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/detail/rfc7230.hpp>
 #include <boost/http_proto/error.hpp>
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
 char const*
-request_line::
+request_line_bnf::
 parse(
     char const* start,
     char const* end,
     error_code& ec)
 {
-/*
-    request-line   = method SP request-target SP HTTP-version CRLF
-*/
+    // request-line   = method SP request-target SP HTTP-version CRLF
 
     auto it = start;
 
@@ -72,23 +69,16 @@ parse(
 
     // HTTP-version
     {
-        char v;
-        it = detail::parse_http_version(
-            v, it, end, ec);
+        it = bnf::detail::parse_http_version(
+            version, it, end, ec);
         if(ec.failed())
             return start;
-        switch(v)
+        if( version != 10 &&
+            version != 11)
         {
-        case 10:
-        case 11:
-            v_.version = v;
-            break;
-        default:
             ec = error::bad_version;
-            break;
-        }
-        if(ec.failed())
             return start;
+        }
     }
 
     // CRLF
@@ -108,13 +98,13 @@ parse(
 }
 
 char const*
-request_line::
+request_line_bnf::
 parse_method(
     char const* const start,
     char const* const end,
     error_code& ec)
 {
-    tchar_set ts;
+    bnf::tchar_set ts;
 
     // token
     auto it = ts.skip(start, end);
@@ -129,13 +119,13 @@ parse_method(
         ec = error::bad_method;
         return start;
     }
-    v_.method = string_view(
+    method = string_view(
         start, it - start );
     return it;
 }
 
 char const*
-request_line::
+request_line_bnf::
 parse_target(
     char const* const start,
     char const* const end,
@@ -147,7 +137,7 @@ parse_target(
                     / authority-form
                     / asterisk-form
 */
-    detail::pchar_set ps;
+    bnf::detail::pchar_set ps;
 
     // target
     auto it = ps.skip(
@@ -163,12 +153,11 @@ parse_target(
         ec = error::bad_request_target;
         return start;
     }
-    v_.target = string_view(
+    target = string_view(
         start, it - start );
     return it;
 }
 
-} // bnf
 } // http_proto
 } // boost
 

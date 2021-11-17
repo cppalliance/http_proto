@@ -14,6 +14,8 @@
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 
+#include <boost/url/bnf/charset.hpp>
+
 #include "test_bnf.hpp"
 
 namespace boost {
@@ -48,14 +50,14 @@ public:
                 ec = error::need_more;
                 return start;
             }
-            digit_set ds;
+            auto const ds = urls::bnf::digit_chars;
             auto it = start;
-            if(! ds.contains(*it))
+            if(! ds(*it))
             {
                 ec = error::syntax;
                 return it;
             }
-            it = ds.skip(it + 1, end);
+            it = ds.find_if_not(it + 1, end);
             return it;
         }
     };

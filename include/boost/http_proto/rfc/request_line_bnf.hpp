@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
-#define BOOST_HTTP_PROTO_BNF_REQUEST_LINE_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_REQUEST_LINE_BNF_HPP
+#define BOOST_HTTP_PROTO_RFC_REQUEST_LINE_BNF_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -16,7 +16,6 @@
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
 /** BNF for request-line
 
@@ -35,21 +34,11 @@ namespace bnf {
         @ref token
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
 */
-class request_line
+struct request_line_bnf
 {
-public:
-    struct value_type
-    {
-        string_view method;
-        string_view target;
-        char version; // 2 digits
-    };
-
-    value_type const&
-    value() const noexcept
-    {
-        return v_;
-    }
+    string_view method;
+    string_view target;
+    char version; // 2 digits
 
     BOOST_HTTP_PROTO_DECL
     char const*
@@ -70,11 +59,8 @@ private:
         char const* start,
         char const* end,
         error_code& ec);
-
-    value_type v_;
 };
 
-} // bnf
 } // http_proto
 } // boost
 

@@ -8,22 +8,17 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/request_line.hpp>
+#include <boost/http_proto/rfc/request_line_bnf.hpp>
 
 #include <boost/http_proto/bnf/type_traits.hpp>
 #include <boost/static_assert.hpp>
 
 #include "test_suite.hpp"
-#include "test_bnf.hpp"
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
-BOOST_STATIC_ASSERT(
-    is_element<request_line>::value);
-
-class request_line_test
+class request_line_bnf_test
 {
 public:
     void
@@ -32,8 +27,9 @@ public:
     }
 };
 
-TEST_SUITE(request_line_test, "boost.http_proto.request_line");
+TEST_SUITE(
+    request_line_bnf_test,
+    "boost.http_proto.request_line_bnf");
 
-} // bnf
 } // http_proto
 } // boost

@@ -8,9 +8,9 @@
 #
 
 
-set(TFILES
-    ./include/main.cpp
-    ./include/test_suite.hpp
+set(EXTRAFILES
+    ../../url/extra/test_main.cpp
+    ../../url/extra/include/test_suite.hpp
     )
 
 set(PFILES
@@ -48,9 +48,7 @@ set(PFILES
     bnf/number.cpp
     bnf/quoted_string.cpp
     bnf/range.cpp
-    bnf/request_line.cpp
     bnf/sequence.cpp
-    bnf/status_line.cpp
     bnf/test_bnf.hpp
     bnf/token.cpp
     bnf/transfer_encoding.cpp
@@ -61,10 +59,15 @@ set(PFILES
     codec/deflate_service.cpp
     codec/encoder.cpp
     mime/mime_types.cpp
+    rfc/charsets.cpp
+    rfc/list_bnf.cpp
+    rfc/request_line_bnf.cpp
+    rfc/status_line_bnf.cpp
+    rfc/token_bnf.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "include" FILES ${TFILES})
-add_executable(boost_http_proto_tests ${PFILES} ${TFILES})
-target_include_directories(boost_http_proto_tests PRIVATE . ./include)
+source_group("_extra" FILES ${EXTRAFILES})
+add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
+target_include_directories(boost_http_proto_tests PRIVATE . ../../url/extra/include)
 target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto)

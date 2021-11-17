@@ -56,8 +56,7 @@ public:
         decoder_type& dt) override
     {
         auto const result =
-            decoders_.emplace(
-                name.to_string(), &dt);
+            decoders_.emplace(name, &dt);
         if(result.second)
             return;
         detail::throw_out_of_range(
@@ -82,8 +81,7 @@ public:
         encoder_type& dt) override
     {
         auto const result =
-            encoders_.emplace(
-                name.to_string(), &dt);
+            encoders_.emplace(name, &dt);
         if(result.second)
             return;
         detail::throw_out_of_range(

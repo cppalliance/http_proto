@@ -14,6 +14,7 @@
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/url/bnf/charset.hpp>
 
 #include "test_suite.hpp"
 
@@ -44,7 +45,7 @@ public:
             char const* end,
             error_code& ec)
         {
-            digit_set ds;
+            auto const ds = urls::bnf::digit_chars;
             auto it = start;
             if(it == end)
             {
@@ -57,7 +58,7 @@ public:
                 return start;
             }
             ++it;
-            it = ds.skip(it, end);
+            it = ds.find_if_not(it, end);
             if(it == start + 1)
             {
                 // missing digits

@@ -7,18 +7,26 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_STRING_VIEW_HPP
-#define BOOST_HTTP_PROTO_STRING_VIEW_HPP
+// Test that header file is self-contained.
+#include <boost/http_proto/rfc/charsets.hpp>
 
-#include <boost/http_proto/detail/config.hpp>
-#include <boost/url/string_view.hpp>
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-using urls::string_view;
+class charsets_test
+{
+public:
+    void
+    run()
+    {
+    }
+};
+
+TEST_SUITE(
+    charsets_test,
+    "boost.http_proto.charsets");
 
 } // http_proto
 } // boost
-
-#endif

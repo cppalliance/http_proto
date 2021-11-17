@@ -136,65 +136,6 @@ struct iless_pred
 using ws_set
     = char_set_function<&is_ws>;
 
-/** Character set for DIGIT
-
-    @par BNF
-    @code
-    DIGIT   = %30-39
-    @endcode
-*/
-using digit_set
-    = char_set_function<&is_digit>;
-
-/** Character set for HEXDIG
-
-    @par BNF
-    @code
-    HEXDIG = DIGIT / %x41-46 / %x61-66
-    @endcode
-*/
-class hexdig_set
-{
-    char const* const tab_;
-
-public:
-    BOOST_HTTP_PROTO_DECL
-    hexdig_set() noexcept;
-
-    bool
-    contains(
-        char c) const noexcept
-    {
-        auto const u = static_cast<
-            unsigned char>(c);
-        return tab_[u] != 0x20;
-    }
-
-    template<class Char>
-    Char*
-    skip(
-        Char* first,
-        char const* end) const noexcept
-    {
-        while(first != end)
-        {
-            if(! contains(*first))
-                break;
-            ++first;
-        }
-        return first;
-    }
-
-    /** Return the numeric value of a hex digit.
-    */
-    int
-    value(char c) const noexcept
-    {
-        return tab_[static_cast<
-            unsigned char>(c)];
-    }
-};
-
 /** Character set for tchar
 
     @par BNF

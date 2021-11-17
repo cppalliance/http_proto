@@ -55,6 +55,7 @@ function(boost_http_proto_setup_properties target)
             Boost::config
             Boost::container
             Boost::exception
+            Boost::optional
             Boost::system
             Boost::throw_exception
             Boost::url
