@@ -4,8 +4,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/vinniefalco/beast2
+// Official repository: https://github.com/CPPAlliance/http_proto
 //
 
 // Test that header file is self-contained.
-#include <boost/beast2/string_view.hpp>
+#include <boost/http_proto/string_view.hpp>

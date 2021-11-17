@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="boost::http_proto::headers">
+    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fitem*)(buf_ + cap_))"/>
+        <Loop>
+          <Break Condition="i == this->count_"/>
+          <Item Name="[{i}]">
+            buf_+ft[-1-i].name_pos,
+            [ft[-1-i].value_pos + ft[-1-i].value_len - ft[-1-i].name_pos]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::headers_view">
+    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fitem*)(buf_ + capacity_))"/>
+        <Loop>
+          <Break Condition="i == this->count_"/>
+          <Item Name="[{i}]">
+            buf_+ft[-1-i].name_pos,
+            [ft[-1-i].value_pos + ft[-1-i].value_len - ft[-1-i].name_pos]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::parser">
+    <DisplayString>{buf_,[m_.start_len-2]s} [{m_.count}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fitem*)(buf_ + cap_))"/>
+        <Loop>
+          <Break Condition="i == m_.count"/>
+          <Item Name="[{i}]">
+            buf_+ft[-1-i].name_pos,
+            [ft[-1-i].value_pos + ft[-1-i].value_len - ft[-1-i].name_pos]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

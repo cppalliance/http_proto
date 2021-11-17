@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/vinniefalco/http_proto
+// Official repository: https://github.com/CPPAlliance/http_proto
 //
 
 #ifndef BOOST_HTTP_PROTO_DETAIL_CONFIG_HPP
@@ -14,9 +14,15 @@
 //#include <boost/assert.hpp>
 //#include <boost/throw_exception.hpp>
 
+namespace boost {
+namespace http_proto {
+namespace detail {
+
 #if defined(BOOST_HTTP_PROTO_DOCS)
 # define BOOST_HTTP_PROTO_DECL
+# define BOOST_HTTP_PROTO_PROTECTED private
 #else
+# define BOOST_HTTP_PROTO_PROTECTED protected
 # if (defined(BOOST_HTTP_PROTO_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)) && !defined(BOOST_HTTP_PROTO_STATIC_LINK)
 #  if defined(BOOST_HTTP_PROTO_SOURCE)
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_EXPORT
@@ -38,5 +44,9 @@
 #  include <boost/config/auto_link.hpp>
 # endif
 #endif
+
+} // detail
+} // http_proto
+} // boost
 
 #endif

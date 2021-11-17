@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/vinniefalco/http_proto
+// Official repository: https://github.com/CPPAlliance/http_proto
 //
 
 #ifndef BOOST_HTTP_PROTO_SRC_HPP
@@ -25,9 +25,52 @@ in a translation unit of the program.
 // using src.hpp as their main header file
 #include <boost/http_proto.hpp>
 
-#include <boost/http_proto/detail/rfc7230.ipp>
-#include <boost/http_proto/impl/basic_parser.ipp>
+#include <boost/http_proto/detail/impl/except.ipp>
+
+#include <boost/http_proto/impl/basic_header.ipp>
+#include <boost/http_proto/impl/context.ipp>
 #include <boost/http_proto/impl/error.ipp>
+#include <boost/http_proto/impl/field.ipp>
+#include <boost/http_proto/impl/headers.ipp>
+#include <boost/http_proto/impl/headers_view.ipp>
+#include <boost/http_proto/impl/method.ipp>
+#include <boost/http_proto/impl/parser.ipp>
+#include <boost/http_proto/impl/request.ipp>
 #include <boost/http_proto/impl/request_parser.ipp>
+#include <boost/http_proto/impl/request_view.ipp>
+#include <boost/http_proto/impl/response.ipp>
+#include <boost/http_proto/impl/response_parser.ipp>
+#include <boost/http_proto/impl/response_view.ipp>
+#include <boost/http_proto/impl/serializer.ipp>
+#include <boost/http_proto/impl/status.ipp>
+#include <boost/http_proto/impl/version.ipp>
+
+#include <boost/http_proto/bnf/impl/chunk_ext.ipp>
+#include <boost/http_proto/bnf/impl/chunk_part.ipp>
+#include <boost/http_proto/bnf/impl/ctype.ipp>
+#include <boost/http_proto/bnf/impl/header_fields.ipp>
+#include <boost/http_proto/bnf/impl/number.ipp>
+#include <boost/http_proto/bnf/impl/quoted_string.ipp>
+#include <boost/http_proto/bnf/impl/request_line.ipp>
+#include <boost/http_proto/bnf/impl/status_line.ipp>
+#include <boost/http_proto/bnf/impl/token.ipp>
+#include <boost/http_proto/bnf/impl/transfer_encoding.ipp>
+#include <boost/http_proto/bnf/impl/transfer_param_list.ipp>
+
+#include <boost/http_proto/bnf/detail/impl/rfc7230.ipp>
+
+#include <boost/http_proto/codec/impl/codecs.ipp>
+#include <boost/http_proto/codec/impl/decoder.ipp>
+#include <boost/http_proto/codec/impl/deflate_service.ipp>
+#include <boost/http_proto/codec/impl/encoder.ipp>
+
+#include <boost/http_proto/mime/impl/mime.ipp>
+
+// VFALCO These are tucked away here temporarily
+#if 0
+#include <boost/beast/zlib/detail/deflate_stream.ipp>
+#include <boost/beast/zlib/detail/inflate_stream.ipp>
+#include <boost/beast/zlib/impl/error.ipp>
+#endif
 
 #endif

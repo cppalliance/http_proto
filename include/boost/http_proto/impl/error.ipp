@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/vinniefalco/http_proto
+// Official repository: https://github.com/CPPAlliance/http_proto
 //
 
 #ifndef BOOST_HTTP_PROTO_IMPL_ERROR_IPP
@@ -18,13 +18,13 @@ namespace http_proto {
 
 namespace detail {
 
-class http_error_category : public error_category
+struct http_error_category
+    : public error_category
 {
-public:
     const char*
     name() const noexcept override
     {
-        return "beast2.http";
+        return "boost.http_proto";
     }
 
     std::string
@@ -32,34 +32,33 @@ public:
     {
         switch(static_cast<error>(ev))
         {
+        case error::end: return "range end";
+        case error::end_of_message: return "end of message";
         case error::end_of_stream: return "end of stream";
-        case error::partial_message: return "partial message";
         case error::need_more: return "need more";
-        case error::unexpected_body: return "unexpected body";
-        case error::need_buffer: return "need buffer";
-        case error::end_of_chunk: return "end of chunk";
-        case error::buffer_overflow: return "buffer overflow";
-        case error::header_limit: return "header limit exceeded";
-        case error::body_limit: return "body limit exceeded";
-        case error::bad_alloc: return "bad alloc";
+
+        case error::bad_content_length: return "bad content-length";
+        case error::bad_field_name: return "bad field name";
+        case error::bad_field_value: return "bad field value";
         case error::bad_line_ending: return "bad line ending";
+        case error::bad_list: return "bad list";
         case error::bad_method: return "bad method";
-        case error::bad_target: return "bad target";
+        case error::bad_number: return "bad number";
         case error::bad_version: return "bad version";
-        case error::bad_status: return "bad status";
-        case error::bad_reason: return "bad reason";
-        case error::bad_field: return "bad field";
-        case error::bad_value: return "bad value";
-        case error::bad_content_length: return "bad Content-Length";
-        case error::bad_transfer_encoding: return "bad Transfer-Encoding";
-        case error::bad_chunk: return "bad chunk";
-        case error::bad_chunk_extension: return "bad chunk extension";
-        case error::bad_obs_fold: return "bad obs-fold";
-        case error::stale_parser: return "stale parser";
-        case error::short_read: return "unexpected eof in body";
+        case error::bad_reason: return "bad reason-phrase";
+        case error::bad_request_target: return "bad request-target";
+        case error::bad_status_code: return "bad status-code";
+        case error::bad_status_line: return "bad status-line";
+        case error::bad_transfer_encoding: return "bad transfer-encoding";
+        case error::syntax: return "syntax error";
+
+        case error::body_limit: return "body limit";
+        case error::header_limit: return "header limit";
+        case error::incomplete: return "incomplete";
+        case error::numeric_overflow: return "numeric overflow";
 
         default:
-            return "beast2.http error";
+            return "boost.http_proto error";
         }
     }
 
@@ -67,24 +66,61 @@ public:
     default_error_condition(
         int ev) const noexcept override
     {
-        return error_condition{ev, *this};
+        switch(static_cast<error>(ev))
+        {
+        case error::end:
+        case error::end_of_message:
+        case error::end_of_stream:
+        case error::need_more:
+            return condition::partial_success;
+
+        case error::bad_content_length:
+        case error::bad_field_name:
+        case error::bad_field_value:
+        case error::bad_line_ending:
+        case error::bad_list:
+        case error::bad_method:
+        case error::bad_number:
+        case error::bad_version:
+        case error::bad_reason:
+        case error::bad_request_target:
+        case error::bad_status_code:
+        case error::bad_status_line:
+        case error::bad_transfer_encoding:
+        case error::syntax:
+            return condition::syntax_error;
+
+        case error::body_limit:
+        case error::header_limit:
+        case error::incomplete:
+        case error::numeric_overflow:
+        default:
+            return {ev, *this};
+        }
+    }
+};
+
+struct http_condition_category
+    : error_category
+{
+    const char*
+    name() const noexcept override
+    {
+        return "boost.http_proto";
     }
 
-    bool
-    equivalent(int ev,
-        error_condition const& condition
-            ) const noexcept override
+    std::string
+    message(int cv) const override
     {
-        return condition.value() == ev &&
-            &condition.category() == this;
-    }
+        switch(static_cast<condition>(cv))
+        {
+        case condition::partial_success:
+            return "partial success";
 
-    bool
-    equivalent(error_code const& error,
-        int ev) const noexcept override
-    {
-        return error.value() == ev &&
-            &error.category() == this;
+        default: // not used
+        case condition::syntax_error:
+            return "syntax error";
+        }
     }
 };
 
@@ -96,6 +132,14 @@ make_error_code(error ev) noexcept
     static detail::http_error_category const cat{};
     return error_code{static_cast<
         std::underlying_type<error>::type>(ev), cat};
+}
+
+error_condition
+make_error_condition(condition c) noexcept
+{
+    static detail::http_condition_category const cat{};
+    return error_condition{static_cast<
+        std::underlying_type<condition>::type>(c), cat};
 }
 
 } // http_proto

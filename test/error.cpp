@@ -1,32 +1,33 @@
 //
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/vinniefalco/http_proto
+// Official repository: https://github.com/CPPAlliance/http_proto
 //
 
 // Test that header file is self-contained.
-#include <boost/beast2/http/error.hpp>
+#include <boost/http_proto/error.hpp>
 
 #include <memory>
 
 #include "test_suite.hpp"
 
 namespace boost {
-namespace beast2 {
-namespace http {
+namespace http_proto {
 
 class error_test
 {
 public:
     void
-    check(char const* name, error ev)
+    check(
+        char const* name,
+        error ev)
     {
         auto const ec = make_error_code(ev);
         auto const& cat = make_error_code(
-            static_cast<http::error>(0)).category();
+            static_cast<http_proto::error>(0)).category();
         BOOST_TEST(std::string(ec.category().name()) == name);
         BOOST_TEST(! ec.message().empty());
         BOOST_TEST(
@@ -40,40 +41,54 @@ public:
     }
 
     void
+    check(
+        char const* name,
+        error ev,
+        condition c)
+    {
+        check(name, ev);
+
+        error_code ec = ev;
+        BOOST_TEST(ec == c);
+    }
+
+    void
     run()
     {
-        check("beast2.http", error::end_of_stream);
-        check("beast2.http", error::partial_message);
-        check("beast2.http", error::need_more);
-        check("beast2.http", error::unexpected_body);
-        check("beast2.http", error::need_buffer);
-        check("beast2.http", error::end_of_chunk);
-        check("beast2.http", error::buffer_overflow);
-        check("beast2.http", error::header_limit);
-        check("beast2.http", error::body_limit);
-        check("beast2.http", error::bad_alloc);
+        char const* const n = "boost.http_proto";
 
-        check("beast2.http", error::bad_line_ending);
-        check("beast2.http", error::bad_method);
-        check("beast2.http", error::bad_target);
-        check("beast2.http", error::bad_version);
-        check("beast2.http", error::bad_status);
-        check("beast2.http", error::bad_reason);
-        check("beast2.http", error::bad_field);
-        check("beast2.http", error::bad_value);
-        check("beast2.http", error::bad_content_length);
-        check("beast2.http", error::bad_transfer_encoding);
-        check("beast2.http", error::bad_chunk);
-        check("beast2.http", error::bad_chunk_extension);
-        check("beast2.http", error::bad_obs_fold);
+        condition c;
 
-        check("beast2.http", error::stale_parser);
-        check("beast2.http", error::short_read);
+        c = condition::partial_success;
+        check(n, error::end, c);
+        check(n, error::end_of_message, c);
+        check(n, error::end_of_stream, c);
+        check(n, error::need_more, c);
+
+        c = condition::syntax_error;
+        check(n, error::bad_content_length, c);
+        check(n, error::bad_field_name, c);
+        check(n, error::bad_field_value, c);
+        check(n, error::bad_line_ending, c);
+        check(n, error::bad_list, c);
+        check(n, error::bad_method, c);
+        check(n, error::bad_number, c);
+        check(n, error::bad_version, c);
+        check(n, error::bad_reason, c);
+        check(n, error::bad_request_target, c);
+        check(n, error::bad_status_code, c);
+        check(n, error::bad_status_line, c);
+        check(n, error::bad_transfer_encoding, c);
+        check(n, error::syntax, c);
+
+        check(n, error::body_limit);
+        check(n, error::header_limit);
+        check(n, error::incomplete);
+        check(n, error::numeric_overflow);
     }
 };
 
-TEST_SUITE(error_test, "boost.beast2.http.error");
+TEST_SUITE(error_test, "boost.http_proto.error");
 
-} // http
-} // beast2
+} // http_proto
 } // boost
