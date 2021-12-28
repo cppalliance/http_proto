@@ -13,7 +13,7 @@ project boost/http_proto
       $(c11-requires)
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
-      <define>BOOST_URL_SOURCE
+      <define>BOOST_HTTP_PROTO_SOURCE
     : usage-requirements
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
@@ -28,6 +28,10 @@ explicit http_proto_sources ;
 
 lib boost_http_proto
    : http_proto_sources
+   : requirements
+     <library>/boost//url
+   : usage-requirements
+     <library>/boost//url
    ;
 
 boost-install boost_http_proto ;
