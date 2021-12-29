@@ -8,10 +8,10 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/list_bnf.hpp>
+#include <boost/http_proto/rfc/list_rule.hpp>
 
-#include <boost/http_proto/rfc/token_bnf.hpp>
-#include <boost/url/bnf/parse.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 #include "test_suite.hpp"
 
@@ -20,7 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-class list_bnf_test
+class list_rule_test
 {
 public:
     template<
@@ -31,9 +31,9 @@ public:
     bad(string_view s)
     {
         error_code ec;
-        list_bnf<token_bnf, N, M> t;
+        list_rule<token_rule, N, M> t;
         auto const success =
-            urls::bnf::parse_string(s, ec, t);
+            grammar::parse_string(s, ec, t);
         if(! BOOST_TEST(! success))
             return;
         BOOST_TEST(ec.failed());
@@ -50,9 +50,9 @@ public:
             string_view> init)
     {
         error_code ec;
-        list_bnf<token_bnf, N, M> t;
+        list_rule<token_rule, N, M> t;
         auto const success =
-            urls::bnf::parse_string(s, ec, t);
+            grammar::parse_string(s, ec, t);
         if(! BOOST_TEST(success))
             return;
         if(ec.failed())
@@ -68,7 +68,7 @@ public:
     void
     testSpecial()
     {
-        list_bnf<token_bnf> t("x,y");
+        list_rule<token_rule> t("x,y");
         BOOST_TEST(t.size() == 2);
     }
 
@@ -110,8 +110,8 @@ public:
 };
 
 TEST_SUITE(
-    list_bnf_test,
-    "boost.http_proto.list_bnf");
+    list_rule_test,
+    "boost.http_proto.list_rule");
 
 } // http_proto
 } // boost

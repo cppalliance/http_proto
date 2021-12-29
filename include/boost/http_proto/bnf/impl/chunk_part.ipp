@@ -7,11 +7,12 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_CHUNK_PART_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_CHUNK_PART_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_CHUNK_PART_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_CHUNK_PART_IPP
 
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 
 namespace boost {
@@ -25,6 +26,8 @@ parse(
     char const* const end,
     error_code& ec)
 {
+    using grammar::parse;
+
     // chunk-size
     hex_number hn;
     auto it = hn.parse(
@@ -33,13 +36,9 @@ parse(
         return it;
     v_.size = hn.value();
     // [ chunk-ext ]
-    auto p = it;
-    it = consume<chunk_ext>(
-        it, end, ec);
-    if(ec.failed())
+    if(! parse(it, end, ec, v_.ext))
         return it;
-    v_.ext = range<chunk_ext>(
-        string_view(p, it - p));
+
     // CRLF
     it = consume_crlf(it, end, ec);
     if(ec.failed())
@@ -70,14 +69,8 @@ parse(
     }
     // last-chunk trailer-part CRLF
     // (includes the last CRLF)
-    p = it;
-    it = consume<header_fields>(
-        it, end, ec);
-    if(ec.failed())
+    if(! parse(it, end, ec, v_.trailer))
         return it;
-    v_.trailer =
-        range<header_fields>(
-            string_view(p, it - p));
     v_.data = {};
     return it;
 }

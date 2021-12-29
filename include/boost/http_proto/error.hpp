@@ -57,14 +57,6 @@ enum class error
     */
     ,end_of_stream
 
-    /** A parser needs more input to make progress
-
-        This error is returned when the full input
-        exactly matches a prefix of the BNF, and
-        more input is needed to complete the match.
-    */
-    ,need_more
-
     //
     // Syntax errors (unrecoverable)
     //
@@ -157,14 +149,6 @@ enum class error
         entire message.
     */
     partial_message,
-
-    /** Additional buffers are required.
-
-        This error is returned during parsing when additional
-        octets are needed. The caller should append more data
-        to the existing buffer and retry the parse operaetion.
-    */
-    need_more,
 
     /** An unexpected body was encountered during parsing.
 
@@ -259,9 +243,6 @@ enum class condition
 {
     /// A recoverable, partial success
     partial_success = 1
-
-    // /// More input is required to meet a postcondition
-    // ,need_more
 
     /// Inputs are not standards-conforming
     ,syntax_error

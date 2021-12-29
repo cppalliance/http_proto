@@ -8,14 +8,14 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/token_bnf.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class token_bnf_test
+class token_rule_test
 {
 public:
     void
@@ -28,7 +28,7 @@ public:
             auto it = s.data();
             auto const end = it + s.size();
             error_code ec;
-            token_bnf t;
+            token_rule t;
             if(! parse(it, end, ec, t))
                 BOOST_TEST(m.empty());
             else
@@ -54,8 +54,8 @@ public:
 };
 
 TEST_SUITE(
-    token_bnf_test,
-    "boost.http_proto.token_bnf");
+    token_rule_test,
+    "boost.http_proto.token_rule");
 
 } // http_proto
 } // boost

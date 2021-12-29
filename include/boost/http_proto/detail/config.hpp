@@ -45,11 +45,11 @@ namespace http_proto {
 
 } // http_proto
 
-#if 0
+#if 1
 // lift bnf into our namespace
-namespace urls { namespace bnf {} }
+namespace urls { namespace grammar {} }
 namespace http_proto {
-namespace bnf = ::boost::urls::bnf;
+namespace grammar = ::boost::urls::grammar;
 } // http_proto
 #endif
 

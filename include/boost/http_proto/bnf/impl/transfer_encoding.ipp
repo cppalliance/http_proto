@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_ENCODING_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_TRANSFER_ENCODING_LIST_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_TRANSFER_ENCODING_LIST_IPP
 
 #include <boost/http_proto/bnf/transfer_encoding.hpp>
 #include <boost/http_proto/error.hpp>
@@ -38,7 +38,7 @@ parse(
     it = consume<
         transfer_param_list>(
             it, end, ec);
-    if(ec == error::need_more)
+    if(ec == grammar::error::incomplete)
         return it;
     if(ec.failed())
     {

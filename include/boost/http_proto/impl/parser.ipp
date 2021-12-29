@@ -16,11 +16,11 @@
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/range.hpp>
 #include <boost/http_proto/bnf/transfer_encoding.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/assert.hpp>
 #include <boost/none.hpp>
 #include <memory>
@@ -266,11 +266,11 @@ parse_header(
         BOOST_ASSERT(m_.fields_len == 0);
         if(! buf_)
         {
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return;
         }
         std::size_t n;
-        auto const limit = size_ >
+        bool const limit = size_ >
             cfg_.header_limit;
         if(! limit)
             n = size_;
@@ -280,7 +280,7 @@ parse_header(
         auto it = parse_start_line(
             buf_, buf_ + n, ec);
         used_ += it - buf_;
-        if(ec == error::need_more)
+        if(ec == grammar::error::incomplete)
         {
             if(! limit)
                 return;
@@ -296,7 +296,7 @@ parse_header(
     case state::header_fields:
     {
         std::size_t n;
-        auto const limit = size_ >
+        bool const limit = size_ >
             cfg_.header_limit;
         if(! limit)
             n = size_;
@@ -313,7 +313,7 @@ parse_header(
         auto it = parse_fields(
             start, buf_ + n, ec);
         used_ += it - start;
-        if(ec == error::need_more)
+        if(ec == grammar::error::incomplete)
         {
             if(! limit)
                 return;
@@ -401,7 +401,7 @@ parse_body(
         {
             if(! got_eof_)
             {
-                ec = error::need_more;
+                ec = grammar::error::incomplete;
                 return;
             }
             ec = error::incomplete;
@@ -444,7 +444,7 @@ parse_body(
         }
         if(! got_eof_)
         {
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return;
         }
         state_ = state::end_of_message;
@@ -566,52 +566,52 @@ parse_fields(
     char const* const end,
     error_code& ec)
 {
-    bnf::header_fields p;
-    auto cit = p.begin(
-        start, end, ec);
-    auto it = start;
+    field_rule t;
+    char* it0 = start;
+    char const* it = start;
     for(;;)
     {
-        if(ec == error::end)
+        parse(it, end, ec, t);
+        if(ec == grammar::error::end)
         {
-            it = start +
-                (cit - start);
+            // end of fields
             ec = {};
+            it0 = it0 + (it - it0);
             break;
         }
         if(ec.failed())
-            return start + (cit - start);
-        auto const v = p.value();
-        if(v.has_obs_fold)
-            bnf::replace_obs_fold(it, cit);
-        it = start + (cit - start);
+            return it0;
+        // remove obs-fold if needed
+        if(t.v.has_obs_fold)
+            replace_obs_fold(it0, it);
+        it0 = it0 + (it - it0);
         auto const id =
-            string_to_field(v.name);
+            string_to_field(t.v.name);
         switch(id)
         {
         case field::connection:
         case field::proxy_connection:
             do_connection(
-                v.value, ec);
+                t.v.value, ec);
             if(ec.failed())
-                return it;
+                return it0;
             break;
         case field::content_length:
             do_content_length(
-                v.value, ec);
+                t.v.value, ec);
             if(ec.failed())
-                return it;
+                return it0;
             break;
         case field::transfer_encoding:
             do_transfer_encoding(
-                v.value, ec);
+                t.v.value, ec);
             if(ec.failed())
-                return it;
+                return it0;
             break;
         case field::upgrade:
-            do_upgrade(v.value, ec);
+            do_upgrade(t.v.value, ec);
             if(ec.failed())
-                return it;
+                return it0;
             break;
         default:
             break;
@@ -623,17 +623,19 @@ parse_fields(
         fi.pos = static_cast<
             off_t>(start - buf_);
         fi.name_pos = static_cast<
-            off_t>(v.name.data() - buf_);
+            off_t>(t.v.name.data() - buf_);
         fi.name_len = static_cast<
-            off_t>(v.name.size());
-        fi.value_pos = static_cast<
-            off_t>(v.value.data() - buf_);
+            off_t>(t.v.name.size());
         fi.value_len = static_cast<
-            off_t>(v.value.size());
+            off_t>(t.v.value.size());
+        if(fi.value_len > 0)
+            fi.value_pos = static_cast<
+                off_t>(t.v.value.data() - buf_);
+        else
+            fi.value_pos = 0; // empty string
         ++m_.count;
-        cit = p.increment(cit, end, ec);
     }
-    return it;
+    return it0;
 }
 
 //------------------------------------------------

@@ -7,15 +7,15 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_PARAM_LIST_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_TRANSFER_PARAM_LIST_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_TRANSFER_PARAM_LIST_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_TRANSFER_PARAM_LIST_IPP
 
 #include <boost/http_proto/bnf/transfer_param_list.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/quoted_string.hpp>
 #include <boost/http_proto/bnf/token.hpp>
+#include <boost/http_proto/rfc/quoted_string_rule.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -28,17 +28,19 @@ parse(
     char const* const end,
     error_code& ec)
 {
+    using grammar::parse;
+
     // OWS
-    ws_set ws_;
-    auto it =
-        ws_.skip(start, end);
+    auto it = grammar::find_if_not(
+        start, end, ws);
     // ";"
     it = consume(';',
         it, end, ec);
     if(ec.failed())
         return start;
     // OWS
-    it = ws_.skip(it, end);
+    it = grammar::find_if_not(
+        it, end, ws);
     // token
     token t;
     it = t.parse(it, end, ec);
@@ -46,14 +48,16 @@ parse(
         return it;
     v_.name = t.value();
     // OWS
-    it = ws_.skip(it, end);
+    it = grammar::find_if_not(
+        it, end, ws);
     // "="
     it = consume('=',
         it, end, ec);
     if(ec.failed())
         return start;
     // OWS
-    it = ws_.skip(it, end);
+    it = grammar::find_if_not(
+        it, end, ws);
     // ( token / quoted-string )
     it = t.parse(it, end, ec);
     if(! ec)
@@ -63,17 +67,14 @@ parse(
         return it;
     }
     ec = {};
-    quoted_string q;
-    it = q.parse(it, end, ec);
-    if(! ec)
-    {
-        // quoted-string
-        v_.value = q.value();
-        return it;
-    }
+    quoted_string_rule q;
+    if(! parse(it, end, ec, q))
+        return start;
+    v_.value = *q;
+
     // value must be present
     // https://www.rfc-editor.org/errata/eid4839
-    return start;
+    return it;
 }
 
 } // bnf

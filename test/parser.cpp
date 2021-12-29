@@ -44,7 +44,7 @@ public:
           call returns, the error indicates failure
 
           - failure can be terminal (i.e. syntax)
-          - or failure is recoverable (need_more)
+          - or failure is recoverable (incomplete)
 
         Effects:
             Buffered octets are parsed as message
@@ -67,7 +67,7 @@ public:
           call returns, the error indicates failure
 
           - failure can be terminal (i.e. syntax)
-          - or failure is recoverable (need_more)
+          - or failure is recoverable (incomplete)
 
         Effects:
             Buffered octets are parsed as message
@@ -99,7 +99,7 @@ public:
 
           - failure can be terminal, for example a
             syntax error or end_of_message,
-          - or failure is recoverable (need_more)
+          - or failure is recoverable (incomplete)
 
         Effects:
             Buffered octets are parsed as message

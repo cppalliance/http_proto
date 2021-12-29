@@ -31,11 +31,9 @@
 
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/char_set.hpp>
-#include <boost/http_proto/bnf/chunk_ext.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/list.hpp>
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/bnf/range.hpp>
@@ -53,9 +51,18 @@
 #include <boost/http_proto/mime/mime_types.hpp>
 
 #include <boost/http_proto/rfc/charsets.hpp>
-#include <boost/http_proto/rfc/list_bnf.hpp>
-#include <boost/http_proto/rfc/request_line_bnf.hpp>
-#include <boost/http_proto/rfc/status_line_bnf.hpp>
-#include <boost/http_proto/rfc/token_bnf.hpp>
+#include <boost/http_proto/rfc/chunk_ext_rule.hpp>
+#include <boost/http_proto/rfc/crlf_rule.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
+#include <boost/http_proto/rfc/list_rule.hpp>
+#include <boost/http_proto/rfc/method_rule.hpp>
+#include <boost/http_proto/rfc/ows_rule.hpp>
+#include <boost/http_proto/rfc/quoted_string_rule.hpp>
+#include <boost/http_proto/rfc/request_line_rule.hpp>
+#include <boost/http_proto/rfc/request_target_rule.hpp>
+#include <boost/http_proto/rfc/status_code_rule.hpp>
+#include <boost/http_proto/rfc/status_line_rule.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
+#include <boost/http_proto/rfc/version_rule.hpp>
 
 #endif

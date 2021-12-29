@@ -14,9 +14,10 @@
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/bnf/chunk_ext.hpp>
-#include <boost/http_proto/bnf/header_fields.hpp>
 #include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/rfc/chunk_ext_rule.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
+#include <boost/url/grammar/range.hpp>
 #include <boost/optional.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -36,9 +37,8 @@ struct chunk_info
 
     std::uint64_t size; // of this chunk
     bnf::range<
-        bnf::chunk_ext> ext; // chunk extensions (can be empty)
-    bnf::range<
-        bnf::header_fields> trailer;
+        chunk_ext_rule> ext; // chunk extensions (can be empty)
+    grammar::range<field_rule> trailer;
     bool fresh;         // true if this is a fresh chunk
 };
 
@@ -233,7 +233,7 @@ public:
         this function does nothing.
 
         If there is insufficient buffered input, the
-        error will be set to @ref error::need_more.
+        error will be set to @ref grammar::error::incomplete.
         In this case the caller should transfer more
         input to the parser and call this function
         again.
@@ -267,7 +267,7 @@ public:
 
 private:
     virtual char* parse_start_line(
-        char*, char const*, error_code&) = 0;
+        char*, char const*, error_code&) noexcept = 0;
     virtual void finish_header(error_code&) = 0;
 
     char* parse_fields(char*, char const*, error_code&);

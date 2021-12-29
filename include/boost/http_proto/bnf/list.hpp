@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_LIST_HPP
-#define BOOST_HTTP_PROTO_BNF_LIST_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_LIST_HPP
+#define BOOST_HTTP_PROTO_RULE_LIST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>

@@ -35,7 +35,6 @@ struct http_error_category
         case error::end: return "range end";
         case error::end_of_message: return "end of message";
         case error::end_of_stream: return "end of stream";
-        case error::need_more: return "need more";
 
         case error::bad_content_length: return "bad content-length";
         case error::bad_field_name: return "bad field name";
@@ -50,11 +49,10 @@ struct http_error_category
         case error::bad_status_code: return "bad status-code";
         case error::bad_status_line: return "bad status-line";
         case error::bad_transfer_encoding: return "bad transfer-encoding";
-        case error::syntax: return "syntax error";
+        case error::syntax: return "syntax error_";
 
         case error::body_limit: return "body limit";
         case error::header_limit: return "header limit";
-        case error::incomplete: return "incomplete";
         case error::numeric_overflow: return "numeric overflow";
 
         default:
@@ -71,7 +69,6 @@ struct http_error_category
         case error::end:
         case error::end_of_message:
         case error::end_of_stream:
-        case error::need_more:
             return condition::partial_success;
 
         case error::bad_content_length:
@@ -92,7 +89,6 @@ struct http_error_category
 
         case error::body_limit:
         case error::header_limit:
-        case error::incomplete:
         case error::numeric_overflow:
         default:
             return {ev, *this};

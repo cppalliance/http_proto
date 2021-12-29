@@ -63,7 +63,6 @@ public:
         check(n, error::end, c);
         check(n, error::end_of_message, c);
         check(n, error::end_of_stream, c);
-        check(n, error::need_more, c);
 
         c = condition::syntax_error;
         check(n, error::bad_content_length, c);
@@ -83,7 +82,6 @@ public:
 
         check(n, error::body_limit);
         check(n, error::header_limit);
-        check(n, error::incomplete);
         check(n, error::numeric_overflow);
     }
 };

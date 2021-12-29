@@ -30,12 +30,6 @@ inline
 bool
 is_digit(char c) noexcept;
 
-/** Return true if c is horizontal white space
-*/
-inline
-bool
-is_ws(char c) noexcept;
-
 /** Return true if c is a qpchar
 
     @par BNF
@@ -125,16 +119,6 @@ struct iless_pred
 };
 
 //------------------------------------------------
-
-/** Character set for WS
-
-    @par BNF
-    @code
-    WS      = SP / HTAB
-    @endcode
-*/
-using ws_set
-    = char_set_function<&is_ws>;
 
 /** Character set for tchar
 

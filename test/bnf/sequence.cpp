@@ -14,7 +14,7 @@
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/url/bnf/charset.hpp>
+#include <boost/url/grammar/charset.hpp>
 
 #include "test_suite.hpp"
 
@@ -45,7 +45,7 @@ public:
             char const* end,
             error_code& ec)
         {
-            auto const ds = urls::bnf::digit_chars;
+            auto const ds = grammar::digit_chars;
             auto it = start;
             if(it == end)
             {

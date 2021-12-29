@@ -8,19 +8,15 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/request_line_bnf.hpp>
-
-#include <boost/http_proto/bnf/type_traits.hpp>
-#include <boost/static_assert.hpp>
+#include <boost/http_proto/rfc/ows_rule.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class request_line_bnf_test
+struct ows_rule_test
 {
-public:
     void
     run()
     {
@@ -28,8 +24,8 @@ public:
 };
 
 TEST_SUITE(
-    request_line_bnf_test,
-    "boost.http_proto.request_line_bnf");
+    ows_rule_test,
+    "boost.http_proto.ows_rule");
 
 } // http_proto
 } // boost

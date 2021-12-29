@@ -30,13 +30,12 @@ public:
         context& ctx) noexcept;
 
 private:
-    BOOST_HTTP_PROTO_DECL
     char*
     parse_start_line(
-        char* in, char const* last,
-        error_code& ec) override;
+        char*,
+        char const*,
+        error_code&) noexcept override;
 
-    BOOST_HTTP_PROTO_DECL
     void
     finish_header(
         error_code& ec) override;

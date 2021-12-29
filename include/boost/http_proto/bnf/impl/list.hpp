@@ -7,12 +7,14 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_LIST_HPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_LIST_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_LIST_HPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_LIST_HPP
 
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/bnf/sequence.hpp>
+#include <boost/http_proto/rfc/charsets.hpp>
+#include <boost/url/grammar/charset.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -35,7 +37,7 @@ begin(
     {
         if(n_ < N)
         {
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return start;
         }
         // empty list
@@ -66,7 +68,7 @@ begin(
     if(n_ < N)
     {
         // too few
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
     ec = error::end;
@@ -102,7 +104,7 @@ increment(
         if(n_ < N)
         {
             // too few
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return start;
         }
         ec = error::end;
@@ -113,19 +115,19 @@ increment(
         if(n_ < N)
         {
             // too few
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return start;
         }
         ec = error::end;
         return it;
     }
     // [ OWS element ]
-    ws_set ws_;
     start = it;
-    it = ws_.skip(it, end);
+    it = grammar::find_if_not(
+        it, end, ws);
     it = element_.parse(
         it, end, ec);
-    if(ec == error::need_more)
+    if(ec == grammar::error::incomplete)
         return start;
     if(ec.failed())
     {
@@ -152,15 +154,14 @@ parse(
     char const* end,
     error_code& ec)
 {
-    ws_set ws_;
     if(start == end)
         return start;
-    auto it = ws_.skip(
-        start, end);
+    auto it = grammar::find_if_not(
+        start, end, ws);
     if(it == end)
     {
         // missing comma
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
     if(*it != ',')
@@ -180,11 +181,10 @@ parse(
     char const* end,
     error_code& ec)
 {
-    ws_set ws_;
     if(start == end)
     {
         // expected comma
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
     auto it = start;
@@ -195,7 +195,8 @@ parse(
         return it;
     }
     ++it;
-    it = ws_.skip(it, end);
+    it = grammar::find_if_not(
+        it, end, ws);
     return it;
 }
 

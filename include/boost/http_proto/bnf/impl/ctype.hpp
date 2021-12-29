@@ -22,12 +22,6 @@ is_digit(char c) noexcept
 }
 
 bool
-is_ws(char c) noexcept
-{
-    return c == ' ' || c == '\t';
-}
-
-bool
 is_qpchar(char c) noexcept
 {
     unsigned char u = c;

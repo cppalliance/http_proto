@@ -7,14 +7,16 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_CHUNK_PART_HPP
-#define BOOST_HTTP_PROTO_BNF_CHUNK_PART_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_CHUNK_PART_HPP
+#define BOOST_HTTP_PROTO_RULE_CHUNK_PART_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/algorithm.hpp>
-#include <boost/http_proto/bnf/chunk_ext.hpp>
-#include <boost/http_proto/bnf/header_fields.hpp>
+#include <boost/http_proto/bnf/range.hpp>
+#include <boost/http_proto/rfc/chunk_ext_rule.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
+#include <boost/url/grammar/range.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -29,8 +31,8 @@ public:
     {
         std::uint64_t size; // 0=final
         std::size_t prefix_size; // including CRLF
-        range<chunk_ext> ext;
-        range<header_fields> trailer;
+        grammar::range<chunk_ext_rule> ext;
+        grammar::range<field_rule> trailer;
         string_view data;
     };
 

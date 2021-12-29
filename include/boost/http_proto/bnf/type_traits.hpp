@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_TYPE_TRAITS_HPP
-#define BOOST_HTTP_PROTO_BNF_TYPE_TRAITS_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_TYPE_TRAITS_HPP
+#define BOOST_HTTP_PROTO_RULE_TYPE_TRAITS_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -119,7 +119,7 @@ struct is_list<T, boost::void_t<decltype(
 /** Alias for true_type if T is an element or list
 */
 template<class T>
-using is_bnf = std::integral_constant<bool,
+using is_rule = std::integral_constant<bool,
     is_element<T>::value || is_list<T>::value>;
 
 } // bnf

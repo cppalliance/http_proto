@@ -14,8 +14,9 @@
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/detail/rfc7230.hpp>
-#include <boost/http_proto/rfc/request_line_bnf.hpp>
+#include <boost/http_proto/rfc/charsets.hpp>
+#include <boost/http_proto/rfc/request_line_rule.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -55,28 +56,21 @@ request_parser::
 parse_start_line(
     char* const start,
     char const* const end,
-    error_code& ec)
+    error_code& ec) noexcept
 {
-    request_line_bnf t;
-    auto it = t.parse(start, end, ec);
-    if(ec.failed())
-        return start + (it - start);
-    method_ = string_to_method(
-        t.method);
+    using grammar::parse;
+
+    request_line_rule t;
+    char const* it = start;
+    if(! parse(it, end, ec, t))
+        return start;
+
+    method_ = t.m;
     method_len_ = static_cast<
-        off_t>(t.method.size());
+        off_t>(t.ms.size());
     target_len_ = static_cast<
-        off_t>(t.target.size());
-    switch(t.version)
-    {
-    case 10:
-        m_.version = http_proto::version::http_1_0;
-        break;
-    default:
-    case 11:
-        m_.version = http_proto::version::http_1_1;
-        break;
-    }
+        off_t>(t.t.size());
+    m_.version = t.v;
     return start + (it - start);
 }
 

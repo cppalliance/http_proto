@@ -48,7 +48,7 @@ public:
                 || ! ec)
                 break;
             if(! BOOST_TEST(
-                ec == error::need_more))
+                ec == grammar::error::incomplete))
             {
                 test_suite::debug_stream dout(
                     std::cout);
@@ -79,8 +79,9 @@ public:
             s.remove_prefix(n);
             error_code ec;
             p.parse_header(ec);
-            if(ec == error::need_more)
+            if(ec == grammar::error::incomplete)
                 continue;
+            auto const es = ec.message();
             return ec ==
                 error::end_of_message;
         }
@@ -155,7 +156,7 @@ public:
             p.commit(n);
             p.parse_header(ec);
             if(! BOOST_TEST(
-                ec == error::need_more))
+                ec == grammar::error::incomplete))
                 continue;
             // second buffer
             b = p.prepare();
@@ -222,7 +223,7 @@ public:
         good(f("x: \r\n x"));
         good(f("x: \r\n \t\r\n "));
         good(f("x: \r\n \t\r\n x"));
-        good(f("x: y \r\n \r\n"));
+        good(f("x: y \r\n "));
 
         // errata eid4189
         good(f("x: , , ,"));

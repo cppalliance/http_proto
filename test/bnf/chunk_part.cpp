@@ -13,7 +13,7 @@
 #include <boost/http_proto/bnf/type_traits.hpp>
 #include <boost/static_assert.hpp>
 
-#include "test_bnf.hpp"
+#include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {

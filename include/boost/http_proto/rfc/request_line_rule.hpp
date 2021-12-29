@@ -7,12 +7,14 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_RFC_REQUEST_LINE_BNF_HPP
-#define BOOST_HTTP_PROTO_RFC_REQUEST_LINE_BNF_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_REQUEST_LINE_RULE_HPP
+#define BOOST_HTTP_PROTO_RFC_REQUEST_LINE_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/method.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/version.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -22,43 +24,50 @@ namespace http_proto {
     @par BNF
     @code
     request-line    = method SP request-target SP HTTP-version CRLF
+
     method          = token
+
     request-target  = origin-form /
                       absolute-form /
                       authority-form /
                       asterisk-form
+
     HTTP-version    = "HTTP/" DIGIT "." DIGIT
     @endcode
 
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1"
+        >3.1.1. Request Line (rfc7230)</a>
+
     @see
-        @ref token
-        https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
+        @ref token.
 */
-struct request_line_bnf
+struct request_line_rule
 {
-    string_view method;
-    string_view target;
-    char version; // 2 digits
+    /** Method
+    */
+    method m;
+
+    /** Verb
+    */
+    string_view ms;
+
+    /** Target
+    */
+    string_view t;
+
+    /** Version
+    */
+    version v; // 2 digits
 
     BOOST_HTTP_PROTO_DECL
-    char const*
+    friend
+    bool
     parse(
-        char const* start,
+        char const*& it,
         char const* end,
-        error_code& ec);
-
-private:
-    char const*
-    parse_method(
-        char const* start,
-        char const* end,
-        error_code& ec);
-
-    char const*
-    parse_target(
-        char const* start,
-        char const* end,
-        error_code& ec);
+        error_code& ec,
+        request_line_rule& t) noexcept;
 };
 
 } // http_proto

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_TOKEN_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_TOKEN_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_TOKEN_IPP
 
 #include <boost/http_proto/bnf/token.hpp>
 #include <boost/http_proto/error.hpp>
@@ -27,7 +27,7 @@ parse(
 {
     if(start == end)
     {
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
     tchar_set ts;

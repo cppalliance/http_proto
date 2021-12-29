@@ -15,6 +15,7 @@
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/bnf/type_traits.hpp>
+#include <boost/url/grammar/error.hpp>
 #include <type_traits>
 
 namespace boost {
@@ -94,7 +95,7 @@ consume(
 {
     if(start == end)
     {
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
     if(*start != ch)
@@ -136,7 +137,7 @@ bool
 is_valid(string_view s)
 {
     BOOST_STATIC_ASSERT(
-        is_bnf<BNF>::value);
+        is_rule<BNF>::value);
     error_code ec;
     auto const end =
         s.data() + s.size();
@@ -154,7 +155,7 @@ void
 validate(string_view s)
 {
     BOOST_STATIC_ASSERT(
-        is_bnf<BNF>::value);
+        is_rule<BNF>::value);
     if(! is_valid<BNF>(s))
         http_proto::detail::throw_invalid_argument(
             "bad syntax", BOOST_CURRENT_LOCATION);

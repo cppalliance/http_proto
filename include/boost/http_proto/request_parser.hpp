@@ -45,9 +45,9 @@ public:
 private:
     char*
     parse_start_line(
-        char* first,
-        char const* last,
-        error_code& ec) override;
+        char*,
+        char const*,
+        error_code&) noexcept override;
 
     void
     finish_header(

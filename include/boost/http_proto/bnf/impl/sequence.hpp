@@ -7,10 +7,11 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_SEQUENCE_HPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_SEQUENCE_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_SEQUENCE_HPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_SEQUENCE_HPP
 
 #include <boost/assert.hpp>
+#include <boost/url/grammar/error.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -47,7 +48,7 @@ increment(
     {
         if(n_ < N)
         {
-            ec = error::need_more;
+            ec = grammar::error::incomplete;
             return start;
         }
         ec = error::end;
@@ -55,7 +56,7 @@ increment(
     }
     auto it = element_.parse(
         start, end, ec);
-    if(ec == error::need_more)
+    if(ec == grammar::error::incomplete)
         return it;
     if(! ec)
     {

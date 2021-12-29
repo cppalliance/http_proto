@@ -16,7 +16,7 @@
 #include <boost/static_assert.hpp>
 
 #include "test_suite.hpp"
-#include "test_bnf.hpp"
+#include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {

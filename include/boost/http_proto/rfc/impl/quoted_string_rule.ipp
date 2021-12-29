@@ -7,89 +7,94 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_QUOTED_STRING_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_QUOTED_STRING_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_QUOTED_STRING_RULE_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_QUOTED_STRING_RULE_IPP
 
-#include <boost/http_proto/bnf/quoted_string.hpp>
-#include <boost/http_proto/error.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
-#include <memory>
+#include <boost/http_proto/rfc/quoted_string_rule.hpp>
+#include <boost/url/grammar/charset.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
-char const*
-quoted_string::
-parse(
-    char const* const start,
-    char const* const end,
-    error_code& ec)
+namespace detail {
+
+struct qpchars_t
 {
-    if(start == end)
+    constexpr
+    bool
+    operator()(char c) const noexcept
     {
-        ec = error::need_more;
-        return start;
+        return !(
+            c == 127 || (
+                c >= 0 &&
+                c <= 31 &&
+                c != 9));
     }
-    auto it = start;
+};
+
+static constexpr qpchars_t qpchars{};
+
+} // detail
+
+bool
+parse(
+    char const*& it,
+    char const* const end,
+    error_code& ec,
+    quoted_string_rule& t) noexcept
+{
+    using grammar::parse;
+
+    auto const start = it;
+
     // DQUOTE
-    if(*it != '\"')
-    {
-        ec = error::syntax;
-        return start;
-    }
-    ++it;
+    if(! parse(it, end, ec, '\"'))
+        return false;
+
     // *( qdtext / quoted-pair ) DQUOTE
-    qdtext_set qds;
-    qpchar_set qps;
     for(;;)
     {
+        // qdtext
+        it = grammar::find_if_not(
+            it, end, qdtext_chars);
         if(it == end)
         {
-            ec = error::need_more;
-            return start;
+            ec = grammar::error::incomplete;
+            return false;
         }
-        switch(*it)
-        {
-        case '"':
-        {
-            // DQUOTE
-            ++it;
-            v_ = string_view(
-                start, it - start);
-            return it;
-        }
-        case '\\':
+
+        if(*it == '\\')
         {
             // quoted-pair
             ++it;
             if(it == end)
             {
-                ec = error::need_more;
-                return start;
+                ec = grammar::error::incomplete;
+                return false;
             }
-            if(! qps.contains(*it))
+            if(! detail::qpchars(*it))
             {
-                // bad qpchar
-                ec = error::syntax;
-                return start;
+                ec = grammar::error::syntax;
+                return false;
             }
+            ++it;
+            continue;
+        }
+
+        if(*it == '\"')
+        {
             ++it;
             break;
         }
-        default:
-        {
-            if(! qds.contains(*it))
-            {
-                // bad qdchar
-                ec = error::syntax;
-                return start;
-            }
-            it = qds.skip(it, end);
-            break;
-        }
-        }
+
+        // expected DQUOTE
+        ec = grammar::error::syntax;
+        return false;
     }
+
+    t.v = string_view(start, it - start);
+    return true;
 }
 
 std::string
@@ -129,7 +134,6 @@ unquote_text(
     return s;
 }
 
-} // bnf
 } // http_proto
 } // boost
 

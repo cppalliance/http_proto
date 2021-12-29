@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_QUOTED_STRING_HPP
-#define BOOST_HTTP_PROTO_BNF_QUOTED_STRING_HPP
+#ifndef BOOST_HTTP_PROTO_RULE_QUOTED_STRING_RULE_HPP
+#define BOOST_HTTP_PROTO_RULE_QUOTED_STRING_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
@@ -17,42 +17,48 @@
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
-/** BNF for quoted-string
+/** Rule for quoted-string
 
     @par BNF
     @code
     quoted-string   = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+
     qdtext          = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
-    obs-text        = %x80-FF
     quoted-pair     = "\" ( HTAB / SP / VCHAR / obs-text )
+
+    obs-text        = %x80-FF
     @endcode
 
-    @see
-        https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6"
+        >3.2.6. Field Value Components (rfc7230)</a>
 */
-class quoted_string
+class quoted_string_rule
 {
 public:
-    using value_type = string_view;
+    using value_type = std::string;
+    using reference = string_view;
 
-    value_type const&
-    value() const noexcept
+    reference v;
+
+    reference
+    operator*() const noexcept
     {
-        return v_;
+        return v;
     }
 
     BOOST_HTTP_PROTO_DECL
-    char const*
+    friend
+    bool
     parse(
-        char const* start,
+        char const*& it,
         char const* end,
-        error_code& ec);
-
-private:
-    value_type v_;
+        error_code& ec,
+        quoted_string_rule& t) noexcept;
 };
+
+//------------------------------------------------
 
 BOOST_HTTP_PROTO_DECL
 std::string
@@ -60,7 +66,6 @@ unquote_text(
     char* start,
     char const* end);
 
-} // bnf
 } // http_proto
 } // boost
 

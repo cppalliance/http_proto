@@ -7,12 +7,13 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_RFC_STATUS_LINE_BNF_HPP
-#define BOOST_HTTP_PROTO_RFC_STATUS_LINE_BNF_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_STATUS_LINE_RULE_HPP
+#define BOOST_HTTP_PROTO_RFC_STATUS_LINE_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/version.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -26,26 +27,26 @@ namespace http_proto {
     HTTP-version    = "HTTP/" DIGIT "." DIGIT
     status-code     = 3DIGIT
     reason-phrase   = *( HTAB / SP / VCHAR / obs-text )
-
     @endcode
 
-    @see
-        @ref version
-        https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2"
+        >3.1.2. Status Line (rfc7230)</a>
 */
-class status_line_bnf
+struct status_line_rule
 {
-public:
-    char version; // 2 digits
-    short status_code;
+    version v;
+    unsigned status_code;
     string_view reason;
 
     BOOST_HTTP_PROTO_DECL
-    char const*
+    friend
+    bool
     parse(
-        char const* start,
+        char const*& it,
         char const* end,
-        error_code& ec);
+        error_code& ec,
+        status_line_rule& t) noexcept;
 };
 
 } // http_proto

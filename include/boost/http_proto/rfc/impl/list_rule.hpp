@@ -7,12 +7,13 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_RFC_IMPL_LIST_BNF_HPP
-#define BOOST_HTTP_PROTO_RFC_IMPL_LIST_BNF_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_IMPL_LIST_RULE_HPP
+#define BOOST_HTTP_PROTO_RFC_IMPL_LIST_RULE_HPP
 
 #include <boost/http_proto/rfc/charsets.hpp>
 #include <boost/url/error.hpp>
-#include <boost/url/bnf/parse.hpp>
+#include <boost/url/grammar/charset.hpp>
+#include <boost/url/grammar/parse.hpp>
 #include <cstdint>
 #include <iterator>
 
@@ -32,20 +33,20 @@ struct ows_comma
         ows_comma) noexcept
     {
         auto const start = it;
-        it = ws.find_if_not(
-            it, end);
+        it = grammar::find_if_not(
+            it, end, ws);
         if(it == end)
         {
             // expected comma
             it = start;
-            ec = urls::error::syntax;
+            ec = grammar::error::syntax;
             return false;
         }
         if(*it != ',')
         {
             // expected comma
             it = start;
-            ec = urls::error::syntax;
+            ec = grammar::error::syntax;
             return false;
         }
         ++it;
@@ -66,16 +67,17 @@ struct comma_ows
         if(it == end)
         {
             // expected comma
-            ec = urls::error::syntax;
+            ec = grammar::error::syntax;
             return false;
         }
         if(*it != ',')
         {
             // expected comma
-            ec = urls::error::syntax;
+            ec = grammar::error::syntax;
             return false;
         }
-        it = ws.find_if_not(it + 1, end);
+        it = grammar::find_if_not(
+            it + 1, end, ws);
         return true;
     }
 };
@@ -85,9 +87,9 @@ struct comma_ows
 //------------------------------------------------
 
 template<class T>
-class list_bnf_base<T>::iterator
+class list_rule_base<T>::iterator
 {
-    friend class list_bnf_base<T>;
+    friend class list_rule_base<T>;
 
     T t_;
     char const* next_ = nullptr;
@@ -102,9 +104,9 @@ class list_bnf_base<T>::iterator
         if(next_ != nullptr)
         {
             error_code ec;
-            list_bnf_base<T>::begin(
+            list_rule_base<T>::begin(
                 next_, end_, ec, t_);
-            if(ec == urls::bnf::error::end)
+            if(ec == grammar::error::end)
                 next_ = nullptr;
         }
     }
@@ -133,9 +135,9 @@ public:
     operator++()
     {
         error_code ec;
-        list_bnf_base<T>::increment(
+        list_rule_base<T>::increment(
             next_, end_, ec, t_);
-        if(ec == urls::bnf::error::end)
+        if(ec == grammar::error::end)
             next_ = nullptr;
         return *this;
     }
@@ -169,18 +171,18 @@ public:
 
 template<class T>
 bool
-list_bnf_base<T>::
+list_rule_base<T>::
 begin(
     char const*& it,
     char const* end,
     error_code& ec,
     T& t)
 {
-    using urls::bnf::parse;
+    using grammar::parse;
     if(it == end)
     {
         // empty list
-        ec = urls::bnf::error::end;
+        ec = grammar::error::end;
         return false;
     }
 
@@ -202,7 +204,7 @@ begin(
     if(! parse(it, end, ec, t))
     {
         // expected element
-        ec = urls::error::syntax;
+        ec = grammar::error::syntax;
         return false;
     }
 
@@ -211,20 +213,20 @@ begin(
 
 template<class T>
 bool
-list_bnf_base<T>::
+list_rule_base<T>::
 increment(
     char const*& it,
     char const* end,
     error_code& ec,
     T& t)
 {
-    using urls::bnf::parse;
+    using grammar::parse;
 
     // *( OWS "," )
     if(! parse(it, end, ec,
         detail::ows_comma{}))
     {
-        ec = urls::bnf::error::end;
+        ec = grammar::error::end;
         return false;
     }
     for(;;)
@@ -238,17 +240,17 @@ increment(
     }
     if(it == end)
     {
-        ec = urls::bnf::error::end;
+        ec = grammar::error::end;
         return false;
     }
 
     // [ OWS element ]
     auto const start = it;
-    it = ws.find_if_not(it, end);
+    it = grammar::find_if_not(it, end, ws);
     if(! parse(it, end, ec, t))
     {
         it = start;
-        ec = urls::bnf::error::end;
+        ec = grammar::error::end;
         return false;
     }
     return true;
@@ -256,7 +258,7 @@ increment(
 
 template<class T>
 bool
-list_bnf_base<T>::
+list_rule_base<T>::
 parse(
     char const*& it,
     char const* end,
@@ -267,7 +269,7 @@ parse(
 {
     T t;
     n = 0;
-    if(list_bnf_base<T>::begin(
+    if(list_rule_base<T>::begin(
         it, end, ec, t))
     {
         for(;;)
@@ -276,20 +278,20 @@ parse(
             if(n > M)
             {
                 // too many
-                ec = urls::error::syntax;
+                ec = grammar::error::syntax;
                 return false;
             }
-            if(! list_bnf_base<T>::increment(
+            if(! list_rule_base<T>::increment(
                 it, end, ec, t))
                 break;
         }
     }
-    if(ec != urls::bnf::error::end)
+    if(ec != grammar::error::end)
         return false;
     if(n < N)
     {
         // too few
-        ec = urls::error::syntax;
+        ec = grammar::error::syntax;
         return false;
     }
     ec = {};
@@ -298,7 +300,7 @@ parse(
 
 template<class T>
 auto
-list_bnf_base<T>::
+list_rule_base<T>::
 begin() const noexcept ->
     iterator
 {
@@ -309,7 +311,7 @@ begin() const noexcept ->
 
 template<class T>
 auto
-list_bnf_base<T>::
+list_rule_base<T>::
 end() const noexcept ->
     iterator
 {
@@ -324,10 +326,10 @@ template<
     class T,
     std::size_t N,
     std::size_t M>
-list_bnf<T, N, M>::
-list_bnf(string_view s)
+list_rule<T, N, M>::
+list_rule(string_view s)
 {
-    urls::bnf::parse_string(
+    grammar::parse_string(
         s, *this);
 }
 
@@ -340,14 +342,14 @@ parse(
     char const*& it,
     char const* end,
     error_code& ec,
-    list_bnf<T, N, M>& t)
+    list_rule<T, N, M>& t)
 {
     std::size_t n;
     auto const start = it;
-    if(! list_bnf<T, N, M>::parse(
+    if(! list_rule<T, N, M>::parse(
             it, end, ec, N, M, n))
         return false;
-    t = list_bnf<T, N, M>(string_view(
+    t = list_rule<T, N, M>(string_view(
         start, it - start), n);
     return true;
 }

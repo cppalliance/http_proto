@@ -14,9 +14,9 @@
 #include <boost/http_proto/bnf/algorithm.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 
-#include <boost/url/bnf/charset.hpp>
+#include <boost/url/grammar/charset.hpp>
 
-#include "test_bnf.hpp"
+#include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -47,10 +47,10 @@ public:
         {
             if(start == end)
             {
-                ec = error::need_more;
+                ec = grammar::error::incomplete;
                 return start;
             }
-            auto const ds = urls::bnf::digit_chars;
+            auto const ds = grammar::digit_chars;
             auto it = start;
             if(! ds(*it))
             {

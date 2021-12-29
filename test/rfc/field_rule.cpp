@@ -8,26 +8,55 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/header_fields.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
 
-#include <boost/http_proto/bnf/type_traits.hpp>
-#include <boost/static_assert.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 #include "test_suite.hpp"
-#include "test_bnf.hpp"
-
-#include <string>
 
 namespace boost {
 namespace http_proto {
-namespace bnf {
 
-BOOST_STATIC_ASSERT(
-    is_list<header_fields>::value);
-
-class header_fields_test
+struct field_rule_test
 {
-public:
+    void
+    check(
+        string_view s,
+        string_view name,
+        string_view value)
+    {
+        error_code ec;
+        field_rule t;
+        grammar::parse_string(s, ec, t);
+        if( ec == grammar::error::leftover)
+            ec = {};
+        if(! BOOST_TEST(! ec))
+            return;
+        BOOST_TEST(t.v.name == name);
+        BOOST_TEST(t.v.value == value);
+    }
+
+    void
+    testFieldRule()
+    {
+        check("x:\r\n\r\n", "x", "");
+        check("x: \r\n\r\n", "x", "");
+        check("x:y\r\n\r\n", "x", "y");
+        check("x: y\r\n\r\n", "x", "y");
+        check("x:y \r\n\r\n", "x", "y");
+        check("x: y \r\n\r\n", "x", "y");
+        check("x: yy \r\n\r\n", "x", "yy");
+        check("x: y y \r\n\r\n", "x", "y y");
+        check("x: y \t y \r\n\r\n", "x", "y \t y");
+        check("x: y \r\n \r\n\r\n", "x", "y");
+
+        check("xy:\r\n\r\n", "xy", "");
+        check("xyz:\r\n\r\n", "xyz", "");
+
+        // obs-fold
+        check("x:\r\n y\r\n\r\n", "x", "y");
+    }
+
     void
     testReplaceObsFold()
     {
@@ -59,12 +88,14 @@ public:
     void
     run()
     {
+        testFieldRule();
         testReplaceObsFold();
     }
 };
 
-TEST_SUITE(header_fields_test, "boost.http_proto.header_fields");
+TEST_SUITE(
+    field_rule_test,
+    "boost.http_proto.field_rule");
 
-} // bnf
 } // http_proto
 } // boost

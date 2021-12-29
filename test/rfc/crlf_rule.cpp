@@ -8,35 +8,24 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/status_line_bnf.hpp>
+#include <boost/http_proto/rfc/crlf_rule.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class status_line_bnf_test
+struct crlf_rule_test
 {
-public:
     void
     run()
     {
-#if 0
-        test::bad<status_line>(
-            "");
-        test::bad<status_line>(
-            "GET / HTTP/1.0\r\n");
-        test::bad<status_line>(
-            "HTTP/9.9 0 OK\r\n");
-        test::good<status_line>(
-            "HTTP/1.1 200 OK\r\n");
-#endif
     }
 };
 
 TEST_SUITE(
-    status_line_bnf_test,
-    "boost.http_proto.status_line_bnf");
+    crlf_rule_test,
+    "boost.http_proto.crlf_rule");
 
 } // http_proto
 } // boost

@@ -7,13 +7,13 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BNF_IMPL_NUMBER_IPP
-#define BOOST_HTTP_PROTO_BNF_IMPL_NUMBER_IPP
+#ifndef BOOST_HTTP_PROTO_RULE_IMPL_NUMBER_IPP
+#define BOOST_HTTP_PROTO_RULE_IMPL_NUMBER_IPP
 
 #include <boost/http_proto/bnf/number.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/url/bnf/charset.hpp>
+#include <boost/url/grammar/charset.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -28,10 +28,10 @@ parse(
 {
     if(start == end)
     {
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
-    auto ds = urls::bnf::digit_chars;
+    auto ds = grammar::digit_chars;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max10 = max / 10;
@@ -79,10 +79,10 @@ parse(
 {
     if(start == end)
     {
-        ec = error::need_more;
+        ec = grammar::error::incomplete;
         return start;
     }
-    auto const hs = urls::bnf::hexdig_chars;
+    auto const hs = grammar::hexdig_chars;
     auto const max = (static_cast<
         std::uint64_t>(-1));
     auto const max16 = max / 16;
@@ -107,7 +107,7 @@ parse(
         }
         v_ *= 16;
         std::uint64_t const d =
-            urls::bnf::hexdig_value(*it);
+            grammar::hexdig_value(*it);
         if(max - v_ < d)
         {
             ec = error::numeric_overflow;
