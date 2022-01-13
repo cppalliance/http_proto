@@ -14,6 +14,9 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 
+#include <boost/http_proto/rfc/charsets.hpp>
+#include <boost/url/grammar/token.hpp>
+
 namespace boost {
 namespace http_proto {
 namespace bnf {
@@ -25,6 +28,14 @@ parse(
     char const* const end,
     error_code& ec)
 {
+    auto it = start;
+    grammar::token<tchars_t> t0;
+    if(! grammar::parse(
+        it, end, ec, t0))
+        return start;
+    s = *t0;
+    return it;
+#if 0
     if(start == end)
     {
         ec = grammar::error::incomplete;
@@ -42,6 +53,7 @@ parse(
     s_ = string_view(
         start, it - start);
     return it;
+#endif
 }
 
 } // bnf

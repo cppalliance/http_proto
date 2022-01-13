@@ -36,7 +36,7 @@ parse(
         std::uint64_t>(-1));
     auto const max10 = max / 10;
     auto it = start;
-    v_ = 0;
+    v = 0;
     do
     {
         if(! ds(*it))
@@ -49,20 +49,20 @@ parse(
             }
             break;
         }
-        if(v_ > max10)
+        if(v > max10)
         {
             ec = error::numeric_overflow;
             return start;
         }
-        v_ *= 10;
+        v *= 10;
         std::uint64_t const d =
             *it - '0';
-        if(max - v_ < d)
+        if(max - v < d)
         {
             ec = error::numeric_overflow;
             return start;
         }
-        v_ += d;
+        v += d;
     }
     while(++it != end);
     return it;

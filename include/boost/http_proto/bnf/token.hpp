@@ -25,17 +25,16 @@ namespace bnf {
     token             = 1*tchar
     @endcode
 */
-class token
+struct token
 {
-    string_view s_;
-
-public:
     using value_type = string_view;
+
+    string_view s;
 
     string_view const&
     value() const noexcept
     {
-        return s_;
+        return s;
     }
 
     BOOST_HTTP_PROTO_DECL
