@@ -17,7 +17,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for 1*DIGIT
+/** Rule for 1*DIGIT
 */
 class dec_number
 {
@@ -41,7 +41,7 @@ private:
     std::uint64_t v_;
 };
 
-/** BNF for 1*HEXDIG
+/** Rule for 1*HEXDIG
 */
 class hex_number
 {

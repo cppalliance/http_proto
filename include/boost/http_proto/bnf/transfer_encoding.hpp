@@ -21,7 +21,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for transfer-coding
+/** Rule for transfer-coding
 
     @par BNF
     @code
@@ -73,7 +73,7 @@ private:
     value_type v_;
 };
 
-/** BNF for the Transfer-Encoding header field value
+/** Rule for the Transfer-Encoding header field value
 
     @par BNF
     @code

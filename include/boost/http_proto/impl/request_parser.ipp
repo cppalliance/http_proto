@@ -58,11 +58,10 @@ parse_start_line(
     char const* const end,
     error_code& ec) noexcept
 {
-    using grammar::parse;
-
     request_line_rule t;
     char const* it = start;
-    if(! parse(it, end, ec, t))
+    if(! grammar::parse(
+        it, end, ec, t))
         return start;
 
     method_ = t.m;

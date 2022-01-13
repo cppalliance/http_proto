@@ -26,8 +26,6 @@ parse(
     char const* const end,
     error_code& ec)
 {
-    using grammar::parse;
-
     // chunk-size
     hex_number hn;
     auto it = hn.parse(
@@ -36,7 +34,8 @@ parse(
         return it;
     v_.size = hn.value();
     // [ chunk-ext ]
-    if(! parse(it, end, ec, v_.ext))
+    if(! grammar::parse(
+        it, end, ec, v_.ext))
         return it;
 
     // CRLF
@@ -69,7 +68,8 @@ parse(
     }
     // last-chunk trailer-part CRLF
     // (includes the last CRLF)
-    if(! parse(it, end, ec, v_.trailer))
+    if(! grammar::parse(
+        it, end, ec, v_.trailer))
         return it;
     v_.data = {};
     return it;

@@ -13,11 +13,12 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
 
-/** BNF for reason-phrase
+/** Rule for reason-phrase
 
     @par BNF
     @code
@@ -35,9 +36,22 @@ struct reason_phrase_rule
 {
     string_view s;
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        reason_phrase_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+protected:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

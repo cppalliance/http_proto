@@ -14,11 +14,12 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/version.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
 
-/** BNF for HTTP-version
+/** Rule for HTTP-version
 
     @par BNF
     @code
@@ -33,9 +34,22 @@ struct version_rule
 {
     version v;
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        version_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

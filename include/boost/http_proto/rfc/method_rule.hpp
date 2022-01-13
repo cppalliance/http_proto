@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/method.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -41,9 +42,22 @@ struct method_rule
     method m;
     string_view s;
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        method_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

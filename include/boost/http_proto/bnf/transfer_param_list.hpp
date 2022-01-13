@@ -19,7 +19,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for transfer-param-elem
+/** Rule for transfer-param-elem
 
     Parameters are in the form of a name=value pair.
 
@@ -61,7 +61,7 @@ private:
     value_type v_;
 };
 
-/** BNF for transfer-param-list
+/** Rule for transfer-param-list
 
     Parameters are in the form of a name=value pair.
 

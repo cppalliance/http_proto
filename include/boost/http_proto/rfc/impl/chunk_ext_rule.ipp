@@ -17,7 +17,7 @@
 #include <boost/http_proto/rfc/ows_rule.hpp>
 #include <boost/http_proto/rfc/quoted_string_rule.hpp>
 #include <boost/url/grammar/parse.hpp>
-#include <boost/url/grammar/token_rule.hpp>
+#include <boost/url/grammar/token.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -30,9 +30,7 @@ parse(
     error_code& ec,
     reference& t) noexcept
 {
-    using grammar::parse;
-
-    grammar::token_rule<tchars_t> t0;
+    grammar::token<tchars_t> t0;
 
     // BWS ';' BWS chunk-ext-name
     if(! grammar::parse_all(
@@ -74,7 +72,8 @@ parse(
 
     // quoted-string
     quoted_string_rule q;
-    if(! parse(it, end, ec, q))
+    if(! grammar::parse(
+        it, end, ec, q))
         return false;
     t.value = *q;
     return true;

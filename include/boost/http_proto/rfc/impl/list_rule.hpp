@@ -25,12 +25,13 @@ namespace detail {
 struct ows_comma
 {
     friend
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code& ec,
-        ows_comma) noexcept
+        ows_comma const&) noexcept
     {
         auto const start = it;
         it = grammar::find_if_not(
@@ -40,45 +41,44 @@ struct ows_comma
             // expected comma
             it = start;
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         if(*it != ',')
         {
             // expected comma
             it = start;
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         ++it;
-        return true;
     }
 };
 
 struct comma_ows
 {
     friend
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code& ec,
-        comma_ows) noexcept
+        comma_ows const&) noexcept
     {
         if(it == end)
         {
             // expected comma
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         if(*it != ',')
         {
             // expected comma
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         it = grammar::find_if_not(
             it + 1, end, ws);
-        return true;
     }
 };
 
@@ -178,7 +178,6 @@ begin(
     error_code& ec,
     T& t)
 {
-    using grammar::parse;
     if(it == end)
     {
         // empty list
@@ -187,21 +186,24 @@ begin(
     }
 
     // ( element ) ;most common
-    if(parse(it, end, ec, t))
+    if(grammar::parse(
+        it, end, ec, t))
         return true;
     ec = {};
 
     // *( "," OWS ) element
     for(;;)
     {
-        if(! parse(it, end, ec,
+        if(! grammar::parse(
+            it, end, ec,
             detail::comma_ows{}))
         {
             ec = {};
             break;
         }
     }
-    if(! parse(it, end, ec, t))
+    if(! grammar::parse(
+        it, end, ec, t))
     {
         // expected element
         ec = grammar::error::syntax;
@@ -220,10 +222,9 @@ increment(
     error_code& ec,
     T& t)
 {
-    using grammar::parse;
-
     // *( OWS "," )
-    if(! parse(it, end, ec,
+    if(! grammar::parse(
+        it, end, ec,
         detail::ows_comma{}))
     {
         ec = grammar::error::end;
@@ -231,7 +232,8 @@ increment(
     }
     for(;;)
     {
-        if(! parse(it, end, ec,
+        if(! grammar::parse(
+            it, end, ec,
             detail::ows_comma{}))
         {
             ec = {};
@@ -247,7 +249,8 @@ increment(
     // [ OWS element ]
     auto const start = it;
     it = grammar::find_if_not(it, end, ws);
-    if(! parse(it, end, ec, t))
+    if(! grammar::parse(
+        it, end, ec, t))
     {
         it = start;
         ec = grammar::error::end;
@@ -331,27 +334,6 @@ list_rule(string_view s)
 {
     grammar::parse_string(
         s, *this);
-}
-
-template<
-    class T,
-    std::size_t N,
-    std::size_t M>
-bool
-parse(
-    char const*& it,
-    char const* end,
-    error_code& ec,
-    list_rule<T, N, M>& t)
-{
-    std::size_t n;
-    auto const start = it;
-    if(! list_rule<T, N, M>::parse(
-            it, end, ec, N, M, n))
-        return false;
-    t = list_rule<T, N, M>(string_view(
-        start, it - start), n);
-    return true;
 }
 
 } // http_proto

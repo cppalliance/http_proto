@@ -16,21 +16,20 @@
 #include <boost/url/grammar/charset.hpp>
 #include <boost/url/grammar/lut_chars.hpp>
 #include <boost/url/grammar/parse.hpp>
-#include <boost/url/grammar/token_rule.hpp>
+#include <boost/url/grammar/token.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
 namespace http_proto {
 
-bool
+void
+field_rule::
 parse(
     char const*& it,
     char const* end,
     error_code& ec,
     field_rule& t) noexcept
 {
-    using grammar::parse;
-
     struct field_chars_t
     {
         constexpr
@@ -48,7 +47,7 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
 
     // check for leading CRLF
@@ -58,23 +57,24 @@ parse(
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
         if(*it != '\n')
         {
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         // end of fields
         ++it;
         ec = grammar::error::end;
-        return false;
+        return;
     }
 
     // field name
-    grammar::token_rule<tchars_t> t0;
-    if(! parse(it, end, ec, t0, ':'))
-        return false;
+    grammar::token<tchars_t> t0;
+    if(! grammar::parse(
+        it, end, ec, t0, ':'))
+        return;
     t.v.name = string_view(start, it - 1);
     t.v.has_obs_fold = false;
 
@@ -82,12 +82,13 @@ parse(
     // field char or end of field
     for(;;)
     {
-        if(! parse(it, end, ec, ows_rule{}))
-            return false;
+        if(! grammar::parse(
+            it, end, ec, ows_rule{}))
+            return;
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
         if(*it != '\r')
         {
@@ -98,24 +99,24 @@ parse(
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
         if(*it != '\n')
         {
             ec = grammar::error::syntax;
-            return false;
+            return;
         }
         ++it;
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
         if(*it == '\r')
         {
             // empty value
             t.v.value = {};
-            return true;
+            return;
         }
         if( *it != ' ' &&
             *it != '\t')
@@ -130,18 +131,20 @@ parse(
 
     char const* s0 = it; // start of value
 
-    grammar::token_rule<field_chars_t> t1;
+    grammar::token<field_chars_t> t1;
 
     for(;;)
     {
-        if(! parse(it, end, ec, t1))
-            return false;
-        if(! parse(it, end, ec, '\r', '\n'))
-            return false;
+        if(! grammar::parse(
+            it, end, ec, t1))
+            return;
+        if(! grammar::parse(
+            it, end, ec, '\r', '\n'))
+            return;
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
         if( *it != ' ' &&
             *it != '\t')
@@ -176,7 +179,6 @@ done:
     t.v.value = string_view(
         t.v.value.data(),
         p - t.v.value.data());
-    return true;
 }
 
 //------------------------------------------------

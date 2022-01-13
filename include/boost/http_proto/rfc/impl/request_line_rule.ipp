@@ -15,7 +15,7 @@
 #include <boost/http_proto/rfc/crlf_rule.hpp>
 #include <boost/http_proto/rfc/version_rule.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/error.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -23,32 +23,28 @@ namespace http_proto {
 /*
     request-line   = method SP request-target SP HTTP-version CRLF
 */
-bool
+void
+request_line_rule::
 parse(
     char const*& it,
     char const* const end,
     error_code& ec,
     request_line_rule& t) noexcept
 {
-    using grammar::parse;
-
     method_rule t0;
     request_target_rule t1;
     version_rule t2;
 
-    if(! parse(
+    if(! grammar::parse(
         it, end, ec,
         t0, ' ',
         t1, ' ',
         t2, crlf_rule{}))
-        return false;
-
+        return;
     t.m = t0.m;
     t.ms = t0.s;
     t.t = t1.s;
     t.v = t2.v;
-
-    return true;
 }
 
 } // http_proto

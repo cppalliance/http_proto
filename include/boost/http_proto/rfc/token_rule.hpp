@@ -16,6 +16,7 @@
 #include <boost/http_proto/rfc/charsets.hpp>
 #include <boost/url/grammar/charset.hpp>
 #include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -35,7 +36,7 @@ namespace http_proto {
     @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6"
         >3.2.6. Field Value Components (rfc7230)</a>
 */
-struct token_rule
+struct token
 {
     using value_type = string_view;
 
@@ -47,46 +48,48 @@ struct token_rule
         return s;
     }
 
-    inline
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        token& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+private:
+    static
+    void
     parse(
         char const*& it,
         char const* end,
         error_code& ec,
-        token_rule& t) noexcept;
+        token& t) noexcept
+    {
+        if(it == end)
+        {
+            ec = grammar::error::incomplete;
+            return;
+        }
+
+        auto const start = it;
+
+        it = grammar::find_if_not(
+            it, end, tchars);
+
+        if(it == start)
+        {
+            ec = grammar::error::syntax;
+            return;
+        }
+
+        t.s = string_view(
+            start, it - start);
+    }
 };
-
-//------------------------------------------------
-
-bool
-parse(
-    char const*& it,
-    char const* end,
-    error_code& ec,
-    token_rule& t) noexcept
-{
-    if(it == end)
-    {
-        ec = grammar::error::incomplete;
-        return false;
-    }
-
-    auto const start = it;
-
-    it = grammar::find_if_not(
-        it, end, tchars);
-
-    if(it == start)
-    {
-        ec = grammar::error::syntax;
-        return false;
-    }
-
-    t.s = string_view(
-        start, it - start);
-    return true;
-}
 
 } // http_proto
 } // boost

@@ -10,6 +10,8 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/rfc/token_rule.hpp>
 
+#include <boost/url/grammar/parse.hpp>
+
 #include "test_suite.hpp"
 
 namespace boost {
@@ -28,8 +30,9 @@ public:
             auto it = s.data();
             auto const end = it + s.size();
             error_code ec;
-            token_rule t;
-            if(! parse(it, end, ec, t))
+            token t;
+            if(! grammar::parse(
+                it, end, ec, t))
                 BOOST_TEST(m.empty());
             else
                 BOOST_TEST(*t == m);
@@ -55,7 +58,7 @@ public:
 
 TEST_SUITE(
     token_rule_test,
-    "boost.http_proto.token_rule");
+    "boost.http_proto.token");
 
 } // http_proto
 } // boost

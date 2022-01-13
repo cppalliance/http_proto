@@ -53,7 +53,7 @@ protected:
     value_type v_;
 };
 
-/** BNF for parsing parts of chunked encodings
+/** Rule for parsing parts of chunked encodings
 
     This is actually just the prefix of a chunk,
     last chunk, or trailer part, which may include
@@ -90,7 +90,7 @@ public:
     }
 };
 
-/** BNF for parsing parts of chunked encodings
+/** Rule for parsing parts of chunked encodings
 
     @par BNF
     @code

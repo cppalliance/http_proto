@@ -28,8 +28,6 @@ parse(
     char const* const end,
     error_code& ec)
 {
-    using grammar::parse;
-
     // OWS
     auto it = grammar::find_if_not(
         start, end, ws);
@@ -68,7 +66,8 @@ parse(
     }
     ec = {};
     quoted_string_rule q;
-    if(! parse(it, end, ec, q))
+    if(! grammar::parse(
+        it, end, ec, q))
         return start;
     v_.value = *q;
 

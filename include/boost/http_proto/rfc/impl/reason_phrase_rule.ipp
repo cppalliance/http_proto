@@ -15,17 +15,15 @@
 namespace boost {
 namespace http_proto {
 
-bool
+void
+reason_phrase_rule::
 parse(
     char const*& it,
     char const* end,
-    error_code& ec,
+    error_code&,
     reason_phrase_rule& t) noexcept
 {
-    ec = {};
-
     // reason-phrase   = *( HTAB / SP / VCHAR / obs-text )
-    using grammar::parse;
     struct reason_chars_t
     {
         constexpr
@@ -42,7 +40,6 @@ parse(
     auto const start = it;
     it = grammar::find_if_not(it, end, cs);
     t.s = string_view(start, it - start);
-    return true;
 }
 
 } // http_proto

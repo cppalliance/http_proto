@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -26,48 +26,20 @@ namespace http_proto {
 */
 struct crlf_rule
 {
-    inline
     friend
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code& ec,
-        crlf_rule const&) noexcept;
+        crlf_rule const&) noexcept
+    {
+        grammar::parse(
+            it, end, ec,
+            '\r', '\n');
+    }
 };
-
-//------------------------------------------------
-
-bool
-parse(
-    char const*& it,
-    char const* end,
-    error_code& ec,
-    crlf_rule const&) noexcept
-{
-    if(it == end)
-    {
-        ec = grammar::error::incomplete;
-        return false;
-    }
-    if(it[0] != '\r')
-    {
-        ec = grammar::error::syntax;
-        return false;
-    }
-    if(it + 1 == end)
-    {
-        ec = grammar::error::incomplete;
-        return false;
-    }
-    if(it[1] != '\n')
-    {
-        ec = grammar::error::syntax;
-        return false;
-    }
-    it += 2;
-    return true;
-}
 
 } // http_proto
 } // boost

@@ -13,6 +13,7 @@
 #include <boost/http_proto/rfc/status_line_rule.hpp>
 #include <boost/http_proto/rfc/crlf_rule.hpp>
 #include <boost/http_proto/rfc/version_rule.hpp>
+#include <boost/url/grammar/error.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,15 +21,14 @@ namespace http_proto {
 /*
     status-code     = 3DIGIT
 */
-bool
+void
+status_code_rule::
 parse(
     char const*& it0,
     char const* end,
     error_code& ec,
     status_code_rule& t) noexcept
 {
-    using grammar::parse;
-
     auto const dig =
         [](char c) -> int
         {
@@ -44,13 +44,13 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
     v = dig(*it);
     if(v == -1)
     {
-        ec = error::bad_status_code;
-        return false;
+        ec = grammar::error::syntax;
+        return;
     }
     t.v = 100 * v;
     ++it;
@@ -58,13 +58,13 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
     v = dig(*it);
     if(v == -1)
     {
-        ec = error::bad_status_code;
-        return false;
+        ec = grammar::error::syntax;
+        return;
     }
     t.v = t.v + (10 * v);
     ++it;
@@ -72,20 +72,19 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
     v = dig(*it);
     if(v == -1)
     {
         ec = error::bad_status_code;
-        return false;
+        return;
     }
     t.v = t.v + v;
     ++it;
 
     t.s = string_view(it0, it - it0);
     t.st = int_to_status(t.v);
-    return true;
 }
 
 } // http_proto

@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 #include <string>
 
 namespace boost {
@@ -34,9 +35,8 @@ namespace http_proto {
     @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6"
         >3.2.6. Field Value Components (rfc7230)</a>
 */
-class quoted_string_rule
+struct quoted_string_rule
 {
-public:
     using value_type = std::string;
     using reference = string_view;
 
@@ -48,9 +48,22 @@ public:
         return v;
     }
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        quoted_string_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

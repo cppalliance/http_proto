@@ -18,7 +18,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for token
+/** Rule for token
 
     @par BNF
     @code

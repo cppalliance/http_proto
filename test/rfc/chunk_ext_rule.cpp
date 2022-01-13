@@ -71,14 +71,13 @@ public:
         std::initializer_list<
             chunk_ext_rule::reference> init)
     {
-        using grammar::parse;
         grammar::range<
             chunk_ext_rule> t;
         error_code ec;
         auto it = s.data();
         auto const end = it + s.size();
-        if(! BOOST_TEST(
-            parse(it, end, ec, t)))
+        if(! BOOST_TEST(grammar::parse(
+            it, end, ec, t)))
             return;
         if(! BOOST_TEST(
             t.size() == init.size()))

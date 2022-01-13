@@ -18,7 +18,8 @@ namespace http_proto {
 /*
     HTTP-version = "HTTP/" DIGIT "." DIGIT
 */
-bool
+void
+version_rule::
 parse(
     char const*& it0,
     char const* end,
@@ -30,7 +31,7 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
     auto n = end - it;
     if( n > 7)
@@ -39,14 +40,14 @@ parse(
         "HTTP/1.", n) != 0)
     {
         // fail fast
-        ec = error::bad_version;
-        return false;
+        ec = grammar::error::syntax;
+        return;
     }
     it += n;
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
     switch(*it)
     {
@@ -57,12 +58,11 @@ parse(
         t.v = http_proto::version::http_1_1;
         break;
     default:
-        ec = error::bad_version;
-        return false;
+        ec = grammar::error::syntax;
+        return;
     }
     ++it;
     it0 = it;
-    return true;
 }
 
 } // http_proto

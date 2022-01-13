@@ -14,11 +14,12 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/version.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
 
-/** BNF for status-line
+/** Rule for status-line
 
     @par BNF
     @code
@@ -39,9 +40,22 @@ struct status_line_rule
     unsigned status_code;
     string_view reason;
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        status_line_rule& t) noexcept
+    {
+        return parse(it, end, ec, t);
+    }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

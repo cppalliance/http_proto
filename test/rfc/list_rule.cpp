@@ -31,7 +31,7 @@ public:
     bad(string_view s)
     {
         error_code ec;
-        list_rule<token_rule, N, M> t;
+        list_rule<token, N, M> t;
         auto const success =
             grammar::parse_string(s, ec, t);
         if(! BOOST_TEST(! success))
@@ -50,7 +50,7 @@ public:
             string_view> init)
     {
         error_code ec;
-        list_rule<token_rule, N, M> t;
+        list_rule<token, N, M> t;
         auto const success =
             grammar::parse_string(s, ec, t);
         if(! BOOST_TEST(success))
@@ -68,7 +68,7 @@ public:
     void
     testSpecial()
     {
-        list_rule<token_rule> t("x,y");
+        list_rule<token> t("x,y");
         BOOST_TEST(t.size() == 2);
     }
 

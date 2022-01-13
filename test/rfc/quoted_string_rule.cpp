@@ -23,25 +23,23 @@ public:
     void
     bad(string_view s)
     {
-        using grammar::parse;
-
         error_code ec;
         auto it = s.data();
         auto const end = it + s.size();
         quoted_string_rule t;
-        BOOST_TEST(! parse(it, end, ec, t));
+        BOOST_TEST(! grammar::parse(
+            it, end, ec, t));
     }
 
     void
     good(string_view s)
     {
-        using grammar::parse;
-
         error_code ec;
         auto it = s.data();
         auto const end = it + s.size();
         quoted_string_rule t;
-        BOOST_TEST(parse(it, end, ec, t));
+        BOOST_TEST(grammar::parse(
+            it, end, ec, t));
     }
 
     void

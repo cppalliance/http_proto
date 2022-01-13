@@ -18,7 +18,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for Connection header field value
+/** Rule for Connection header field value
 
     @par BNF
     @code

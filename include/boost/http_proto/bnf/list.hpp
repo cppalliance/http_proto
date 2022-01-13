@@ -20,7 +20,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for a comma-delimited list of elements
+/** Rule for a comma-delimited list of elements
 
     This rule defines a list containing
     at least n and at most m of Element,
@@ -87,7 +87,7 @@ public:
 
 //------------------------------------------------
 
-/** BNF for optional whitespace followed by a comma
+/** Rule for optional whitespace followed by a comma
 
     @par BNF
     @code
@@ -115,7 +115,7 @@ struct ows_comma
 };
 #endif
 
-/** BNF for a comma followed by optional whitespace
+/** Rule for a comma followed by optional whitespace
 
     @par BNF
     @code

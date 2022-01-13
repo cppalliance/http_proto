@@ -16,19 +16,20 @@
 namespace boost {
 namespace http_proto {
 
-bool
+void
+method_rule::
 parse(
     char const*& it,
     char const* end,
     error_code& ec,
     method_rule& t) noexcept
 {
-    token_rule t0;
-    if(! parse(it, end, ec, t0))
-        return false;
+    token t0;
+    if(! grammar::parse(
+        it, end, ec, t0))
+        return;
     t.s = *t0;
     t.m = string_to_method(t.s);
-    return true;
 }
 
 } // http_proto

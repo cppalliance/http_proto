@@ -17,51 +17,84 @@
 namespace boost {
 namespace http_proto {
 
-namespace detail {
-
-struct qpchars_t
-{
-    constexpr
-    bool
-    operator()(char c) const noexcept
-    {
-        return !(
-            c == 127 || (
-                c >= 0 &&
-                c <= 31 &&
-                c != 9));
-    }
-};
-
-static constexpr qpchars_t qpchars{};
-
-} // detail
-
-bool
+void
+quoted_string_rule::
 parse(
     char const*& it,
     char const* const end,
     error_code& ec,
     quoted_string_rule& t) noexcept
 {
-    using grammar::parse;
+/*
+    qdtext         = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+    obs-text        = %x80-FF
+*/
+    struct qdtext_t : grammar::lut_chars
+    {
+        // workaround for
+        // C++11 constexpr
+        struct lambda
+        {
+            constexpr
+            bool
+            operator()(char c) const noexcept
+            {
+                return
+                    c == 9 || c == 32 || c == 33 ||
+                    (c >= 0x23 && c <= 0x5b) ||
+                    (c >= 0x5d && c <= 0x7e) ||
+                    (static_cast<
+                        unsigned char>(c) >= 128);
+            }
+        };
+
+        constexpr
+        qdtext_t() noexcept
+            : lut_chars(lambda{})
+        {
+        }
+    };
+
+    static
+    constexpr
+    qdtext_t qdtext{};
+
+/*
+    qpchar = ( HTAB / SP / VCHAR / obs-text )
+*/
+    static
+    constexpr
+    struct
+    {
+        constexpr
+        bool
+        operator()(char c) const noexcept
+        {
+            return !(
+                c == 127 || (
+                    c >= 0 &&
+                    c <= 31 &&
+                    c != 9));
+        }
+    } qpchars{};
 
     auto const start = it;
 
     // DQUOTE
-    if(! parse(it, end, ec, '\"'))
-        return false;
+    if(! grammar::parse(
+        it, end, ec, '\"'))
+        return;
 
     // *( qdtext / quoted-pair ) DQUOTE
     for(;;)
     {
         // qdtext
         it = grammar::find_if_not(
-            it, end, qdtext_chars);
+            it, end, qdtext);
         if(it == end)
         {
             ec = grammar::error::incomplete;
-            return false;
+            return;
         }
 
         if(*it == '\\')
@@ -71,12 +104,12 @@ parse(
             if(it == end)
             {
                 ec = grammar::error::incomplete;
-                return false;
+                return;
             }
-            if(! detail::qpchars(*it))
+            if(! qpchars(*it))
             {
                 ec = grammar::error::syntax;
-                return false;
+                return;
             }
             ++it;
             continue;
@@ -90,11 +123,10 @@ parse(
 
         // expected DQUOTE
         ec = grammar::error::syntax;
-        return false;
+        return;
     }
 
     t.v = string_view(start, it - start);
-    return true;
 }
 
 std::string

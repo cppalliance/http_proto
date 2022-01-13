@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -27,33 +28,23 @@ namespace http_proto {
 struct ows_rule
 {
     friend
-    inline
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code&,
-        ows_rule) noexcept;
-};
-
-//------------------------------------------------
-
-bool
-parse(
-    char const*& it,
-    char const* end,
-    error_code&,
-    ows_rule) noexcept
-{
-    while(it != end)
+        ows_rule) noexcept
     {
-        if( *it != ' ' &&
-            *it != '\t')
-            break;
-        ++it;
+        while(it != end)
+        {
+            if( *it != ' ' &&
+                *it != '\t')
+                break;
+            ++it;
+        }
     }
-    return true;
-}
+};
 
 } // http_proto
 } // boost

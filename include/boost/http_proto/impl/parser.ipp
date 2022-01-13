@@ -571,7 +571,7 @@ parse_fields(
     char const* it = start;
     for(;;)
     {
-        parse(it, end, ec, t);
+        grammar::parse(it, end, ec, t);
         if(ec == grammar::error::end)
         {
             // end of fields

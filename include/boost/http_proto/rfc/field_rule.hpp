@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 #include <string>
 
 namespace boost {
@@ -85,14 +86,17 @@ struct field_rule
 
     reference v;
 
-    BOOST_URL_DECL
     friend
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code& ec,
-        field_rule& t) noexcept;
+        field_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
 
     static
     bool
@@ -103,7 +107,8 @@ struct field_rule
         reference& t) noexcept
     {
         field_rule t0;
-        if(! parse(it, end, ec, t0))
+        parse(it, end, ec, t0);
+        if(ec.failed())
             return false;
         t = t0.v;
         return true;
@@ -119,6 +124,16 @@ struct field_rule
     {
         return begin(it, end, ec, t);
     }
+
+private:
+    BOOST_URL_DECL
+    static
+    void
+    parse(
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        field_rule& t) noexcept;
 };
 
 } // http_proto

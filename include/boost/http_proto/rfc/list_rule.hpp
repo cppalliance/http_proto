@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 #include <cstddef>
 
 namespace boost {
@@ -79,7 +80,7 @@ public:
 
 //------------------------------------------------
 
-/** BNF for a comma-delimited list of elements
+/** Rule for a comma-delimited list of elements
 
     This rule defines a list containing
     at least n and at most m of Element,
@@ -137,17 +138,23 @@ public:
     list_rule(
         string_view s);
 
-    template<
-        class T_,
-        std::size_t N_,
-        std::size_t M_>
     friend
-    bool
-    parse(
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
         char const*& it,
         char const* end,
         error_code& ec,
-        list_rule<T_, N_, M_>& t);
+        list_rule& t)
+    {
+        std::size_t n;
+        auto const start = it;
+        if(! list_rule::parse(
+            it, end, ec, N, M, n))
+            return;
+        t = list_rule(string_view(
+            start, it - start), n);
+    }
 };
 
 } // http_proto

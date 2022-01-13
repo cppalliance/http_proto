@@ -20,7 +20,7 @@ namespace boost {
 namespace http_proto {
 namespace bnf {
 
-/** BNF for a repeating number of elements
+/** Rule for a repeating number of elements
 
     This rule defines a sequence containing
     at least n and at most m of Element.

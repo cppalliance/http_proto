@@ -11,8 +11,9 @@
 #define BOOST_HTTP_PROTO_RFC_IMPL_REQUEST_TARGET_RULE_IPP
 
 #include <boost/http_proto/rfc/request_target_rule.hpp>
-#include <boost/http_proto/error.hpp>
+#include <boost/http_proto/rfc/charsets.hpp>
 #include <boost/url/grammar/charset.hpp>
+#include <boost/url/grammar/error.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -23,7 +24,8 @@ namespace http_proto {
                       authority-form /
                       asterisk-form
 */
-bool
+void
+request_target_rule::
 parse(
     char const*& it,
     char const* const end,
@@ -33,7 +35,7 @@ parse(
     if(it == end)
     {
         ec = grammar::error::incomplete;
-        return false;
+        return;
     }
 
     auto const start = it;
@@ -44,13 +46,12 @@ parse(
     if(it == start)
     {
         // empty target
-        ec = error::bad_request_target;
-        return false;
+        ec = grammar::error::syntax;
+        return;
     }
 
     t.s = string_view(
         start, it - start);
-    return true;
 }
 
 } // http_proto

@@ -15,11 +15,12 @@
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/version.hpp>
+#include <boost/url/grammar/parse_tag.hpp>
 
 namespace boost {
 namespace http_proto {
 
-/** BNF for request-line
+/** Rule for request-line
 
     @par BNF
     @code
@@ -60,9 +61,22 @@ struct request_line_rule
     */
     version v; // 2 digits
 
-    BOOST_HTTP_PROTO_DECL
     friend
-    bool
+    void
+    tag_invoke(
+        grammar::parse_tag const&,
+        char const*& it,
+        char const* end,
+        error_code& ec,
+        request_line_rule& t) noexcept
+    {
+        parse(it, end, ec, t);
+    }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    static
+    void
     parse(
         char const*& it,
         char const* end,

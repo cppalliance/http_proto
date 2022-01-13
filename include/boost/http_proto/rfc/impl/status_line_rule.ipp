@@ -20,30 +20,29 @@ namespace http_proto {
 /*
     status-line     = HTTP-version SP status-code SP reason-phrase CRLF
 */
-bool
+void
+status_line_rule::
 parse(
     char const*& it,
     char const* end,
     error_code& ec,
     status_line_rule& t) noexcept
 {
-    using grammar::parse;
-
     version_rule t0;
     status_code_rule t1;
     reason_phrase_rule t2;
 
-    if(! parse(
+    if(! grammar::parse(
         it, end, ec,
         t0, ' ',
         t1, ' ',
         t2, crlf_rule{}))
-        return false;
+        return;
 
     t.v = t0.v;
     t.status_code = t1.v;
     t.reason = t2.s;
-    return true;
+    return;
 }
 
 } // http_proto
