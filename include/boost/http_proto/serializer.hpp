@@ -34,67 +34,79 @@ class serializer
     string_view bs_;
 
 public:
-    serializer(context& ctx)
-        : ctx_(ctx)
-    {
-        (void)ctx_;
-        (void)cap_;
-        (void)size_;
-    }
+    /** Constructor (deleted)
+    */
+    serializer(
+        serializer const&) = delete;
 
-    ~serializer()
-    {
-        if(buf_)
-            delete[] buf_;
-    }
+    /** Assignment (deleted)
+    */
+    serializer& operator=(
+        serializer const&) = delete;
 
+    /** Destructor
+
+        All dynamically allocated memory
+        is released upon destruction.
+    */
+    BOOST_HTTP_PROTO_DECL
+    ~serializer();
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    serializer(
+        context& ctx) noexcept;
+
+    /** Return true if serialization is complete
+    */
     bool
     is_complete() const noexcept
     {
         return true;
     }
 
+    /** Reset the serializer for a new message
+
+        The current header, body, and encoding
+        if present will be reset.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset() noexcept;
+
+    /** Set the header for the current message
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header(
+        basic_header const&) noexcept;
+
+    /** Set the body for the current message
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_body(
+        void const* data,
+        std::size_t size) noexcept;
+
     /** Clear the contents without affecting the capacity
     */
+    BOOST_HTTP_PROTO_DECL
     void
-    clear()
-    {
-    }
+    clear() noexcept;
 
-    const_buffer_pair
-    prepare(error_code& ec)
-    {
-        ec = {};
-        const_buffer_pair p;
-        p.data[0] = hs_.data();
-        p.size[0] = hs_.size();
-        p.data[1] = bs_.data();
-        p.size[1] = bs_.size();
-        return p;
-    }
-
-    void
-    consume(std::size_t n) noexcept
-    {
-        (void)n;
-    }
-
-    /** Staple a header and body together for serialization
-
-        Any previous header or body is cleared.
+    /** Return the next set of output buffers
     */
-    template<class Body>
-    void
-    staple(
-        http_proto::basic_header const& h,
-        Body b)
-    {
-        clear();
-        hs_ = h.get_const_buffer();
-        bs_ = b;
-    }
+    BOOST_HTTP_PROTO_DECL
+    const_buffer_pair
+    prepare(error_code& ec);
 
-    // VFALCO chunked?
+    /** Consume bytes in the output buffers
+    */
+    void
+    consume(std::size_t n) noexcept;
 };
 
 } // http_proto

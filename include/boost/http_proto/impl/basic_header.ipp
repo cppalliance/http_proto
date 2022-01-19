@@ -16,6 +16,23 @@ namespace boost {
 namespace http_proto {
 
 basic_header::
+basic_header() noexcept
+    : content_length_(0)
+    , has_chunked_(false)
+    , has_content_length_(false)
+{
+}
+
+basic_header::
+basic_header(
+    base_params const& init) noexcept
+    : content_length_(init.content_length)
+    , has_chunked_(init.has_chunked)
+    , has_content_length_(init.has_content_length)
+{
+}
+
+basic_header::
 ~basic_header() = default;
 
 } // http_proto

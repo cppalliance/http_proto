@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <cstdint>
 
 namespace boost {
 namespace http_proto {
@@ -26,6 +27,27 @@ namespace http_proto {
 class BOOST_SYMBOL_VISIBLE
     basic_header
 {
+#ifdef BOOST_HTTP_PROTO_DOCS
+private:
+#else
+protected:
+#endif
+    std::uint64_t content_length_;
+    bool has_chunked_ : 1;
+    bool has_content_length_ : 1;
+
+    struct base_params
+    {
+        std::uint64_t content_length = 0;
+        bool has_chunked = false;
+        bool has_content_length = false;
+    };
+
+    basic_header() noexcept;
+
+    basic_header(
+        base_params const& init) noexcept;
+
 public:
     /** Destructor
     */
@@ -53,6 +75,12 @@ public:
     virtual
     string_view
     get_const_buffer() const noexcept = 0;
+
+    bool
+    has_content_length() const noexcept
+    {
+        return has_content_length_;
+    }
 };
 
 } // http_proto
