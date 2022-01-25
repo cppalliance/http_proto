@@ -59,6 +59,18 @@ struct field_rule
         string_view name;
         string_view value;
         bool has_obs_fold = false;
+
+        reference()
+          : has_obs_fold(false)
+        {}
+
+        reference(string_view name_,
+                  string_view value_,
+                  bool has_obs_fold_ = false)
+          : name(name_),
+            value(value_),
+            has_obs_fold(has_obs_fold_)
+        {}
     };
 
     struct value_type
@@ -126,7 +138,7 @@ struct field_rule
     }
 
 private:
-    BOOST_URL_DECL
+    BOOST_HTTP_PROTO_DECL
     static
     void
     parse(

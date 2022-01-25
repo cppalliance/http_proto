@@ -164,7 +164,7 @@ public:
                 b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
-                b.data(), s.data() + i, n);
+                b.data(), s.data() + i, n - i);
             p.commit(n);
             p.parse_header(ec);
             BOOST_TEST(! ec ||

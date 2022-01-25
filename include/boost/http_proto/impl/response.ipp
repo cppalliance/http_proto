@@ -36,7 +36,8 @@ response(response&& other) noexcept
 
 response::
 response(response const& other)
-    : version_(other.version_)
+    : basic_header()
+    , version_(other.version_)
     , result_(other.result_)
     , fields(other.fields, 2)
 {

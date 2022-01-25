@@ -95,16 +95,16 @@ template<class T, class = void>
 struct is_list : std::false_type {};
 
 template<class T>
-struct is_list<T, boost::void_t<decltype(
-    std::declval<char const*&>() = std::declval<T&>().begin(
+struct is_list<T, typename std::enable_if<
+    std::is_same<decltype(std::declval<T&>().begin(
         std::declval<char const*>(),
         std::declval<char const*>(),
-        std::declval<error_code&>()),
-    std::declval<char const*&>() = std::declval<T&>().increment(
+        std::declval<error_code&>())), char const*>::value &&
+    std::is_same<decltype(std::declval<T&>().increment(
         std::declval<char const*>(),
         std::declval<char const*>(),
-        std::declval<error_code&>())
-    )>> : std::true_type
+        std::declval<error_code&>())), char const*>::value
+    >::type> : std::true_type
 #if 0
     std::integral_constant<bool,
     std::is_default_constructible<T>::value &&

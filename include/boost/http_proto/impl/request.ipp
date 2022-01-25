@@ -37,7 +37,8 @@ request(request&& other) noexcept
 
 request::
 request(request const& other)
-    : method_(other.method_)
+    : basic_header()
+    , method_(other.method_)
     , version_(other.version_)
     , method_len_(other.method_len_)
     , target_len_(other.target_len_)

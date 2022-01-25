@@ -62,7 +62,7 @@ struct chunk_ext_rule
         }
     };
 
-    BOOST_URL_DECL
+    BOOST_HTTP_PROTO_DECL
     static
     bool
     parse(
