@@ -27,7 +27,7 @@ struct context::data
 {
     // Installed services
     std::unordered_map<
-        std::type_index,
+        detail::type_index,
         std::unique_ptr<service>
             > services;
 };
@@ -58,7 +58,7 @@ context() noexcept
 auto
 context::
 find_service_impl(
-    std::type_index id) noexcept ->
+    detail::type_index id) noexcept ->
         service*
 {
     auto it = p_->services.find(id);
@@ -70,7 +70,7 @@ find_service_impl(
 auto
 context::
 make_service_impl(
-    std::type_index id,
+    detail::type_index id,
     std::unique_ptr<service> sp) ->
         service&    
 {
