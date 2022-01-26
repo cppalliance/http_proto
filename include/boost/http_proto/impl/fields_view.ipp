@@ -24,21 +24,21 @@ namespace http_proto {
 void
 fields_view::
 iterator::
-parse()
+read() noexcept
 {
     error_code ec;
     field_rule r;
-    if(! grammar::parse(
+    if(grammar::parse(
         it_, end_, ec, r))
     {
-        if(ec != grammar::error::end)
-            detail::throw_system_error(ec,
-                BOOST_CURRENT_LOCATION);
-        it_ = end_;
+        n_ = r.v.name;
+        v_ = r.v.value;
+        id_ = string_to_field(n_);
+        return;
     }
-    n_ = r.v.name;
-    v_ = r.v.value;
-    id_ = string_to_field(n_);
+    BOOST_ASSERT(ec ==
+        grammar::error::end);
+    it_ = end_;
 }
 
 fields_view::
@@ -49,7 +49,7 @@ iterator(
     , end_(f->s_.data() +
            f->s_.size())
 {
-    parse();
+    read();
 }
 
 fields_view::
@@ -77,11 +77,11 @@ operator*() const noexcept ->
 auto
 fields_view::
 iterator::
-operator++() ->
+operator++() noexcept ->
     iterator&
 {
     ++i_;
-    parse();
+    read();
     return *this;
 }
 
@@ -118,7 +118,8 @@ fields_view(string_view s)
         }
         if(ec == grammar::error::end)
             break;
-        throw ec;
+        detail::throw_system_error(ec,
+            BOOST_CURRENT_LOCATION);
     }
 }
 
@@ -384,7 +385,7 @@ auto
 fields_view::
 subrange::
 iterator::
-operator++() ->
+operator++() noexcept ->
     iterator&
 {
     if(id_ != field::unknown)

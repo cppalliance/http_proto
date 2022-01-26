@@ -10,6 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_HPP
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_HPP
 
+#include <boost/assert.hpp>
+
 namespace boost {
 namespace http_proto {
 
@@ -25,7 +27,7 @@ class fields_view::iterator
     friend class fields_view;
 
     void
-    parse();
+    read() noexcept;
 
     explicit
     iterator(
@@ -55,16 +57,18 @@ public:
 
     bool
     operator==(
-        iterator const& other) const
+        iterator const& other) const noexcept
     {
-        return
-            it_ == other.it_ &&
-            end_ == other.end_;
+        // can't compare iterators
+        // from different containers
+        BOOST_ASSERT(
+            end_ == other.end_);
+        return it_ == other.it_;
     }
 
     bool
     operator!=(
-        iterator const& other) const
+        iterator const& other) const noexcept
     {
         return !(*this == other);
     }
@@ -81,10 +85,10 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     iterator&
-    operator++();
+    operator++() noexcept;
 
     iterator
-    operator++(int)
+    operator++(int) noexcept
     {
         auto temp = *this;
         ++(*this);
@@ -148,7 +152,7 @@ class fields_view::subrange::iterator
 {
     fields_view::iterator it_;
     fields_view::iterator end_;
-    field id_;
+    field id_ = field::unknown;
 
     friend class fields_view::subrange;
 
@@ -177,16 +181,18 @@ public:
 
     bool
     operator==(
-        iterator const& other) const
+        iterator const& other) const noexcept
     {
-        return
-            it_ == other.it_ &&
-            end_ == other.end_;
+        // can't compare iterators
+        // from different containers
+        BOOST_ASSERT(
+            end_ == other.end_);
+        return it_ == other.it_;
     }
 
     bool
     operator!=(
-        iterator const& other) const
+        iterator const& other) const noexcept
     {
         return !(*this == other);
     }
@@ -205,10 +211,10 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     iterator&
-    operator++();
+    operator++() noexcept;
 
     iterator
-    operator++(int)
+    operator++(int) noexcept
     {
         auto temp = *this;
         ++(*this);

@@ -9,6 +9,7 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_view.hpp>
+#include <boost/http_proto/error.hpp>
 
 #include "test_suite.hpp"
 
@@ -25,59 +26,22 @@ struct fields_view_test
     }
 
     void
-    testIterator()
-    {
-        auto f = construct(
-            "Content-Length: 42\r\n"
-            "User-Agent: boost\r\n"
-            "\r\n");
-
-        auto it = f.begin();
-        BOOST_TEST(it == f.begin());
-        BOOST_TEST(it == f.begin()++);
-        BOOST_TEST(it != f.end());
-        BOOST_TEST(it !=
-            fields_view::iterator());
-        BOOST_TEST(it->id ==
-            field::content_length);
-        BOOST_TEST(it->name ==
-            "Content-Length");
-        BOOST_TEST(it->value == "42");
-
-        ++it;
-        BOOST_TEST(it != f.begin());
-        BOOST_TEST(it == ++f.begin());
-        BOOST_TEST(it != f.end());
-        BOOST_TEST(it !=
-            fields_view::iterator());
-        BOOST_TEST(it->id ==
-            field::user_agent);
-        BOOST_TEST(it->name ==
-            "User-Agent");
-        BOOST_TEST(it->value == "boost");
-
-        ++it;
-        BOOST_TEST(it != f.begin());
-        BOOST_TEST(it == f.end());
-        BOOST_TEST(it !=
-            fields_view::iterator());
-    }
-
-    void
-    testObservers()
+    testView()
     {
         auto f = construct(
             "x: 1\r\n"
             "y: 2\r\n"
+            "Set-Cookie: a\r\n"
             "x: 3\r\n"
             "z: 4\r\n"
+            "Set-Cookie: b\r\n"
             "x: 5\r\n"
             "p: 6\r\n"
             "User-Agent: 7\r\n"
             "\r\n");
 
         // size
-        BOOST_TEST(f.size() == 7);
+        BOOST_TEST(f.size() == 9);
 
         // exists
         BOOST_TEST(! f.exists("a"));
@@ -127,6 +91,13 @@ struct fields_view_test
             it = f.find(field::user_agent);
             BOOST_TEST(it->id ==
                 field::user_agent);
+
+            it = f.find(++f.begin(), "x");
+            BOOST_TEST(it->value == "3");
+
+            it = f.find(++f.begin(),
+                field::user_agent);
+            BOOST_TEST(it->value == "7");
         }
 
         // find_all
@@ -142,6 +113,53 @@ struct fields_view_test
         BOOST_TEST(
             make_list(f.find_all(
                 field::user_agent)) == "7");
+        BOOST_TEST(
+            make_list(f.find_all(
+                field::set_cookie)) == "a,b");
+
+        // iterator
+        BOOST_TEST(
+            fields_view::iterator() ==
+            fields_view::iterator());
+
+        f = construct(
+            "Content-Length: 42\r\n"
+            "User-Agent: boost\r\n"
+            "\r\n");
+
+        auto it = f.begin();
+        BOOST_TEST(it == f.begin());
+        BOOST_TEST(it == f.begin()++);
+        BOOST_TEST(it != f.end());
+        BOOST_TEST(it->id ==
+            field::content_length);
+        BOOST_TEST(it->name ==
+            "Content-Length");
+        BOOST_TEST(it->value == "42");
+
+        ++it;
+        BOOST_TEST(it != f.begin());
+        BOOST_TEST(it == ++f.begin());
+        BOOST_TEST(it != f.end());
+        BOOST_TEST(it->id ==
+            field::user_agent);
+        BOOST_TEST(it->name ==
+            "User-Agent");
+        BOOST_TEST(it->value == "boost");
+
+        ++it;
+        BOOST_TEST(it != f.begin());
+        BOOST_TEST(it == f.end());
+
+        // empty range
+        f = construct("\r\n");
+        BOOST_TEST(f.size() == 0);
+        BOOST_TEST(f.begin() == f.end());
+
+        // invalid input
+        BOOST_TEST_THROWS(
+            construct(""),
+            system_error);
     }
 
     void
@@ -185,41 +203,50 @@ struct fields_view_test
         }
 
         // iterators
-        S sr = f.find_all("x");
-        auto it = sr.begin();
-        BOOST_TEST(it == sr.begin());
-        BOOST_TEST(it == sr.begin()++);
-        BOOST_TEST(it != sr.end());
-        BOOST_TEST(it != S::iterator());
         BOOST_TEST(
-            it->id == field::unknown);
-        BOOST_TEST(it->name == "x");
-        BOOST_TEST(it->value == "1");
+            S::iterator() ==
+            S::iterator());
 
-        ++it;
-        BOOST_TEST(it != sr.begin());
-        BOOST_TEST(it == ++sr.begin());
-        BOOST_TEST(it != sr.end());
-        BOOST_TEST(it != S::iterator());
-        BOOST_TEST(it->name == "x");
-        BOOST_TEST(it->value == "3");
+        {
+            S sr = f.find_all("x");
+            auto it = sr.begin();
+            BOOST_TEST(it == sr.begin());
+            BOOST_TEST(it == sr.begin()++);
+            BOOST_TEST(it != sr.end());
+            BOOST_TEST(
+                it->id == field::unknown);
+            BOOST_TEST(it->name == "x");
+            BOOST_TEST(it->value == "1");
 
-        ++it;
-        BOOST_TEST(it != sr.begin());
-        BOOST_TEST(it != sr.end());
-        BOOST_TEST(it != S::iterator());
-        BOOST_TEST(it->name == "x");
-        BOOST_TEST(it->value == "5");
+            ++it;
+            BOOST_TEST(it != sr.begin());
+            BOOST_TEST(it == ++sr.begin());
+            BOOST_TEST(it != sr.end());
+            BOOST_TEST(it->name == "x");
+            BOOST_TEST(it->value == "3");
 
-        ++it;
-        BOOST_TEST(it == sr.end());
+            ++it;
+            BOOST_TEST(it != sr.begin());
+            BOOST_TEST(it != sr.end());
+            BOOST_TEST(it->name == "x");
+            BOOST_TEST(it->value == "5");
+
+            ++it;
+            BOOST_TEST(it == sr.end());
+        }
+
+        {
+            S sr = f.find_all(
+                field::user_agent);
+            auto it = sr.begin();
+            BOOST_TEST(it->value == "7");
+        }
     }
 
     void
     run()
     {
-        testIterator();
-        testObservers();
+        testView();
         testSubrange();
     }
 };

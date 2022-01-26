@@ -173,7 +173,7 @@ public:
 
 //------------------------------------------------
 
-/** Return all matching field values as a comma separated string
+/** Return a fields subrange as a comma separated string
 
     @see
         https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.2
