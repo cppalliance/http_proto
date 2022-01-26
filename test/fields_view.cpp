@@ -33,6 +33,8 @@ struct fields_view_test
             "\r\n");
 
         auto it = f.begin();
+        BOOST_TEST(it == f.begin());
+        BOOST_TEST(it == f.begin()++);
         BOOST_TEST(it != f.end());
         BOOST_TEST(it !=
             fields_view::iterator());
@@ -44,6 +46,7 @@ struct fields_view_test
 
         ++it;
         BOOST_TEST(it != f.begin());
+        BOOST_TEST(it == ++f.begin());
         BOOST_TEST(it != f.end());
         BOOST_TEST(it !=
             fields_view::iterator());
@@ -142,10 +145,82 @@ struct fields_view_test
     }
 
     void
+    testSubrange()
+    {
+        using S =
+            fields_view::subrange;
+
+        auto f = construct(
+            "x: 1\r\n"
+            "y: 2\r\n"
+            "x: 3\r\n"
+            "z: 4\r\n"
+            "x: 5\r\n"
+            "p: 6\r\n"
+            "User-Agent: 7\r\n"
+            "\r\n");
+
+        // subrange
+        {
+            S sr;
+            BOOST_TEST(
+                sr.begin() == sr.end());
+        }
+
+        // subrange(subrange const&)
+        {
+            S sr;
+            S sr2(sr);
+            BOOST_TEST(
+                sr.begin() == sr.end());
+        }
+
+        // operator=(subrange const&)
+        {
+            S sr = f.find_all("x");
+            S sr2;
+            sr2 = sr;
+            BOOST_TEST(
+                sr2.begin() == sr.begin());
+        }
+
+        // iterators
+        S sr = f.find_all("x");
+        auto it = sr.begin();
+        BOOST_TEST(it == sr.begin());
+        BOOST_TEST(it == sr.begin()++);
+        BOOST_TEST(it != sr.end());
+        BOOST_TEST(it != S::iterator());
+        BOOST_TEST(
+            it->id == field::unknown);
+        BOOST_TEST(it->name == "x");
+        BOOST_TEST(it->value == "1");
+
+        ++it;
+        BOOST_TEST(it != sr.begin());
+        BOOST_TEST(it == ++sr.begin());
+        BOOST_TEST(it != sr.end());
+        BOOST_TEST(it != S::iterator());
+        BOOST_TEST(it->name == "x");
+        BOOST_TEST(it->value == "3");
+
+        ++it;
+        BOOST_TEST(it != sr.begin());
+        BOOST_TEST(it != sr.end());
+        BOOST_TEST(it != S::iterator());
+        BOOST_TEST(it->name == "x");
+        BOOST_TEST(it->value == "5");
+
+        ++it;
+        BOOST_TEST(it == sr.end());
+    }
+
+    void
     run()
     {
         testIterator();
         testObservers();
+        testSubrange();
     }
 };
 
