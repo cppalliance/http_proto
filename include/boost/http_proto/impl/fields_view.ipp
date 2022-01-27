@@ -26,6 +26,14 @@ fields_view::
 iterator::
 read() noexcept
 {
+    if(! t_.empty())
+    {
+        auto e = t_(it_, i_);
+        n_ = e.name;
+        v_ = e.value;
+        id_ = e.id;
+        return;
+    }
     error_code ec;
     field_rule r;
     if(grammar::parse(
@@ -44,10 +52,12 @@ read() noexcept
 fields_view::
 iterator::
 iterator(
-    fields_view const* f) noexcept
+    fields_view const* f,
+    detail::const_fields_table t) noexcept
     : it_( f->s_.data())
     , end_(f->s_.data() +
            f->s_.size())
+    , t_(t)
 {
     read();
 }
@@ -56,12 +66,14 @@ fields_view::
 iterator::
 iterator(
     fields_view const* f,
+    detail::const_fields_table t,
     int) noexcept
-    : i_(f->size_)
-    , it_( f->s_.data() +
+    : it_( f->s_.data() +
            f->s_.size())
     , end_(f->s_.data() +
            f->s_.size())
+    , t_(t)
+    , i_(f->size_)
 {
 }
 
@@ -128,7 +140,7 @@ fields_view::
 begin() const noexcept ->
     iterator
 {
-    return iterator(this);
+    return iterator(this, t_);
 }
 
 auto
@@ -136,7 +148,7 @@ fields_view::
 end() const noexcept ->
     iterator
 {
-    return iterator(this, 0);
+    return iterator(this, t_, 0);
 }
 
 //------------------------------------------------
@@ -397,19 +409,17 @@ operator++() noexcept ->
                 break;
             ++it_;
         }
+        return *this;
     }
-    else
+    string_view name =
+        it_->name;
+    ++it_;
+    while(it_ != end_)
     {
-        string_view name =
-            it_->name;
+        if(bnf::iequals(
+            name, it_->name))
+            break;
         ++it_;
-        while(it_ != end_)
-        {
-            if(bnf::iequals(
-                name, it_->name))
-                break;
-            ++it_;
-        }
     }
     return *this;
 }

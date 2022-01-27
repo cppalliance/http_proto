@@ -17,9 +17,10 @@ namespace http_proto {
 
 class fields_view::iterator
 {
-    std::size_t i_ = 0;
     char const* it_ = nullptr;
     char const* end_ = nullptr;
+    detail::const_fields_table t_;
+    off_t i_ = 0;
     field id_ = field::unknown;
     string_view n_;
     string_view v_;
@@ -31,10 +32,12 @@ class fields_view::iterator
 
     explicit
     iterator(
-        fields_view const* f) noexcept;
+        fields_view const* f,
+        detail::const_fields_table t) noexcept;
 
     iterator(
         fields_view const* f,
+        detail::const_fields_table t,
         int) noexcept;
 
 public:
@@ -63,7 +66,7 @@ public:
         // from different containers
         BOOST_ASSERT(
             end_ == other.end_);
-        return it_ == other.it_;
+        return i_ == other.i_;
     }
 
     bool

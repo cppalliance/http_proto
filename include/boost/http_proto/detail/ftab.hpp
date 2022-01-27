@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_FIELDS_TABLE_HPP
-#define BOOST_HTTP_PROTO_DETAIL_FIELDS_TABLE_HPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_FTAB_HPP
+#define BOOST_HTTP_PROTO_DETAIL_FTAB_HPP
 
 #include <boost/http_proto/field.hpp>
 #include <boost/static_assert.hpp>
@@ -18,9 +18,6 @@
 namespace boost {
 namespace http_proto {
 namespace detail {
-
-// headers have a maximum size of 65536 chars
-using off_t = std::uint32_t;
 
 struct fitem
 {

@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_CONFIG_HPP
 
 #include <boost/config.hpp>
+#include <stdint.h>
 
 namespace boost {
 
@@ -43,15 +44,18 @@ namespace http_proto {
 # endif
 #endif
 
+// headers have a maximum size of 65536 chars
+using off_t = ::uint16_t; // private
+
 } // http_proto
 
-#if 1
-// lift bnf into our namespace
-namespace urls { namespace grammar {} }
+// lift grammar into our namespace
+namespace urls {
+namespace grammar {}
+}
 namespace http_proto {
 namespace grammar = ::boost::urls::grammar;
 } // http_proto
-#endif
 
 } // boost
 

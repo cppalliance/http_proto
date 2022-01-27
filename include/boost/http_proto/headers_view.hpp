@@ -30,9 +30,6 @@ class BOOST_SYMBOL_VISIBLE
     headers_view
     : public basic_header
 {
-    // headers have a maximum size of 2^32-1 chars
-    using off_t = std::uint32_t;
-
     char const* buf_ = nullptr;
     std::size_t cap_ = 0;
     std::size_t count_ = 0;

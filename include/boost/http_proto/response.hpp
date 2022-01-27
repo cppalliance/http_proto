@@ -29,9 +29,6 @@ class BOOST_SYMBOL_VISIBLE
     response
     : public basic_header
 {
-    // headers have a maximum size of 2^32-1 chars
-    using off_t = std::uint32_t;
-
     http_proto::version version_;
     status result_;
 

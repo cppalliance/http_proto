@@ -53,8 +53,6 @@ class BOOST_SYMBOL_VISIBLE
     parser
 {
 BOOST_HTTP_PROTO_PROTECTED:
-    // headers have a maximum size of 2^32-1 chars
-    using off_t = std::uint32_t;
 
     enum class state
     {

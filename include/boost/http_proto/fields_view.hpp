@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/const_string.hpp>
 #include <memory>
 
@@ -24,10 +25,21 @@ namespace http_proto {
 class BOOST_SYMBOL_VISIBLE
     fields_view
 {
-    using off_t = std::uint32_t;
-
     string_view s_;
-    std::size_t size_ = 0;
+    off_t size_ = 0;
+    detail::const_fields_table t_;
+
+    friend struct fields_view_test;
+
+    fields_view(
+        string_view s,
+        off_t size,
+        void const* ptable) noexcept
+        : s_(s)
+        , size_(size)
+        , t_(ptable)
+    {
+    }
 
 public:
     class iterator;
