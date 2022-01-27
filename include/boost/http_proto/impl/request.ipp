@@ -71,16 +71,17 @@ request::
 operator
 request_view() const noexcept
 {
-    return request_view(
-        fields.buf_,
-        fields.count_,
-        fields.start_len_,
-        fields.fields_len_,
-        fields.cap_,
-        method_len_,
-        target_len_,
-        method_,
-        version_);
+    request_view::ctor_params init;
+    init.base = fields.buf_;
+    init.start_len = fields.start_len_;
+    init.end_len = fields.fields_len_;
+    init.count = fields.count_;
+    init.table = fields.buf_ + fields.cap_;
+    init.method_len = method_len_;
+    init.target_len = target_len_;
+    init.method = method_;
+    init.version = version_;
+    return request_view(init);
 }
 
 string_view

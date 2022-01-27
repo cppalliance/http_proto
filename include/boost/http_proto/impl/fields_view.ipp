@@ -27,6 +27,7 @@ fields_view::
 iterator::
 read() noexcept
 {
+#if 0
     if(! t_.empty())
     {
         auto e = t_(it_, i_);
@@ -35,6 +36,7 @@ read() noexcept
         id_ = e.id;
         return;
     }
+#endif
     error_code ec;
     field_rule r;
     if(grammar::parse(
@@ -45,6 +47,7 @@ read() noexcept
         id_ = string_to_field(n_);
         return;
     }
+    auto s = ec.message();
     BOOST_ASSERT(ec ==
         grammar::error::end);
     it_ = end_;
@@ -55,8 +58,8 @@ iterator::
 iterator(
     fields_view const* f,
     detail::const_fields_table t) noexcept
-    : it_( f->p_ + f->n_start_)
-    , end_(f->p_ + f->n_)
+    : it_( f->base_ + f->start_len_)
+    , end_(f->base_ + f->end_len_)
     , t_(t)
 {
     read();
@@ -68,10 +71,10 @@ iterator(
     fields_view const* f,
     detail::const_fields_table t,
     int) noexcept
-    : it_( f->p_ + f->n_)
-    , end_(f->p_ + f->n_)
+    : it_( f->base_ + f->end_len_)
+    , end_(f->base_ + f->end_len_)
     , t_(t)
-    , i_(f->n_field_)
+    , i_(f->count_)
 {
 }
 
@@ -99,17 +102,21 @@ operator++() noexcept ->
 
 fields_view::
 fields_view(
-    string_view s,
-    std::size_t n_field,
-    void const* ptable) noexcept
-    : p_(s.data())
-    , t_(ptable)
-    , n_(static_cast<off_t>(
-        s.size()))
-    , n_field_(static_cast<
-        off_t>(n_field))
+    ctor_params const& init) noexcept
+    : base_(init.base)
+    , t_(init.table)
+    , start_len_(static_cast<
+        off_t>(init.start_len))
+    , end_len_(static_cast<
+        off_t>(init.end_len))
+    , count_(static_cast<
+        off_t>(init.count))
 {
-    BOOST_ASSERT(n_field <=
+    BOOST_ASSERT(start_len_ <=
+        BOOST_HTTP_PROTO_MAX_HEADER);
+    BOOST_ASSERT(end_len_ <=
+        BOOST_HTTP_PROTO_MAX_HEADER);
+    BOOST_ASSERT(count_ <=
         BOOST_HTTP_PROTO_MAX_HEADER);
 }
 
@@ -127,33 +134,36 @@ fields_view() noexcept = default;
 
 fields_view::
 fields_view(string_view s)
-    : p_(s.data())
-    , n_(static_cast<
-        off_t>(s.size()))
-{
-    if(s.size() >
-        BOOST_HTTP_PROTO_MAX_HEADER)
-        detail::throw_length_error(
-            "too large",
-            BOOST_CURRENT_LOCATION);
-    char const* it = s.data();
-    char const* const end =
-        s.data() + s.size();
-    error_code ec;
-    field_rule r;
-    for(;;)
+    : fields_view(
+    [&s]
     {
-        if(grammar::parse(
-            it, end, ec, r))
+        ctor_params init;
+        init.base = s.data();
+        init.start_len = 0;
+        init.end_len = s.size();
+        init.count = 0;
+        init.table = nullptr;
+        char const* it = s.data();
+        char const* const end =
+            s.data() + s.size();
+        error_code ec;
+        field_rule r;
+        for(;;)
         {
-            ++n_field_;
-            continue;
+            if(grammar::parse(
+                it, end, ec, r))
+            {
+                ++init.count;
+                continue;
+            }
+            if(ec == grammar::error::end)
+                break;
+            detail::throw_system_error(ec,
+                BOOST_CURRENT_LOCATION);
         }
-        if(ec == grammar::error::end)
-            break;
-        detail::throw_system_error(ec,
-            BOOST_CURRENT_LOCATION);
-    }
+        return init;
+    }())
+{
 }
 
 auto
@@ -170,6 +180,14 @@ end() const noexcept ->
     iterator
 {
     return iterator(this, t_, 0);
+}
+
+string_view
+fields_view::
+get_const_buffer() const noexcept
+{
+    return string_view(
+        base_, end_len_);
 }
 
 //------------------------------------------------

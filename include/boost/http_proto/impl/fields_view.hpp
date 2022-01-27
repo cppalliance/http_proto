@@ -21,7 +21,7 @@ class fields_view::iterator
     char const* end_ = nullptr;
     detail::const_fields_table t_;
     off_t i_ = 0;
-    field id_ = field::unknown;
+    field id_;
     string_view n_;
     string_view v_;
 
@@ -105,7 +105,7 @@ class fields_view::subrange
 {
     fields_view::iterator it_;
     fields_view::iterator end_;
-    field id_ = field::unknown;
+    field id_;
 
     friend class fields_view;
 
@@ -155,7 +155,7 @@ class fields_view::subrange::iterator
 {
     fields_view::iterator it_;
     fields_view::iterator end_;
-    field id_ = field::unknown;
+    field id_;
 
     friend class fields_view::subrange;
 

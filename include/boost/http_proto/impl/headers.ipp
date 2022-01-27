@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_HEADERS_IPP
 
 #include <boost/http_proto/headers.hpp>
-#include <boost/http_proto/headers_view.hpp>
+#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -302,14 +302,15 @@ operator=(
 
 // excludes start-line
 headers::
-operator headers_view() const noexcept
+operator fields_view() const noexcept
 {
-    return headers_view(
-        owner_str().data(),
-        cap_,
-        count_,
-        start_len_,
-        fields_len_);
+    fields_view::ctor_params init;
+    init.base = owner_str().data();
+    init.start_len = start_len_;
+    init.end_len = start_len_ + fields_len_ + 2;
+    init.count = count_;
+    init.table = owner_str().data() + cap_;
+    return fields_view(init);
 }
 
 auto

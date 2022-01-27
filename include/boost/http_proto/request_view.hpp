@@ -11,8 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
-#include <boost/http_proto/headers_view.hpp>
+#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdint>
 
@@ -26,37 +25,42 @@ enum class version : char;
 
 class BOOST_SYMBOL_VISIBLE
     request_view
-    : public basic_header
+    : public fields_view
 {
     friend class request;
     friend class request_parser;
 
-    std::size_t method_len_ = 0;
-    std::size_t target_len_ = 0;
+    off_t method_len_ = 0;
+    off_t target_len_ = 0;
     http_proto::method method_;
     http_proto::version version_;
 
+    struct ctor_params
+        : fields_view::ctor_params
+    {
+        std::size_t method_len;
+        std::size_t target_len;
+        http_proto::method method;
+        http_proto::version version;
+    };
+
     BOOST_HTTP_PROTO_DECL
+    explicit
     request_view(
-        char const* buf,
-        std::size_t cap,
-        std::size_t count,
-        std::size_t start_len,
-        std::size_t fields_len,
-        std::size_t method_len,
-        std::size_t target_len,
-        http_proto::method method,
-        http_proto::version version) noexcept;
+        ctor_params const& init) noexcept;
 
 public:
-    /** The field values for this message
+    /** Constructor
     */
-    headers_view fields;
-
+    BOOST_HTTP_PROTO_DECL
     request_view(
-        request_view const&) = default;
-    request_view& operator=(
-        request_view const&) = default;
+        request_view const&) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    request_view&
+    operator=(request_view const&) noexcept;
 
     /** Constructor
 
@@ -67,33 +71,36 @@ public:
     BOOST_HTTP_PROTO_DECL
     request_view() noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    get_const_buffer() const noexcept override;
-
+    /** Return the known method constant
+    */
     http_proto::method
     method() const noexcept
     {
         return method_;
     };
 
+    /** Return the exact method string
+    */
     string_view
     method_str() const noexcept
     {
         return string_view(
-            fields.base(),
-            method_len_);
+            base_, method_len_);
     }
 
+    /** Return the request-target string
+    */
     string_view
     target() const noexcept
     {
         return string_view(
-            fields.base() +
+            base_ +
                 method_len_ + 1,
             target_len_);
     }
 
+    /** Return the HTTP-version
+    */
     http_proto::version
     version() const noexcept
     {

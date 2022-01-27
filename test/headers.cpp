@@ -11,7 +11,7 @@
 #include <boost/http_proto/headers.hpp>
 
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/headers_view.hpp>
+#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/response.hpp>
 #include "test_suite.hpp"
 
@@ -240,10 +240,10 @@ public:
                 headers h;
                 h.append("x", "1");
                 h.append("y", "2");
-                headers_view hv = h;
-                BOOST_TEST(hv.count("x") == 1);
-                BOOST_TEST(hv.count("y") == 1);
-                BOOST_TEST(hv.get_const_buffer() ==
+                fields_view fv = h;
+                BOOST_TEST(fv.count("x") == 1);
+                BOOST_TEST(fv.count("y") == 1);
+                BOOST_TEST(fv.get_const_buffer() ==
                     "x: 1\r\ny: 2\r\n\r\n");
             }
 
@@ -252,13 +252,11 @@ public:
                 response res;
                 res.fields.append("x", "1");
                 res.fields.append("y", "2");
-                BOOST_TEST(res.get_const_buffer() ==
+                fields_view f = res.fields;
+                BOOST_TEST(f.get_const_buffer() ==
                     "HTTP/1.1 200 OK\r\nx: 1\r\ny: 2\r\n\r\n");
-                headers_view hv = res.fields;
-                BOOST_TEST(hv.count("x") == 1);
-                BOOST_TEST(hv.count("y") == 1);
-                BOOST_TEST(hv.get_const_buffer() ==
-                    "x: 1\r\ny: 2\r\n\r\n");
+                BOOST_TEST(f.count("x") == 1);
+                BOOST_TEST(f.count("y") == 1);
             }
         }
     }
@@ -363,7 +361,7 @@ public:
     testConversion()
     {
         auto const f =
-            [](headers_view){};
+            [](fields_view){};
         headers h;
         // must compile
         f(h);

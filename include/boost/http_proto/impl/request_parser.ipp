@@ -37,16 +37,18 @@ request_view
 request_parser::
 get() const noexcept
 {
-    return request_view(
-        buf_,
-        cap_,
-        m_.count,
-        m_.start_len,
-        m_.fields_len - 2,
-        method_len_,
-        target_len_,
-        method_,
-        m_.version);
+    request_view::ctor_params init;
+    init.base = buf_;
+    init.start_len = m_.start_len;
+    init.end_len = m_.start_len +
+        m_.fields_len /* - 2 */;
+    init.count = m_.count;
+    init.table = buf_ + cap_;
+    init.method_len = method_len_;
+    init.target_len = target_len_;
+    init.method = method_;
+    init.version = m_.version;
+    return request_view(init);
 }
 
 //------------------------------------------------

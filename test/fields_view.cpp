@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/field.hpp>
 
 #include "test_suite.hpp"
 
@@ -53,12 +54,13 @@ struct fields_view_test
                 v.name,
                 v.value,
                 v.id);
-        return fields_view(
-            string_view(
-                s.data(), s0.size()),
-            f.size(),
-            &s[0] + s.size());
-            
+        fields_view::ctor_params init;
+        init.base = s.data();
+        init.start_len = 0;
+        init.end_len = s0.size();
+        init.count = f.size();
+        init.table = &s[0] + s.size();
+        return fields_view(init);        
     }
 
     void

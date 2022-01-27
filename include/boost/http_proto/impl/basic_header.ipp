@@ -25,7 +25,7 @@ basic_header() noexcept
 
 basic_header::
 basic_header(
-    base_params const& init) noexcept
+    ctor_params const& init) noexcept
     : content_length_(init.content_length)
     , has_chunked_(init.has_chunked)
     , has_content_length_(init.has_content_length)

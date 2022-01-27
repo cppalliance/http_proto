@@ -23,7 +23,7 @@ namespace http_proto {
 #ifndef BOOST_HTTP_PROTO_DOCS
 // forward declarations
 enum class field : unsigned short;
-class headers_view;
+class fields_view;
 #endif
 
 class BOOST_SYMBOL_VISIBLE
@@ -130,7 +130,7 @@ public:
     end() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    operator headers_view() const noexcept;
+    operator fields_view() const noexcept;
 
     /** Returns the number of fields in the container
     */

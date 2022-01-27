@@ -20,23 +20,21 @@ namespace http_proto {
 /** Base class for all header types
 
     @see
-        @ref headers, @ref headers_view,
+        @ref fields, @ref fields_view,
         @ref request, @ref request_view,
         @ref response, @ref response_view
 */
 class BOOST_SYMBOL_VISIBLE
     basic_header
 {
-#ifdef BOOST_HTTP_PROTO_DOCS
-private:
-#else
+#ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
     std::uint64_t content_length_;
     bool has_chunked_ : 1;
     bool has_content_length_ : 1;
 
-    struct base_params
+    struct ctor_params
     {
         std::uint64_t content_length = 0;
         bool has_chunked = false;
@@ -46,7 +44,7 @@ protected:
     basic_header() noexcept;
 
     basic_header(
-        base_params const& init) noexcept;
+        ctor_params const& init) noexcept;
 
 public:
     /** Destructor

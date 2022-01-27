@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_FIELDS_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/field.hpp>
+#include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/const_string.hpp>
@@ -24,19 +24,32 @@ namespace http_proto {
 */
 class BOOST_SYMBOL_VISIBLE
     fields_view
+    : public basic_header
 {
-    char const* p_ = nullptr;
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
+    char const* base_ = nullptr;
     detail::const_fields_table t_;
-    off_t n_ = 0;
-    off_t n_field_ = 0;
-    off_t n_start_ = 0;
+    off_t start_len_ = 0;
+    off_t end_len_ = 0;
+    off_t count_ = 0;
 
     friend struct fields_view_test;
+    friend class headers;
 
+    struct ctor_params
+    {
+        char const* base;       // buffer base
+        std::size_t start_len;  // start line length
+        std::size_t end_len;    // total length
+        std::size_t count;      // field count
+        void const* table;      // table or null
+    };
+
+    explicit
     fields_view(
-        string_view s,
-        std::size_t n_field,
-        void const* ptable) noexcept;
+        ctor_params const&) noexcept;
 
 public:
     class iterator;
@@ -85,6 +98,10 @@ public:
     iterator
     end() const noexcept;
 
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    get_const_buffer() const noexcept override;
+
     //--------------------------------------------
     //
     // Observers
@@ -96,7 +113,7 @@ public:
     std::size_t
     size() const noexcept
     {
-        return n_field_;
+        return count_;
     }
 
     /// Returns true if a field exists

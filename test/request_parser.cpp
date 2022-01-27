@@ -11,6 +11,7 @@
 #include <boost/http_proto/request_parser.hpp>
 
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/version.hpp>
 
 #include "test_suite.hpp"
@@ -256,61 +257,49 @@ public:
         BOOST_TEST(rv.target() == "/");
         BOOST_TEST(rv.version() ==
             version::http_1_1);
-        auto const h = rv.fields;
-        //User-Agent: xrnConnection: closernTransfer-Encoding: chunkedrna: 1rnb: 2rna: 3rnc: 4rnrn
 
         BOOST_TEST(rv.get_const_buffer() == s);
-        BOOST_TEST(h.get_const_buffer() ==
-            "User-Agent: x\r\n"
-            "Connection: close\r\n"
-            "Transfer-Encoding: chunked\r\n"
-            "a: 1\r\n"
-            "b: 2\r\n"
-            "a: 3\r\n"
-            "c: 4\r\n"
-            "\r\n");
-        BOOST_TEST(h.size() == 7);
-        BOOST_TEST(h[0].value == "x");
+        BOOST_TEST(rv.size() == 7);
         BOOST_TEST(
-            h.exists(field::connection));
-        BOOST_TEST(! h.exists(field::age));
-        BOOST_TEST(h.exists("Connection"));
-        BOOST_TEST(h.exists("CONNECTION"));
-        BOOST_TEST(! h.exists("connector"));
-        BOOST_TEST(h.count(
+            rv.exists(field::connection));
+        BOOST_TEST(! rv.exists(field::age));
+        BOOST_TEST(rv.exists("Connection"));
+        BOOST_TEST(rv.exists("CONNECTION"));
+        BOOST_TEST(! rv.exists("connector"));
+        BOOST_TEST(rv.count(
             field::transfer_encoding) == 1);
         BOOST_TEST(
-            h.count(field::age) == 0);
+            rv.count(field::age) == 0);
         BOOST_TEST(
-            h.count("connection") == 1);
-        BOOST_TEST(h.count("a") == 2);
+            rv.count("connection") == 1);
+        BOOST_TEST(rv.count("a") == 2);
         BOOST_TEST_NO_THROW(
-            h.at(field::user_agent) == "x");
+            rv.at(field::user_agent) == "x");
         BOOST_TEST_NO_THROW(
-            h.at("a") == "1");
-        BOOST_TEST_THROWS(h.at(field::age),
+            rv.at("a") == "1");
+        BOOST_TEST_THROWS(rv.at(field::age),
             std::exception);
-        BOOST_TEST_THROWS(h.at("d"),
+        BOOST_TEST_THROWS(rv.at("d"),
             std::exception);
         BOOST_TEST(
-            h.value_or("a", "x") == "1");
+            rv.value_or("a", "x") == "1");
         BOOST_TEST(
-            h.value_or("d", "x") == "x");
-        BOOST_TEST(h.value_or(
+            rv.value_or("d", "x") == "x");
+        BOOST_TEST(rv.value_or(
             field::age, "x") == "x");
-        BOOST_TEST(h.value_or(
+        BOOST_TEST(rv.value_or(
             field::user_agent, {}) == "x");
-        BOOST_TEST(h.find(
+        BOOST_TEST(rv.find(
             field::connection)->id ==
                 field::connection);
         BOOST_TEST(
-            h.find("a")->value == "1");
-        BOOST_TEST(h.matching(
-            field::user_agent).make_list() == "x");
-        BOOST_TEST(h.matching(
-            "b").make_list() == "2");
-        BOOST_TEST(h.matching(
-            "a").make_list() == "1,3");
+            rv.find("a")->value == "1");
+        BOOST_TEST(make_list(rv.find_all(
+            field::user_agent)) == "x");
+        BOOST_TEST(make_list(rv.find_all(
+            "b")) == "2");
+        BOOST_TEST(make_list(rv.find_all(
+            "a")) == "1,3");
     }
 
     void
