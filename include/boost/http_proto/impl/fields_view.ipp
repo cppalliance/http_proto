@@ -15,6 +15,7 @@
 #include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/url/grammar/parse.hpp>
+#include <boost/assert/source_location.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -54,9 +55,8 @@ iterator::
 iterator(
     fields_view const* f,
     detail::const_fields_table t) noexcept
-    : it_( f->s_.data())
-    , end_(f->s_.data() +
-           f->s_.size())
+    : it_( f->p_ + f->n_start_)
+    , end_(f->p_ + f->n_)
     , t_(t)
 {
     read();
@@ -68,12 +68,10 @@ iterator(
     fields_view const* f,
     detail::const_fields_table t,
     int) noexcept
-    : it_( f->s_.data() +
-           f->s_.size())
-    , end_(f->s_.data() +
-           f->s_.size())
+    : it_( f->p_ + f->n_)
+    , end_(f->p_ + f->n_)
     , t_(t)
-    , i_(f->size_)
+    , i_(f->n_field_)
 {
 }
 
@@ -101,6 +99,22 @@ operator++() noexcept ->
 
 fields_view::
 fields_view(
+    string_view s,
+    std::size_t n_field,
+    void const* ptable) noexcept
+    : p_(s.data())
+    , t_(ptable)
+    , n_(static_cast<off_t>(
+        s.size()))
+    , n_field_(static_cast<
+        off_t>(n_field))
+{
+    BOOST_ASSERT(n_field <=
+        BOOST_HTTP_PROTO_MAX_HEADER);
+}
+
+fields_view::
+fields_view(
     fields_view const&) noexcept = default;
 
 fields_view&
@@ -113,8 +127,15 @@ fields_view() noexcept = default;
 
 fields_view::
 fields_view(string_view s)
-    : s_(s)
+    : p_(s.data())
+    , n_(static_cast<
+        off_t>(s.size()))
 {
+    if(s.size() >
+        BOOST_HTTP_PROTO_MAX_HEADER)
+        detail::throw_length_error(
+            "too large",
+            BOOST_CURRENT_LOCATION);
     char const* it = s.data();
     char const* const end =
         s.data() + s.size();
@@ -125,7 +146,7 @@ fields_view(string_view s)
         if(grammar::parse(
             it, end, ec, r))
         {
-            ++size_;
+            ++n_field_;
             continue;
         }
         if(ec == grammar::error::end)

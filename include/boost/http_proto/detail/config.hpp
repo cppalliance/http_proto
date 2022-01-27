@@ -44,8 +44,11 @@ namespace http_proto {
 # endif
 #endif
 
-// headers have a maximum size of 65536 chars
 using off_t = ::uint16_t; // private
+
+// maximum size of http header,
+// chunk header, or chunk extensions
+#define BOOST_HTTP_PROTO_MAX_HEADER 65535U
 
 } // http_proto
 

@@ -25,21 +25,18 @@ namespace http_proto {
 class BOOST_SYMBOL_VISIBLE
     fields_view
 {
-    string_view s_;
-    off_t size_ = 0;
+    char const* p_ = nullptr;
     detail::const_fields_table t_;
+    off_t n_ = 0;
+    off_t n_field_ = 0;
+    off_t n_start_ = 0;
 
     friend struct fields_view_test;
 
     fields_view(
         string_view s,
-        off_t size,
-        void const* ptable) noexcept
-        : s_(s)
-        , size_(size)
-        , t_(ptable)
-    {
-    }
+        std::size_t n_field,
+        void const* ptable) noexcept;
 
 public:
     class iterator;
@@ -99,7 +96,7 @@ public:
     std::size_t
     size() const noexcept
     {
-        return size_;
+        return n_field_;
     }
 
     /// Returns true if a field exists
