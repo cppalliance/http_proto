@@ -20,7 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-/** A read-only, random access container of HTTP fields
+/** A read-only, forward range of HTTP fields
 */
 class BOOST_SYMBOL_VISIBLE
     fields_view
@@ -87,10 +87,6 @@ public:
     fields_view() noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    explicit
-    fields_view(string_view s);
-
-    BOOST_HTTP_PROTO_DECL
     iterator
     begin() const noexcept;
 
@@ -100,7 +96,7 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     string_view
-    get_const_buffer() const noexcept override;
+    buffer() const noexcept override;
 
     //--------------------------------------------
     //

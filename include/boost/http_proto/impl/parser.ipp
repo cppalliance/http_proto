@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/detail/ftab.hpp>
+#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
@@ -616,23 +616,23 @@ parse_fields(
         default:
             break;
         }
-        auto ft = detail::get_ftab(
+        detail::fields_table ft(
             buf_ + cap_);
-        auto& fi = ft[m_.count];
-        fi.id = id;
-        fi.pos = static_cast<
-            off_t>(start - buf_);
-        fi.name_pos = static_cast<
-            off_t>(t.v.name.data() - buf_);
-        fi.name_len = static_cast<
-            off_t>(t.v.name.size());
-        fi.value_len = static_cast<
-            off_t>(t.v.value.size());
+        detail::write(
+            ft,
+            buf_ + m_.start_len,
+            m_.count,
+            t.v.name,
+            t.v.value,
+            id);
+    #if 0
+        // VFALCO handling zero-length value?
         if(fi.value_len > 0)
             fi.value_pos = static_cast<
                 off_t>(t.v.value.data() - buf_);
         else
             fi.value_pos = 0; // empty string
+    #endif
         ++m_.count;
     }
     return it0;

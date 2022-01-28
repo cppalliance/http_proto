@@ -95,7 +95,7 @@ operator response_view() const noexcept
 
 string_view
 response::
-get_const_buffer() const noexcept 
+buffer() const noexcept 
 {
     return fields.owner_str();
 }

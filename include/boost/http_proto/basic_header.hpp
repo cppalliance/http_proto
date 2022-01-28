@@ -72,7 +72,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     virtual
     string_view
-    get_const_buffer() const noexcept = 0;
+    buffer() const noexcept = 0;
 
     bool
     has_content_length() const noexcept

@@ -11,6 +11,10 @@
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/rfc/field_rule.hpp>
+#include <boost/http_proto/detail/except.hpp>
+#include <boost/url/grammar/parse.hpp>
+#include <boost/assert/source_location.hpp>
 
 #include "test_suite.hpp"
 
@@ -21,19 +25,49 @@ namespace http_proto {
 
 struct fields_view_test
 {
-    fields_view
-    construct(
-        string_view s)
+    struct test_view : fields_view
     {
-        return fields_view(s);
-    }
+        explicit
+        test_view(string_view s)
+            : fields_view(
+            [&s]
+            {
+                ctor_params init;
+                init.base = s.data();
+                init.start_len = 0;
+                init.end_len = s.size();
+                init.count = 0;
+                init.table = nullptr;
+                char const* it = s.data();
+                char const* const end =
+                    s.data() + s.size();
+                error_code ec;
+                field_rule r;
+                for(;;)
+                {
+                    if(grammar::parse(
+                        it, end, ec, r))
+                    {
+                        ++init.count;
+                        continue;
+                    }
+                    if(ec == grammar::error::end)
+                        break;
+                    detail::throw_system_error(ec,
+                        BOOST_CURRENT_LOCATION);
+                }
+                return init;
+            }())
+        {
+        }
+    };
 
     fields_view
     construct(
         string_view s0,
         std::string& s)
     {
-        auto f = construct(s0);
+        test_view f(s0);
         auto A = alignof(
             detail::fields_table_entry);
         auto n = A * (
@@ -202,7 +236,7 @@ struct fields_view_test
             "\r\n";
 
         {
-            auto f = construct(cs);
+            test_view f(cs);
             testOneView(f);
         }
 
@@ -210,13 +244,6 @@ struct fields_view_test
             std::string s;
             auto f = construct(cs, s);
             testOneView(f);
-        }
-
-        {
-            // invalid input
-            BOOST_TEST_THROWS(
-                construct(""),
-                system_error);
         }
     }
 
@@ -226,7 +253,7 @@ struct fields_view_test
         using S =
             fields_view::subrange;
 
-        auto f = construct(
+        test_view f(
             "x: 1\r\n"
             "y: 2\r\n"
             "x: 3\r\n"

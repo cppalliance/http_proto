@@ -23,10 +23,16 @@ enum class method : char;
 enum class version : char;
 #endif
 
+/** A read-only reference to an HTTP request
+*/
 class BOOST_SYMBOL_VISIBLE
     request_view
     : public fields_view
 {
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
+
     friend class request;
     friend class request_parser;
 
@@ -51,6 +57,15 @@ class BOOST_SYMBOL_VISIBLE
 
 public:
     /** Constructor
+
+        The contents of default constructed
+        messages are undefined. The only valid
+        operations are assignment and destruction.
+    */
+    BOOST_HTTP_PROTO_DECL
+    request_view() noexcept;
+
+    /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
     request_view(
@@ -61,15 +76,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     request_view&
     operator=(request_view const&) noexcept;
-
-    /** Constructor
-
-        The contents of default constructed
-        messages are undefined. The only valid
-        operations are assignment and destruction.
-    */
-    BOOST_HTTP_PROTO_DECL
-    request_view() noexcept;
 
     /** Return the known method constant
     */

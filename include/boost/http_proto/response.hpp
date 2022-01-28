@@ -96,7 +96,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     string_view
-    get_const_buffer() const noexcept override;
+    buffer() const noexcept override;
 
     //--------------------------------------------
     //

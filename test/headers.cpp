@@ -30,7 +30,7 @@ public:
             BOOST_TEST(h.begin() == h.end());
             BOOST_TEST(h.size() == 0);
             BOOST_TEST(
-                h.get_const_buffer() == "\r\n");
+                h.buffer() == "\r\n");
             BOOST_TEST(
                 h.capacity_in_bytes() == 0);
         }
@@ -62,15 +62,15 @@ public:
                 res.set_result(
                     status::bad_request,
                     version::http_1_1);
-                BOOST_TEST(res.get_const_buffer() ==
+                BOOST_TEST(res.buffer() ==
                     "HTTP/1.1 400 Bad Request\r\n\r\n");
                 res.fields.append("x", "1");
                 headers h(std::move(res.fields));
-                BOOST_TEST(res.get_const_buffer() ==
+                BOOST_TEST(res.buffer() ==
                     "HTTP/1.1 200 OK\r\n\r\n");
                 BOOST_TEST(res.fields.size() == 0);
                 // start-line is removed on move
-                BOOST_TEST(h.get_const_buffer() ==
+                BOOST_TEST(h.buffer() ==
                     "x: 1\r\n\r\n");
                 BOOST_TEST(h.size() == 1);
                 BOOST_TEST(h.count("x") == 1);
@@ -83,13 +83,13 @@ public:
             {
                 headers h1;
                 BOOST_TEST(h1.size() == 0);
-                BOOST_TEST(h1.get_const_buffer()
+                BOOST_TEST(h1.buffer()
                     == "\r\n");
                 BOOST_TEST(
                     h1.capacity_in_bytes() == 0);
                 headers h2(h1);
                 BOOST_TEST(h2.size() == 0);
-                BOOST_TEST(h2.get_const_buffer()
+                BOOST_TEST(h2.buffer()
                     == "\r\n");
                 BOOST_TEST(
                     h2.capacity_in_bytes() == 0);
@@ -121,15 +121,15 @@ public:
                 res.set_result(
                     status::bad_request,
                     version::http_1_1);
-                BOOST_TEST(res.get_const_buffer() ==
+                BOOST_TEST(res.buffer() ==
                     "HTTP/1.1 400 Bad Request\r\n\r\n");
                 res.fields.append("x", "1");
                 headers h(res.fields);
-                BOOST_TEST(res.get_const_buffer() ==
+                BOOST_TEST(res.buffer() ==
                     "HTTP/1.1 400 Bad Request\r\nx: 1\r\n\r\n");
                 BOOST_TEST(res.fields.size() == 1);
                 // start-line is removed on move
-                BOOST_TEST(h.get_const_buffer() ==
+                BOOST_TEST(h.buffer() ==
                     "x: 1\r\n\r\n");
                 BOOST_TEST(h.size() == 1);
                 BOOST_TEST(h.count("x") == 1);
@@ -195,7 +195,7 @@ public:
                 headers h;
                 h.append("x", "1");
                 res.fields = h;
-                BOOST_TEST(res.get_const_buffer() ==
+                BOOST_TEST(res.buffer() ==
                     "HTTP/1.1 200 OK\r\nx: 1\r\n\r\n");
             }
 
@@ -243,7 +243,7 @@ public:
                 fields_view fv = h;
                 BOOST_TEST(fv.count("x") == 1);
                 BOOST_TEST(fv.count("y") == 1);
-                BOOST_TEST(fv.get_const_buffer() ==
+                BOOST_TEST(fv.buffer() ==
                     "x: 1\r\ny: 2\r\n\r\n");
             }
 
@@ -253,7 +253,7 @@ public:
                 res.fields.append("x", "1");
                 res.fields.append("y", "2");
                 fields_view f = res.fields;
-                BOOST_TEST(f.get_const_buffer() ==
+                BOOST_TEST(f.buffer() ==
                     "HTTP/1.1 200 OK\r\nx: 1\r\ny: 2\r\n\r\n");
                 BOOST_TEST(f.count("x") == 1);
                 BOOST_TEST(f.count("y") == 1);
@@ -282,7 +282,7 @@ public:
             "a: 3\r\n"
             "c: 4\r\n"
             "\r\n";
-        BOOST_TEST(h.get_const_buffer() == s);
+        BOOST_TEST(h.buffer() == s);
         BOOST_TEST(h.size() == 7);
         BOOST_TEST(h[0].value == "x");
         BOOST_TEST(

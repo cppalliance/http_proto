@@ -425,7 +425,7 @@ find_next(
 
 string_view
 headers::
-get_const_buffer() const noexcept
+buffer() const noexcept
 {
     if(buf_)
         return string_view(

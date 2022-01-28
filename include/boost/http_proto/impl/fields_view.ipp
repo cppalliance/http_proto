@@ -27,7 +27,7 @@ fields_view::
 iterator::
 read() noexcept
 {
-#if 0
+#if 1
     if(! t_.empty())
     {
         auto e = t_(it_, i_);
@@ -132,40 +132,6 @@ operator=(
 fields_view::
 fields_view() noexcept = default;
 
-fields_view::
-fields_view(string_view s)
-    : fields_view(
-    [&s]
-    {
-        ctor_params init;
-        init.base = s.data();
-        init.start_len = 0;
-        init.end_len = s.size();
-        init.count = 0;
-        init.table = nullptr;
-        char const* it = s.data();
-        char const* const end =
-            s.data() + s.size();
-        error_code ec;
-        field_rule r;
-        for(;;)
-        {
-            if(grammar::parse(
-                it, end, ec, r))
-            {
-                ++init.count;
-                continue;
-            }
-            if(ec == grammar::error::end)
-                break;
-            detail::throw_system_error(ec,
-                BOOST_CURRENT_LOCATION);
-        }
-        return init;
-    }())
-{
-}
-
 auto
 fields_view::
 begin() const noexcept ->
@@ -184,7 +150,7 @@ end() const noexcept ->
 
 string_view
 fields_view::
-get_const_buffer() const noexcept
+buffer() const noexcept
 {
     return string_view(
         base_, end_len_);

@@ -86,7 +86,7 @@ request_view() const noexcept
 
 string_view
 request::
-get_const_buffer() const noexcept
+buffer() const noexcept
 {
     return fields.owner_str();
 }
