@@ -305,11 +305,11 @@ headers::
 operator fields_view() const noexcept
 {
     fields_view::ctor_params init;
-    init.base = owner_str().data();
+    init.cbuf = owner_str().data();
+    init.buf_len = cap_;
     init.start_len = start_len_;
-    init.end_len = start_len_ + fields_len_ + 2;
+    init.end_pos = start_len_ + fields_len_ + 2;
     init.count = count_;
-    init.table = owner_str().data() + cap_;
     return fields_view(init);
 }
 

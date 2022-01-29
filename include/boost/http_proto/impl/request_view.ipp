@@ -16,7 +16,14 @@ namespace boost {
 namespace http_proto {
 
 request_view::
-request_view() noexcept = default;
+request_view() noexcept
+    : fields_view(1)
+    , method_len_(3)
+    , target_len_(1)
+    , method_(http_proto::method::get)
+    , version_(http_proto::version::http_1_1)
+{
+}
 
 request_view::
 request_view(
@@ -37,10 +44,10 @@ request_view(
     , method_(init.method)
     , version_(init.version)
 {
-    BOOST_ASSERT(method_len_ <=
-        BOOST_HTTP_PROTO_MAX_HEADER);
-    BOOST_ASSERT(target_len_ <=
-        BOOST_HTTP_PROTO_MAX_HEADER);
+    BOOST_ASSERT(
+        method_len_ <= max_off_t);
+    BOOST_ASSERT(
+        target_len_ <= max_off_t);
 }
 
 } // http_proto

@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_FIELDS_TABLE_HPP
 
 #include <boost/http_proto/string_view.hpp>
-#include <boost/static_assert.hpp>
+#include <boost/assert.hpp>
 #include <cstdint>
 #include <type_traits>
 
@@ -22,6 +22,11 @@ enum class field : unsigned short;
 
 namespace detail {
 
+//------------------------------------------------
+
+// field array stored at the
+// end of allocated message data
+
 struct fields_table_entry
 {
     off_t np;   // name pos
@@ -30,126 +35,135 @@ struct fields_table_entry
     off_t vn;   // value size
     field id;
 
-    void
-    adjust(long dv) noexcept
+    fields_table_entry
+    operator+(std::size_t dv) const noexcept
     {
-        np = static_cast<
-            off_t>(np + dv);
-        vp = static_cast<
-            off_t>(vp + dv);
+        return {
+            static_cast<
+                off_t>(np + dv),
+            nn,
+            static_cast<
+                off_t>(vp + dv),
+            vn,
+            id };
+    }
+
+    fields_table_entry
+    operator-(std::size_t dv) const noexcept
+    {
+        return {
+            static_cast<
+                off_t>(np - dv),
+            nn,
+            static_cast<
+                off_t>(vp - dv),
+            vn,
+            id };
     }
 };
 
-// field array stored at the
-// end of allocated message data
-template<bool IsConst>
-class basic_fields_table
+//------------------------------------------------
+
+struct const_fields_table
 {
-public:
-    using value_type =
-        fields_table_entry;
-
-    using pointer = typename
-        std::conditional<IsConst,
-            value_type const*,
-            value_type*>::type;
-
-    using reference = typename
-        std::conditional<IsConst,
-            value_type const&,
-            value_type&>::type;
-
-    basic_fields_table() = default;
-
-    basic_fields_table(
-        basic_fields_table const&) = default;
-
-    basic_fields_table&
-        operator=(basic_fields_table const&) = default;
-
     explicit
-    basic_fields_table(
-        typename std::conditional<
-            IsConst, void const*,
-                void*>::type p) noexcept
+    const_fields_table(
+        void const* end) noexcept
         : p_(reinterpret_cast<
-            pointer>(p))
+            fields_table_entry const*>(
+                end))
     {
     }
 
-    bool
-    empty() const noexcept
-    {
-        return p_ == nullptr;
-    }
-
-    reference
+    fields_table_entry const&
     operator[](
         std::size_t i) const noexcept
     {
-        return p_[-1 * (static_cast<
-            long>(i) + 1)];
+        return p_[-1 * (
+            static_cast<
+                long>(i) + 1)];
     }
 
-    struct result
+    void
+    copy(
+        void* dest,
+        std::size_t n) const noexcept
     {
-        field id;
-        string_view name;
-        string_view value;
-    };
-
-    result
-    operator()(
-        char const* base,
-        std::size_t i) const noexcept
-    {
-        result r;
-        auto const& v = (*this)[i];
-        r.name = { base + v.np, v.nn };
-        r.value = { base + v.vp, v.vn };
-        r.id = v.id;
-        return r;
+        std::memcpy(
+            reinterpret_cast<
+                fields_table_entry*>(
+                    dest) - n,
+            p_ - n,
+            n * sizeof(
+                fields_table_entry));
     }
 
 private:
-    pointer p_ = nullptr;
+    fields_table_entry const* p_;
 };
 
-using const_fields_table =
-    basic_fields_table<true>;
+//------------------------------------------------
 
-using fields_table =
-    basic_fields_table<false>;
+struct fields_table
+{
+    explicit
+    fields_table(
+        void* end) noexcept
+        : p_(reinterpret_cast<
+            fields_table_entry*>(
+                end))
+    {
+    }
 
+    fields_table_entry&
+    operator[](
+        std::size_t i) const noexcept
+    {
+        return p_[-1 * (
+            static_cast<
+                long>(i) + 1)];
+    }
+
+    void
+    copy(
+        void* dest,
+        std::size_t n) const noexcept
+    {
+        std::memcpy(
+            reinterpret_cast<
+                fields_table_entry*>(
+                    dest) - n,
+            p_ - n,
+            n * sizeof(
+                fields_table_entry));
+    }
+
+private:
+    fields_table_entry* p_;
+};
+
+//------------------------------------------------
+
+// return total bytes needed
+// to store message of `size`
+// bytes and `count` fields.
 inline
 std::size_t
-fields_table_size(
-    std::size_t n) noexcept
+buffer_needed(
+    std::size_t size,
+    std::size_t count) noexcept
 {
-    return n * sizeof(
-        fields_table_entry);
-}
-
-inline
-void
-write(
-    fields_table& t,
-    char const* base,
-    std::size_t i,
-    string_view name,
-    string_view value,
-    field id) noexcept
-{
-    auto& e = t[i];
-    e.np = static_cast<off_t>(
-        name.data() - base);
-    e.vp = static_cast<off_t>(
-        value.data() - base);
-    e.nn = static_cast<
-        off_t>(name.size());
-    e.vn = static_cast<
-        off_t>(value.size());
-    e.id = id;
+    // make sure `size` is big enough
+    // to hold the largest default buffer:
+    // "HTTP/1.1 200 OK\r\n\r\n"
+    if( size < 19)
+        size = 19;
+    static constexpr auto A =
+        alignof(fields_table_entry);
+    return A * (
+        (size + A - 1) / A) +
+            (count * sizeof(
+                fields_table_entry));
 }
 
 } // detail

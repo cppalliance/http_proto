@@ -11,6 +11,7 @@
 set(EXTRAFILES
     ../../url/extra/test_main.cpp
     ../../url/extra/include/test_suite.hpp
+    ./test_helpers.hpp
     )
 
 set(PFILES
@@ -22,6 +23,7 @@ set(PFILES
     context.cpp
     error.cpp
     field.cpp
+    fields.cpp
     fields_view.cpp
     headers.cpp
     http_proto.cpp
@@ -36,6 +38,7 @@ set(PFILES
     serializer.cpp
     status.cpp
     string_view.cpp
+    test_helpers.cpp
     version.cpp
     bnf/algorithm.cpp
     bnf/char_set.cpp

@@ -13,12 +13,15 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/const_string.hpp>
 #include <memory>
 
 namespace boost {
 namespace http_proto {
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+enum class field : unsigned short;
+#endif
 
 /** A read-only, forward range of HTTP fields
 */
@@ -27,34 +30,45 @@ class BOOST_SYMBOL_VISIBLE
     : public basic_header
 {
 #ifndef BOOST_HTTP_PROTO_DOCS
-protected:
+public:
 #endif
-    char const* base_ = nullptr;
-    detail::const_fields_table t_;
+    char const* cbuf_ = nullptr;
+    std::size_t buf_len_ = 0;
     off_t start_len_ = 0;
-    off_t end_len_ = 0;
+    off_t end_pos_ = 0;
     off_t count_ = 0;
 
-    friend struct fields_view_test;
+    friend class fields;
     friend class headers;
+    friend struct fields_test;
+    friend struct fields_view_test;
 
     struct ctor_params
+        : basic_header::ctor_params
     {
-        char const* base;       // buffer base
-        std::size_t start_len;  // start line length
-        std::size_t end_len;    // total length
-        std::size_t count;      // field count
-        void const* table;      // table or null
+        char const* cbuf = nullptr;
+        std::size_t buf_len = 0;
+        std::size_t start_len = 0;
+        std::size_t end_pos = 0;
+        std::size_t count = 0;
     };
 
-    explicit
-    fields_view(
-        ctor_params const&) noexcept;
+    static string_view default_buffer(char) noexcept;
+    static bool is_default(char const*) noexcept;
+    void write_table(void*) const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    explicit fields_view(ctor_params const&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    explicit fields_view(char) noexcept;
 
 public:
     class iterator;
     class subrange;
 
+    /** A field
+    */
     struct value_type
     {
         field id;
@@ -62,38 +76,58 @@ public:
         std::string value;
     };
 
+    /** A field
+    */
     struct reference
     {
         field id;
         string_view name;
         string_view value;
 
+    #ifndef BOOST_HTTP_PROTO_DOCS
         reference const*
         operator->() const noexcept
         {
             return this;
         }
+    #endif
     };
 
+    /** Constructor
+
+        Default constructed field views
+        have a zero size.
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields_view() noexcept;
+
+    /** Constructor
+    */
     BOOST_HTTP_PROTO_DECL
     fields_view(
         fields_view const&) noexcept;
 
+    /** Assignment
+    */
     BOOST_HTTP_PROTO_DECL
-    fields_view& operator=(
+    fields_view&
+    operator=(
         fields_view const&) noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    fields_view() noexcept;
-
+    /** Return an iterator to the beginning of the range of fields
+    */
     BOOST_HTTP_PROTO_DECL
     iterator
     begin() const noexcept;
 
+    /** Return an iterator to the end of the range of fields
+    */
     BOOST_HTTP_PROTO_DECL
     iterator
     end() const noexcept;
 
+    /** Return a string representing the serialized data
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     buffer() const noexcept override;
@@ -112,44 +146,52 @@ public:
         return count_;
     }
 
-    /// Returns true if a field exists
+    /** Return true if a field exists
+    */
     BOOST_HTTP_PROTO_DECL
     bool
     exists(field id) const noexcept;
 
-    /// Returns true if a field exists
+    /** Return true if a field exists
+    */
     BOOST_HTTP_PROTO_DECL
     bool
     exists(string_view name) const noexcept;
 
-    /// Returns the number of matching fields
+    /** Return the number of matching fields
+    */
     BOOST_HTTP_PROTO_DECL
     std::size_t
     count(field id) const noexcept;
 
-    /// Returns the number of matching fields
+    /** Return the number of matching fields
+    */
     BOOST_HTTP_PROTO_DECL
     std::size_t
     count(string_view name) const noexcept;
 
-    /// Returns the value of the first matching field if it exists, otherwise throws
+    /** Return the value of the first matching field if it exists, otherwise throws
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     at(field id) const;
 
-    /// Returns the value of the first matching field if it exists, otherwise throws
+    /** Return the value of the first matching field if it exists, otherwise throws
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     at(string_view name) const;
 
-    /// Returns the value of the first matching field, otherwise returns the given string
+    /** Return the value of the first matching field, otherwise returns the given string
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     value_or(
         field id,
         string_view v) const noexcept;
 
-    /// Returns the value of the first matching field, otherwise returns the given string
+    /** Return the value of the first matching field, otherwise returns the given string
+    */
     BOOST_HTTP_PROTO_DECL
     string_view
     value_or(
@@ -161,7 +203,8 @@ public:
     iterator
     find(field id) const noexcept;
 
-    /// Returns an iterator to the first matching field, otherwise returns end()
+    /** Returns an iterator to the first matching field, otherwise returns end()
+    */
     BOOST_HTTP_PROTO_DECL
     iterator
     find(string_view name) const noexcept;
@@ -182,15 +225,34 @@ public:
         iterator from, 
         string_view name) const noexcept;
 
-    /// Return a forward range containing values for all matching fields
+    /** Return a forward range containing values for all matching fields
+    */
     BOOST_HTTP_PROTO_DECL
     subrange
     find_all(field id) const noexcept;
 
-    /// Return a forward range containing values for all matching fields
+    /** Return a forward range containing values for all matching fields
+    */
     BOOST_HTTP_PROTO_DECL
     subrange
     find_all(string_view name) const noexcept;
+
+    /** Swap this with another instance
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(fields_view& other) noexcept;
+
+    /** Swap two instances
+    */
+    friend
+    void
+    swap(
+        fields_view& v1,
+        fields_view& v2) noexcept
+    {
+        v1.swap(v2);
+    }
 };
 
 //------------------------------------------------

@@ -24,6 +24,7 @@ local SOURCES =
     context.cpp
     error.cpp
     field.cpp
+    fields.cpp
     fields_view.cpp
     headers.cpp
     http_proto.cpp
@@ -77,5 +78,6 @@ local SOURCES =
 
 for local f in $(SOURCES)
 {
-    run $(f) /boost/http_proto//boost_http_proto ;
+    run $(f) ./test_helpers.cpp /boost/http_proto//boost_http_proto ;
 }
+

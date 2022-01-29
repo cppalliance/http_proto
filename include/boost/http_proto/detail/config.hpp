@@ -48,7 +48,11 @@ using off_t = ::uint16_t; // private
 
 // maximum size of http header,
 // chunk header, or chunk extensions
+#ifndef BOOST_HTTP_PROTO_MAX_HEADER
 #define BOOST_HTTP_PROTO_MAX_HEADER 65535U
+#endif
+static constexpr auto max_off_t =
+    BOOST_HTTP_PROTO_MAX_HEADER;
 
 } // http_proto
 

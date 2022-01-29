@@ -15,6 +15,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/headers.hpp>
 #include <boost/http_proto/method.hpp>

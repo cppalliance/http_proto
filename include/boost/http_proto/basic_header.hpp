@@ -79,6 +79,23 @@ public:
     {
         return has_content_length_;
     }
+
+    /** Swap this with another instance
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(basic_header& other) noexcept;
+
+    /** Swap two instances
+    */
+    friend
+    void
+    swap(
+        basic_header& v1,
+        basic_header& v2) noexcept
+    {
+        v1.swap(v2);
+    }
 };
 
 } // http_proto

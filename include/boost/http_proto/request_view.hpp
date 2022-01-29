@@ -30,14 +30,14 @@ class BOOST_SYMBOL_VISIBLE
     : public fields_view
 {
 #ifndef BOOST_HTTP_PROTO_DOCS
-protected:
+public:
 #endif
 
     friend class request;
     friend class request_parser;
 
-    off_t method_len_ = 0;
-    off_t target_len_ = 0;
+    off_t method_len_;
+    off_t target_len_;
     http_proto::method method_;
     http_proto::version version_;
 
@@ -57,10 +57,6 @@ protected:
 
 public:
     /** Constructor
-
-        The contents of default constructed
-        messages are undefined. The only valid
-        operations are assignment and destruction.
     */
     BOOST_HTTP_PROTO_DECL
     request_view() noexcept;
@@ -91,7 +87,7 @@ public:
     method_str() const noexcept
     {
         return string_view(
-            base_, method_len_);
+            cbuf_, method_len_);
     }
 
     /** Return the request-target string
@@ -100,7 +96,7 @@ public:
     target() const noexcept
     {
         return string_view(
-            base_ +
+            cbuf_ +
                 method_len_ + 1,
             target_len_);
     }

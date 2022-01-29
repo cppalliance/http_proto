@@ -11,8 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
-#include <boost/http_proto/headers.hpp>
+#include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -27,7 +26,7 @@ class request_view;
 */
 class BOOST_SYMBOL_VISIBLE
     request
-    : public basic_header
+    : public fields
 {
     http_proto::method method_;
     http_proto::version version_;
@@ -35,26 +34,48 @@ class BOOST_SYMBOL_VISIBLE
     std::size_t target_len_;
 
 public:
-    /** The field values for this request
-    */
-    headers fields;
-
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
     request();
 
-    BOOST_HTTP_PROTO_DECL
-    request(request&&) noexcept;
-
+    /** Constructor
+    */
     BOOST_HTTP_PROTO_DECL
     request(request const&);
 
-    BOOST_HTTP_PROTO_DECL
-    request& operator=(request&&) noexcept;
+    /** Constructor
 
+        The moved-from object will be
+        left in the default-constructed
+        state.
+    */
     BOOST_HTTP_PROTO_DECL
-    request& operator=(request const&);
+    request(request&&) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    request&
+    operator=(request&&) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    request&
+    operator=(request const&);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    request&
+    operator=(request_view const&);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    request(
+        request_view const&);
 
     //--------------------------------------------
     //
@@ -81,19 +102,17 @@ public:
     method_str() const noexcept
     {
         return string_view(
-            fields.owner_str().data(),
-            method_len_);
+            cbuf_, method_len_);
     }
 
-    /** Return the target of this request as a string
+    /** Return the request-target
     */
     string_view
     target() const noexcept
     {
         return string_view(
-            fields.owner_str().data() +
-                method_len_ + 1,
-            target_len_);
+            cbuf_ + method_len_ + 1,
+                target_len_);
     }
 
     /** Return the HTTP version of this request
@@ -110,12 +129,6 @@ public:
     operator
     request_view() const noexcept;
 
-    /** Return the serialized string of this request
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    buffer() const noexcept override;
-
     //--------------------------------------------
     //
     // Modifiers
@@ -131,10 +144,14 @@ public:
     /** Set the method of the request to the enum
     */
     void
-    set_method(http_proto::method m)
+    set_method(
+        http_proto::method m)
     {
-        set(m, to_string(m),
-            target(), version());
+        set_impl(
+            m,
+            to_string(m),
+            target(),
+            version());
     }
 
     /** Set the method of the request to the string
@@ -142,8 +159,11 @@ public:
     void
     set_method(string_view s)
     {
-        set(string_to_method(s), s,
-            target(), version());
+        set_impl(
+            string_to_method(s),
+            s,
+            target(),
+            version());
     }
 
     /** Set the target string of the request
@@ -156,9 +176,11 @@ public:
     void
     set_target(string_view s)
     {
-        set(
-            method_, method_str(),
-            s, version());
+        set_impl(
+            method_,
+            method_str(),
+            s,
+            version());
     }
 
     /** Set the HTTP version of the request
@@ -167,9 +189,11 @@ public:
     set_version(
         http_proto::version v)
     {
-        set(
-            method_, method_str(),
-            target(), v);
+        set_impl(
+            method_,
+            method_str(),
+            target(),
+            v);
     }
 
     /** Set the method, target, and version of the request
@@ -178,12 +202,13 @@ public:
         properties individually.
     */
     void
-    set(http_proto::method m,
+    set_start_line(
+        http_proto::method m,
         string_view t,
         http_proto::version v =
             http_proto::version::http_1_1)
     {
-        set(m, to_string(m), t, v);
+        set_impl(m, to_string(m), t, v);
     }
 
     /** Set the method, target, and version of the request
@@ -192,12 +217,13 @@ public:
         properties individually.
     */
     void
-    set(string_view m,
+    set_start_line(
+        string_view m,
         string_view t,
         http_proto::version v =
             http_proto::version::http_1_1)
     {
-        set(string_to_method(m), m, t, v);
+        set_impl(string_to_method(m), m, t, v);
     }
 
     /** Swap this with another instance
@@ -220,7 +246,8 @@ public:
 private:
     BOOST_HTTP_PROTO_DECL
     void
-    set(http_proto::method m,
+    set_impl(
+        http_proto::method m,
         string_view ms,
         string_view t,
         http_proto::version v);

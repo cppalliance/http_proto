@@ -9,12 +9,11 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/request_view.hpp>
-#include <boost/http_proto/rfc/field_rule.hpp>
-#include <boost/http_proto/rfc/request_line_rule.hpp>
-#include <boost/http_proto/detail/except.hpp>
-#include <boost/url/grammar/parse.hpp>
 
-#include "test_suite.hpp"
+#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/version.hpp>
+
+#include "test_helpers.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -22,91 +21,84 @@ namespace http_proto {
 class request_view_test
 {
 public:
-    struct test_view : request_view
-    {
-        explicit
-        test_view(string_view s)
-            : request_view(
-            [&s]
-            {
-                error_code ec;
-                auto it = s.data();
-                auto const end =
-                    it + s.size();
-                request_line_rule t0;
-                if(! grammar::parse(
-                    it, end, ec, t0))
-                    detail::throw_system_error(
-                        ec, BOOST_CURRENT_LOCATION);
-
-                ctor_params init;
-                init.base = s.data();
-                init.start_len = 0;
-                init.end_len = s.size();
-                init.count = 0;
-                init.table = nullptr;
-                init.method_len = t0.ms.size();
-                init.target_len = t0.t.size();
-                init.method = t0.m;
-                init.version = t0.v;
-                field_rule t1;
-                for(;;)
-                {
-                    if(grammar::parse(
-                        it, end, ec, t1))
-                    {
-                        ++init.count;
-                        continue;
-                    }
-                    if(ec == grammar::error::end)
-                        break;
-                    detail::throw_system_error(ec,
-                        BOOST_CURRENT_LOCATION);
-                }
-                return init;
-            }())
-        {
-        }
-    };
-
     void
-    run()
+    testView()
     {
+        // request_view()
+        {
+            request_view req;
+            BOOST_TEST(req.size() == 0);
+            BOOST_TEST(req.method() == method::get);
+            BOOST_TEST(req.method_str() == "GET");
+            BOOST_TEST(req.target() == "/");
+            BOOST_TEST(
+                req.version() == version::http_1_1);
+            BOOST_TEST(req.buffer() ==
+                "GET / HTTP/1.1\r\n\r\n");
+        }
+
         string_view s =
-            "GET / HTTP/1.1\r\n"
+            "POST /x HTTP/1.0\r\n"
             "Content-Length: 42\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
 
-        // default ctor
+        // request_view(request_view)
         {
-            request_view req;
-            BOOST_TEST(req.size() == 0);
+            {
+                // default buffer
+                request_view r1;
+                request_view r2(r1);
+                BOOST_TEST(r2.size() == 0);
+                BOOST_TEST(r2.method() == method::get);
+                BOOST_TEST(r2.method_str() == "GET");
+                BOOST_TEST(r2.target() == "/");
+                BOOST_TEST(
+                    r2.version() == version::http_1_1);
+
+            }
+            {
+                request_view r1 = make_request(s);
+                BOOST_TEST(r1.method() == method::post);
+                BOOST_TEST(r1.method_str() == "POST");
+                BOOST_TEST(r1.target() == "/x");
+                BOOST_TEST(
+                    r1.version() == version::http_1_0);
+                BOOST_TEST(
+                    r1.buffer().data() == s.data());
+
+                request_view r2(r1);
+                BOOST_TEST(r2.size() == 2);;
+                BOOST_TEST(r2.method() == method::post);
+                BOOST_TEST(r2.method_str() == "POST");
+                BOOST_TEST(r2.target() == "/x");
+                BOOST_TEST(
+                    r2.version() == version::http_1_0);
+                BOOST_TEST(
+                    r2.buffer().data() == s.data());
+            }
         }
 
-        // copy ctor
+        // operator=(request_view)
         {
-            test_view r1(s);
-            BOOST_TEST(
-                r1.buffer().data() ==
-                    s.data());
-            request_view r2(r1);
-            BOOST_TEST(r2.size() == 2);;
-            BOOST_TEST(
-                r2.buffer().data() ==
-                    s.data());
-        }
-
-        // copy assign
-        {
-            test_view r1(s);
+            request_view r1 = make_request(s);
             request_view r2;
-            BOOST_TEST(r2.buffer().empty());
             r2 = r1;
+            BOOST_TEST(r2.size() == 2);
+            BOOST_TEST(r2.method() == method::post);
+            BOOST_TEST(r2.method_str() == "POST");
+            BOOST_TEST(r2.target() == "/x");
             BOOST_TEST(
-                r2.buffer().data() ==
-                    s.data());
+                r2.version() == version::http_1_0);
+            BOOST_TEST(
+                r2.buffer().data() == s.data());
         }
+    }
+
+    void
+    run()
+    {
+        testView();
     }
 };
 

@@ -20,12 +20,24 @@ namespace http_proto {
 
 request::
 request()
-    : method_(http_proto::method::get)
+    : fields(1)
+    , method_(http_proto::method::get)
     , version_(http_proto::version::http_1_1)
     , method_len_(3)
     , target_len_(1)
-    , fields(1)
 {
+}
+
+request::
+request(
+    request const& other)
+    : fields(other, 1)
+    , method_(other.method_)
+    , version_(other.version_)
+    , method_len_(other.method_len_)
+    , target_len_(other.target_len_)
+{
+    BOOST_ASSERT(kind_ == 1);
 }
 
 request::
@@ -35,35 +47,37 @@ request(request&& other) noexcept
     swap(other);
 }
 
-request::
-request(request const& other)
-    : basic_header()
-    , method_(other.method_)
-    , version_(other.version_)
-    , method_len_(other.method_len_)
-    , target_len_(other.target_len_)
-    , fields(other.fields, 1)
-{
-}
-
 request&
 request::
 operator=(request&& other) noexcept
 {
     request temp(
         std::move(other));
-    swap(temp);
+    temp.swap(*this);
     return *this;
 }
 
 request&
 request::
-operator=(request const& other)
+operator=(
+    request const& other)
 {
     request temp(other);
     swap(temp);
     return *this;
 }
+
+request::
+request(
+    request_view const& rv)
+    : fields(rv, 1)
+    , method_(rv.method_)
+    , version_(rv.version_)
+    , method_len_(rv.method_len_)
+    , target_len_(rv.target_len_)
+{
+}
+
 
 //------------------------------------------------
 
@@ -72,23 +86,16 @@ operator
 request_view() const noexcept
 {
     request_view::ctor_params init;
-    init.base = fields.buf_;
-    init.start_len = fields.start_len_;
-    init.end_len = fields.fields_len_;
-    init.count = fields.count_;
-    init.table = fields.buf_ + fields.cap_;
+    init.cbuf = cbuf_;
+    init.buf_len = buf_len_;
+    init.start_len = start_len_;
+    init.end_pos = end_pos_;
+    init.count = count_;
     init.method_len = method_len_;
     init.target_len = target_len_;
     init.method = method_;
     init.version = version_;
     return request_view(init);
-}
-
-string_view
-request::
-buffer() const noexcept
-{
-    return fields.owner_str();
 }
 
 //------------------------------------------------
@@ -97,35 +104,39 @@ void
 request::
 clear() noexcept
 {
-    version_ =
-        http_proto::version::http_1_1;
-    method_len_ = 3;
-    target_len_ = 1;
-    fields.clear();
+    if(buf_ == nullptr)
+        return;
+    this->fields::clear();
+    set_impl(
+        http_proto::method::get,
+        "GET",
+        "/",
+        http_proto::version::http_1_1);
 }
 
 void
 request::
 swap(request& other) noexcept
 {
+    static_cast<fields&>(*this).swap(other);
     std::swap(method_, other.method_);
     std::swap(version_, other.version_);
     std::swap(method_len_, other.method_len_);
     std::swap(target_len_, other.target_len_);
-    fields.owner_swap(other.fields);
 }
 
 //------------------------------------------------
 
 void
 request::
-set(http_proto::method m,
+set_impl(
+    http_proto::method m,
     string_view ms,
     string_view t,
     http_proto::version v)
 {
     detail::copied_strings cs(
-        fields.owner_str());
+        this->buffer());
     ms = cs.maybe_copy(ms);
     t = cs.maybe_copy(t);
 
@@ -136,7 +147,7 @@ set(http_proto::method m,
         t.size() + 1 +
         vs.size() + 2;
     auto dest =
-        fields.set_start_line(n);
+        set_start_line_impl(n);
     std::memcpy(
         dest,
         ms.data(),

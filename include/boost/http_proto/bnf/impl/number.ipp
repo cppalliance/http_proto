@@ -106,8 +106,9 @@ parse(
             return start;
         }
         v_ *= 16;
-        std::uint64_t const d =
-            grammar::hexdig_value(*it);
+        char d0;
+        grammar::hexdig_value(*it, d0);
+        std::uint64_t const d = d0;
         if(max - v_ < d)
         {
             ec = error::numeric_overflow;

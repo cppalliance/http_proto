@@ -9,93 +9,28 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_view.hpp>
-#include <boost/http_proto/error.hpp>
+
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/rfc/field_rule.hpp>
-#include <boost/http_proto/detail/except.hpp>
-#include <boost/url/grammar/parse.hpp>
-#include <boost/assert/source_location.hpp>
 
-#include "test_suite.hpp"
-
-#include <string>
+#include "test_helpers.hpp"
 
 namespace boost {
 namespace http_proto {
 
 struct fields_view_test
 {
-    struct test_view : fields_view
-    {
-        explicit
-        test_view(string_view s)
-            : fields_view(
-            [&s]
-            {
-                ctor_params init;
-                init.base = s.data();
-                init.start_len = 0;
-                init.end_len = s.size();
-                init.count = 0;
-                init.table = nullptr;
-                char const* it = s.data();
-                char const* const end =
-                    s.data() + s.size();
-                error_code ec;
-                field_rule r;
-                for(;;)
-                {
-                    if(grammar::parse(
-                        it, end, ec, r))
-                    {
-                        ++init.count;
-                        continue;
-                    }
-                    if(ec == grammar::error::end)
-                        break;
-                    detail::throw_system_error(ec,
-                        BOOST_CURRENT_LOCATION);
-                }
-                return init;
-            }())
-        {
-        }
-    };
-
-    fields_view
-    construct(
-        string_view s0,
-        std::string& s)
-    {
-        test_view f(s0);
-        auto A = alignof(
-            detail::fields_table_entry);
-        auto n = A * (
-            (s0.size() + A - 1) / A) +
-            detail::fields_table_size(
-                f.size());
-        s.resize(n);
-        std::memcpy(&s[0],
-            s0.data(), s0.size());
-        std::size_t i = 0;
-        detail::fields_table t(
-            &s[0] + s.size());
-        for(auto const& v : f)
-            detail::write(
-                t,
-                s0.data(),
-                i++,
-                v.name,
-                v.value,
-                v.id);
-        fields_view::ctor_params init;
-        init.base = s.data();
-        init.start_len = 0;
-        init.end_len = s0.size();
-        init.count = f.size();
-        init.table = &s[0] + s.size();
-        return fields_view(init);        
-    }
+    string_view const cs_ =
+        "Content-Length: 42\r\n"
+        "x: 1\r\n"
+        "y: 2\r\n"
+        "Set-Cookie: a\r\n"
+        "x: 3\r\n"
+        "z: 4\r\n"
+        "Set-Cookie: b\r\n"
+        "x: 5\r\n"
+        "p: 6\r\n"
+        "User-Agent: boost\r\n"
+        "\r\n";
 
     void
     testOneView(fields_view f)
@@ -209,40 +144,32 @@ struct fields_view_test
         ++it;
         BOOST_TEST(it != f.begin());
         BOOST_TEST(it != f.end());
-    }
 
-    void
-    testEmptyView(fields_view f)
-    {
-        // empty range
-        BOOST_TEST(f.size() == 0);
-        BOOST_TEST(f.begin() == f.end());
+        check(f, 10, cs_);
     }
 
     void
     testViews()
     {
-        string_view const cs =
-            "Content-Length: 42\r\n"
-            "x: 1\r\n"
-            "y: 2\r\n"
-            "Set-Cookie: a\r\n"
-            "x: 3\r\n"
-            "z: 4\r\n"
-            "Set-Cookie: b\r\n"
-            "x: 5\r\n"
-            "p: 6\r\n"
-            "User-Agent: boost\r\n"
-            "\r\n";
-
+        // fields_view()
         {
-            test_view f(cs);
-            testOneView(f);
+            fields_view f;
+            BOOST_TEST(f.size() == 0);
+            BOOST_TEST(f.begin() == f.end());
+            BOOST_TEST(f.buffer() == "\r\n");
         }
 
         {
+            fields_view f =
+                make_fields(cs_);
+            testOneView(f);
+        }
+
+        // with lookup table
+        {
             std::string s;
-            auto f = construct(cs, s);
+            fields_view f =
+                make_fields(cs_, s);
             testOneView(f);
         }
     }
@@ -253,7 +180,8 @@ struct fields_view_test
         using S =
             fields_view::subrange;
 
-        test_view f(
+        fields_view f =
+            make_fields(
             "x: 1\r\n"
             "y: 2\r\n"
             "x: 3\r\n"

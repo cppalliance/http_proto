@@ -35,6 +35,13 @@ basic_header(
 basic_header::
 ~basic_header() = default;
 
+void
+basic_header::
+swap(basic_header& other) noexcept
+{
+    (void)other;
+}
+
 } // http_proto
 } // boost
 

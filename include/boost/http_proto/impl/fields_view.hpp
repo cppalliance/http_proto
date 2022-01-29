@@ -17,28 +17,25 @@ namespace http_proto {
 
 class fields_view::iterator
 {
+    fields_view const* f_ = nullptr;
     char const* it_ = nullptr;
-    char const* end_ = nullptr;
-    detail::const_fields_table t_;
-    off_t i_ = 0;
-    field id_;
-    string_view n_;
-    string_view v_;
 
+    off_t i_ = 0;
+    off_t np_;
+    off_t nn_;
+    off_t vp_;
+    off_t vn_;
+    field id_;
+
+    friend class fields;
     friend class fields_view;
 
     void
     read() noexcept;
 
-    explicit
     iterator(
         fields_view const* f,
-        detail::const_fields_table t) noexcept;
-
-    iterator(
-        fields_view const* f,
-        detail::const_fields_table t,
-        int) noexcept;
+        std::size_t i) noexcept;
 
 public:
     using value_type =
@@ -64,8 +61,7 @@ public:
     {
         // can't compare iterators
         // from different containers
-        BOOST_ASSERT(
-            end_ == other.end_);
+        BOOST_ASSERT(f_ == other.f_);
         return i_ == other.i_;
     }
 
@@ -181,6 +177,12 @@ public:
         iterator const&) = default;
 
     iterator() = default;
+
+    operator
+    fields_view::iterator() const noexcept
+    {
+        return it_;
+    }
 
     bool
     operator==(

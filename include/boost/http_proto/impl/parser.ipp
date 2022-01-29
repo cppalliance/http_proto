@@ -616,15 +616,20 @@ parse_fields(
         default:
             break;
         }
-        detail::fields_table ft(
-            buf_ + cap_);
-        detail::write(
-            ft,
-            buf_ + m_.start_len,
-            m_.count,
-            t.v.name,
-            t.v.value,
-            id);
+        auto& e =
+            detail::fields_table(
+            buf_ + cap_)[m_.count];
+        auto const base =
+            buf_ + m_.start_len;
+        e.np = static_cast<off_t>(
+            t.v.name.data() - base);
+        e.nn = static_cast<off_t>(
+            t.v.name.size());
+        e.vp = static_cast<off_t>(
+            t.v.value.data() - base);
+        e.vn = static_cast<off_t>(
+            t.v.value.size());
+        e.id = id;
     #if 0
         // VFALCO handling zero-length value?
         if(fi.value_len > 0)
