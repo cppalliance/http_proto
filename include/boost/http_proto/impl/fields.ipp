@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_IPP
 
 #include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/assert/source_location.hpp>
@@ -422,11 +423,18 @@ fields::
 erase_all(
     string_view name) noexcept
 {
-    std::size_t n = 0;
-    std::size_t i = count_;
-    while(i > 0)
+    // find the first occurrence and use
+    // its string instead, to handle the
+    // case where `name` comes from the
+    // fields buffer.
+    auto it0 = find(name);
+    if(it0 == end())
+        return 0;
+    name = it0->name;
+    std::size_t n = 1;
+    std::size_t i = count_ - 1;
+    while(i != it0.i_)
     {
-        --i;
         iterator it(this, i);
         if(bnf::iequals(
             it->name, name))
@@ -434,7 +442,9 @@ erase_all(
             erase(it);
             ++n;
         }
+        --i;
     }
+    erase(it0);
     return n;
 }
 
@@ -480,7 +490,6 @@ insert_impl(
         name.size() + 2 +
         value.size() + 2;
     auto const n1 = end_pos_ + n0;
-    // VFALCO enforce minimum new_size=19
     if(n1 > max_off_t)
         detail::throw_length_error(
             "too large",
@@ -491,6 +500,10 @@ insert_impl(
     if(buf_len_ >= n)
     {
         BOOST_ASSERT(buf_ != nullptr);
+        detail::copied_strings cs(
+            string_view(cbuf_, end_pos_));
+        name = cs.maybe_copy(name);
+        value = cs.maybe_copy(value);
         detail::fields_table ft(
             buf_ + buf_len_);
         auto pos = offset(ft, before);

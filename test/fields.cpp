@@ -349,31 +349,46 @@ struct fields_test
 
             // emplace(iterator, string_view, string_view)
             {
-                fields f(v);
-                f.emplace(
-                    f.find(field::set_cookie),
-                    "Content-Length",
-                    "42");
-                check(f, 5,
-                    "Connection: close\r\n"
-                    "Content-Length: 42\r\n"
-                    "Set-Cookie: 0\r\n"
-                    "User-Agent: boost\r\n"
-                    "Set-Cookie: 1\r\n"
-                    "\r\n");
-            }
+                {
+                    fields f(v);
+                    f.emplace(
+                        f.find(field::set_cookie),
+                        "Content-Length",
+                        "42");
+                    check(f, 5,
+                        "Connection: close\r\n"
+                        "Content-Length: 42\r\n"
+                        "Set-Cookie: 0\r\n"
+                        "User-Agent: boost\r\n"
+                        "Set-Cookie: 1\r\n"
+                        "\r\n");
+                }
+                {
+                    fields f(v);
+                    f.reserve(f.capacity_in_bytes() * 2);
+                    f.emplace(
+                        f.find(field::set_cookie),
+                        "Content-Length",
+                        "42");
+                    check(f, 5,
+                        "Connection: close\r\n"
+                        "Content-Length: 42\r\n"
+                        "Set-Cookie: 0\r\n"
+                        "User-Agent: boost\r\n"
+                        "Set-Cookie: 1\r\n"
+                        "\r\n");
+                }
 
-            // emplace(iterator, string_view, string_view)
-            {
+                // self-intersect
                 fields f(v);
                 f.reserve(f.capacity_in_bytes() * 2);
                 f.emplace(
-                    f.find(field::set_cookie),
-                    "Content-Length",
-                    "42");
+                    f.begin(),
+                    f.find(field::user_agent)->value,
+                    f.find(field::connection)->value);
                 check(f, 5,
+                    "boost: close\r\n"
                     "Connection: close\r\n"
-                    "Content-Length: 42\r\n"
                     "Set-Cookie: 0\r\n"
                     "User-Agent: boost\r\n"
                     "Set-Cookie: 1\r\n"
