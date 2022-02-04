@@ -22,22 +22,6 @@ public:
     void
     run()
     {
-        {
-            response res;
-            res.set_result(
-                status::ok,
-                version::http_1_1);
-            res.fields.append(
-                field::connection,
-                "close");
-            res.fields.append(
-                field::server,
-                "Boost.HTTP-proto");
-            for(auto v : res.fields)
-            {
-                v.id = v.id;
-            }
-        }
     }
 };
 

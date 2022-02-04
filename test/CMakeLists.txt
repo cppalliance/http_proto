@@ -25,7 +25,6 @@ set(PFILES
     field.cpp
     fields.cpp
     fields_view.cpp
-    headers.cpp
     http_proto.cpp
     method.cpp
     parser.cpp
