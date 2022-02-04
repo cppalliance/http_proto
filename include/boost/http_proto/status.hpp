@@ -17,7 +17,7 @@
 namespace boost {
 namespace http_proto {
 
-enum class status : unsigned
+enum class status : unsigned short
 {
     /** An unknown status-code.
 
@@ -107,7 +107,7 @@ enum class status : unsigned
 
 /** Represents the class of a status-code.
 */
-enum class status_class : unsigned
+enum class status_class : unsigned char
 {
     /// Unknown status-class
     unknown = 0,
