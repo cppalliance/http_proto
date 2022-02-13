@@ -15,6 +15,28 @@
 namespace boost {
 namespace http_proto {
 
+/*
+
+fields_view_base     header_base
+             \        /
+            request_view
+
+
+
+   fields_view_base
+          |
+     fields_base    header_base
+              \     /
+              request
+
+              
+              
+         fields_view_base
+                 |
+            fields_base
+                 |
+              fields
+*/
 class basic_header_test
 {
 public:

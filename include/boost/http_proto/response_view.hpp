@@ -25,7 +25,7 @@ enum class version : char;
 
 class BOOST_SYMBOL_VISIBLE
     response_view
-    : public fields_view
+    : public fields_view_base
 {
     friend class response;
     friend class response_parser;

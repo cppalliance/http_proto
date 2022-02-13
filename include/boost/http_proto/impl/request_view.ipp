@@ -17,7 +17,7 @@ namespace http_proto {
 
 request_view::
 request_view() noexcept
-    : fields_view(1)
+    : fields_view_base(1)
     , method_len_(3)
     , target_len_(1)
     , method_(http_proto::method::get)
@@ -36,7 +36,7 @@ operator=(request_view const&) noexcept = default;
 request_view::
 request_view(
     ctor_params const& init) noexcept
-    : fields_view(init)
+    : fields_view_base(init)
     , method_len_(static_cast<
         off_t>(init.method_len))
     , target_len_(static_cast<

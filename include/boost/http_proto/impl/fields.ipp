@@ -20,30 +20,43 @@
 namespace boost {
 namespace http_proto {
 
-fields::
-fields(
+//------------------------------------------------
+//
+// fields_base
+//
+//------------------------------------------------
+
+fields_base::
+~fields_base()
+{
+    if(buf_)
+        delete[] buf_;
+}
+
+fields_base::
+fields_base(
     ctor_params const& init) noexcept
-    : fields_view(init)
+    : fields_view_base(init)
     , buf_(init.buf)
     , kind_(init.kind)
 {
 }
 
-fields::
-fields(
+fields_base::
+fields_base(
     char kind) noexcept
-    : fields_view(kind)
+    : fields_view_base(kind)
     , buf_(nullptr)
     , kind_(kind)
 {
 }
 
 // copy with start-line
-fields::
-fields(
-    fields_view const& fv,
+fields_base::
+fields_base(
+    fields_view_base const& fv,
     char kind)
-    : fields(
+    : fields_base(
     [&fv, kind]
     {
         ctor_params init;
@@ -81,170 +94,12 @@ fields(
 
 //------------------------------------------------
 //
-// Special Members
+// Modifiers
 //
 //------------------------------------------------
 
-fields::
-~fields()
-{
-    if(buf_)
-        delete[] buf_;
-}
-
-fields::
-fields() noexcept
-    : fields(0)
-{
-}
-
-fields::
-fields(
-    fields&& other) noexcept
-    : fields(other.kind_)
-{
-    this->swap(other);
-}
-
-fields::
-fields(
-    fields const& f)
-    : fields(static_cast<
-        fields_view const&>(f))
-{
-}
-
-// copy without start-line
-fields::
-fields(
-    fields_view const& f)
-    : fields(
-    [&f]
-    {
-        ctor_params init;
-        if(f.count_ > 0)
-        {
-            // copy fields
-            auto n = detail::buffer_needed(
-                f.end_pos_ - f.start_len_,
-                    f.count_);
-            auto buf = new char[n];
-            std::memcpy(
-                buf,
-                f.cbuf_ + f.start_len_,
-                f.end_pos_ - f.start_len_);
-            f.write_table(buf + n);
-            init.cbuf = buf;
-            init.buf_len = n;
-            init.start_len = 0;
-            init.end_pos =
-                f.end_pos_ - f.start_len_;
-            init.count = f.count_;
-            init.buf = buf;
-            init.kind = 0;
-            return init;
-        }
-
-        // default buffer
-        auto const s =
-            default_buffer(0);
-        init.cbuf = s.data();
-        init.buf_len = 0;
-        init.start_len = s.size() - 2;
-        init.end_pos = s.size();
-        init.count = 0;
-        init.buf = nullptr;
-        init.kind = 0;
-        return init;       
-    }())
-{
-}
-
-fields&
-fields::
-operator=(
-    fields&& f) noexcept
-{
-    fields tmp(std::move(f));
-    tmp.swap(*this);
-    return *this;
-}
-
-fields&
-fields::
-operator=(
-    fields const& f)
-{
-    *this = static_cast<
-        fields_view const&>(f);
-    return *this;
-}
-
-// copy fields in f
-// without start-line
-fields&
-fields::
-operator=(
-    fields_view const& f)
-{
-    BOOST_ASSERT(kind_ == 0);
-    if(is_default(f.cbuf_))
-    {
-        fields tmp;
-        tmp.swap(*this);
-        return *this;
-    }
-    auto const n0 =
-        f.end_pos_ -
-        f.start_len_;
-    auto const n =
-        detail::buffer_needed(
-            n0, f.count_);
-    if(buf_len_ < n)
-    {
-        // copy with strong
-        // exception safety
-        fields tmp(f);
-        tmp.swap(*this);
-        return *this;
-    }
-    // use existing capacity
-    std::memcpy(
-        buf_,
-        f.cbuf_ +
-            f.start_len_,
-        n0);
-    f.write_table(
-        buf_ + buf_len_);
-    start_len_ = 0;
-    end_pos_ = static_cast<
-        off_t>(n0);
-    count_ = f.count_;
-    return *this;
-}
-
-//------------------------------------------------
-
 void
-fields::
-clear() noexcept
-{
-    if(! buf_)
-        return;
-    auto s =
-        default_buffer(kind_);
-    end_pos_ = static_cast<
-        off_t>(s.size());
-    start_len_ = end_pos_ - 2;
-    count_ = 0;
-    std::memcpy(
-        buf_,
-        s.data(),
-        end_pos_);
-}
-
-void
-fields::
+fields_base::
 reserve(std::size_t n)
 {
     // align up
@@ -275,18 +130,45 @@ reserve(std::size_t n)
 }
 
 void
-fields::
+fields_base::
 shrink_to_fit() noexcept
 {
     if(detail::buffer_needed(
         end_pos_, count_) >=
             buf_len_)
         return;
-    fields(*this, 0).swap(*this);
+    fields_base(*this, 0).swap(*this);
+}
+
+void
+fields_base::
+emplace_back(
+    field id,
+    string_view value)
+{
+    insert_impl(
+        id,
+        to_string(id),
+        value,
+        count_);
+}
+
+void
+fields_base::
+emplace_back(
+    string_view name,
+    string_view value)
+{
+    insert_impl(
+        string_to_field(
+            name),
+        name,
+        value,
+        count_);
 }
 
 auto
-fields::
+fields_base::
 emplace(
     iterator before,
     field id,
@@ -302,7 +184,7 @@ emplace(
 }
 
 auto
-fields::
+fields_base::
 emplace(
     iterator before,
     string_view name,
@@ -317,35 +199,8 @@ emplace(
     return before;
 }
 
-void
-fields::
-emplace_back(
-    field id,
-    string_view value)
-{
-    insert_impl(
-        id,
-        to_string(id),
-        value,
-        count_);
-}
-
-void
-fields::
-emplace_back(
-    string_view name,
-    string_view value)
-{
-    insert_impl(
-        string_to_field(
-            name),
-        name,
-        value,
-        count_);
-}
-
 auto
-fields::
+fields_base::
 erase(iterator it) noexcept ->
     iterator
 {
@@ -372,7 +227,7 @@ erase(iterator it) noexcept ->
 }
 
 std::size_t
-fields::
+fields_base::
 erase(
     field id) noexcept
 {
@@ -386,7 +241,7 @@ erase(
 }
 
 std::size_t
-fields::
+fields_base::
 erase(
     string_view name) noexcept
 {
@@ -400,7 +255,7 @@ erase(
 }
 
 std::size_t
-fields::
+fields_base::
 erase_all(
     field id) noexcept
 {
@@ -419,7 +274,7 @@ erase_all(
 }
 
 std::size_t
-fields::
+fields_base::
 erase_all(
     string_view name) noexcept
 {
@@ -449,23 +304,14 @@ erase_all(
 }
 
 //------------------------------------------------
-
-void
-fields::
-swap(fields& other)
-{
-    using std::swap;
-    static_cast<fields_view&>(
-        *this).swap(other);
-    swap(buf_, other.buf_);
-    swap(kind_, other.kind_);
-}
-
+//
+// (implementation)
+//
 //------------------------------------------------
 
 // return i-th field absolute offset
 std::size_t
-fields::
+fields_base::
 offset(
     detail::fields_table const& ft,
     std::size_t i) const noexcept
@@ -478,7 +324,7 @@ offset(
 }
 
 void
-fields::
+fields_base::
 insert_impl(
     field id,
     string_view name,
@@ -644,8 +490,39 @@ insert_impl(
     }
 }
 
+//------------------------------------------------
+
+void
+fields_base::
+swap(fields_base& other) noexcept
+{
+    using std::swap;
+    this->fields_view_base::swap(other);
+    swap(buf_, other.buf_);
+    swap(kind_, other.kind_);
+}
+
+
+void
+fields_base::
+clear() noexcept
+{
+    if(! buf_)
+        return;
+    auto s =
+        default_buffer(kind_);
+    end_pos_ = static_cast<
+        off_t>(s.size());
+    start_len_ = end_pos_ - 2;
+    count_ = 0;
+    std::memcpy(
+        buf_,
+        s.data(),
+        end_pos_);
+}
+
 char*
-fields::
+fields_base::
 set_start_line_impl(
     std::size_t n)
 {
@@ -703,6 +580,142 @@ set_start_line_impl(
     start_len_ = static_cast<
         off_t>(n);
     return buf_;
+}
+
+//------------------------------------------------
+//
+// fields
+//
+//------------------------------------------------
+
+fields::
+fields() noexcept
+    : fields_base(0)
+{
+}
+
+fields::
+fields(
+    fields&& other) noexcept
+    : fields_base(other.kind_)
+{
+    this->swap(other);
+}
+
+fields::
+fields(
+    fields const& f)
+    : fields_base(f, 0)
+{
+}
+
+// copy without start-line
+fields::
+fields(
+    fields_view_base const& f)
+    : fields_base(
+    [&f]
+    {
+        ctor_params init;
+        if(f.count_ > 0)
+        {
+            // copy fields
+            auto n = detail::buffer_needed(
+                f.end_pos_ - f.start_len_,
+                    f.count_);
+            auto buf = new char[n];
+            std::memcpy(
+                buf,
+                f.cbuf_ + f.start_len_,
+                f.end_pos_ - f.start_len_);
+            f.write_table(buf + n);
+            init.cbuf = buf;
+            init.buf_len = n;
+            init.start_len = 0;
+            init.end_pos =
+                f.end_pos_ - f.start_len_;
+            init.count = f.count_;
+            init.buf = buf;
+            init.kind = 0;
+            return init;
+        }
+
+        // default buffer
+        auto const s =
+            default_buffer(0);
+        init.cbuf = s.data();
+        init.buf_len = 0;
+        init.start_len = s.size() - 2;
+        init.end_pos = s.size();
+        init.count = 0;
+        init.buf = nullptr;
+        init.kind = 0;
+        return init;       
+    }())
+{
+}
+
+fields&
+fields::
+operator=(
+    fields&& f) noexcept
+{
+    fields tmp(std::move(f));
+    tmp.swap(*this);
+    return *this;
+}
+
+fields&
+fields::
+operator=(
+    fields const& f)
+{
+    fields tmp(f);
+    tmp.swap(*this);
+    return *this;
+}
+
+// copy fields in f
+// without start-line
+fields&
+fields::
+operator=(
+    fields_view const& f)
+{
+    BOOST_ASSERT(kind_ == 0);
+    if(is_default(f.cbuf_))
+    {
+        fields tmp;
+        tmp.swap(*this);
+        return *this;
+    }
+    auto const n0 =
+        f.end_pos_ -
+        f.start_len_;
+    auto const n =
+        detail::buffer_needed(
+            n0, f.count_);
+    if(buf_len_ < n)
+    {
+        // copy with strong
+        // exception safety
+        fields tmp(f);
+        tmp.swap(*this);
+        return *this;
+    }
+    // use existing capacity
+    std::memcpy(
+        buf_,
+        f.cbuf_ +
+            f.start_len_,
+        n0);
+    f.write_table(
+        buf_ + buf_len_);
+    start_len_ = 0;
+    end_pos_ = static_cast<
+        off_t>(n0);
+    count_ = f.count_;
+    return *this;
 }
 
 } // http_proto

@@ -172,6 +172,23 @@ struct fields_view_test
                 make_fields(cs_, s);
             testOneView(f);
         }
+
+        // swap
+        {
+            string_view const cs2 =
+                "t: 1\r\n"
+                "u: 2\r\n"
+                "v: 3\r\n"
+                "\r\n";
+            fields_view f1 = make_fields(cs_);
+            fields_view f2 = make_fields(cs2);
+            using std::swap;
+            swap(f1, f2);
+            BOOST_TEST(
+                f1.buffer().data() == cs2.data());
+            BOOST_TEST(
+                f2.buffer().data() == cs_.data());
+        }
     }
 
     void

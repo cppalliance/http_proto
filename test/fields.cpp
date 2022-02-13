@@ -67,7 +67,7 @@ struct fields_test
             }
         }
 
-        // fields(fields)
+        // fields(fields const&)
         {
             {
                 fields f1 = make_fields(cs);
@@ -89,17 +89,31 @@ struct fields_test
             }
         }
 
-        // fields(fields_view)
+        // fields(fields_view_base const&)
         {
-            fields_view fv = make_fields(cs);
-            BOOST_TEST(
-                fv.buffer().data() == cs.data());
+            {
+                fields_view fv = make_fields(cs);
+                BOOST_TEST(
+                    fv.buffer().data() == cs.data());
 
-            fields f(fv);
-            BOOST_TEST(f.buffer() == cs);
-            BOOST_TEST(
-                f.buffer().data() != cs.data());
-            check(f, 4, cs);
+                fields f(fv);
+                BOOST_TEST(f.buffer() == cs);
+                BOOST_TEST(
+                    f.buffer().data() != cs.data());
+                check(f, 4, cs);
+            }
+
+            // default buffer
+            {
+                fields_view fv;
+
+                fields f(fv);
+                BOOST_TEST(
+                    f.buffer() == "\r\n");
+                BOOST_TEST(
+                    f.buffer().data() ==
+                        fv.buffer().data());
+            }
         }
 
         // operator=(fields&&)
@@ -209,7 +223,7 @@ struct fields_test
 
             // existing capacity
             {
-                fields f1 = make_fields(cs);
+                fields_view f1 = make_fields(cs);
                 fields f2;
                 f2.reserve(2 * cs.size());
                 f2 = f1;

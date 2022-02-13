@@ -20,7 +20,7 @@ namespace http_proto {
 
 request::
 request()
-    : fields(1)
+    : fields_base(1)
     , method_(http_proto::method::get)
     , version_(http_proto::version::http_1_1)
     , method_len_(3)
@@ -31,7 +31,7 @@ request()
 request::
 request(
     request const& other)
-    : fields(other, 1)
+    : fields_base(other, 1)
     , method_(other.method_)
     , version_(other.version_)
     , method_len_(other.method_len_)
@@ -70,7 +70,7 @@ operator=(
 request::
 request(
     request_view const& rv)
-    : fields(rv, 1)
+    : fields_base(rv, 1)
     , method_(rv.method_)
     , version_(rv.version_)
     , method_len_(rv.method_len_)
@@ -106,7 +106,7 @@ clear() noexcept
 {
     if(buf_ == nullptr)
         return;
-    this->fields::clear();
+    this->fields_base::clear();
     set_impl(
         http_proto::method::get,
         "GET",
@@ -118,7 +118,7 @@ void
 request::
 swap(request& other) noexcept
 {
-    static_cast<fields&>(*this).swap(other);
+    this->fields_base::swap(other);
     std::swap(method_, other.method_);
     std::swap(version_, other.version_);
     std::swap(method_len_, other.method_len_);

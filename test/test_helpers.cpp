@@ -95,13 +95,23 @@ make_fields(
             v.value.size());
         e.id = v.id;
     }
+
+    struct helper : fields_view
+    {
+        explicit
+        helper(ctor_params const& init)
+            : fields_view(init)
+        {
+        }
+    };
+
     fields_view::ctor_params init;
     init.cbuf = buf.data();
     init.buf_len = buf.size();
     init.start_len = 0;
     init.end_pos = s.size();
     init.count = f.size();
-    return fields_view(init);        
+    return helper(init);
 }
 
 //------------------------------------------------
@@ -164,7 +174,7 @@ make_request(
 
 void
 check(
-    fields_view const& f,
+    fields_view_base const& f,
     std::size_t n,
     string_view m)
 {

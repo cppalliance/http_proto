@@ -27,7 +27,7 @@ enum class version : char;
 */
 class BOOST_SYMBOL_VISIBLE
     request_view
-    : public fields_view
+    : public fields_view_base
 {
 #ifndef BOOST_HTTP_PROTO_DOCS
 public:
@@ -42,7 +42,7 @@ public:
     http_proto::version version_;
 
     struct ctor_params
-        : fields_view::ctor_params
+        : fields_view_base::ctor_params
     {
         std::size_t method_len;
         std::size_t target_len;

@@ -26,7 +26,7 @@ class request_view;
 */
 class BOOST_SYMBOL_VISIBLE
     request
-    : public fields
+    : public fields_base
 {
     http_proto::method method_;
     http_proto::version version_;

@@ -19,6 +19,7 @@ namespace http_proto {
 
 class fields;
 class fields_view;
+class fields_view_base;
 
 class request;
 class request_view;
@@ -47,7 +48,7 @@ make_request(
 
 void
 check(
-    fields_view const& f,
+    fields_view_base const& f,
     std::size_t n,
     string_view m);
 

@@ -22,7 +22,7 @@ struct fields_table;
 } // detail
 #endif
 
-/** A modifiable container of HTTP fields
+/** Mixin for modifiable HTTP fields
 
     @par Iterators
 
@@ -31,8 +31,8 @@ struct fields_table;
     the underlying container is modified.
 */
 class BOOST_SYMBOL_VISIBLE
-    fields
-    : public fields_view
+    fields_base
+    : public fields_view_base
 {
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
@@ -41,68 +41,21 @@ protected:
     char kind_ = 0;
 
     struct ctor_params
-        : fields_view::ctor_params
+        : fields_view_base::ctor_params
     {
         char* buf = nullptr;
         char kind = 0;
     };
 
-    explicit fields(ctor_params const& init) noexcept;
-    explicit fields(char kind) noexcept;
-    fields(fields_view const& fv, char kind);
+    explicit fields_base(ctor_params const& init) noexcept;
+    explicit fields_base(char kind) noexcept;
+    fields_base(fields_view_base const& fv, char kind);
 
 public:
-    //--------------------------------------------
-    //
-    // Special Members
-    //
-    //--------------------------------------------
-
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL
-    ~fields();
-
-    /** Constructor
-
-        Default-constructed fields have no
-        name-value pairs.
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields() noexcept;
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields&& other) noexcept;
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields const& other);
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields_view const& f);
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields&
-    operator=(fields&& f) noexcept;
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields&
-    operator=(fields const& f);
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields&
-    operator=(fields_view const& f);
+    ~fields_base();
 
     //--------------------------------------------
     //
@@ -123,12 +76,6 @@ public:
     // Modifiers
     //
     //--------------------------------------------
-
-    /** Clear the contents, but not the capacity
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
 
     /** Reserve additional storage
     */
@@ -228,23 +175,6 @@ public:
     std::size_t
     erase_all(string_view name) noexcept;
 
-    /** Swap this with another instance
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    swap(fields& other);
-
-    /** Swap two instances
-    */
-    friend
-    void
-    swap(
-        fields& v1,
-        fields& v2)
-    {
-        v1.swap(v2);
-    }
-
 #if 0
     void set(std::size_t index, string_view value);
     void set(field f, string_view value);
@@ -267,9 +197,114 @@ private:
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
+    BOOST_HTTP_PROTO_DECL
+    void
+    swap(
+        fields_base& other) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
+
     char*
     set_start_line_impl(
         std::size_t n);
+};
+
+//------------------------------------------------
+
+/** A modifiable container of HTTP fields
+
+    @par Iterators
+
+    Iterators obtained from @ref fields
+    containers are not invalidated when
+    the underlying container is modified.
+*/
+class BOOST_SYMBOL_VISIBLE
+    fields
+    : public fields_base
+{
+public:
+    /** Constructor
+
+        Default-constructed fields have no
+        name-value pairs.
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields() noexcept;
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields(fields&& other) noexcept;
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields(fields const& other);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields(fields_view_base const& f);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields&
+    operator=(fields&& f) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields&
+    operator=(fields const& f);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields&
+    operator=(fields_view const& f);
+
+    //--------------------------------------------
+    //
+    // Modifiers
+    //
+    //--------------------------------------------
+
+    /** Clear the contents, but not the capacity
+    */
+    void
+    clear() noexcept
+    {
+        this->fields_base::clear();
+    }
+
+    /** Swap this with another instance
+    */
+    void
+    swap(fields& other) noexcept
+    {
+        this->fields_base::swap(other);
+    }
+
+    /** Swap two instances
+    */
+    friend
+    void
+    swap(
+        fields& v1,
+        fields& v2) noexcept
+    {
+        v1.swap(v2);
+    }
+
+#if 0
+    void set(std::size_t index, string_view value);
+    void set(field f, string_view value);
+    void set(string_view name, string_view value);
+#endif
 };
 
 } // http_proto

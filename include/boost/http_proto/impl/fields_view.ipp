@@ -17,17 +17,18 @@
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/assert/source_location.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
 
 //------------------------------------------------
 
-fields_view::
+fields_view_base::
 subrange::
 subrange(
-    fields_view::iterator it,
-    fields_view::iterator end) noexcept
+    fields_view_base::iterator it,
+    fields_view_base::iterator end) noexcept
     : it_(it)
     , end_(end)
     , id_(it == end
@@ -36,24 +37,24 @@ subrange(
 {
 }
 
-fields_view::
+fields_view_base::
 subrange::
 subrange(
     subrange const&) noexcept = default;
 
 auto
-fields_view::
+fields_view_base::
 subrange::
 operator=(
     subrange const&) noexcept ->
         subrange& = default;
 
-fields_view::
+fields_view_base::
 subrange::
 subrange() noexcept = default;
 
 auto
-fields_view::
+fields_view_base::
 subrange::
 begin() const noexcept ->
     iterator
@@ -63,7 +64,7 @@ begin() const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 subrange::
 end() const noexcept ->
     iterator
@@ -74,12 +75,12 @@ end() const noexcept ->
 
 //------------------------------------------------
 
-fields_view::
+fields_view_base::
 subrange::
 iterator::
 iterator(
-    fields_view::iterator it,
-    fields_view::iterator end,
+    fields_view_base::iterator it,
+    fields_view_base::iterator end,
     field id) noexcept
     : it_(it)
     , end_(end)
@@ -88,7 +89,7 @@ iterator(
 }
 
 auto
-fields_view::
+fields_view_base::
 subrange::
 iterator::
 operator++() noexcept ->
@@ -121,7 +122,7 @@ operator++() noexcept ->
 //------------------------------------------------
 
 void
-fields_view::
+fields_view_base::
 iterator::
 read() noexcept
 {
@@ -143,32 +144,26 @@ read() noexcept
     field_rule r;
     auto const end = 
         f_->cbuf_ + f_->end_pos_;
-    if(grammar::parse(
-        it_, end, ec, r))
-    {
-        auto const base =
-            f_->cbuf_ + f_->start_len_;
-        np_ = static_cast<off_t>(
-            r.v.name.data() - base);
-        nn_ = static_cast<off_t>(
-            r.v.name.size());
-        vp_ = static_cast<off_t>(
-            r.v.value.data() - base);
-        vn_ = static_cast<off_t>(
-            r.v.value.size());
-        id_ = string_to_field(
-            r.v.name);
-        return;
-    }
-    BOOST_ASSERT(ec ==
-        grammar::error::end);
-    it_ = end;
+    grammar::parse(it_, end, ec, r);
+    BOOST_ASSERT(! ec.failed());
+    auto const base =
+        f_->cbuf_ + f_->start_len_;
+    np_ = static_cast<off_t>(
+        r.v.name.data() - base);
+    nn_ = static_cast<off_t>(
+        r.v.name.size());
+    vp_ = static_cast<off_t>(
+        r.v.value.data() - base);
+    vn_ = static_cast<off_t>(
+        r.v.value.size());
+    id_ = string_to_field(
+        r.v.name);
 }
 
-fields_view::
+fields_view_base::
 iterator::
 iterator(
-    fields_view const* f,
+    fields_view_base const* f,
     std::size_t i) noexcept
     : f_(f)
     , it_(f->cbuf_ + f->start_len_)
@@ -183,7 +178,7 @@ iterator(
 }
 
 auto
-fields_view::
+fields_view_base::
 iterator::
 operator*() const noexcept ->
     reference
@@ -213,7 +208,7 @@ operator*() const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 iterator::
 operator++() noexcept ->
     iterator&
@@ -225,7 +220,7 @@ operator++() noexcept ->
 
 //------------------------------------------------
 //
-// fields_view
+// fields_view_base
 //
 //------------------------------------------------
 
@@ -234,7 +229,7 @@ operator++() noexcept ->
 // 1 = request
 // 2 = response
 string_view
-fields_view::
+fields_view_base::
 default_buffer(
     char kind) noexcept
 {
@@ -252,7 +247,7 @@ default_buffer(
 
 // return true if s is a default string
 bool
-fields_view::
+fields_view_base::
 is_default(
     char const* s) noexcept
 {
@@ -264,7 +259,7 @@ is_default(
 
 // copy or build table
 void
-fields_view::
+fields_view_base::
 write_table(
     void* dest) const noexcept
 {
@@ -300,8 +295,20 @@ write_table(
     }
 }
 
-fields_view::
-fields_view(
+void
+fields_view_base::
+swap(fields_view_base& other) noexcept
+{
+    using std::swap;
+    swap(cbuf_, other.cbuf_);
+    swap(buf_len_, other.buf_len_);
+    swap(start_len_, other.start_len_);
+    swap(end_pos_, other.end_pos_);
+    swap(count_, other.count_);
+}
+
+fields_view_base::
+fields_view_base(
     ctor_params const& init) noexcept
     : cbuf_(init.cbuf)
     , buf_len_(init.buf_len)
@@ -325,10 +332,10 @@ fields_view(
         count_ <= max_off_t);
 }
 
-fields_view::
-fields_view(
+fields_view_base::
+fields_view_base(
     char kind) noexcept
-    : fields_view(
+    : fields_view_base(
     [kind]
     {
         auto s =
@@ -346,23 +353,8 @@ fields_view(
 
 //------------------------------------------------
 
-fields_view::
-fields_view() noexcept
-    : fields_view(0)
-{
-}
-
-fields_view::
-fields_view(
-    fields_view const&) noexcept = default;
-
-fields_view&
-fields_view::
-operator=(
-    fields_view const&) noexcept = default;
-
 auto
-fields_view::
+fields_view_base::
 begin() const noexcept ->
     iterator
 {
@@ -371,7 +363,7 @@ begin() const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 end() const noexcept ->
     iterator
 {
@@ -379,18 +371,10 @@ end() const noexcept ->
         this, count_);
 }
 
-string_view
-fields_view::
-buffer() const noexcept
-{
-    return string_view(
-        cbuf_, end_pos_);
-}
-
 //------------------------------------------------
 
 bool
-fields_view::
+fields_view_base::
 exists(
     field id) const noexcept
 {
@@ -398,7 +382,7 @@ exists(
 }
 
 bool
-fields_view::
+fields_view_base::
 exists(
     string_view name) const noexcept
 {
@@ -406,7 +390,7 @@ exists(
 }
 
 std::size_t
-fields_view::
+fields_view_base::
 count(field id) const noexcept
 {
     std::size_t n = 0;
@@ -417,7 +401,7 @@ count(field id) const noexcept
 }
 
 std::size_t
-fields_view::
+fields_view_base::
 count(string_view name) const noexcept
 {
     std::size_t n = 0;
@@ -429,7 +413,7 @@ count(string_view name) const noexcept
 }
 
 string_view
-fields_view::
+fields_view_base::
 at(field id) const
 {
     auto it = find(id);
@@ -441,7 +425,7 @@ at(field id) const
 }
 
 string_view
-fields_view::
+fields_view_base::
 at(string_view name) const
 {
     auto it = find(name);
@@ -453,7 +437,7 @@ at(string_view name) const
 }
 
 string_view
-fields_view::
+fields_view_base::
 value_or(
     field id,
     string_view v) const noexcept
@@ -465,7 +449,7 @@ value_or(
 }
 
 string_view
-fields_view::
+fields_view_base::
 value_or(
     string_view name,
     string_view v) const noexcept
@@ -477,7 +461,7 @@ value_or(
 }
 
 auto
-fields_view::
+fields_view_base::
 find(field id) const noexcept ->
     iterator
 {
@@ -493,7 +477,7 @@ find(field id) const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 find(string_view name) const noexcept ->
     iterator
 {
@@ -510,7 +494,7 @@ find(string_view name) const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 find(
     iterator from,
     field id) const noexcept ->
@@ -527,7 +511,7 @@ find(
 }
 
 auto
-fields_view::
+fields_view_base::
 find(
     iterator from, 
     string_view name) const noexcept ->
@@ -545,7 +529,7 @@ find(
 }
 
 auto
-fields_view::
+fields_view_base::
 find_all(field id) const noexcept ->
     subrange
 {
@@ -554,7 +538,7 @@ find_all(field id) const noexcept ->
 }
 
 auto
-fields_view::
+fields_view_base::
 find_all(
     string_view name) const noexcept ->
         subrange
@@ -564,19 +548,27 @@ find_all(
 }
 
 //------------------------------------------------
+//
+// fields_view
+//
+//------------------------------------------------
+
+fields_view::
+fields_view(
+    fields_view const&) noexcept = default;
+
+fields_view&
+fields_view::
+operator=(
+    fields_view const&) noexcept = default;
+
+//------------------------------------------------
 
 void
 fields_view::
 swap(fields_view& other) noexcept
 {
-    using std::swap;
-    static_cast<basic_header&>(
-        *this).swap(other);
-    swap(cbuf_, other.cbuf_);
-    swap(buf_len_, other.buf_len_);
-    swap(start_len_, other.start_len_);
-    swap(end_pos_, other.end_pos_);
-    swap(count_, other.count_);
+    this->fields_view_base::swap(other);
 }
 
 } // http_proto

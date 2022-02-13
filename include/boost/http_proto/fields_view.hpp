@@ -14,7 +14,9 @@
 #include <boost/http_proto/basic_header.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/url/const_string.hpp>
+#include <cstdint>
 #include <memory>
+#include <string>
 
 namespace boost {
 namespace http_proto {
@@ -26,10 +28,12 @@ enum class field : unsigned short;
 /** A read-only, forward range of HTTP fields
 */
 class BOOST_SYMBOL_VISIBLE
-    fields_view
-    : public basic_header
+    fields_view_base
 {
-#ifndef BOOST_HTTP_PROTO_DOCS
+#ifdef BOOST_HTTP_PROTO_DOCS
+private:
+#else
+//protected:
 public:
 #endif
     char const* cbuf_ = nullptr;
@@ -38,13 +42,7 @@ public:
     off_t end_pos_ = 0;
     off_t count_ = 0;
 
-    friend class fields;
-    friend class headers;
-    friend struct fields_test;
-    friend struct fields_view_test;
-
     struct ctor_params
-        : basic_header::ctor_params
     {
         char const* cbuf = nullptr;
         std::size_t buf_len = 0;
@@ -56,14 +54,27 @@ public:
     static string_view default_buffer(char) noexcept;
     static bool is_default(char const*) noexcept;
     void write_table(void*) const noexcept;
+    void swap(fields_view_base& other) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    explicit fields_view(ctor_params const&) noexcept;
+    explicit fields_view_base(ctor_params const&) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    explicit fields_view(char) noexcept;
+    explicit fields_view_base(char) noexcept;
+
+protected:
+    fields_view_base(
+        fields_view_base const&) = default;
+    fields_view_base&
+        operator=(fields_view_base const&) = default;
 
 public:
+    //--------------------------------------------
+    //
+    // Types
+    //
+    //--------------------------------------------
+
     class iterator;
     class subrange;
 
@@ -93,26 +104,26 @@ public:
     #endif
     };
 
-    /** Constructor
+    //--------------------------------------------
+    //
+    // Special Members
+    //
+    //--------------------------------------------
 
-        Default constructed field views
-        have a zero size.
+    /** Return a string representing the serialized data
     */
-    BOOST_HTTP_PROTO_DECL
-    fields_view() noexcept;
+    string_view
+    buffer() const noexcept
+    {
+        return string_view(
+            cbuf_, end_pos_);
+    }
 
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields_view(
-        fields_view const&) noexcept;
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields_view&
-    operator=(
-        fields_view const&) noexcept;
+    //--------------------------------------------
+    //
+    // Iterators
+    //
+    //--------------------------------------------
 
     /** Return an iterator to the beginning of the range of fields
     */
@@ -125,12 +136,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     iterator
     end() const noexcept;
-
-    /** Return a string representing the serialized data
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    buffer() const noexcept override;
 
     //--------------------------------------------
     //
@@ -170,19 +175,19 @@ public:
     std::size_t
     count(string_view name) const noexcept;
 
-    /** Return the value of the first matching field if it exists, otherwise throws
+    /** Return the value of the first matching field if it exists, otherwise throw
     */
     BOOST_HTTP_PROTO_DECL
     string_view
     at(field id) const;
 
-    /** Return the value of the first matching field if it exists, otherwise throws
+    /** Return the value of the first matching field if it exists, otherwise throw
     */
     BOOST_HTTP_PROTO_DECL
     string_view
     at(string_view name) const;
 
-    /** Return the value of the first matching field, otherwise returns the given string
+    /** Return the value of the first matching field, otherwise return the given string
     */
     BOOST_HTTP_PROTO_DECL
     string_view
@@ -236,6 +241,51 @@ public:
     BOOST_HTTP_PROTO_DECL
     subrange
     find_all(string_view name) const noexcept;
+};
+
+//------------------------------------------------
+
+/** A read-only, forward range of HTTP fields
+*/
+class BOOST_SYMBOL_VISIBLE
+    fields_view
+    : public fields_view_base
+{
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
+    explicit
+    fields_view(
+        ctor_params const& init) noexcept
+        : fields_view_base(init)
+    {
+    }
+
+public:
+    /** Constructor
+
+        Default constructed field views
+        have a zero size.
+    */
+    fields_view() noexcept
+        : fields_view_base(0)
+    {
+    }
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields_view(
+        fields_view const&) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    fields_view&
+    operator=(
+        fields_view const&) noexcept;
+
+    //--------------------------------------------
 
     /** Swap this with another instance
     */
@@ -267,7 +317,7 @@ template<
         std::allocator<char>>
 urls::const_string
 make_list(
-    fields_view::subrange r,
+    fields_view::subrange const& r,
     Allocator const& a = {});
 
 } // http_proto

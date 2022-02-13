@@ -15,9 +15,9 @@
 namespace boost {
 namespace http_proto {
 
-class fields_view::iterator
+class fields_view_base::iterator
 {
-    fields_view const* f_ = nullptr;
+    fields_view_base const* f_ = nullptr;
     char const* it_ = nullptr;
 
     off_t i_ = 0;
@@ -27,21 +27,21 @@ class fields_view::iterator
     off_t vn_;
     field id_;
 
-    friend class fields;
-    friend class fields_view;
+    friend class fields_base;
+    friend class fields_view_base;
 
     void
     read() noexcept;
 
     iterator(
-        fields_view const* f,
+        fields_view_base const* f,
         std::size_t i) noexcept;
 
 public:
     using value_type =
-        fields_view::value_type;
+        fields_view_base::value_type;
     using reference =
-        fields_view::reference;
+        fields_view_base::reference;
     using pointer = void const*;
     using iterator_category =
         std::forward_iterator_tag;
@@ -97,26 +97,27 @@ public:
 
 //------------------------------------------------
 
-class fields_view::subrange
+class fields_view_base::subrange
 {
-    fields_view::iterator it_;
-    fields_view::iterator end_;
+    fields_view_base::iterator it_;
+    fields_view_base::iterator end_;
     field id_;
 
     friend class fields_view;
+    friend class fields_view_base;
 
     BOOST_HTTP_PROTO_DECL
     subrange(
-        fields_view::iterator it,
-        fields_view::iterator end) noexcept;
+        fields_view_base::iterator it,
+        fields_view_base::iterator end) noexcept;
 
 public:
     class iterator;
 
     using value_type =
-        fields_view::value_type;
+        fields_view_base::value_type;
     using reference =
-        fields_view::reference;
+        fields_view_base::reference;
     using pointer = void const*;
     using iterator_category =
         std::forward_iterator_tag;
@@ -147,24 +148,24 @@ public:
 
 //------------------------------------------------
 
-class fields_view::subrange::iterator
+class fields_view_base::subrange::iterator
 {
-    fields_view::iterator it_;
-    fields_view::iterator end_;
+    fields_view_base::iterator it_;
+    fields_view_base::iterator end_;
     field id_;
 
-    friend class fields_view::subrange;
+    friend class fields_view_base::subrange;
 
     iterator(
-        fields_view::iterator it,
-        fields_view::iterator end,
+        fields_view_base::iterator it,
+        fields_view_base::iterator end,
         field id) noexcept;
 
 public:
     using value_type =
-        fields_view::value_type;
+        fields_view_base::value_type;
     using reference =
-        fields_view::reference;
+        fields_view_base::reference;
     using pointer = void const*;
     using iterator_category =
         std::forward_iterator_tag;
@@ -179,7 +180,7 @@ public:
     iterator() = default;
 
     operator
-    fields_view::iterator() const noexcept
+    fields_view_base::iterator() const noexcept
     {
         return it_;
     }
@@ -232,7 +233,7 @@ public:
 template<class Allocator>
 urls::const_string
 make_list(
-    fields_view::subrange r,
+    fields_view_base::subrange const& r,
     Allocator const& a)
 {
     auto it = r.begin();

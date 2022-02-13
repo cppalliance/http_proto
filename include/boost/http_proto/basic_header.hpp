@@ -34,7 +34,7 @@ protected:
     bool has_chunked_ : 1;
     bool has_content_length_ : 1;
 
-    struct ctor_params
+    struct ctor_paramsx
     {
         std::uint64_t content_length = 0;
         bool has_chunked = false;
@@ -44,7 +44,7 @@ protected:
     basic_header() noexcept;
 
     basic_header(
-        ctor_params const& init) noexcept;
+        ctor_paramsx const& init) noexcept;
 
 public:
     /** Destructor
@@ -96,6 +96,14 @@ public:
     {
         v1.swap(v2);
     }
+};
+
+/** Base type for request and response headers
+*/
+class BOOST_SYMBOL_VISIBLE
+    header_base
+{
+public:
 };
 
 } // http_proto

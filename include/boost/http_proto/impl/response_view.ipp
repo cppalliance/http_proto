@@ -18,7 +18,7 @@ namespace http_proto {
 
 response_view::
 response_view() noexcept
-    : fields_view(2)
+    : fields_view_base(2)
     , status_(http_proto::status::ok)
     , version_(http_proto::version::http_1_1)
 {
