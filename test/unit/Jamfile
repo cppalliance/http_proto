@@ -1,0 +1,81 @@
+#
+# Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+# Official repository: https://github.com/CPPAlliance/http_proto
+#
+
+import testing ;
+
+project
+    : requirements
+      $(c11-requires)
+      <source>../../../url/extra/test_main.cpp
+      <include>.
+      <include>../../../url/extra/include
+    ;
+
+local SOURCES =
+    arrow_proxy.cpp
+    buffer.cpp
+    context.cpp
+    error.cpp
+    field.cpp
+    fields.cpp
+    fields_view.cpp
+    header_info.cpp
+    http_proto.cpp
+    method.cpp
+    parser.cpp
+    request.cpp
+    request_parser.cpp
+    request_view.cpp
+    response.cpp
+    response_parser.cpp
+    response_view.cpp
+    serializer.cpp
+    status.cpp
+    string_view.cpp
+    version.cpp
+    bnf/algorithm.cpp
+    bnf/char_set.cpp
+    bnf/chunk_part.cpp
+    bnf/connection.cpp
+    bnf/ctype.cpp
+    bnf/list.cpp
+    bnf/number.cpp
+    bnf/range.cpp
+    bnf/sequence.cpp
+    bnf/test_rule.hpp
+    bnf/token.cpp
+    bnf/transfer_encoding.cpp
+    bnf/transfer_param_list.cpp
+    bnf/type_traits.cpp
+    codec/codecs.cpp
+    codec/decoder.cpp
+    codec/deflate_service.cpp
+    codec/encoder.cpp
+    mime/mime_types.cpp
+    rfc/charsets.cpp
+    rfc/chunk_ext_rule.cpp
+    rfc/crlf_rule.cpp
+    rfc/field_rule.cpp
+    rfc/list_rule.cpp
+    rfc/method_rule.cpp
+    rfc/ows_rule.cpp
+    rfc/quoted_string_rule.cpp
+    rfc/reason_phrase_rule.cpp
+    rfc/request_line_rule.cpp
+    rfc/request_target_rule.cpp
+    rfc/status_code_rule.cpp
+    rfc/status_line_rule.cpp
+    rfc/token_rule.cpp
+    rfc/version_rule.cpp
+    ;
+
+for local f in $(SOURCES)
+{
+    run $(f) ./test_helpers.cpp /boost/http_proto//boost_http_proto ;
+}

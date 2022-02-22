@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/header_info.hpp>
 
 #include "test_suite.hpp"
 
@@ -37,7 +37,7 @@ fields_view_base     header_base
                  |
               fields
 */
-class basic_header_test
+class header_info_test
 {
 public:
     void
@@ -47,8 +47,8 @@ public:
 };
 
 TEST_SUITE(
-    basic_header_test,
-    "boost.http_proto.basic_header");
+    header_info_test,
+    "boost.http_proto.header_info");
 
 } // http_proto
 } // boost

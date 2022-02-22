@@ -89,5 +89,4 @@ endif()
 
 if(BOOST_HTTP_PROTO_BUILD_TESTS)
     add_subdirectory(test)
-    add_subdirectory(test/limits)
 endif()

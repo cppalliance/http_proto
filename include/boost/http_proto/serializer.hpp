@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
@@ -32,6 +32,7 @@ class serializer
     std::size_t size_ = 0;
     string_view hs_;
     string_view bs_;
+    header_info hi_;
 
 public:
     /** Constructor (deleted)
@@ -81,7 +82,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     set_header(
-        basic_header const&) noexcept;
+        header_info const& hi) noexcept;
 
     /** Set the body for the current message
     */

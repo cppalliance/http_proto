@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_FIELDS_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/url/const_string.hpp>
 #include <cstdint>

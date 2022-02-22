@@ -78,7 +78,6 @@ request(
 {
 }
 
-
 //------------------------------------------------
 
 request::
@@ -96,6 +95,17 @@ request_view() const noexcept
     init.method = method_;
     init.version = version_;
     return request_view(init);
+}
+
+request::
+operator
+header_info() const noexcept
+{
+    return {
+        cbuf_,
+        buf_len_,
+        nullptr
+    };
 }
 
 //------------------------------------------------

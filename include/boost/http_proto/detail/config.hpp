@@ -25,18 +25,16 @@ namespace http_proto {
 # if (defined(BOOST_HTTP_PROTO_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)) && !defined(BOOST_HTTP_PROTO_STATIC_LINK)
 #  if defined(BOOST_HTTP_PROTO_SOURCE)
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_EXPORT
-#   define BOOST_HTTP_PROTO_CLASS_DECL  BOOST_SYMBOL_EXPORT
 #   define BOOST_HTTP_PROTO_BUILD_DLL
 #  else
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_IMPORT
-#   define BOOST_HTTP_PROTO_CLASS_DECL  BOOST_SYMBOL_IMPORT
 #  endif
 # endif // shared lib
 # ifndef  BOOST_HTTP_PROTO_DECL
 #  define BOOST_HTTP_PROTO_DECL
 # endif
 # if !defined(BOOST_HTTP_PROTO_SOURCE) && !defined(BOOST_ALL_NO_LIB) && !defined(BOOST_HTTP_PROTO_NO_LIB)
-#  define BOOST_LIB_NAME boost_json
+#  define BOOST_LIB_NAME boost_http_proto
 #  if defined(BOOST_ALL_DYN_LINK) || defined(BOOST_HTTP_PROTO_DYN_LINK)
 #   define BOOST_DYN_LINK
 #  endif

@@ -46,8 +46,14 @@ serializer(
 void
 serializer::
 set_header(
-    basic_header const&) noexcept
+    header_info const& hi) noexcept
 {
+    hi_ = hi;
+    if(! hi_.meta)
+    {
+        // TODO
+        // generate metadata
+    }
 }
 
 void

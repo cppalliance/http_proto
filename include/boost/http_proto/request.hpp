@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
@@ -128,6 +129,12 @@ public:
     BOOST_HTTP_PROTO_DECL
     operator
     request_view() const noexcept;
+
+    /** Return serialization information
+    */
+    BOOST_HTTP_PROTO_DECL
+    operator
+    header_info() const noexcept;
 
     //--------------------------------------------
     //
