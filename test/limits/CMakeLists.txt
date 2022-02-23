@@ -11,14 +11,6 @@ set(TEST_MAIN ../../../url/extra/test_main.cpp)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES limits.cpp Jamfile)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../../url/extra PREFIX "_extra" FILES ${TEST_MAIN})
-<<<<<<< HEAD
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../../url/src PREFIX "_extra" FILES ../../../url/src/src.cpp)
-add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ../../../url/src/src.cpp)
-target_include_directories(boost_http_proto_limits PRIVATE ../../include ../../../url/extra/include ../../..)
-target_compile_definitions(boost_http_proto_limits PRIVATE
-    BOOST_HTTP_PROTO_MAX_HEADER=16
-    BOOST_HTTP_PROTO_NO_LIB=1
-=======
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../src PREFIX "_extra" FILES ../../src/src.cpp)
 add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ../../src/src.cpp)
 target_include_directories(boost_http_proto_limits PRIVATE ../../include ../../../url/extra/include ../../..)
@@ -26,7 +18,6 @@ target_compile_definitions(boost_http_proto_limits PRIVATE
     BOOST_HTTP_PROTO_MAX_HEADER=20
     BOOST_HTTP_PROTO_NO_LIB=1
     BOOST_HTTP_PROTO_STATIC_LINK
->>>>>>> bc49690... Add limits tests
 )
 target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::align
