@@ -80,15 +80,6 @@ public:
 
     /** A field
     */
-    struct value_type
-    {
-        field id;
-        std::string name;
-        std::string value;
-    };
-
-    /** A field
-    */
     struct reference
     {
         field id;
@@ -103,6 +94,46 @@ public:
         }
     #endif
     };
+
+    /** A type which can represent a field as a value
+
+        This type allows for making a copy of
+        a field where ownership is retained
+        in the copy.
+    */
+    struct value_type
+    {
+        field id;
+        std::string name;
+        std::string value;
+
+        value_type(
+            reference const& other)
+            : id(other.id)
+            , name(other.name)
+            , value(other.value)
+        {
+        }
+
+        operator
+        reference() const noexcept
+        {
+            return reference {
+                id, name, value };
+        }
+    };
+
+    using const_reference =
+        reference;
+
+    /** An unsigned integer type
+    */
+    using size_type = std::size_t;
+
+    /** A signed integer type
+    */
+    using difference_type =
+        std::ptrdiff_t;
 
     //--------------------------------------------
     //

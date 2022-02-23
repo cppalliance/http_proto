@@ -43,6 +43,8 @@ public:
     using reference =
         fields_view_base::reference;
     using pointer = void const*;
+    using difference_type =
+        std::ptrdiff_t;
     using iterator_category =
         std::forward_iterator_tag;
 
@@ -118,9 +120,11 @@ public:
         fields_view_base::value_type;
     using reference =
         fields_view_base::reference;
-    using pointer = void const*;
-    using iterator_category =
-        std::forward_iterator_tag;
+    using const_reference =
+        fields_view_base::reference;
+    using size_type = std::size_t;
+    using difference_type =
+        std::ptrdiff_t;
 
     BOOST_HTTP_PROTO_DECL
     subrange(
@@ -167,6 +171,8 @@ public:
     using reference =
         fields_view_base::reference;
     using pointer = void const*;
+    using difference_type =
+        std::ptrdiff_t;
     using iterator_category =
         std::forward_iterator_tag;
 

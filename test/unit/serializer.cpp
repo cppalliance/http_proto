@@ -11,36 +11,77 @@
 #include <boost/http_proto/serializer.hpp>
 
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/field.hpp>
+#include <boost/http_proto/request.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-struct file_body
-{
-    class parser
-    {
-    };
-
-    class serializer
-    {
-    };
-};
-
-struct string_body
-{
-    using value_type = std::string;
-
-
-};
-
 class serializer_test
 {
 public:
+    template<class Buffer>
+    std::size_t
+    write(Buffer const&, error_code&)
+    {
+        return {};
+    }
+
+    void
+    testPrototypes()
+    {
+        // send GET request, empty body
+        {
+            error_code ec;
+            request req;
+            serializer_ sr;
+            sr.reset(req);
+            while(! sr.is_complete())
+            {
+                auto b = sr.prepare(ec);
+                if(ec.failed())
+                    return;
+                auto bytes_transferred =
+                    write(b, ec);
+                if(ec.failed())
+                    return;
+                sr.consume(bytes_transferred);
+            }
+        }
+
+        // send POST request, string body
+        {
+            error_code ec;
+            request req;
+            req.set_method( method::post );
+            std::string body = "These seeds.";
+            req.emplace_back(
+                field::content_length,
+                "12");
+            serializer_ sr;
+            sr.reset(req);
+            sr.attach_body(body);
+            while(! sr.is_complete())
+            {
+                auto b = sr.prepare(ec);
+                if(ec.failed())
+                    return;
+                auto bytes_transferred =
+                    write(b, ec);
+                if(ec.failed())
+                    return;
+                sr.consume(bytes_transferred);
+            }
+        }
+    }
+
     void
     run()
     {
+        //testPrototypes();
+
         context ctx;
         serializer sr(ctx);
     }
@@ -52,14 +93,3 @@ TEST_SUITE(
 
 } // http_proto
 } // boost
-#if 0
-
-class buffered_body
-{
-public:
-    virtual std::size_t write(
-        void* dest,
-        std::size_t bytes,
-        error_code& ec) = 0;
-};
-#endif
