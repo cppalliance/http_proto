@@ -31,6 +31,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/error.ipp>
 #include <boost/http_proto/impl/field.ipp>
 #include <boost/http_proto/impl/fields.ipp>
+#include <boost/http_proto/impl/fields_base.ipp>
 #include <boost/http_proto/impl/fields_view.ipp>
 #include <boost/http_proto/impl/fields_view_base.ipp>
 #include <boost/http_proto/impl/header_info.ipp>
