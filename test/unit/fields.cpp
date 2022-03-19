@@ -11,6 +11,7 @@
 #include <boost/http_proto/fields.hpp>
 
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/fields_view.hpp>
 
 #include "test_helpers.hpp"
 

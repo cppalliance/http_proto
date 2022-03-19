@@ -17,6 +17,7 @@
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/fields_view.hpp>
+#include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/parser.hpp>

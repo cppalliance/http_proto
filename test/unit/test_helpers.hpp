@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_TEST_HELPERS_HPP
 
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/string_view.hpp>
 #include "test_suite.hpp"
 #include <string>
 

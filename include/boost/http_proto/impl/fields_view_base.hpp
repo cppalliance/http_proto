@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_HPP
-#define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_HPP
+#ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
+#define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
 
 #include <boost/assert.hpp>
 
@@ -245,7 +245,7 @@ make_list(
     auto it = r.begin();
     auto const end = r.end();
     if(it == end)
-        return urls::const_string();
+        return {};
     // measure
     std::size_t n = 0;
     n += it->value.size();
