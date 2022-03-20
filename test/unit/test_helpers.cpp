@@ -13,8 +13,11 @@
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/request_view.hpp>
+#include <boost/http_proto/response_view.hpp>
+#include <boost/http_proto/status.hpp>
 #include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/rfc/request_line_rule.hpp>
+#include <boost/http_proto/rfc/status_line_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/grammar/parse.hpp>
@@ -74,6 +77,7 @@ make_fields(
     string_view s,
     std::string& buf)
 {
+    // build buffer with table
     fields_view f = make_fields(s);
     buf.resize(detail::buffer_needed(
         s.size(), f.size()));
@@ -98,20 +102,28 @@ make_fields(
 
     struct helper : fields_view
     {
-        explicit
-        helper(ctor_params const& init)
-            : fields_view(init)
+        helper(
+            string_view s,
+            std::string& buf,
+            fields_view const& f)
+            : fields_view([](
+                string_view s,
+                std::string& buf,
+                fields_view const& f)
+                {
+                    ctor_params init;
+                    init.cbuf = buf.data();
+                    init.buf_len = buf.size();
+                    init.start_len = 0;
+                    init.end_pos = s.size();
+                    init.count = f.size();
+                    return init;
+                }(s, buf, f))
         {
         }
     };
 
-    fields_view::ctor_params init;
-    init.cbuf = buf.data();
-    init.buf_len = buf.size();
-    init.start_len = 0;
-    init.end_pos = s.size();
-    init.count = f.size();
-    return helper(init);
+    return helper(s, buf, f);
 }
 
 //------------------------------------------------
@@ -172,6 +184,62 @@ make_request(
 
 //------------------------------------------------
 
+response_view
+make_response(
+    string_view s)
+{
+    struct helper : response_view
+    {
+        explicit
+        helper(string_view s)
+            : response_view(
+            [&s]
+            {
+                error_code ec;
+                auto it = s.data();
+                auto const end =
+                    it + s.size();
+                status_line_rule t0;
+                if(! grammar::parse(
+                    it, end, ec, t0))
+                    detail::throw_system_error(
+                        ec, BOOST_CURRENT_LOCATION);
+
+                ctor_params init;
+                init.cbuf = s.data();
+                init.buf_len = 0;
+                init.start_len = static_cast<
+                    off_t>(it - s.data());
+                init.end_pos = s.size();
+                init.count = 0;
+                init.version = t0.v;
+                init.status = int_to_status(
+                    t0.status_int);
+                init.status_int = t0.status_int;
+                field_rule t1;
+                for(;;)
+                {
+                    if(grammar::parse(
+                        it, end, ec, t1))
+                    {
+                        ++init.count;
+                        continue;
+                    }
+                    if(ec == grammar::error::end)
+                        break;
+                    detail::throw_system_error(ec,
+                        BOOST_CURRENT_LOCATION);
+                }
+                return init;
+            }())
+        {
+        }
+    };
+    return helper(s);
+}
+
+//------------------------------------------------
+
 void
 check(
     fields_view_base const& f,
@@ -190,7 +258,7 @@ check(
     s.append("\r\n");
     BOOST_TEST(s == m);
     BOOST_TEST(f.size() == n);
-    BOOST_TEST(f.buffer() == m);
+    BOOST_TEST(f.string() == m);
 }
 
 //------------------------------------------------
@@ -219,7 +287,7 @@ check(
     s.append("\r\n");
     BOOST_TEST(s == m);
     BOOST_TEST(req.size() == n);
-    BOOST_TEST(req.buffer() == m);
+    BOOST_TEST(req.string() == m);
 }
 
 //------------------------------------------------

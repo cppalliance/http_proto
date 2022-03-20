@@ -40,7 +40,8 @@ parse(
         return;
 
     t.v = t0.v;
-    t.status_code = t1.v;
+    t.status_int = static_cast<
+        unsigned short>(t1.v);
     t.reason = t2.s;
     return;
 }

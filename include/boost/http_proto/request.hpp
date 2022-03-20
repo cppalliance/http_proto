@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/header_info.hpp>
-#include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
 

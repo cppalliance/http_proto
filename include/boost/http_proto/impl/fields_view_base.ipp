@@ -321,7 +321,7 @@ fields_view_base(
 {
     BOOST_ASSERT(
         buf_len_ == 0 ||
-        buf_len_ > end_pos_);
+        buf_len_ >= end_pos_);
     BOOST_ASSERT(
         end_pos_ >= start_len_);
     BOOST_ASSERT(

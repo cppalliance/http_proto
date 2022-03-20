@@ -37,6 +37,7 @@ class BOOST_SYMBOL_VISIBLE
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
+
     char* buf_ = nullptr;
     char kind_ = 0;
 
@@ -47,9 +48,10 @@ protected:
         char kind = 0;
     };
 
-    explicit fields_base(ctor_params const& init) noexcept;
-    explicit fields_base(char kind) noexcept;
-    fields_base(fields_view_base const& fv, char kind);
+    explicit fields_base(ctor_params const&) noexcept;
+    explicit fields_base(char) noexcept;
+    fields_base(fields_view_base const&, char);
+    void copy(fields_view_base const&);
 
 public:
     /** Destructor

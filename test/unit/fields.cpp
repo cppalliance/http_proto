@@ -43,10 +43,10 @@ struct fields_test
         {
             fields f;
             BOOST_TEST(
-                f.buffer() == "\r\n");
+                f.string() == "\r\n");
             BOOST_TEST(
-                f.buffer().data() ==
-                fields().buffer().data());
+                f.string().data() ==
+                fields().string().data());
         }
 
         // fields(fields&&)
@@ -63,8 +63,8 @@ struct fields_test
                 check(f1, 0, "\r\n");
                 check(f2, 0, "\r\n");
                 BOOST_TEST(
-                    f1.buffer().data() ==
-                    f2.buffer().data());
+                    f1.string().data() ==
+                    f2.string().data());
             }
         }
 
@@ -76,8 +76,8 @@ struct fields_test
                 check(f1, 4, cs);
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
             {
                 fields f1;
@@ -85,8 +85,8 @@ struct fields_test
                 check(f1, 0, "\r\n");
                 check(f2, 0, "\r\n");
                 BOOST_TEST(
-                    f1.buffer().data() ==
-                    f2.buffer().data());
+                    f1.string().data() ==
+                    f2.string().data());
             }
         }
 
@@ -95,12 +95,12 @@ struct fields_test
             {
                 fields_view fv = make_fields(cs);
                 BOOST_TEST(
-                    fv.buffer().data() == cs.data());
+                    fv.string().data() == cs.data());
 
                 fields f(fv);
-                BOOST_TEST(f.buffer() == cs);
+                BOOST_TEST(f.string() == cs);
                 BOOST_TEST(
-                    f.buffer().data() != cs.data());
+                    f.string().data() != cs.data());
                 check(f, 4, cs);
             }
 
@@ -110,10 +110,10 @@ struct fields_test
 
                 fields f(fv);
                 BOOST_TEST(
-                    f.buffer() == "\r\n");
+                    f.string() == "\r\n");
                 BOOST_TEST(
-                    f.buffer().data() ==
-                        fv.buffer().data());
+                    f.string().data() ==
+                        fv.string().data());
             }
         }
 
@@ -140,8 +140,8 @@ struct fields_test
                 check(f1, 0, "\r\n");
                 check(f2, 0, "\r\n");
                 BOOST_TEST(
-                    f1.buffer().data() ==
-                    f2.buffer().data());
+                    f1.string().data() ==
+                    f2.string().data());
             }
         }
 
@@ -154,8 +154,8 @@ struct fields_test
                 check(f1, 4, cs);
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
             {
                 fields f1 = make_fields(cs);
@@ -168,8 +168,8 @@ struct fields_test
                 check(f1, 4, cs);
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
             {
                 fields f1;
@@ -178,8 +178,8 @@ struct fields_test
                 check(f1, 0, "\r\n");
                 check(f2, 0, "\r\n");
                 BOOST_TEST(
-                    f1.buffer().data() ==
-                    f2.buffer().data());
+                    f1.string().data() ==
+                    f2.string().data());
             }
         }
 
@@ -193,8 +193,8 @@ struct fields_test
                 check(f1, 4, cs);
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
             {
                 fields_view f1 =
@@ -208,8 +208,8 @@ struct fields_test
                 check(f1, 4, cs);
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
             {
                 fields_view f1;
@@ -218,8 +218,8 @@ struct fields_test
                 check(f1, 0, "\r\n");
                 check(f2, 0, "\r\n");
                 BOOST_TEST(
-                    f1.buffer().data() ==
-                    f2.buffer().data());
+                    f1.string().data() ==
+                    f2.string().data());
             }
 
             // existing capacity
@@ -230,8 +230,8 @@ struct fields_test
                 f2 = f1;
                 check(f2, 4, cs);
                 BOOST_TEST(
-                    f1.buffer().data() !=
-                    f2.buffer().data());
+                    f1.string().data() !=
+                    f2.string().data());
             }
         }
     }

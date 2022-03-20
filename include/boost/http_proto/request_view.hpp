@@ -29,10 +29,6 @@ class BOOST_SYMBOL_VISIBLE
     request_view
     : public fields_view_base
 {
-#ifndef BOOST_HTTP_PROTO_DOCS
-public:
-#endif
-
     friend class request;
     friend class request_parser;
 
@@ -40,6 +36,10 @@ public:
     off_t target_len_;
     http_proto::method method_;
     http_proto::version version_;
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
 
     struct ctor_params
         : fields_view_base::ctor_params

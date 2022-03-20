@@ -258,7 +258,7 @@ public:
         BOOST_TEST(rv.version() ==
             version::http_1_1);
 
-        BOOST_TEST(rv.buffer() == s);
+        BOOST_TEST(rv.string() == s);
         BOOST_TEST(rv.size() == 7);
         BOOST_TEST(
             rv.exists(field::connection));

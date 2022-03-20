@@ -33,7 +33,7 @@ public:
             BOOST_TEST(req.target() == "/");
             BOOST_TEST(
                 req.version() == version::http_1_1);
-            BOOST_TEST(req.buffer() ==
+            BOOST_TEST(req.string() ==
                 "GET / HTTP/1.1\r\n\r\n");
         }
 
@@ -65,7 +65,7 @@ public:
                 BOOST_TEST(
                     r1.version() == version::http_1_0);
                 BOOST_TEST(
-                    r1.buffer().data() == s.data());
+                    r1.string().data() == s.data());
 
                 request_view r2(r1);
                 BOOST_TEST(r2.size() == 2);;
@@ -75,7 +75,7 @@ public:
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
                 BOOST_TEST(
-                    r2.buffer().data() == s.data());
+                    r2.string().data() == s.data());
             }
         }
 
@@ -91,7 +91,7 @@ public:
             BOOST_TEST(
                 r2.version() == version::http_1_0);
             BOOST_TEST(
-                r2.buffer().data() == s.data());
+                r2.string().data() == s.data());
         }
     }
 

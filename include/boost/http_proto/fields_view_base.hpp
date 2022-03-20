@@ -32,12 +32,13 @@ enum class field : unsigned short;
 class BOOST_SYMBOL_VISIBLE
     fields_view_base
 {
-#ifdef BOOST_HTTP_PROTO_DOCS
-private:
-#else
-//protected:
-public:
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
 #endif
+
+    friend class fields;
+    friend class fields_base;
+
     char const* cbuf_ = nullptr;
     std::size_t buf_len_ = 0;
     off_t start_len_ = 0;
@@ -77,8 +78,21 @@ public:
     //
     //--------------------------------------------
 
+    /** A read-only iterator to fields
+    */
+#ifdef BOOST_HTTP_PROTO_DOCS
+    using iterator = __see_below__;
+#else
     class iterator;
+#endif
+
+    /** A ForwardRange with values for a field
+    */
+#ifdef BOOST_HTTP_PROTO_DOCS
+    using subrange = __see_below__;
+#else
     class subrange;
+#endif
 
     /** A field
     */
@@ -139,14 +153,14 @@ public:
 
     //--------------------------------------------
     //
-    // Special Members
+    // Observers
     //
     //--------------------------------------------
 
     /** Return a string representing the serialized data
     */
     string_view
-    buffer() const noexcept
+    string() const noexcept
     {
         return string_view(
             cbuf_, end_pos_);

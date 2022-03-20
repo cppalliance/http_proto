@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_TEST_HELPERS_HPP
 
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include "test_suite.hpp"
 #include <string>
 
@@ -24,6 +23,8 @@ class fields_view_base;
 
 class request;
 class request_view;
+class response;
+class response_view;
 
 fields_view
 make_fields(
@@ -37,6 +38,10 @@ make_fields(
 
 request_view
 make_request(
+    string_view s);
+
+response_view
+make_response(
     string_view s);
 
 // with table
@@ -62,6 +67,12 @@ check(
 void
 check(
     request const& req,
+    std::size_t n,
+    string_view m);
+
+void
+check(
+    response const& res,
     std::size_t n,
     string_view m);
 

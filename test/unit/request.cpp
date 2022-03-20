@@ -38,8 +38,8 @@ public:
         BOOST_TEST(req.method_str() == "POST");
         BOOST_TEST(req.target() == "/x");
         BOOST_TEST(req.version() == version::http_1_0);
-        BOOST_TEST(req.buffer().data() != cs.data());
-        BOOST_TEST(req.buffer() == cs);
+        BOOST_TEST(req.string().data() != cs.data());
+        BOOST_TEST(req.string() == cs);
     }
 
     void
@@ -95,8 +95,8 @@ public:
                 check(r1, 2, cs);
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.buffer().data() !=
-                        r1.buffer().data());
+                    r2.string().data() !=
+                        r1.string().data());
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
@@ -134,8 +134,8 @@ public:
                     "\r\n");
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.buffer().data() !=
-                        r1.buffer().data());
+                    r2.string().data() !=
+                        r1.string().data());
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
@@ -155,8 +155,8 @@ public:
                 check(r1, 2, cs);
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.buffer().data() !=
-                        r1.buffer().data());
+                    r2.string().data() !=
+                        r1.string().data());
                 BOOST_TEST(
                     r1.method() == method::post);
                 BOOST_TEST(
@@ -172,8 +172,8 @@ public:
                     "GET / HTTP/1.1\r\n"
                     "\r\n");
                 BOOST_TEST(
-                    r1.buffer().data() ==
-                        r2.buffer().data());
+                    r1.string().data() ==
+                        r2.string().data());
                 BOOST_TEST(
                     r1.method() == method::get);
                 BOOST_TEST(
@@ -230,8 +230,8 @@ public:
                     "GET / HTTP/1.1\r\n"
                     "\r\n");
                 BOOST_TEST(
-                    r1.buffer().data() ==
-                    r2.buffer().data());
+                    r1.string().data() ==
+                    r2.string().data());
                 BOOST_TEST(
                     r2.method() == method::get);
                 BOOST_TEST(
@@ -257,7 +257,7 @@ public:
                 BOOST_TEST(req.capacity_in_bytes() == 0);
                 req.clear();
                 BOOST_TEST(req.capacity_in_bytes() == 0);
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "GET / HTTP/1.1\r\n\r\n");
             }
             {
@@ -280,7 +280,7 @@ public:
                     req.target() == "/");
                 BOOST_TEST(
                     req.version() == version::http_1_1);
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "GET / HTTP/1.1\r\n\r\n");
             }
         }
@@ -294,7 +294,7 @@ public:
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_str() == "DELETE");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
@@ -307,7 +307,7 @@ public:
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_str() == "DELETE");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -323,7 +323,7 @@ public:
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_str() == "DELETE");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
@@ -336,7 +336,7 @@ public:
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_str() == "DELETE");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -351,7 +351,7 @@ public:
                     req.method() == method::unknown);
                 BOOST_TEST(
                     req.method_str() == "BOOST");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "BOOST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -365,7 +365,7 @@ public:
                 req.set_target("/index.htm");
                 BOOST_TEST(
                     req.target() == "/index.htm");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "GET /index.htm HTTP/1.1\r\n\r\n");
             }
             {
@@ -374,7 +374,7 @@ public:
                     "User-Agent: boost\r\n"
                     "\r\n");
                 req.set_target("/index.htm");
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "POST /index.htm HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -388,7 +388,7 @@ public:
                 req.set_version(version::http_1_0);
                 BOOST_TEST(
                     req.version() == version::http_1_0);
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "GET / HTTP/1.0\r\n\r\n");
             }
             {
@@ -399,7 +399,7 @@ public:
                 req.set_version(version::http_1_0);
                 BOOST_TEST(
                     req.version() == version::http_1_0);
-                BOOST_TEST(req.buffer() ==
+                BOOST_TEST(req.string() ==
                     "POST /x HTTP/1.0\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");

@@ -16,6 +16,23 @@ namespace boost {
 namespace http_proto {
 
 request_view::
+request_view(
+    ctor_params const& init) noexcept
+    : fields_view_base(init)
+    , method_len_(static_cast<
+        off_t>(init.method_len))
+    , target_len_(static_cast<
+        off_t>(init.target_len))
+    , method_(init.method)
+    , version_(init.version)
+{
+    BOOST_ASSERT(
+        method_len_ <= max_off_t);
+    BOOST_ASSERT(
+        target_len_ <= max_off_t);
+}
+
+request_view::
 request_view() noexcept
     : fields_view_base(1)
     , method_len_(3)
@@ -32,23 +49,6 @@ request_view(
 request_view&
 request_view::
 operator=(request_view const&) noexcept = default;
-
-request_view::
-request_view(
-    ctor_params const& init) noexcept
-    : fields_view_base(init)
-    , method_len_(static_cast<
-        off_t>(init.method_len))
-    , target_len_(static_cast<
-        off_t>(init.target_len))
-    , method_(init.method)
-    , version_(init.version)
-{
-    BOOST_ASSERT(
-        method_len_ <= max_off_t);
-    BOOST_ASSERT(
-        target_len_ <= max_off_t);
-}
 
 } // http_proto
 } // boost

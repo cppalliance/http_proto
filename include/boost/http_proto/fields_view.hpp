@@ -25,6 +25,9 @@ class BOOST_SYMBOL_VISIBLE
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
+    using ctor_params =
+        fields_view_base::ctor_params;
+
     explicit
     fields_view(
         ctor_params const& init) noexcept

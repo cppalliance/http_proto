@@ -16,6 +16,10 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class fields_view;
+#endif
+
 /** A modifiable container of HTTP fields
 
     @par Iterators

@@ -148,7 +148,7 @@ BOOST_HTTP_PROTO_DECL
 status_class
 to_status_class(unsigned v);
 
-/** Convert a status_code to a status_class.
+/** Convert a status code to a status_class.
 
     @param v The status code to convert.
 

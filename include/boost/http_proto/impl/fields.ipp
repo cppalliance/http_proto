@@ -11,10 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_IPP
 
 #include <boost/http_proto/fields.hpp>
-#include <boost/http_proto/detail/copied_strings.hpp>
-#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
-#include <boost/assert/source_location.hpp>
 #include <string>
 
 namespace boost {

@@ -14,6 +14,7 @@
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
+#include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <string>
 
@@ -84,6 +85,33 @@ fields_base(
         return init;       
     }())
 {
+}
+
+// copy everything
+void
+fields_base::
+copy(fields_view_base const& other)
+{
+    if(! is_default(other.cbuf_))
+    {
+        auto n = detail::buffer_needed(
+            other.end_pos_, other.count_);
+        if(n <= buf_len_)
+        {
+            // copy start line and fields
+            other.write_table(buf_ + end_pos_);
+            std::memcpy(
+                buf_,
+                other.cbuf_,
+                other.end_pos_);
+            start_len_ = other.start_len_;
+            end_pos_ = other.end_pos_;
+            count_ = other.count_;
+            return;
+        }
+    }
+    fields_base tmp(other, kind_);
+    tmp.swap(*this);
 }
 
 //------------------------------------------------

@@ -38,7 +38,7 @@ parse_start_line(
         return start;
 
     m_.version = t.v;
-    status_ = t.status_code;
+    status_ = t.status_int;
     return start + (it - start);
 }
 

@@ -156,7 +156,7 @@ struct fields_view_test
             fields_view f;
             BOOST_TEST(f.size() == 0);
             BOOST_TEST(f.begin() == f.end());
-            BOOST_TEST(f.buffer() == "\r\n");
+            BOOST_TEST(f.string() == "\r\n");
         }
 
         {
@@ -185,9 +185,9 @@ struct fields_view_test
             using std::swap;
             swap(f1, f2);
             BOOST_TEST(
-                f1.buffer().data() == cs2.data());
+                f1.string().data() == cs2.data());
             BOOST_TEST(
-                f2.buffer().data() == cs_.data());
+                f2.string().data() == cs_.data());
         }
     }
 
