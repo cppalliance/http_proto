@@ -14,7 +14,7 @@
 
 Boost.Http.Proto is a portable, low-level C++ library which provides containers
 and algorithms for implementing the HTTP/1.1 protocol described in the document
-[@https://https://datatracker.ietf.org/doc/html/rfc7230 Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing],
+[@https://datatracker.ietf.org/doc/html/rfc7230 Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing],
 henceforth referred to as __rfc72320__.
 
 Boost.Http.Proto offers these features:
