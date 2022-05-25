@@ -88,4 +88,73 @@ cd $BOOST_ROOT/libs/$SELF
 ci/travis/coverity.sh
 fi
 
+elif [ "$DRONE_JOB_BUILDTYPE" == "cmake1" ]; then
+
+set -xe
+
+echo '==================================> INSTALL'
+
+# already in the image
+# pip install --user cmake
+
+echo '==================================> SCRIPT'
+
+export SELF=`basename $REPO_NAME`
+BOOST_BRANCH=develop && [ "$DRONE_BRANCH" == "master" ] && BOOST_BRANCH=master || true
+echo BOOST_BRANCH: $BOOST_BRANCH
+cd ..
+git clone -b $BOOST_BRANCH --depth 1 https://github.com/boostorg/boost.git boost-root
+cd boost-root
+
+mkdir -p libs/$SELF
+cp -r $DRONE_BUILD_DIR/* libs/$SELF
+# git submodule update --init tools/boostdep
+git submodule update --init --recursive
+
+# Customizations
+if [ ! -d "libs/url" ]; then
+  cd libs
+  git clone https://github.com/CPPAlliance/url -b develop
+  cd ..
+fi
+
+cd libs/$SELF
+mkdir __build__ && cd __build__
+cmake -DCMAKE_INSTALL_PREFIX=~/.local ..
+cmake --build . --target install
+
+elif [ "$DRONE_JOB_BUILDTYPE" == "cmake-superproject" ]; then
+
+echo '==================================> INSTALL'
+
+common_install
+
+echo '==================================> COMPILE'
+
+# Warnings as errors -Werror not building. Remove for now:
+# export CXXFLAGS="-Wall -Wextra -Werror"
+export CXXFLAGS="-Wall -Wextra"
+export CMAKE_OPTIONS=${CMAKE_OPTIONS:--DBUILD_TESTING=ON}
+export CMAKE_SHARED_LIBS=${CMAKE_SHARED_LIBS:-1}
+
+mkdir __build_static
+cd __build_static
+cmake -DBOOST_ENABLE_CMAKE=1 -DBoost_VERBOSE=1 ${CMAKE_OPTIONS} \
+    -DBOOST_INCLUDE_LIBRARIES=$SELF ..
+cmake --build .
+ctest --output-on-failure -R boost_$SELF
+
+cd ..
+
+if [ "$CMAKE_SHARED_LIBS" = 1 ]; then
+
+mkdir __build_shared
+cd __build_shared
+cmake -DBOOST_ENABLE_CMAKE=1 -DBoost_VERBOSE=1 ${CMAKE_OPTIONS} \
+    -DBOOST_INCLUDE_LIBRARIES=$SELF -DBUILD_SHARED_LIBS=ON ..
+cmake --build .
+ctest --output-on-failure -R boost_$SELF
+
+fi
+
 fi
