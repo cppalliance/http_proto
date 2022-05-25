@@ -21,6 +21,7 @@ target_compile_definitions(boost_http_proto_limits PRIVATE
 )
 target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::align
+    Boost::asio
     Boost::assert
     Boost::config
     Boost::container

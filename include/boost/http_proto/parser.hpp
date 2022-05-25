@@ -111,7 +111,7 @@ BOOST_HTTP_PROTO_PROTECTED:
     state state_ = state::start_line;
     bool got_eof_ = false;
 
-    mutable_buffer mb_;
+    asio::mutable_buffer mb_;
     message m_;
 
     parser(

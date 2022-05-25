@@ -51,6 +51,7 @@ function(boost_http_proto_setup_properties target)
     target_link_libraries(${target}
         PUBLIC
             Boost::align
+            Boost::asio
             Boost::assert
             Boost::config
             Boost::container

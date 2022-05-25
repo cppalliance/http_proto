@@ -34,7 +34,7 @@ class BOOST_SYMBOL_VISIBLE
     string_view hs_; // header
     string_view bs_; // body
 
-    const_buffer v_[2];
+    asio::const_buffer v_[2];
 
 public:
     using const_buffers_type =
