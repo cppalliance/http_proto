@@ -18,6 +18,7 @@ project(boost_http_proto VERSION "${BOOST_HTTP_PROTO_VERSION}" LANGUAGES CXX)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(CTest)
+    option(BOOST_HTTP_PROTO_INSTALL "Install boost::http_proto files" ON)
     option(BOOST_HTTP_PROTO_BUILD_TESTS "Build boost::http_proto tests" ${BUILD_TESTING})
     set(BOOST_HTTP_PROTO_IS_ROOT ON)
 else()
@@ -85,6 +86,14 @@ if(BUILD_SHARED_LIBS)
     target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_DYN_LINK=1)
 else()
     target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_STATIC_LINK=1)
+endif()
+
+if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
+    install(TARGETS boost_http_proto
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    )
 endif()
 
 if(BOOST_HTTP_PROTO_BUILD_TESTS)
