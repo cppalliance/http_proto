@@ -23,18 +23,6 @@ public:
     void
     testBody()
     {
-        context ctx;
-        response_parser p(ctx);
-#if 0
-        error_code ec;
-        p.commit(socket.read(p.prepare()));
-        p.parse_header(ec);
-        //...
-        p.parse_body(..., ec); // ?
-        // 1. body in parser-owned storage
-        // 2. body in caller-owned storage
-        // 3. clear existing parser-owned body storage
-#endif
     }
 
     void

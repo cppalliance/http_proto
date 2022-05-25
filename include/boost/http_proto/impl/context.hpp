@@ -37,8 +37,8 @@ make_service(
     context& ctx,
     Args&&... args)
 {
-    auto const ti = std::type_index(
-        typeid(detail::get_key_type<T>));
+    auto const ti = detail::get_type_index<
+        detail::get_key_type<T>>();
     auto const ps =
         ctx.find_service_impl(ti);
     if(ps)
@@ -55,8 +55,8 @@ template<class T>
 T*
 find_service(context& ctx) noexcept
 {
-    auto const ti = std::type_index(
-        typeid(detail::get_key_type<T>));
+    auto const ti = detail::get_type_index<
+        detail::get_key_type<T>>();
     auto const ps =
         ctx.find_service_impl(ti);
     if(! ps)

@@ -31,10 +31,15 @@ class BOOST_SYMBOL_VISIBLE
     off_t target_len_;
 
 public:
+    struct result : result_base
+    {
+        request_view header;
+    };
+
     BOOST_HTTP_PROTO_DECL
-    explicit
     request_parser(
-        context& ctx) noexcept;
+        config const& cfg,
+        std::size_t buffer_bytes);
 
     /** Return a reference to the parsed request header.
     */
@@ -42,7 +47,15 @@ public:
     request_view
     get() const noexcept;
 
+    result const&
+    get_() const noexcept
+    {
+        return r_;
+    }
+
 private:
+    result r_;
+
     char*
     parse_start_line(
         char*,

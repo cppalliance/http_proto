@@ -8,41 +8,25 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/request_view.hpp>
+#include <boost/http_proto/request_serializer.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-class request_view_test
+class request_serializer_test
 {
 public:
     void
     run()
     {
-        // default ctor
-        {
-            request_view req;
-        }
-
-        // copy ctor
-        {
-            request_view r1;
-            request_view r2(r1);
-        }
-
-        // copy assign
-        {
-            request_view r1;
-            request_view r2;
-            r1 = r2;
-        }
     }
 };
 
-TEST_SUITE(request_view_test, "boost.http_proto.request_view");
+TEST_SUITE(
+    request_serializer_test,
+    "boost.http_proto.request_serializer");
 
 } // http_proto
 } // boost
-

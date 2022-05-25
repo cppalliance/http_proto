@@ -12,8 +12,8 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/type_index.hpp>
 #include <memory>
-#include <typeindex>
 
 namespace boost {
 namespace http_proto {
@@ -92,12 +92,12 @@ private:
     BOOST_HTTP_PROTO_DECL
     service*
     find_service_impl(
-        std::type_index ti) noexcept;
+        detail::type_index ti) noexcept;
 
     BOOST_HTTP_PROTO_DECL
     service&
     make_service_impl(
-        std::type_index ti,
+        detail::type_index ti,
         std::unique_ptr<service> sp);
 
     std::unique_ptr<data> p_;

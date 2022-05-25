@@ -19,8 +19,9 @@ namespace http_proto {
 
 response_parser::
 response_parser(
-    context& ctx) noexcept
-    : parser(ctx)
+    config const& cfg,
+    std::size_t buffer_bytes)
+    : parser(cfg, buffer_bytes)
 {
 }
 
@@ -38,7 +39,7 @@ parse_start_line(
         return start;
 
     m_.version = t.v;
-    status_ = t.status_code;
+    status_ = t.status_int;
     return start + (it - start);
 }
 
@@ -66,8 +67,7 @@ finish_header(
             //has_body_ = true;
             state_ = state::body;
 
-            if( cfg_.body_limit.has_value() &&
-                *m_.content_len > *cfg_.body_limit)
+            if( *m_.content_len > cfg_.body_limit)
             {
                 ec = error::body_limit;
                 return;

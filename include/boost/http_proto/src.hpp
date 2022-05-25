@@ -27,19 +27,23 @@ in a translation unit of the program.
 
 #include <boost/http_proto/detail/impl/except.ipp>
 
-#include <boost/http_proto/impl/basic_header.ipp>
 #include <boost/http_proto/impl/context.ipp>
 #include <boost/http_proto/impl/error.ipp>
 #include <boost/http_proto/impl/field.ipp>
-#include <boost/http_proto/impl/headers.ipp>
-#include <boost/http_proto/impl/headers_view.ipp>
+#include <boost/http_proto/impl/fields.ipp>
+#include <boost/http_proto/impl/fields_base.ipp>
+#include <boost/http_proto/impl/fields_view.ipp>
+#include <boost/http_proto/impl/fields_view_base.ipp>
+#include <boost/http_proto/impl/header_info.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>
 #include <boost/http_proto/impl/request_parser.ipp>
+#include <boost/http_proto/impl/request_serializer.ipp>
 #include <boost/http_proto/impl/request_view.ipp>
 #include <boost/http_proto/impl/response.ipp>
 #include <boost/http_proto/impl/response_parser.ipp>
+#include <boost/http_proto/impl/response_serializer.ipp>
 #include <boost/http_proto/impl/response_view.ipp>
 #include <boost/http_proto/impl/serializer.ipp>
 #include <boost/http_proto/impl/status.ipp>

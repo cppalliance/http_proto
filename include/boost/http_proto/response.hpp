@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
-#include <boost/http_proto/headers.hpp>
+#include <boost/http_proto/header_info.hpp>
+#include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -23,39 +23,80 @@ namespace http_proto {
 class response_view;
 #endif
 
-/** Container for HTTP requests
+/** Container for HTTP responses
 */
 class BOOST_SYMBOL_VISIBLE
     response
-    : public basic_header
+    : public fields_base
 {
-    // headers have a maximum size of 2^32-1 chars
-    using off_t = std::uint32_t;
-
     http_proto::version version_;
-    status result_;
+    http_proto::status status_;
+    unsigned short status_int_;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_start_line_impl(
+        http_proto::status sc,
+        unsigned short si,
+        string_view reason,
+        http_proto::version v);
 
 public:
-    /** Container holding the response header fields
+    /** Constructor
     */
-    headers fields;
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    response(
+        http_proto::status sc,
+        http_proto::version v =
+            http_proto::version::http_1_1);
+
+    //--------------------------------------------
 
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    response();
+    response() noexcept;
 
+    /** Constructor
+
+        The moved-from object will be
+        left in the default-constructed
+        state.
+    */
     BOOST_HTTP_PROTO_DECL
     response(response&&) noexcept;
 
+    /** Constructor
+    */
     BOOST_HTTP_PROTO_DECL
     response(response const&);
 
+    /** Assignment
+    */
     BOOST_HTTP_PROTO_DECL
-    response& operator=(response&&) noexcept;
+    response&
+    operator=(response&&) noexcept;
 
+    /** Assignment
+    */
     BOOST_HTTP_PROTO_DECL
-    response& operator=(response const&);
+    response&
+    operator=(response const&);
+
+    //--------------------------------------------
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    response(
+        response_view const&);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    response&
+    operator=(response_view const&);
 
     //--------------------------------------------
     //
@@ -63,7 +104,33 @@ public:
     //
     //--------------------------------------------
 
-    /** Return the HTTP-version of this message
+    /** Return the reason string
+    */
+    string_view
+    reason() const noexcept
+    {
+        return string_view(
+            cbuf_ + 13,
+            start_len_ - 15);
+    }
+
+    /** Return the status code
+    */
+    http_proto::status
+    status() const noexcept
+    {
+        return status_;
+    }
+
+    /** Return the status code
+    */
+    unsigned short
+    status_int() const noexcept
+    {
+        return status_int_;
+    }
+
+    /** Return the HTTP version
     */
     http_proto::version
     version() const noexcept
@@ -71,35 +138,17 @@ public:
         return version_;
     }
 
-    /** Return the status enumeration of the response result
-    */
-    BOOST_HTTP_PROTO_DECL
-    status
-    result() const noexcept;
-
-    /** Return the status of the response result as an integer
-    */
-    BOOST_HTTP_PROTO_DECL
-    unsigned
-    result_int() const noexcept;
-
-    /** Return the obsolete reason phrase of the response
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    reason() const noexcept;
-
     /** Return a read-only view to the response
     */
     BOOST_HTTP_PROTO_DECL
     operator
     response_view() const noexcept;
 
-    /** Returns a string representing the serialized response
+    /** Return serialization information
     */
     BOOST_HTTP_PROTO_DECL
-    string_view
-    get_const_buffer() const noexcept override;
+    operator
+    header_info() const noexcept;
 
     //--------------------------------------------
     //
@@ -107,18 +156,49 @@ public:
     //
     //--------------------------------------------
 
-    /** Clear the contents, leaving capacity unchanged
+    /** Clear the contents, but not the capacity
     */
     BOOST_HTTP_PROTO_DECL
     void
     clear() noexcept;
 
-    BOOST_HTTP_PROTO_DECL
+    /** Set the version, status code of the response
+
+        The reason phrase will be set to the
+        standard text for the specified status
+        code.
+
+        @par sc The status code. This must not be
+                @ref http_proto::status::unknown.
+
+        @par v The HTTP-version.
+    */
     void
-    set_result(
-        status code,
-        http_proto::version http_version,
-        string_view reason = {});
+    set_start_line(
+        http_proto::status sc,
+        http_proto::version v =
+            http_proto::version::http_1_1)
+    {
+        set_start_line_impl(
+            sc,
+            static_cast<
+                unsigned short>(sc),
+            obsolete_reason(sc),
+            v);
+    }
+
+    void
+    set_start_line(
+        unsigned short si,
+        string_view reason,
+        http_proto::version v)
+    {
+        set_start_line_impl(
+            int_to_status(si),
+            si,
+            reason,
+            v);
+    }
 
     /** Swap this with another instance
     */

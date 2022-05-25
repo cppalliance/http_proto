@@ -20,18 +20,6 @@ class buffer_test
 public:
     void run()
     {
-        {
-            mutable_buffer mb;
-            const_buffer cb(mb);
-            mb += 1;
-            cb = cb + 1;
-            mb = 1 + mb;
-        }
-        {
-            const_buffers cb1;
-            const_buffers cb2(cb1);
-            cb1 = cb2;
-        }
     }
 };
 

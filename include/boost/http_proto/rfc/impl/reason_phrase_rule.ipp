@@ -32,7 +32,9 @@ parse(
         {
             return
                 (static_cast<unsigned char>(
-                    c) >= 32 && c != 128) ||
+                    c) >= 32 &&
+                 static_cast<unsigned char>(
+                    c) != 128) ||
                 (c == 9);
         }
     };

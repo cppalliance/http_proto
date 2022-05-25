@@ -11,38 +11,49 @@
 #include <boost/http_proto/serializer.hpp>
 
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/field.hpp>
+#include <boost/http_proto/request.hpp>
 
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-struct file_body
-{
-    class parser
-    {
-    };
-
-    class serializer
-    {
-    };
-};
-
-struct string_body
-{
-    using value_type = std::string;
-
-
-};
+//------------------------------------------------
 
 class serializer_test
 {
 public:
+    template<class Buffer>
+    std::size_t
+    write(Buffer const&, error_code&)
+    {
+        return {};
+    }
+
+    void
+    testPrototypes()
+    {
+#if 0
+        // send memory-mapped file
+        // send serialized json::value
+
+
+        // entire body in serializer buffer
+        // buffer-at-a-time in serializer buffer
+        // entire body in external buffer
+
+
+#endif
+    }
+
     void
     run()
     {
+        //testPrototypes();
+
         context ctx;
-        serializer sr(ctx);
+        serializer sr;
     }
 };
 
@@ -52,14 +63,3 @@ TEST_SUITE(
 
 } // http_proto
 } // boost
-#if 0
-
-class buffered_body
-{
-public:
-    virtual std::size_t write(
-        void* dest,
-        std::size_t bytes,
-        error_code& ec) = 0;
-};
-#endif

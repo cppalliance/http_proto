@@ -27,7 +27,8 @@ class BOOST_SYMBOL_VISIBLE
 public:
     BOOST_HTTP_PROTO_DECL
     response_parser(
-        context& ctx) noexcept;
+        config const& cfg,
+        std::size_t buffer_bytes);
 
 private:
     char*

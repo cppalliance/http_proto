@@ -21,7 +21,8 @@ class decoder_type;
 class encoder_type;
 #endif
 
-class codecs
+class BOOST_SYMBOL_VISIBLE
+    codecs
 {
 public:
     BOOST_HTTP_PROTO_DECL

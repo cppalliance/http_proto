@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/basic_header.hpp>
+#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
@@ -22,79 +22,105 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
+class fields_view;
 #endif
 
-class serializer
+class BOOST_SYMBOL_VISIBLE
+    serializer
 {
-    context& ctx_;
     char* buf_ = nullptr;
     std::size_t cap_ = 0;
-    std::size_t size_ = 0;
-    string_view hs_;
-    string_view bs_;
+
+    string_view hs_; // header
+    string_view bs_; // body
+
+    const_buffer v_[2];
 
 public:
-    serializer(context& ctx)
-        : ctx_(ctx)
-    {
-        (void)ctx_;
-        (void)cap_;
-        (void)size_;
-    }
+    using const_buffers_type =
+        const_buffers;
 
-    ~serializer()
-    {
-        if(buf_)
-            delete[] buf_;
-    }
+    using mutable_buffers_type =
+        mutable_buffers;
 
+    BOOST_HTTP_PROTO_DECL
     bool
-    is_complete() const noexcept
-    {
-        return true;
-    }
+    is_complete() const noexcept;
 
-    /** Clear the contents without affecting the capacity
-    */
+    BOOST_HTTP_PROTO_DECL
     void
-    clear()
-    {
-    }
+    reset(header_info const& hi);
 
-    const_buffer_pair
-    prepare(error_code& ec)
-    {
-        ec = {};
-        const_buffer_pair p;
-        p.data[0] = hs_.data();
-        p.size[0] = hs_.size();
-        p.data[1] = bs_.data();
-        p.size[1] = bs_.size();
-        return p;
-    }
+    BOOST_HTTP_PROTO_DECL
+    const_buffers_type
+    prepare(error_code& ec);
 
+    BOOST_HTTP_PROTO_DECL
     void
-    consume(std::size_t n) noexcept
-    {
-        (void)n;
-    }
+    commit(std::size_t n);
 
-    /** Staple a header and body together for serialization
+    BOOST_HTTP_PROTO_DECL
+    const_buffers_type
+    data() const noexcept;
 
-        Any previous header or body is cleared.
-    */
-    template<class Body>
+    BOOST_HTTP_PROTO_DECL
     void
-    staple(
-        http_proto::basic_header const& h,
-        Body b)
-    {
-        clear();
-        hs_ = h.get_const_buffer();
-        bs_ = b;
-    }
+    consume(std::size_t n);
 
-    // VFALCO chunked?
+#if 0
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    reserve(std::size_t bytes);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset_for_head(
+        header_info const& hi);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    attach_body(string_view body);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    attach_extensions(
+        string_view extensions);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    attach_end_of_body();
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    attach_end_of_body(
+        fields_view const& trailers );
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    flush(); // ?
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    consume(std::size_t bytes);
+
+    BOOST_HTTP_PROTO_DECL
+    const_buffers
+    prepare(error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    const_buffers
+    prepare(
+        std::size_t bytes,
+        error_code& ec);
+
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    peek_output() const noexcept;
+#endif
 };
 
 } // http_proto

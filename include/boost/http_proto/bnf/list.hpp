@@ -24,8 +24,8 @@ namespace bnf {
 
     This rule defines a list containing
     at least n and at most m of Element,
-    each separated by a single comma and
-    optional whitespace.
+    each separated by at least one comma
+    and optional whitespace.
 
     @par BNF
     @code
@@ -36,13 +36,15 @@ namespace bnf {
     1#element   => *( "," OWS ) element *( OWS "," [ OWS element ] )
     @endcode
 
-    @see
-        https://datatracker.ietf.org/doc/html/rfc7230#section-7
-        https://www.rfc-editor.org/errata/eid5257
-
     @tparam Element The element type to use in the list
     @tparam N The minimum number of list items, which may be zero
     @tparam M The maximum number of list items.
+
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-7"
+        >7. ABNF List Extension (rfc7230)</a>
+    @li <a href="https://www.rfc-editor.org/errata/eid5257"
+        >rfc7230 errata (eid5257)</a>
 */
 template<
     class Element,

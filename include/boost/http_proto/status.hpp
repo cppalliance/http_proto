@@ -17,7 +17,7 @@
 namespace boost {
 namespace http_proto {
 
-enum class status : unsigned
+enum class status : unsigned short
 {
     /** An unknown status-code.
 
@@ -107,7 +107,7 @@ enum class status : unsigned
 
 /** Represents the class of a status-code.
 */
-enum class status_class : unsigned
+enum class status_class : unsigned char
 {
     /// Unknown status-class
     unknown = 0,
@@ -148,7 +148,7 @@ BOOST_HTTP_PROTO_DECL
 status_class
 to_status_class(unsigned v);
 
-/** Convert a status_code to a status_class.
+/** Convert a status code to a status_class.
 
     @param v The status code to convert.
 

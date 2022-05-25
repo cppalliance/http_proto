@@ -17,37 +17,38 @@ namespace http_proto {
 
 request_view::
 request_view(
-    char const* buf,
-    std::size_t cap,
-    std::size_t count,
-    std::size_t start_len,
-    std::size_t fields_len,
-    std::size_t method_len,
-    std::size_t target_len,
-    http_proto::method method,
-    http_proto::version version) noexcept
-    : method_len_(method_len)
-    , target_len_(target_len)
-    , method_(method)
-    , version_(version)
-    , fields(
-        buf,
-        cap,
-        count,
-        start_len,
-        fields_len)
+    ctor_params const& init) noexcept
+    : fields_view_base(init)
+    , method_len_(static_cast<
+        off_t>(init.method_len))
+    , target_len_(static_cast<
+        off_t>(init.target_len))
+    , method_(init.method)
+    , version_(init.version)
+{
+    BOOST_ASSERT(
+        method_len_ <= max_off_t);
+    BOOST_ASSERT(
+        target_len_ <= max_off_t);
+}
+
+request_view::
+request_view() noexcept
+    : fields_view_base(1)
+    , method_len_(3)
+    , target_len_(1)
+    , method_(http_proto::method::get)
+    , version_(http_proto::version::http_1_1)
 {
 }
 
 request_view::
-request_view() noexcept = default;
+request_view(
+    request_view const&) noexcept = default;
 
-string_view
+request_view&
 request_view::
-get_const_buffer() const noexcept
-{
-    return fields.str_impl();
-}
+operator=(request_view const&) noexcept = default;
 
 } // http_proto
 } // boost

@@ -25,8 +25,9 @@ namespace http_proto {
 
 request_parser::
 request_parser(
-    context& ctx) noexcept
-    : parser(ctx)
+    config const& cfg,
+    std::size_t buffer_bytes)
+    : parser(cfg, buffer_bytes)
     , method_(http_proto::method::unknown)
     , method_len_(0)
     , target_len_(0)
@@ -37,16 +38,18 @@ request_view
 request_parser::
 get() const noexcept
 {
-    return request_view(
-        buf_,
-        cap_,
-        m_.count,
-        m_.start_len,
-        m_.fields_len - 2,
-        method_len_,
-        target_len_,
-        method_,
-        m_.version);
+    request_view::ctor_params init;
+    init.cbuf = buf_;
+    init.buf_len = cap_;
+    init.start_len = m_.start_len;
+    init.end_pos = m_.start_len +
+        m_.fields_len /* - 2 */;
+    init.count = m_.count;
+    init.method_len = method_len_;
+    init.target_len = target_len_;
+    init.method = method_;
+    init.version = m_.version;
+    return request_view(init);
 }
 
 //------------------------------------------------
@@ -87,8 +90,7 @@ finish_header(
     }
     if(m_.content_len.has_value())
     {
-        if( cfg_.body_limit.has_value() &&
-            *m_.content_len > *cfg_.body_limit)
+        if( *m_.content_len > cfg_.body_limit)
         {
             ec = error::body_limit;
             return;

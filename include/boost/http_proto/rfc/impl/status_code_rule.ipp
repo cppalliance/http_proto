@@ -85,6 +85,7 @@ parse(
 
     t.s = string_view(it0, it - it0);
     t.st = int_to_status(t.v);
+    it0 = it;
 }
 
 } // http_proto

@@ -9,6 +9,7 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/error.hpp>
+#include <boost/url/grammar/error.hpp>
 
 #include <memory>
 
@@ -55,7 +56,7 @@ public:
     void
     run()
     {
-        char const* const n = "boost.http_proto";
+        char const* const n = "boost.http.proto";
 
         condition c;
 
@@ -83,6 +84,11 @@ public:
         check(n, error::body_limit);
         check(n, error::header_limit);
         check(n, error::numeric_overflow);
+
+        BOOST_TEST(
+            make_error_code(
+                grammar::error::incomplete) ==
+            condition::need_more);
     }
 };
 

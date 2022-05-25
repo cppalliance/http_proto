@@ -37,7 +37,7 @@ namespace http_proto {
 struct status_line_rule
 {
     version v;
-    unsigned status_code;
+    unsigned short status_int;
     string_view reason;
 
     friend

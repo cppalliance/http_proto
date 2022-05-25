@@ -75,6 +75,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "" FILES ${BOOST_HTTP_PROTO_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES Jamfile)
 
 add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES})
 add_library(Boost::http_proto ALIAS boost_http_proto)

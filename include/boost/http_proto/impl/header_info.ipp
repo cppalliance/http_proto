@@ -7,26 +7,15 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-// Test that header file is self-contained.
-#include <boost/http_proto/basic_header.hpp>
+#ifndef BOOST_HTTP_PROTO_IMPL_HEADER_INFO_IPP
+#define BOOST_HTTP_PROTO_IMPL_HEADER_INFO_IPP
 
-#include "test_suite.hpp"
+#include <boost/http_proto/header_info.hpp>
 
 namespace boost {
 namespace http_proto {
 
-class basic_header_test
-{
-public:
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(
-    basic_header_test,
-    "boost.http_proto.basic_header");
-
 } // http_proto
 } // boost
+
+#endif

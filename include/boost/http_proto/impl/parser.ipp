@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/detail/ftab.hpp>
+#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/http_proto/bnf/chunk_part.hpp>
 #include <boost/http_proto/bnf/connection.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
@@ -31,35 +31,45 @@ namespace http_proto {
 //------------------------------------------------
 
 parser::
-config::
-config() noexcept
-    : header_limit(8192)
-    , body_limit(4*1024*1024)
-{
-}
-
-//------------------------------------------------
-
-parser::
 parser(
-    context& ctx) noexcept
-    : ctx_(ctx)
-    , buf_(nullptr)
-    , cap_(0)
-    , size_(0)
-    , used_(0)
+    config const& cfg,
+    std::size_t buffer_bytes)
+    : cfg_(cfg)
+    , buf_(
+        [cfg, buffer_bytes]
+        {
+            // buffer must be large enough to
+            // hold a complete header.
+            if(buffer_bytes < cfg.header_limit)
+                detail::throw_invalid_argument(
+                    "buffer_bytes",
+                    BOOST_CURRENT_LOCATION);
+            return new char[buffer_bytes];
+        }())
+    , cap_(buffer_bytes)
     , state_(state::start_line)
     , got_eof_(false)
     , m_{}
 {
 }
 
+//------------------------------------------------
+//
+// Special Members
+//
+//------------------------------------------------
+
 parser::
 ~parser()
 {
-    if(buf_)
-        delete[] buf_;
+    delete[] buf_;
 }
+
+//------------------------------------------------
+//
+// Observers
+//
+//------------------------------------------------
 
 chunk_info
 parser::
@@ -89,6 +99,16 @@ body() const noexcept
 }
 
 //------------------------------------------------
+//
+// Input
+//
+//------------------------------------------------
+
+void
+parser::
+clear() noexcept
+{
+}
 
 void
 parser::
@@ -106,8 +126,7 @@ reset()
     {
         // Throwing out partial data
         // will desync the HTTP stream
-        BOOST_ASSERT(state_ ==
-            state::end_of_message);
+        BOOST_ASSERT(is_complete());
         if( size_ > used_ &&
             used_ > 0)
         {
@@ -125,7 +144,7 @@ reset()
     state_ = state::start_line;
 }
 
-mutable_buffer
+mutable_buffers
 parser::
 prepare()
 {
@@ -157,9 +176,10 @@ prepare()
         cap_ =
             cap_ + amount;
     }
-    return {
+    mb_ = {
         buf_ + size_,
         cap_ - size_ };
+    return { &mb_, 1 };
 }
 
 void
@@ -184,6 +204,402 @@ commit_eof()
 {
     got_eof_ = true;
 }
+
+//------------------------------------------------
+//
+// Parsing
+//
+//------------------------------------------------
+
+void
+parser::
+parse(
+    error_code& ec)
+{
+    switch(state_)
+    {
+    case state::start_line:
+    {
+        BOOST_ASSERT(used_ == 0);
+        BOOST_ASSERT(m_.start_len == 0);
+        BOOST_ASSERT(m_.fields_len == 0);
+        std::size_t n;
+        bool const limit = size_ >
+            cfg_.header_limit;
+        if(! limit)
+            n = size_;
+        else
+            n = cfg_.header_limit;
+        ec = {};
+        auto it = parse_start_line(
+            buf_, buf_ + n, ec);
+        used_ += it - buf_;
+        if(ec == grammar::error::incomplete)
+        {
+            if(! limit)
+                return;
+            ec = error::header_limit;
+            return;
+        }
+        if(ec.failed())
+            return;
+        m_.start_len = it - buf_;
+        state_ = state::header_fields;
+        BOOST_FALLTHROUGH;
+    }
+    case state::header_fields:
+    {
+        std::size_t n;
+        bool const limit = size_ >
+            cfg_.header_limit;
+        if(! limit)
+            n = size_;
+        else
+            n = cfg_.header_limit;
+        BOOST_ASSERT(
+            m_.start_len +
+            m_.fields_len <
+                cfg_.header_limit);
+        ec = {};
+        auto start = buf_ +
+            m_.start_len +
+            m_.fields_len;
+        auto it = parse_fields(
+            start, buf_ + n, ec);
+        used_ += it - start;
+        if(ec == grammar::error::incomplete)
+        {
+            if(! limit)
+                return;
+            ec = error::header_limit;
+            return;
+        }
+        if(ec.failed())
+            return;
+        m_.fields_len = (it - buf_) -
+            m_.start_len;
+        break;
+    }
+    case state::body:
+    {
+        ec = {};
+        return;
+    }
+    case state::complete:
+    {
+        ec = error::end_of_message;
+        if(! got_eof_)
+            return;
+        state_ = state::end_of_stream;
+        return;
+    }
+    case state::end_of_stream:
+    {
+        ec = error::end_of_stream;
+        return;
+    }
+    }
+
+    finish_header(ec);
+    if(ec)
+        return;
+    if(! m_.skip_body)
+    {
+        state_ = state::body;
+    }
+    else
+    {
+        state_ = state::complete;
+    }
+}
+
+char*
+parser::
+parse_fields(
+    char* const start,
+    char const* const end,
+    error_code& ec)
+{
+    field_rule t;
+    char* it0 = start;
+    char const* it = start;
+    for(;;)
+    {
+        grammar::parse(it, end, ec, t);
+        if(ec == grammar::error::end)
+        {
+            // end of fields
+            ec = {};
+            it0 = it0 + (it - it0);
+            break;
+        }
+        if(ec.failed())
+            return it0;
+        // remove obs-fold if needed
+        if(t.v.has_obs_fold)
+            replace_obs_fold(it0, it);
+        it0 = it0 + (it - it0);
+        auto const id =
+            string_to_field(t.v.name);
+        switch(id)
+        {
+        case field::connection:
+        case field::proxy_connection:
+            do_connection(
+                t.v.value, ec);
+            if(ec.failed())
+                return it0;
+            break;
+        case field::content_length:
+            do_content_length(
+                t.v.value, ec);
+            if(ec.failed())
+                return it0;
+            break;
+        case field::transfer_encoding:
+            do_transfer_encoding(
+                t.v.value, ec);
+            if(ec.failed())
+                return it0;
+            break;
+        case field::upgrade:
+            do_upgrade(t.v.value, ec);
+            if(ec.failed())
+                return it0;
+            break;
+        default:
+            break;
+        }
+        auto& e =
+            detail::fields_table(
+            buf_ + cap_)[m_.count];
+        auto const base =
+            buf_ + m_.start_len;
+        e.np = static_cast<off_t>(
+            t.v.name.data() - base);
+        e.nn = static_cast<off_t>(
+            t.v.name.size());
+        e.vp = static_cast<off_t>(
+            t.v.value.data() - base);
+        e.vn = static_cast<off_t>(
+            t.v.value.size());
+        e.id = id;
+    #if 0
+        // VFALCO handling zero-length value?
+        if(fi.value_len > 0)
+            fi.value_pos = static_cast<
+                off_t>(t.v.value.data() - buf_);
+        else
+            fi.value_pos = 0; // empty string
+    #endif
+        ++m_.count;
+    }
+    return it0;
+}
+
+void
+parser::
+parse_body(
+    error_code& ec)
+{
+    ec = {};
+    switch(state_)
+    {
+    case state::start_line:
+    case state::header_fields:
+        parse(ec);
+        if(ec.failed())
+            return;
+        BOOST_ASSERT(state_ >
+            state::header_fields);
+        break;
+    case state::body:
+        break;
+    case state::complete:
+        ec = error::end_of_message;
+        if(! got_eof_)
+            return;
+        state_ = state::end_of_stream;
+        return;
+    case state::end_of_stream:
+        ec = error::end_of_stream;
+        return;
+    }
+
+    auto avail = size_ - used_;
+
+    if(m_.content_len.has_value())
+    {
+        // known payload length
+        BOOST_ASSERT(! m_.got_chunked);
+        BOOST_ASSERT(m_.n_remain > 0);
+        BOOST_ASSERT(m_.content_len <
+            cfg_.body_limit);
+        if(avail == 0)
+        {
+            if(! got_eof_)
+            {
+                ec = grammar::error::incomplete;
+                return;
+            }
+            ec = error::incomplete;
+            return;
+        }
+        if( avail > m_.n_remain)
+            avail = static_cast<
+                std::size_t>(m_.n_remain);
+        used_ += avail;
+        m_.payload_seen += avail;
+        m_.n_payload += avail;
+        m_.n_remain -= avail;
+        if(m_.n_remain > 0)
+        {
+            ec = {};
+            return;
+        }
+        state_ = state::complete;
+        ec = error::end_of_message;
+        return;
+    }
+
+    if(! m_.got_chunked)
+    {
+        // end of body indicated by EOF
+        if(avail > 0)
+        {
+            if(avail > (std::size_t(
+                -1) - m_.n_payload))
+            {
+                // overflow size_t
+                // VFALCO revisit this
+                ec = error::numeric_overflow;
+                return;
+            }
+            used_ += avail;
+            m_.n_payload += avail;
+            ec = {};
+            return;
+        }
+        if(! got_eof_)
+        {
+            ec = grammar::error::incomplete;
+            return;
+        }
+        state_ = state::complete;
+        ec = error::end_of_message;
+        return;
+    }
+#if 0
+    if(m_.payload_left == 0)
+    {
+        // start of chunk
+        bnf::chunk_part p;
+        auto it = p.parse(
+            buf_ + used_,
+            buf_ + (
+                size_ - used_),
+            ec);
+        if(ec)
+            return;
+        auto const v =
+            p.value();
+        m_.chunk.size = v.size;
+        m_.chunk.ext = v.ext;
+        m_.chunk.trailer = v.trailer;
+        m_.chunk.fresh = true;
+        m_.payload_left =
+            v.size - v.data.size();
+    }
+    else
+    {
+        // continuation of chunk
+
+    }
+#endif
+}
+
+void
+parser::
+parse_chunk(
+    error_code& ec)
+{
+    (void)ec;
+#if 0
+    switch(state_)
+    {
+    case state::start_line:
+    case state::header_fields:
+        parse_header(ec);
+        if(ec.failed())
+            return;
+        BOOST_ASSERT(state_ >
+            state::header_fields);
+        break;
+    case state::body:
+        if(! m_.got_chunked)
+            return parse_body(ec);
+        break;
+    case state::complete:
+        ec = error::end_of_message;
+        if(! got_eof_)
+            return;
+        state_ = state::end_of_stream;
+        return;
+    case state::end_of_stream:
+        ec = error::end_of_stream;
+        return;
+    }
+
+    auto const avail = size_ - used_;
+    auto const start = buf_ + used_;
+    if(m_.payload_left == 0)
+    {
+        // start of chunk
+        // VFALCO What about chunk_part_next?
+        BOOST_ASSERT(
+            used_ == m_.header_size);
+        bnf::chunk_part p;
+        auto it = p.parse(start,
+            buf_ + (
+                size_ - used_), ec);
+        BOOST_ASSERT(it == start);
+        if(ec)
+            return;
+        auto const v = p.value();
+        m_.chunk.size = v.size;
+        m_.chunk.ext = v.ext;
+        m_.chunk.fresh = true;
+        if(v.size > 0)
+        {
+            // chunk
+            m_.chunk.trailer = {};
+            m_.payload_left =
+                v.size - v.data.size();
+            used_ += it - start; // excludes CRLF
+            return;
+        }
+        // last-chunk
+        BOOST_ASSERT(
+            v.data.empty());
+        m_.chunk.trailer =
+            v.trailer;
+        m_.body = {};
+        used_ += it - start; // excludes CRLF
+        state_ = state::complete;
+    }
+    else
+    {
+        // continuation of chunk
+
+    }
+#endif
+}
+
+//------------------------------------------------
+//
+// Special Members
+//
+//------------------------------------------------
 
 void
 parser::
@@ -248,394 +664,6 @@ void
 parser::
 discard_chunk() noexcept
 {
-}
-
-//------------------------------------------------
-
-void
-parser::
-parse_header(
-    error_code& ec)
-{
-    switch(state_)
-    {
-    case state::start_line:
-    {
-        BOOST_ASSERT(used_ == 0);
-        BOOST_ASSERT(m_.start_len == 0);
-        BOOST_ASSERT(m_.fields_len == 0);
-        if(! buf_)
-        {
-            ec = grammar::error::incomplete;
-            return;
-        }
-        std::size_t n;
-        bool const limit = size_ >
-            cfg_.header_limit;
-        if(! limit)
-            n = size_;
-        else
-            n = cfg_.header_limit;
-        ec = {};
-        auto it = parse_start_line(
-            buf_, buf_ + n, ec);
-        used_ += it - buf_;
-        if(ec == grammar::error::incomplete)
-        {
-            if(! limit)
-                return;
-            ec = error::header_limit;
-            return;
-        }
-        if(ec.failed())
-            return;
-        m_.start_len = it - buf_;
-        state_ = state::header_fields;
-        BOOST_FALLTHROUGH;
-    }
-    case state::header_fields:
-    {
-        std::size_t n;
-        bool const limit = size_ >
-            cfg_.header_limit;
-        if(! limit)
-            n = size_;
-        else
-            n = cfg_.header_limit;
-        BOOST_ASSERT(
-            m_.start_len +
-            m_.fields_len <
-                cfg_.header_limit);
-        ec = {};
-        auto start = buf_ +
-            m_.start_len +
-            m_.fields_len;
-        auto it = parse_fields(
-            start, buf_ + n, ec);
-        used_ += it - start;
-        if(ec == grammar::error::incomplete)
-        {
-            if(! limit)
-                return;
-            ec = error::header_limit;
-            return;
-        }
-        if(ec.failed())
-            return;
-        m_.fields_len = (it - buf_) -
-            m_.start_len;
-        break;
-    }
-    case state::body:
-    {
-        ec = {};
-        return;
-    }
-    case state::end_of_message:
-    {
-        ec = error::end_of_message;
-        if(! got_eof_)
-            return;
-        state_ = state::end_of_stream;
-        return;
-    }
-    case state::end_of_stream:
-    {
-        ec = error::end_of_stream;
-        return;
-    }
-    }
-
-    finish_header(ec);
-    if(ec)
-        return;
-    if(! m_.skip_body)
-    {
-        state_ = state::body;
-    }
-    else
-    {
-        state_ = state::end_of_message;
-    }
-}
-
-void
-parser::
-parse_body(
-    error_code& ec)
-{
-    ec = {};
-    switch(state_)
-    {
-    case state::start_line:
-    case state::header_fields:
-        parse_header(ec);
-        if(ec.failed())
-            return;
-        BOOST_ASSERT(state_ >
-            state::header_fields);
-        break;
-    case state::body:
-        break;
-    case state::end_of_message:
-        ec = error::end_of_message;
-        if(! got_eof_)
-            return;
-        state_ = state::end_of_stream;
-        return;
-    case state::end_of_stream:
-        ec = error::end_of_stream;
-        return;
-    }
-
-    auto avail = size_ - used_;
-
-    if(m_.content_len.has_value())
-    {
-        // known payload length
-        BOOST_ASSERT(! m_.got_chunked);
-        BOOST_ASSERT(m_.n_remain > 0);
-        BOOST_ASSERT(m_.content_len <
-            cfg_.body_limit);
-        if(avail == 0)
-        {
-            if(! got_eof_)
-            {
-                ec = grammar::error::incomplete;
-                return;
-            }
-            ec = error::incomplete;
-            return;
-        }
-        if( avail > m_.n_remain)
-            avail = static_cast<
-                std::size_t>(m_.n_remain);
-        used_ += avail;
-        m_.payload_seen += avail;
-        m_.n_payload += avail;
-        m_.n_remain -= avail;
-        if(m_.n_remain > 0)
-        {
-            ec = {};
-            return;
-        }
-        state_ = state::end_of_message;
-        ec = error::end_of_message;
-        return;
-    }
-
-    if(! m_.got_chunked)
-    {
-        // end of body indicated by EOF
-        if(avail > 0)
-        {
-            if(avail > (std::size_t(
-                -1) - m_.n_payload))
-            {
-                // overflow size_t
-                // VFALCO revisit this
-                ec = error::numeric_overflow;
-                return;
-            }
-            used_ += avail;
-            m_.n_payload += avail;
-            ec = {};
-            return;
-        }
-        if(! got_eof_)
-        {
-            ec = grammar::error::incomplete;
-            return;
-        }
-        state_ = state::end_of_message;
-        ec = error::end_of_message;
-        return;
-    }
-#if 0
-    if(m_.payload_left == 0)
-    {
-        // start of chunk
-        bnf::chunk_part p;
-        auto it = p.parse(
-            buf_ + used_,
-            buf_ + (
-                size_ - used_),
-            ec);
-        if(ec)
-            return;
-        auto const v =
-            p.value();
-        m_.chunk.size = v.size;
-        m_.chunk.ext = v.ext;
-        m_.chunk.trailer = v.trailer;
-        m_.chunk.fresh = true;
-        m_.payload_left =
-            v.size - v.data.size();
-    }
-    else
-    {
-        // continuation of chunk
-
-    }
-#endif
-}
-
-void
-parser::
-parse_chunk(
-    error_code& ec)
-{
-    (void)ec;
-#if 0
-    switch(state_)
-    {
-    case state::start_line:
-    case state::header_fields:
-        parse_header(ec);
-        if(ec.failed())
-            return;
-        BOOST_ASSERT(state_ >
-            state::header_fields);
-        break;
-    case state::body:
-        if(! m_.got_chunked)
-            return parse_body(ec);
-        break;
-    case state::end_of_message:
-        ec = error::end_of_message;
-        if(! got_eof_)
-            return;
-        state_ = state::end_of_stream;
-        return;
-    case state::end_of_stream:
-        ec = error::end_of_stream;
-        return;
-    }
-
-    auto const avail = size_ - used_;
-    auto const start = buf_ + used_;
-    if(m_.payload_left == 0)
-    {
-        // start of chunk
-        // VFALCO What about chunk_part_next?
-        BOOST_ASSERT(
-            used_ == m_.header_size);
-        bnf::chunk_part p;
-        auto it = p.parse(start,
-            buf_ + (
-                size_ - used_), ec);
-        BOOST_ASSERT(it == start);
-        if(ec)
-            return;
-        auto const v = p.value();
-        m_.chunk.size = v.size;
-        m_.chunk.ext = v.ext;
-        m_.chunk.fresh = true;
-        if(v.size > 0)
-        {
-            // chunk
-            m_.chunk.trailer = {};
-            m_.payload_left =
-                v.size - v.data.size();
-            used_ += it - start; // excludes CRLF
-            return;
-        }
-        // last-chunk
-        BOOST_ASSERT(
-            v.data.empty());
-        m_.chunk.trailer =
-            v.trailer;
-        m_.body = {};
-        used_ += it - start; // excludes CRLF
-        state_ = state::end_of_message;
-    }
-    else
-    {
-        // continuation of chunk
-
-    }
-#endif
-}
-
-//------------------------------------------------
-
-char*
-parser::
-parse_fields(
-    char* const start,
-    char const* const end,
-    error_code& ec)
-{
-    field_rule t;
-    char* it0 = start;
-    char const* it = start;
-    for(;;)
-    {
-        grammar::parse(it, end, ec, t);
-        if(ec == grammar::error::end)
-        {
-            // end of fields
-            ec = {};
-            it0 = it0 + (it - it0);
-            break;
-        }
-        if(ec.failed())
-            return it0;
-        // remove obs-fold if needed
-        if(t.v.has_obs_fold)
-            replace_obs_fold(it0, it);
-        it0 = it0 + (it - it0);
-        auto const id =
-            string_to_field(t.v.name);
-        switch(id)
-        {
-        case field::connection:
-        case field::proxy_connection:
-            do_connection(
-                t.v.value, ec);
-            if(ec.failed())
-                return it0;
-            break;
-        case field::content_length:
-            do_content_length(
-                t.v.value, ec);
-            if(ec.failed())
-                return it0;
-            break;
-        case field::transfer_encoding:
-            do_transfer_encoding(
-                t.v.value, ec);
-            if(ec.failed())
-                return it0;
-            break;
-        case field::upgrade:
-            do_upgrade(t.v.value, ec);
-            if(ec.failed())
-                return it0;
-            break;
-        default:
-            break;
-        }
-        auto ft = detail::get_ftab(
-            buf_ + cap_);
-        auto& fi = ft[m_.count];
-        fi.id = id;
-        fi.pos = static_cast<
-            off_t>(start - buf_);
-        fi.name_pos = static_cast<
-            off_t>(t.v.name.data() - buf_);
-        fi.name_len = static_cast<
-            off_t>(t.v.name.size());
-        fi.value_len = static_cast<
-            off_t>(t.v.value.size());
-        if(fi.value_len > 0)
-            fi.value_pos = static_cast<
-                off_t>(t.v.value.data() - buf_);
-        else
-            fi.value_pos = 0; // empty string
-        ++m_.count;
-    }
-    return it0;
 }
 
 //------------------------------------------------

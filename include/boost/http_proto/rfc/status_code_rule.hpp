@@ -32,7 +32,7 @@ namespace http_proto {
 */
 struct status_code_rule
 {
-    unsigned v;
+    unsigned int v;
     status st;
     string_view s;
 

@@ -7,18 +7,26 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_IPP
-#define BOOST_HTTP_PROTO_IMPL_BASIC_HEADER_IPP
+// Test that header file is self-contained.
+#include <boost/http_proto/response_serializer.hpp>
 
-#include <boost/http_proto/basic_header.hpp>
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-basic_header::
-~basic_header() = default;
+class response_serializer_test
+{
+public:
+    void
+    run()
+    {
+    }
+};
+
+TEST_SUITE(
+    response_serializer_test,
+    "boost.http_proto.response_serializer");
 
 } // http_proto
 } // boost
-
-#endif

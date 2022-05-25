@@ -12,91 +12,161 @@
 
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/response_view.hpp>
-#include <boost/http_proto/detail/number_string.hpp>
-#include <boost/http_proto/detail/sv.hpp>
+#include <boost/http_proto/detail/copied_strings.hpp>
 #include <utility>
 
 namespace boost {
 namespace http_proto {
 
+void
 response::
-response()
-    : version_(http_proto::version::http_1_1)
-    , result_(http_proto::status::ok)
-    , fields(2)
+set_start_line_impl(
+    http_proto::status sc,
+    unsigned short si,
+    string_view rs,
+    http_proto::version v)
+{
+    // measure and resize
+    auto const vs = to_string(v);
+    auto const n =
+        vs.size() + 1 +
+        3 + 1 +
+        rs.size() +
+        2;
+    auto dest = this->fields_base::
+        set_start_line_impl(n);
+
+    version_ = v;
+    vs.copy(dest, vs.size());
+    dest += vs.size();
+    *dest++ = ' ';
+
+    status_ = sc;
+    status_int_ = si;
+    dest[0] = '0' + ((status_int_ / 100) % 10);
+    dest[1] = '0' + ((status_int_ /  10) % 10);
+    dest[2] = '0' + ((status_int_ /   1) % 10);
+    dest[3] = ' ';
+    dest += 4;
+
+    rs.copy(dest, rs.size());
+    dest += rs.size();
+    dest[0] = '\r';
+    dest[1] = '\n';
+}
+
+response::
+response(
+    http_proto::status sc,
+    http_proto::version v)
+    : response()
+{
+    if( sc != status_ ||
+        v != version_)
+        set_start_line(sc, v);
+}
+
+//------------------------------------------------
+
+response::
+response() noexcept
+    : fields_base(2)
+    , version_(http_proto::version::http_1_1)
+    , status_(http_proto::status::ok)
+    , status_int_(200)
 {
 }
 
 response::
-response(response&& other) noexcept
+response(
+    response&& other) noexcept
     : response()
 {
     swap(other);
 }
 
 response::
-response(response const& other)
-    : version_(other.version_)
-    , result_(other.result_)
-    , fields(other.fields, 2)
+response(
+    response const& other)
+    : fields_base(other, 2)
+    , version_(other.version_)
+    , status_(other.status_)
+    , status_int_(other.status_int_)
 {
 }
 
 response&
 response::
-operator=(response&& other) noexcept
+operator=(
+    response&& other) noexcept
 {
     response temp(
         std::move(other));
-    swap(temp);
+    temp.swap(*this);
     return *this;
 }
 
 response&
 response::
-operator=(response const& other)
+operator=(
+    response const& other)
 {
     response temp(other);
-    swap(temp);
+    this->swap(temp);
     return *this;
 }
 
 //------------------------------------------------
 
-status
 response::
-result() const noexcept
+response(
+    response_view const& rv)
+    : fields_base(rv, 2)
 {
-    return int_to_status(
-        static_cast<int>(result_));
+    status_ = rv.status();
+    status_int_ = rv.status_int();
+    version_ = rv.version();
 }
 
-unsigned
+response&
 response::
-result_int() const noexcept
+operator=(
+    response_view const& rv)
 {
-    return static_cast<
-        unsigned>(result_);
+    this->fields_base::copy(rv);
+    status_ = rv.status();
+    status_int_ = rv.status_int();
+    version_ = rv.version();
+    return *this;
 }
 
-string_view
+//------------------------------------------------
+
 response::
-reason() const noexcept
+operator
+response_view() const noexcept
 {
-    return {};
+    response_view::ctor_params init;
+    init.cbuf = cbuf_;
+    init.buf_len = buf_len_;
+    init.start_len = start_len_;
+    init.end_pos = end_pos_;
+    init.count = count_;
+    init.version = version_;
+    init.status = status_;
+    init.status_int = status_int_;
+    return response_view(init);
 }
 
 response::
-operator response_view() const noexcept
+operator
+header_info() const noexcept
 {
-    return {};
-}
-
-string_view
-response::
-get_const_buffer() const noexcept 
-{
-    return fields.owner_str();
+    return {
+        cbuf_,
+        buf_len_,
+        nullptr
+    };
 }
 
 //------------------------------------------------
@@ -105,67 +175,24 @@ void
 response::
 clear() noexcept
 {
-    if(! fields.buf_)
+    if(buf_ == nullptr)
         return;
-
-}
-
-void
-response::
-set_result(
-    status code,
-    http_proto::version http_version,
-    string_view reason)
-{
-    if(reason.empty())
-        reason = obsolete_reason(code);
-
-    // "HTTP/1.1 200 OK\r\n"
-    auto dest = fields.set_start_line(
-        8 + 1 + 3 + 1 + reason.size() + 2);
-
-    string_view s;
-
-    // version
-    s = to_string(http_version);
-    std::memcpy(
-        dest, s.data(), s.size());
-    dest += s.size();
-
-    // SP
-    *dest++ = ' ';
-
-    // status-code
-    auto const i =
-        static_cast<unsigned>(
-            code);
-    *dest++ = '0' + ((i / 100) % 10);
-    *dest++ = '0' + ((i /  10) % 10);
-    *dest++ = '0' + ((i /   1) % 10);
-
-    // SP
-    *dest++ = ' ';
-
-    // obsolete-reason
-    dest += reason.copy(
-        dest, reason.size());
-
-    // CRLF
-    dest[0] = '\r';
-    dest[1] = '\n';
-
-    version_ = http_version;
-    result_ = code;
+    this->fields_base::clear();
+    set_start_line(
+        http_proto::status::ok);
 }
 
 void
 response::
 swap(response& other) noexcept
 {
+    this->fields_base::swap(other);
     std::swap(version_, other.version_);
-    std::swap(result_, other.result_);
-    fields.owner_swap(other.fields);
+    std::swap(status_, other.status_);
+    std::swap(status_int_, other.status_int_);
 }
+
+//------------------------------------------------
 
 } // http_proto
 } // boost

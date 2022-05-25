@@ -12,15 +12,14 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <cstdlib>
+#include <type_traits>
 
 namespace boost {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
 namespace asio {
 class const_buffer;
 class mutable_buffer;
 } // asio
-#endif
 
 namespace http_proto {
 
@@ -54,22 +53,17 @@ public:
         return size_;
     }
 
-    mutable_buffer&
-    operator+=(std::size_t n) noexcept
+    template<
+        class Buffer,
+        class = typename std::enable_if<
+            std::is_same<Buffer,
+                ::boost::asio::mutable_buffer
+            >::value>
+    >
+    operator Buffer() const noexcept
     {
-        if(n > size_)
-            n = size_;
-        data_ = static_cast<
-            char*>(data_) + n;
-        size_ -= n;
-        return *this;
+        return Buffer(data_, size_);
     }
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-    inline
-    operator
-    asio::mutable_buffer() const noexcept;
-#endif
 };
 
 //------------------------------------------------
@@ -111,65 +105,18 @@ public:
         return size_;
     }
 
-    const_buffer&
-    operator+=(std::size_t n) noexcept
+    template<
+        class Buffer,
+        class = typename std::enable_if<
+            std::is_same<Buffer,
+                ::boost::asio::const_buffer
+            >::value>
+    >
+    operator Buffer() const noexcept
     {
-        if(n > size_)
-            n = size_;
-        data_ = static_cast<
-            char const*>(data_) + n;
-        size_ -= n;
-        return *this;
+        return Buffer(data_, size_);
     }
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-    inline
-    operator
-    asio::const_buffer() const noexcept;
-#endif
 };
-
-//------------------------------------------------
-
-inline
-mutable_buffer
-operator+(
-    mutable_buffer b,
-    std::size_t n) noexcept
-{
-    b += n;
-    return b;
-}
-
-inline
-mutable_buffer
-operator+(
-    std::size_t n,
-    mutable_buffer b) noexcept
-{
-    b += n;
-    return b;
-}
-
-inline
-const_buffer
-operator+(
-    const_buffer b,
-    std::size_t n) noexcept
-{
-    b += n;
-    return b;
-}
-
-inline
-const_buffer
-operator+(
-    std::size_t n,
-    const_buffer b) noexcept
-{
-    b += n;
-    return b;
-}
 
 //------------------------------------------------
 
@@ -182,16 +129,12 @@ class mutable_buffers
 
 public:
     mutable_buffers() = default;
-    mutable_buffers(
-        mutable_buffers const&) = default;
-    mutable_buffers&
-    operator=(mutable_buffers const&) = default;
 
     mutable_buffers(
-        mutable_buffer const* begin,
-        mutable_buffer const* end) noexcept
-        : begin_(begin)
-        , end_(end)
+        mutable_buffer const* data,
+        std::size_t size) noexcept
+        : begin_(data)
+        , end_(data + size)
     {
     }
 
@@ -219,16 +162,12 @@ class const_buffers
 
 public:
     const_buffers() = default;
-    const_buffers(
-        const_buffers const&) = default;
-    const_buffers&
-    operator=(const_buffers const&) = default;
 
     const_buffers(
-        const_buffer const* begin,
-        const_buffer const* end) noexcept
-        : begin_(begin)
-        , end_(end)
+        const_buffer const* data,
+        std::size_t size) noexcept
+        : begin_(data)
+        , end_(data + size)
     {
     }
 
@@ -243,12 +182,6 @@ public:
     {
         return end_;
     }
-};
-
-struct const_buffer_pair
-{
-    char const* data[2];
-    std::size_t size[2];
 };
 
 } // http_proto

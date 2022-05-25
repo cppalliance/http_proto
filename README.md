@@ -28,10 +28,9 @@ Boost.Http.Proto offers these features:
 
 ### Header-Only
 
-To use as header-only; that is, to eliminate the requirement to
-link a program to a static or dynamic Boost.Http.Proto library, simply
-place the following line in exactly one new or existing source
-file in your project.
+To eliminate the requirement to link a program to a static or dynamic
+Boost.Http.Proto library, simply place the following line in *exactly one*
+source file in your project.
 ```
 #include <boost/http_proto/src.hpp>
 ```
