@@ -31,8 +31,7 @@ public:
             "POST /x HTTP/1.0\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
-        request_view rv =
-            make_request(cs);
+        request_view rv = make_request(cs);
         request req(rv);
         BOOST_TEST(req.method() == method::post);
         BOOST_TEST(req.method_str() == "POST");

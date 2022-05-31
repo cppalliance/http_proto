@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
+#include <boost/assert.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -25,14 +26,14 @@ class BOOST_SYMBOL_VISIBLE
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
-    using ctor_params =
-        fields_view_base::ctor_params;
 
     explicit
     fields_view(
-        ctor_params const& init) noexcept
-        : fields_view_base(init)
+        detail::header const& h) noexcept
+        : fields_view_base(h)
     {
+        BOOST_ASSERT(h.kind ==
+            detail::kind::fields);
     }
 
 public:
@@ -42,7 +43,8 @@ public:
         have a zero size.
     */
     fields_view() noexcept
-        : fields_view_base(0)
+        : fields_view_base(
+            detail::kind::fields)
     {
     }
 

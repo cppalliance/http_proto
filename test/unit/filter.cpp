@@ -10,10 +10,14 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/filter.hpp>
 
+#include <boost/http_proto/string_view.hpp>
+
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
+
+//------------------------------------------------
 
 struct filter_test
 {

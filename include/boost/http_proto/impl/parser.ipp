@@ -243,7 +243,8 @@ parse(
         }
         if(ec.failed())
             return;
-        m_.start_len = it - buf_;
+        m_.start_len = static_cast<
+            off_t>(it - buf_);
         state_ = state::header_fields;
         BOOST_FALLTHROUGH;
     }
@@ -276,7 +277,7 @@ parse(
         }
         if(ec.failed())
             return;
-        m_.fields_len = (it - buf_) -
+        m_.fields_len = static_cast<off_t>(it - buf_) -
             m_.start_len;
         break;
     }

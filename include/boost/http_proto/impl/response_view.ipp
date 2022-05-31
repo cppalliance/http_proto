@@ -18,25 +18,6 @@ namespace http_proto {
 
 response_view::
 response_view(
-    ctor_params const& init) noexcept
-    : fields_view_base(init)
-    , version_(init.version)
-    , status_(init.status)
-    , status_int_(init.status_int)
-{
-}
-
-response_view::
-response_view() noexcept
-    : fields_view_base(2)
-    , version_(http_proto::version::http_1_1)
-    , status_(http_proto::status::ok)
-    , status_int_(200)
-{
-}
-
-response_view::
-response_view(
     response_view const&) noexcept = default;
 
 response_view&

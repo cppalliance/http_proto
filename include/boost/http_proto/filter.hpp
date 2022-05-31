@@ -15,6 +15,8 @@
 #include <boost/http_proto/error.hpp>
 #include <cstdlib>
 
+#include <boost/http_proto/string_view.hpp>
+
 namespace boost {
 namespace http_proto {
 
@@ -84,6 +86,35 @@ struct BOOST_SYMBOL_VISIBLE
 struct BOOST_SYMBOL_VISIBLE
     filter : source, sink
 {
+};
+
+//------------------------------------------------
+
+class string_view_source
+    : public source
+{
+    asio::const_buffer b_;
+
+public:
+    explicit
+    string_view_source(
+        string_view s) noexcept
+        : b_(s.data(), s.size())
+    {
+    }
+
+    const_buffers
+    prepare(error_code& ec) override
+    {
+        ec = {};
+        return const_buffers(&b_, 1);
+    }
+
+    void
+    consume(std::size_t n) noexcept override
+    {
+        b_ += n;
+    }
 };
 
 } // http_proto

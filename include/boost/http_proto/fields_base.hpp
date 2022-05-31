@@ -38,19 +38,9 @@ class BOOST_SYMBOL_VISIBLE
 protected:
 #endif
 
-    char* buf_ = nullptr;
-    char kind_ = 0;
-
-    struct ctor_params
-        : fields_view_base::ctor_params
-    {
-        char* buf = nullptr;
-        char kind = 0;
-    };
-
-    explicit fields_base(ctor_params const&) noexcept;
-    explicit fields_base(char) noexcept;
-    fields_base(fields_view_base const&, char);
+    explicit fields_base(detail::header const&) noexcept;
+    explicit fields_base(detail::kind) noexcept;
+    fields_base(fields_view_base const&, detail::kind);
     void copy(fields_view_base const&);
 
 public:
@@ -70,7 +60,7 @@ public:
     std::size_t
     capacity_in_bytes() const noexcept
     {
-        return buf_len_;
+        return h_.cap;
     }
 
     //--------------------------------------------

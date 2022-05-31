@@ -19,25 +19,11 @@ namespace boost {
 namespace http_proto {
 
 request::
-request()
-    : fields_base(1)
-    , method_(http_proto::method::get)
-    , version_(http_proto::version::http_1_1)
-    , method_len_(3)
-    , target_len_(1)
-{
-}
-
-request::
 request(
     request const& other)
-    : fields_base(other, 1)
-    , method_(other.method_)
-    , version_(other.version_)
-    , method_len_(other.method_len_)
-    , target_len_(other.target_len_)
+    : fields_base(other,
+        detail::kind::request)
 {
-    BOOST_ASSERT(kind_ == 1);
 }
 
 request::
@@ -70,11 +56,8 @@ operator=(
 request::
 request(
     request_view const& rv)
-    : fields_base(rv, 1)
-    , method_(rv.method_)
-    , version_(rv.version_)
-    , method_len_(rv.method_len_)
-    , target_len_(rv.target_len_)
+    : fields_base(rv,
+        detail::kind::request)
 {
 }
 
@@ -84,28 +67,7 @@ request::
 operator
 request_view() const noexcept
 {
-    request_view::ctor_params init;
-    init.cbuf = cbuf_;
-    init.buf_len = buf_len_;
-    init.start_len = start_len_;
-    init.end_pos = end_pos_;
-    init.count = count_;
-    init.method_len = method_len_;
-    init.target_len = target_len_;
-    init.method = method_;
-    init.version = version_;
-    return request_view(init);
-}
-
-request::
-operator
-header_info() const noexcept
-{
-    return {
-        cbuf_,
-        buf_len_,
-        nullptr
-    };
+    return request_view(h_);
 }
 
 //------------------------------------------------
@@ -114,7 +76,7 @@ void
 request::
 clear() noexcept
 {
-    if(buf_ == nullptr)
+    if(h_.buf == nullptr)
         return;
     this->fields_base::clear();
     set_impl(
@@ -128,11 +90,7 @@ void
 request::
 swap(request& other) noexcept
 {
-    this->fields_base::swap(other);
-    std::swap(method_, other.method_);
-    std::swap(version_, other.version_);
-    std::swap(method_len_, other.method_len_);
-    std::swap(target_len_, other.target_len_);
+    this->fields_view_base::swap(other);
 }
 
 //------------------------------------------------
@@ -178,10 +136,12 @@ set_impl(
     *dest++ = '\r';
     *dest++ = '\n';
 
-    method_ = m;
-    version_ = v;
-    method_len_ = ms.size();
-    target_len_ = t.size();
+    h_.req.method = m;
+    h_.req.version = v;
+    h_.req.method_len =
+        static_cast<off_t>(ms.size());
+    h_.req.target_len =
+        static_cast<off_t>(t.size());
 }
 
 } // http_proto

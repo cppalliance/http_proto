@@ -34,28 +34,23 @@ protected:
     friend class response;
     friend class response_parser;
 
-    http_proto::version version_;
-    http_proto::status status_;
-    unsigned short status_int_;
-
-    struct ctor_params
-        : fields_view_base::ctor_params
-    {
-        http_proto::version version;
-        http_proto::status status;
-        unsigned short status_int;
-    };
-
-    BOOST_HTTP_PROTO_DECL
     explicit
     response_view(
-        ctor_params const& init) noexcept;
+        detail::header const& h) noexcept
+        : fields_view_base(h)
+    {
+        BOOST_ASSERT(h.kind ==
+            detail::kind::response);
+    }
 
 public:
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
-    response_view() noexcept;
+    response_view() noexcept
+        : fields_view_base(
+            detail::kind::response)
+    {
+    }
 
     /** Constructor
     */
@@ -76,8 +71,8 @@ public:
     reason() const noexcept
     {
         return string_view(
-            cbuf_ + 13,
-            start_len_ - 15);
+            h_.cbuf + 13,
+            h_.prefix - 15);
     }
 
     /** Return the status code
@@ -85,7 +80,7 @@ public:
     http_proto::status
     status() const noexcept
     {
-        return status_;
+        return h_.res.status;
     }
 
     /** Return the status code integer
@@ -93,7 +88,7 @@ public:
     unsigned short
     status_int() const noexcept
     {
-        return status_int_;
+        return h_.res.status_int;
     }
 
     /** Return the HTTP-version
@@ -101,7 +96,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return version_;
+        return h_.res.version;
     }
 };
 

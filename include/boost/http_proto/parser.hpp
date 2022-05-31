@@ -79,9 +79,9 @@ BOOST_HTTP_PROTO_PROTECTED:
     // per-message state
     struct message
     {
-        std::size_t count;          // number of fields
-        std::size_t start_len;      // chars in start-line
-        std::size_t fields_len;     // chars in fields,
+        off_t count;          // number of fields
+        off_t start_len;      // chars in start-line
+        off_t fields_len;     // chars in fields,
                                     //   including last CRLF
         std::size_t n_chunk;        // bytes of chunk header
         std::size_t n_payload;      // bytes of body or chunk

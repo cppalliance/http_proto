@@ -22,8 +22,10 @@ set(PFILES
     error.cpp
     field.cpp
     fields.cpp
+    fields_base.cpp
     fields_view.cpp
-    header_info.cpp
+    fields_view_base.cpp
+    filter.cpp
     http_proto.cpp
     method.cpp
     parser.cpp

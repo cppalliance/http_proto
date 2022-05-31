@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
@@ -29,10 +28,6 @@ class BOOST_SYMBOL_VISIBLE
     response
     : public fields_base
 {
-    http_proto::version version_;
-    http_proto::status status_;
-    unsigned short status_int_;
-
     BOOST_HTTP_PROTO_DECL
     void
     set_start_line_impl(
@@ -55,8 +50,11 @@ public:
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
-    response() noexcept;
+    response() noexcept
+        : fields_base(
+            detail::kind::response)
+    {
+    }
 
     /** Constructor
 
@@ -110,8 +108,8 @@ public:
     reason() const noexcept
     {
         return string_view(
-            cbuf_ + 13,
-            start_len_ - 15);
+            h_.cbuf + 13,
+            h_.prefix - 15);
     }
 
     /** Return the status code
@@ -119,7 +117,7 @@ public:
     http_proto::status
     status() const noexcept
     {
-        return status_;
+        return h_.res.status;
     }
 
     /** Return the status code
@@ -127,7 +125,7 @@ public:
     unsigned short
     status_int() const noexcept
     {
-        return status_int_;
+        return h_.res.status_int;
     }
 
     /** Return the HTTP version
@@ -135,7 +133,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return version_;
+        return h_.res.version;
     }
 
     /** Return a read-only view to the response
@@ -143,12 +141,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     operator
     response_view() const noexcept;
-
-    /** Return serialization information
-    */
-    BOOST_HTTP_PROTO_DECL
-    operator
-    header_info() const noexcept;
 
     //--------------------------------------------
     //

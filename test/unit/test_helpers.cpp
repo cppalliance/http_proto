@@ -37,12 +37,14 @@ make_fields(
             : fields_view(
             [&s]
             {
-                ctor_params init;
-                init.cbuf = s.data();
-                init.buf_len = 0;
-                init.start_len = 0;
-                init.end_pos = s.size();
-                init.count = 0;
+                detail::header h;
+                h.kind = detail::kind::fields;
+                h.cbuf = s.data();
+                h.cap = 0;
+                h.prefix = 0;
+                h.size = static_cast<
+                    off_t>(s.size());
+                h.count = 0;
                 char const* it = s.data();
                 char const* const end =
                     s.data() + s.size();
@@ -53,7 +55,7 @@ make_fields(
                     if(grammar::parse(
                         it, end, ec, r))
                     {
-                        ++init.count;
+                        ++h.count;
                         continue;
                     }
                     if(ec == grammar::error::end)
@@ -61,7 +63,7 @@ make_fields(
                     detail::throw_system_error(ec,
                         BOOST_CURRENT_LOCATION);
                 }
-                return init;
+                return h;
             }())
         {
         }
@@ -111,13 +113,16 @@ make_fields(
                 std::string& buf,
                 fields_view const& f)
                 {
-                    ctor_params init;
-                    init.cbuf = buf.data();
-                    init.buf_len = buf.size();
-                    init.start_len = 0;
-                    init.end_pos = s.size();
-                    init.count = f.size();
-                    return init;
+                    detail::header h;
+                    h.kind = detail::kind::fields;
+                    h.cbuf = buf.data();
+                    h.cap = buf.size();
+                    h.prefix = 0;
+                    h.size = static_cast<
+                        off_t>(s.size());
+                    h.count = static_cast<
+                        off_t>(f.size());
+                    return h;
                 }(s, buf, f))
         {
         }
@@ -149,24 +154,28 @@ make_request(
                     detail::throw_system_error(
                         ec, BOOST_CURRENT_LOCATION);
 
-                ctor_params init;
-                init.cbuf = s.data();
-                init.buf_len = 0;
-                init.start_len = static_cast<
+                detail::header h;
+                h.kind = detail::kind::request;
+                h.cbuf = s.data();
+                h.cap = 0;
+                h.prefix = static_cast<
                     off_t>(it - s.data());
-                init.end_pos = s.size();
-                init.count = 0;
-                init.method_len = t0.ms.size();
-                init.target_len = t0.t.size();
-                init.method = t0.m;
-                init.version = t0.v;
+                h.size = static_cast<
+                    off_t>(s.size());
+                h.count = 0;
+                h.req.method_len = static_cast<
+                    off_t>(t0.ms.size());
+                h.req.target_len = static_cast<
+                    off_t>(t0.t.size());
+                h.req.method = t0.m;
+                h.req.version = t0.v;
                 field_rule t1;
                 for(;;)
                 {
                     if(grammar::parse(
                         it, end, ec, t1))
                     {
-                        ++init.count;
+                        ++h.count;
                         continue;
                     }
                     if(ec == grammar::error::end)
@@ -174,7 +183,7 @@ make_request(
                     detail::throw_system_error(ec,
                         BOOST_CURRENT_LOCATION);
                 }
-                return init;
+                return h;
             }())
         {
         }
@@ -205,24 +214,26 @@ make_response(
                     detail::throw_system_error(
                         ec, BOOST_CURRENT_LOCATION);
 
-                ctor_params init;
-                init.cbuf = s.data();
-                init.buf_len = 0;
-                init.start_len = static_cast<
+                detail::header h;
+                h.kind = detail::kind::response;
+                h.cbuf = s.data();
+                h.cap = 0;
+                h.prefix = static_cast<
                     off_t>(it - s.data());
-                init.end_pos = s.size();
-                init.count = 0;
-                init.version = t0.v;
-                init.status = int_to_status(
+                h.size = static_cast<
+                    off_t>(s.size());
+                h.count = 0;
+                h.res.version = t0.v;
+                h.res.status = int_to_status(
                     t0.status_int);
-                init.status_int = t0.status_int;
+                h.res.status_int = t0.status_int;
                 field_rule t1;
                 for(;;)
                 {
                     if(grammar::parse(
                         it, end, ec, t1))
                     {
-                        ++init.count;
+                        ++h.count;
                         continue;
                     }
                     if(ec == grammar::error::end)
@@ -230,7 +241,7 @@ make_response(
                     detail::throw_system_error(ec,
                         BOOST_CURRENT_LOCATION);
                 }
-                return init;
+                return h;
             }())
         {
         }

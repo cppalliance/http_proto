@@ -24,6 +24,11 @@ class BOOST_SYMBOL_VISIBLE
     : public serializer
 {
 public:
+#if 0
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset(response_view const& prv);
+#endif
 };
 
 } // http_proto

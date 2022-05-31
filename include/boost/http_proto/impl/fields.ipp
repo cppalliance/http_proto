@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_IPP
 
 #include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <string>
 
@@ -19,14 +20,14 @@ namespace http_proto {
 
 fields::
 fields() noexcept
-    : fields_base(0)
+    : fields_base(detail::kind::fields)
 {
 }
 
 fields::
 fields(
     fields&& other) noexcept
-    : fields_base(other.kind_)
+    : fields_base(other.h_.kind)
 {
     this->swap(other);
 }
@@ -34,7 +35,8 @@ fields(
 fields::
 fields(
     fields const& f)
-    : fields_base(f, 0)
+    : fields_base(f,
+        detail::kind::fields)
 {
 }
 
@@ -45,41 +47,42 @@ fields(
     : fields_base(
     [&f]
     {
-        ctor_params init;
-        if(f.count_ > 0)
+        detail::header h;
+        if(f.h_.count > 0)
         {
             // copy fields
             auto n = detail::buffer_needed(
-                f.end_pos_ - f.start_len_,
-                    f.count_);
+                f.h_.size - f.h_.prefix,
+                    f.h_.count);
             auto buf = new char[n];
             std::memcpy(
                 buf,
-                f.cbuf_ + f.start_len_,
-                f.end_pos_ - f.start_len_);
+                f.h_.cbuf + f.h_.prefix,
+                f.h_.size - f.h_.prefix);
             f.write_table(buf + n);
-            init.cbuf = buf;
-            init.buf_len = n;
-            init.start_len = 0;
-            init.end_pos =
-                f.end_pos_ - f.start_len_;
-            init.count = f.count_;
-            init.buf = buf;
-            init.kind = 0;
-            return init;
+            h.cbuf = buf;
+            h.cap = n;
+            h.prefix = 0;
+            h.size =
+                f.h_.size - f.h_.prefix;
+            h.count = f.h_.count;
+            h.buf = buf;
+            h.kind = detail::kind::fields;
+            return h;
         }
 
         // default buffer
-        auto const s =
-            default_buffer(0);
-        init.cbuf = s.data();
-        init.buf_len = 0;
-        init.start_len = s.size() - 2;
-        init.end_pos = s.size();
-        init.count = 0;
-        init.buf = nullptr;
-        init.kind = 0;
-        return init;       
+        auto const s = default_buffer(
+            detail::kind::fields);
+        h.cbuf = s.data();
+        h.cap = 0;
+        h.prefix = static_cast<
+            off_t>(s.size() - 2);
+        h.size = h.prefix + 2;
+        h.count = 0;
+        h.buf = nullptr;
+        h.kind = detail::kind::fields;
+        return h;       
     }())
 {
 }
@@ -111,20 +114,21 @@ fields::
 operator=(
     fields_view const& f)
 {
-    BOOST_ASSERT(kind_ == 0);
-    if(is_default(f.cbuf_))
+    BOOST_ASSERT(h_.kind ==
+        detail::kind::fields);
+    if(is_default(f.h_.cbuf))
     {
         fields tmp;
         tmp.swap(*this);
         return *this;
     }
     auto const n0 =
-        f.end_pos_ -
-        f.start_len_;
+        f.h_.size -
+        f.h_.prefix;
     auto const n =
         detail::buffer_needed(
-            n0, f.count_);
-    if(buf_len_ < n)
+            n0, f.h_.count);
+    if(h_.cap < n)
     {
         // copy with strong
         // exception safety
@@ -134,16 +138,16 @@ operator=(
     }
     // use existing capacity
     std::memcpy(
-        buf_,
-        f.cbuf_ +
-            f.start_len_,
+        h_.buf,
+        f.h_.cbuf +
+            f.h_.prefix,
         n0);
     f.write_table(
-        buf_ + buf_len_);
-    start_len_ = 0;
-    end_pos_ = static_cast<
+        h_.buf + h_.cap);
+    h_.prefix = 0;
+    h_.size = static_cast<
         off_t>(n0);
-    count_ = f.count_;
+    h_.count = f.h_.count;
     return *this;
 }
 

@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_IPP
 
 #include <boost/http_proto/fields_view.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -126,15 +127,15 @@ fields_view_base::
 iterator::
 read() noexcept
 {
-    if(i_ >= f_->count_)
+    if(i_ >= f_->h_.count)
     {
         it_ =
-            f_->cbuf_ +
-            f_->end_pos_;
+            f_->h_.cbuf +
+            f_->h_.size;
         return;
     }
 
-    if(f_->buf_len_ != 0)
+    if(f_->h_.cap != 0)
     {
         // use field table
         return;
@@ -143,11 +144,11 @@ read() noexcept
     error_code ec;
     field_rule r;
     auto const end = 
-        f_->cbuf_ + f_->end_pos_;
+        f_->h_.cbuf + f_->h_.size;
     grammar::parse(it_, end, ec, r);
     BOOST_ASSERT(! ec.failed());
     auto const base =
-        f_->cbuf_ + f_->start_len_;
+        f_->h_.cbuf + f_->h_.prefix;
     np_ = static_cast<off_t>(
         r.v.name.data() - base);
     nn_ = static_cast<off_t>(
@@ -166,14 +167,14 @@ iterator(
     fields_view_base const* f,
     std::size_t i) noexcept
     : f_(f)
-    , it_(f->cbuf_ + f->start_len_)
+    , it_(f->h_.cbuf + f->h_.prefix)
     , i_(static_cast<
         off_t>(i))
 {
     BOOST_ASSERT(
-        f->buf_len_ != 0 || (
+        f->h_.cap != 0 || (
             i == 0 ||
-            i == f->count_));
+            i == f->h_.count));
     read();
 }
 
@@ -184,13 +185,13 @@ operator*() const noexcept ->
     reference
 {
     auto const base =
-        f_->cbuf_ + f_->start_len_;
-    if(f_->buf_len_ != 0)
+        f_->h_.cbuf + f_->h_.prefix;
+    if(f_->h_.cap != 0)
     {
         // use field table
         auto const& e =
             detail::const_fields_table(
-                f_->cbuf_ + f_->buf_len_)[i_];
+                f_->h_.cbuf + f_->h_.cap)[i_];
         return {
             e.id,
             string_view(
@@ -231,16 +232,16 @@ operator++() noexcept ->
 string_view
 fields_view_base::
 default_buffer(
-    char kind) noexcept
+    detail::kind k) noexcept
 {
-    switch(kind)
+    switch(k)
     {
     default:
-    case 0: return {
+    case detail::kind::fields: return {
         "\r\n", 2 };
-    case 1: return {
+    case detail::kind::request: return {
         "GET / HTTP/1.1\r\n\r\n", 18 };
-    case 2: return {
+    case detail::kind::response: return {
         "HTTP/1.1 200 OK\r\n\r\n", 19 };
     }
 }
@@ -252,9 +253,12 @@ is_default(
     char const* s) noexcept
 {
     return
-        s == default_buffer(0).data() ||
-        s == default_buffer(1).data() ||
-        s == default_buffer(2).data();
+        s == default_buffer(
+            detail::kind::fields).data() ||
+        s == default_buffer(
+            detail::kind::request).data() ||
+        s == default_buffer(
+            detail::kind::response).data();
 }
 
 // copy or build table
@@ -263,11 +267,11 @@ fields_view_base::
 write_table(
     void* dest) const noexcept
 {
-    if(buf_len_ > 0)
+    if(h_.cap > 0)
     {
         detail::const_fields_table(
-            cbuf_ + buf_len_).copy(
-                dest, count_);
+            h_.cbuf + h_.cap).copy(
+                dest, h_.count);
         return;
     }
 
@@ -276,7 +280,7 @@ write_table(
     std::size_t i = 0;
     detail::fields_table ft(dest);
     auto const base =
-        cbuf_ + start_len_;
+        h_.cbuf + h_.prefix;
     while(it != end)
     {
         auto const v = *it;
@@ -299,54 +303,78 @@ void
 fields_view_base::
 swap(fields_view_base& other) noexcept
 {
-    using std::swap;
-    swap(cbuf_, other.cbuf_);
-    swap(buf_len_, other.buf_len_);
-    swap(start_len_, other.start_len_);
-    swap(end_pos_, other.end_pos_);
-    swap(count_, other.count_);
+    h_.swap(other.h_);
 }
 
 fields_view_base::
 fields_view_base(
-    ctor_params const& init) noexcept
-    : cbuf_(init.cbuf)
-    , buf_len_(init.buf_len)
-    , start_len_(static_cast<
-        off_t>(init.start_len))
-    , end_pos_(static_cast<
-        off_t>(init.end_pos))
-    , count_(static_cast<
-        off_t>(init.count))
+    detail::header const& h) noexcept
+    : h_(h)
 {
     BOOST_ASSERT(
-        buf_len_ == 0 ||
-        buf_len_ >= end_pos_);
+        h_.cap == 0 ||
+        h_.cap >= h_.size);
     BOOST_ASSERT(
-        end_pos_ >= start_len_);
+        h_.size >= h_.prefix);
     BOOST_ASSERT(
-        start_len_ <= max_off_t);
+        h_.prefix <= max_off_t);
     BOOST_ASSERT(
-        end_pos_ <= max_off_t);
+        h_.size <= max_off_t);
     BOOST_ASSERT(
-        count_ <= max_off_t);
+        h_.count <= max_off_t);
+
+    switch(h_.kind)
+    {
+    case detail::kind::fields:
+        break;
+    case detail::kind::request:
+        BOOST_ASSERT(
+            h_.req.method_len <= max_off_t);
+        BOOST_ASSERT(
+            h_.req.target_len <= max_off_t);
+        break;
+    case detail::kind::response:
+        break;
+    }
 }
 
 fields_view_base::
 fields_view_base(
-    char kind) noexcept
+    detail::kind k) noexcept
     : fields_view_base(
-    [kind]
+    [k]
     {
         auto s =
-            default_buffer(kind);
-        ctor_params init;
-        init.cbuf = s.data();
-        init.buf_len = 0;
-        init.start_len = s.size() - 2;
-        init.end_pos = s.size();
-        init.count = 0;
-        return init;
+            default_buffer(k);
+        detail::header h;
+        h.kind = k;
+        h.cbuf = s.data();
+        h.cap = 0;
+        h.prefix = static_cast<
+            off_t>(s.size() - 2);
+        h.size = h.prefix + 2;
+        h.count = 0;
+        switch(h.kind)
+        {
+        case detail::kind::fields:
+            break;
+        case detail::kind::request:
+            h.req.method_len = 3;
+            h.req.target_len = 1;
+            h.req.method =
+                http_proto::method::get;
+            h.req.version =
+                http_proto::version::http_1_1;
+            break;
+        case detail::kind::response:
+            h.res.version =
+                http_proto::version::http_1_1;
+            h.res.status =
+                http_proto::status::ok;
+            h.res.status_int = 200;
+            break;
+        }
+        return h;
     }())
 {
 }
@@ -368,7 +396,7 @@ end() const noexcept ->
     iterator
 {
     return iterator(
-        this, count_);
+        this, h_.count);
 }
 
 //------------------------------------------------

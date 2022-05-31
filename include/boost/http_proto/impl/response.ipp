@@ -36,16 +36,16 @@ set_start_line_impl(
     auto dest = this->fields_base::
         set_start_line_impl(n);
 
-    version_ = v;
+    h_.res.version = v;
     vs.copy(dest, vs.size());
     dest += vs.size();
     *dest++ = ' ';
 
-    status_ = sc;
-    status_int_ = si;
-    dest[0] = '0' + ((status_int_ / 100) % 10);
-    dest[1] = '0' + ((status_int_ /  10) % 10);
-    dest[2] = '0' + ((status_int_ /   1) % 10);
+    h_.res.status = sc;
+    h_.res.status_int = si;
+    dest[0] = '0' + ((h_.res.status_int / 100) % 10);
+    dest[1] = '0' + ((h_.res.status_int /  10) % 10);
+    dest[2] = '0' + ((h_.res.status_int /   1) % 10);
     dest[3] = ' ';
     dest += 4;
 
@@ -61,21 +61,12 @@ response(
     http_proto::version v)
     : response()
 {
-    if( sc != status_ ||
-        v != version_)
+    if( sc != h_.res.status ||
+        v != h_.res.version)
         set_start_line(sc, v);
 }
 
 //------------------------------------------------
-
-response::
-response() noexcept
-    : fields_base(2)
-    , version_(http_proto::version::http_1_1)
-    , status_(http_proto::status::ok)
-    , status_int_(200)
-{
-}
 
 response::
 response(
@@ -88,10 +79,8 @@ response(
 response::
 response(
     response const& other)
-    : fields_base(other, 2)
-    , version_(other.version_)
-    , status_(other.status_)
-    , status_int_(other.status_int_)
+    : fields_base(other,
+        detail::kind::response)
 {
 }
 
@@ -121,11 +110,9 @@ operator=(
 response::
 response(
     response_view const& rv)
-    : fields_base(rv, 2)
+    : fields_base(rv,
+        detail::kind::response)
 {
-    status_ = rv.status();
-    status_int_ = rv.status_int();
-    version_ = rv.version();
 }
 
 response&
@@ -134,9 +121,9 @@ operator=(
     response_view const& rv)
 {
     this->fields_base::copy(rv);
-    status_ = rv.status();
-    status_int_ = rv.status_int();
-    version_ = rv.version();
+    h_.res.status = rv.status();
+    h_.res.status_int = rv.status_int();
+    h_.res.version = rv.version();
     return *this;
 }
 
@@ -146,27 +133,7 @@ response::
 operator
 response_view() const noexcept
 {
-    response_view::ctor_params init;
-    init.cbuf = cbuf_;
-    init.buf_len = buf_len_;
-    init.start_len = start_len_;
-    init.end_pos = end_pos_;
-    init.count = count_;
-    init.version = version_;
-    init.status = status_;
-    init.status_int = status_int_;
-    return response_view(init);
-}
-
-response::
-operator
-header_info() const noexcept
-{
-    return {
-        cbuf_,
-        buf_len_,
-        nullptr
-    };
+    return response_view(h_);
 }
 
 //------------------------------------------------
@@ -175,7 +142,7 @@ void
 response::
 clear() noexcept
 {
-    if(buf_ == nullptr)
+    if(h_.buf == nullptr)
         return;
     this->fields_base::clear();
     set_start_line(
@@ -187,9 +154,6 @@ response::
 swap(response& other) noexcept
 {
     this->fields_base::swap(other);
-    std::swap(version_, other.version_);
-    std::swap(status_, other.status_);
-    std::swap(status_int_, other.status_int_);
 }
 
 //------------------------------------------------

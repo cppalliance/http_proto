@@ -11,9 +11,11 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_BASE_IPP
 
 #include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <string>
@@ -24,25 +26,21 @@ namespace http_proto {
 fields_base::
 ~fields_base()
 {
-    if(buf_)
-        delete[] buf_;
+    if(h_.buf)
+        delete[] h_.buf;
 }
 
 fields_base::
 fields_base(
-    ctor_params const& init) noexcept
-    : fields_view_base(init)
-    , buf_(init.buf)
-    , kind_(init.kind)
+    detail::header const& h) noexcept
+    : fields_view_base(h)
 {
 }
 
 fields_base::
 fields_base(
-    char kind) noexcept
-    : fields_view_base(kind)
-    , buf_(nullptr)
-    , kind_(kind)
+    detail::kind k) noexcept
+    : fields_view_base(k)
 {
 }
 
@@ -50,39 +48,41 @@ fields_base(
 fields_base::
 fields_base(
     fields_view_base const& fv,
-    char kind)
+    detail::kind k)
     : fields_base(
-    [&fv, kind]
+    [&fv, k]
     {
-        ctor_params init;
-        if(! is_default(fv.cbuf_))
+        BOOST_ASSERT(k == fv.h_.kind);
+        detail::header h = fv.h_;
+        if(! is_default(h.cbuf))
         {
             // copy start line and fields
             auto n = detail::buffer_needed(
-                fv.end_pos_, fv.count_);
-            auto buf = new char[n];
+                fv.h_.size, fv.h_.count);
+            BOOST_ASSERT(n < max_off_t);
+            h.buf = new char[n];
             std::memcpy(
-                buf, fv.cbuf_, fv.end_pos_);
-            fv.write_table(buf + n);
-            init.cbuf = buf;
-            init.buf_len = n;
-            init.start_len = fv.start_len_;
-            init.end_pos = fv.end_pos_;
-            init.count = fv.count_;
-            init.buf = buf;
-            init.kind = kind;
-            return init;
+                h.buf, fv.h_.cbuf, fv.h_.size);
+            fv.write_table(h.buf + n);
+            h.cbuf = h.buf;
+            h.cap = n;
+            return h;
         }
 
         // default buffer
-        init.cbuf = fv.cbuf_;
-        init.buf_len = 0;
-        init.start_len = fv.start_len_;
-        init.end_pos = fv.end_pos_;
-        init.count = fv.count_;
-        init.buf = nullptr;
-        init.kind = kind;
-        return init;       
+#if 1
+        BOOST_ASSERT(h.cap == 0);
+        BOOST_ASSERT(h.buf == nullptr);
+#else
+        h.cbuf = fv.h_.cbuf;
+        h.cap = 0;
+        h.prefix = fv.h_.prefix;
+        h.size = fv.h_.size;
+        h.count = fv.h_.count;
+        h.buf = nullptr;
+        h.kind = k;
+#endif
+        return h;
     }())
 {
 }
@@ -92,25 +92,25 @@ void
 fields_base::
 copy(fields_view_base const& other)
 {
-    if(! is_default(other.cbuf_))
+    if(! is_default(other.h_.cbuf))
     {
         auto n = detail::buffer_needed(
-            other.end_pos_, other.count_);
-        if(n <= buf_len_)
+            other.h_.size, other.h_.count);
+        if(n <= h_.cap)
         {
             // copy start line and fields
-            other.write_table(buf_ + end_pos_);
+            other.write_table(h_.buf + h_.size);
             std::memcpy(
-                buf_,
-                other.cbuf_,
-                other.end_pos_);
-            start_len_ = other.start_len_;
-            end_pos_ = other.end_pos_;
-            count_ = other.count_;
+                h_.buf,
+                other.h_.cbuf,
+                other.h_.size);
+            h_.prefix = other.h_.prefix;
+            h_.size = other.h_.size;
+            h_.count = other.h_.count;
             return;
         }
     }
-    fields_base tmp(other, kind_);
+    fields_base tmp(other, h_.kind);
     tmp.swap(*this);
 }
 
@@ -124,31 +124,35 @@ void
 fields_base::
 reserve(std::size_t n)
 {
+    if(n > max_off_t)
+        detail::throw_length_error(
+            " n > max off_t",
+            BOOST_CURRENT_LOCATION);
     // align up
     n = detail::buffer_needed(n, 0);
-    if(n <= buf_len_)
+    if(n <= h_.cap)
         return;
     auto buf = new char[n];
-    if(buf_len_ > 0)
+    if(h_.cap > 0)
     {
         std::memcpy(
             buf,
-            cbuf_,
-            end_pos_);
+            h_.cbuf,
+            h_.size);
         write_table(buf + n);
-        delete[] buf_;
+        delete[] h_.buf;
     }
     else
     {
         // default buffer
         std::memcpy(
             buf,
-            cbuf_,
-            end_pos_);
+            h_.cbuf,
+            h_.size);
     }
-    buf_len_ = n;
-    cbuf_ = buf;
-    buf_ = buf;
+    h_.cap = n;
+    h_.cbuf = buf;
+    h_.buf = buf;
 }
 
 void
@@ -156,10 +160,11 @@ fields_base::
 shrink_to_fit() noexcept
 {
     if(detail::buffer_needed(
-        end_pos_, count_) >=
-            buf_len_)
+        h_.size, h_.count) >=
+            h_.cap)
         return;
-    fields_base(*this, 0).swap(*this);
+    fields_base(*this,
+        detail::kind::fields).swap(*this);
 }
 
 void
@@ -172,7 +177,7 @@ emplace_back(
         id,
         to_string(id),
         value,
-        count_);
+        h_.count);
 }
 
 void
@@ -186,7 +191,7 @@ emplace_back(
             name),
         name,
         value,
-        count_);
+        h_.count);
 }
 
 auto
@@ -226,25 +231,25 @@ fields_base::
 erase(iterator it) noexcept ->
     iterator
 {
-    BOOST_ASSERT(it.i_ < count_);
-    BOOST_ASSERT(buf_ != nullptr);
+    BOOST_ASSERT(it.i_ < h_.count);
+    BOOST_ASSERT(h_.buf != nullptr);
     detail::fields_table ft(
-        buf_ + buf_len_);
+        h_.buf + h_.cap);
     auto const p0 =
         offset(ft, it.i_);
     auto const p1 =
         offset(ft, it.i_ + 1);
     std::memmove(
-        buf_ + p0,
-        buf_ + p1,
-        end_pos_ - p1);
+        h_.buf + p0,
+        h_.buf + p1,
+        h_.size - p1);
     auto const n = p1 - p0;
-    --count_;
+    --h_.count;
     for(std::size_t i = it.i_;
-            i < count_; ++i)
+            i < h_.count; ++i)
         ft[i] = ft[i + 1] - n;
-    end_pos_ = static_cast<
-        off_t>(end_pos_ - n);
+    h_.size = static_cast<
+        off_t>(h_.size - n);
     return iterator(this, it.i_);
 }
 
@@ -282,7 +287,7 @@ erase_all(
     field id) noexcept
 {
     std::size_t n = 0;
-    std::size_t i = count_;
+    std::size_t i = h_.count;
     while(i > 0)
     {
         --i;
@@ -309,7 +314,7 @@ erase_all(
         return 0;
     name = it0->name;
     std::size_t n = 1;
-    std::size_t i = count_ - 1;
+    std::size_t i = h_.count - 1;
     while(i != it0.i_)
     {
         iterator it(this, i);
@@ -338,11 +343,11 @@ offset(
     detail::fields_table const& ft,
     std::size_t i) const noexcept
 {
-    if(i < count_)
-        return start_len_ + ft[i].np;
+    if(i < h_.count)
+        return h_.prefix + ft[i].np;
     // make final CRLF the last "field"
-    BOOST_ASSERT(i == count_);
-    return end_pos_ - 2;
+    BOOST_ASSERT(i == h_.count);
+    return h_.size - 2;
 }
 
 void
@@ -353,33 +358,33 @@ insert_impl(
     string_view value,
     std::size_t before)
 {
-    BOOST_ASSERT(before <= count_);
+    BOOST_ASSERT(before <= h_.count);
     auto const n0 =
         name.size() + 2 +
         value.size() + 2;
-    auto const n1 = end_pos_ + n0;
+    auto const n1 = h_.size + n0;
     if(n1 > max_off_t)
         detail::throw_length_error(
             "too large",
             BOOST_CURRENT_LOCATION);
     auto const n =
         detail::buffer_needed(
-            n1, count_ + 1);
-    if(buf_len_ >= n)
+            n1, h_.count + 1);
+    if(h_.cap >= n)
     {
-        BOOST_ASSERT(buf_ != nullptr);
+        BOOST_ASSERT(h_.buf != nullptr);
         detail::copied_strings cs(
-            string_view(cbuf_, end_pos_));
+            string_view(h_.cbuf, h_.size));
         name = cs.maybe_copy(name);
         value = cs.maybe_copy(value);
         detail::fields_table ft(
-            buf_ + buf_len_);
+            h_.buf + h_.cap);
         auto pos = offset(ft, before);
-        char* dest = buf_ + pos;
+        char* dest = h_.buf + pos;
         std::memmove(
             dest + n0,
             dest,
-            end_pos_ - pos);
+            h_.size - pos);
         name.copy(dest, name.size());
         dest += name.size();
         *dest++ = ':';
@@ -388,10 +393,10 @@ insert_impl(
         dest += value.size();
         *dest++ = '\r';
         *dest++ = '\n';
-        for(std::size_t i = count_;
+        for(std::size_t i = h_.count;
             i > before; --i)
             ft[i] = ft[i-1] + n0;
-        pos -= start_len_;
+        pos -= h_.prefix;
         auto& e = ft[before];
         e.np = static_cast<
             off_t>(pos);
@@ -402,25 +407,25 @@ insert_impl(
         e.vn = static_cast<
             off_t>(value.size());
         e.id = id;
-        end_pos_ = static_cast<
-            off_t>(end_pos_ + n0);
-        ++count_;
+        h_.size = static_cast<
+            off_t>(h_.size + n0);
+        ++h_.count;
     }
-    else if(buf_len_ > 0)
+    else if(h_.cap > 0)
     {
         // grow
-        BOOST_ASSERT(buf_ != nullptr);
+        BOOST_ASSERT(h_.buf != nullptr);
         auto buf = new char[n];
 
         // copy existing fields
         // and write new field
         detail::fields_table ft0(
-            buf_ + buf_len_);
+            h_.buf + h_.cap);
         auto pos = offset(ft0, before);
         char* dest = buf;
         std::memcpy(
             dest,
-            buf_,
+            h_.buf,
             pos);
         dest += pos;
         name.copy(dest, name.size());
@@ -433,14 +438,14 @@ insert_impl(
         *dest++ = '\n';
         std::memcpy(
             dest,
-            buf_ + pos,
-            end_pos_ - pos);
+            h_.buf + pos,
+            h_.size - pos);
 
         // write table
         ft0.copy(buf + n, before);
         detail::fields_table ft(buf + n);
         for(auto i = before;
-            i < count_; ++i)
+            i < h_.count; ++i)
             ft[i + 1] = ft0[i] + n0;
 
         auto& e = ft[before];
@@ -454,35 +459,35 @@ insert_impl(
             off_t>(value.size());
         e.id = id;
 
-        delete[] buf_;
-        buf_ = buf;
-        cbuf_ = buf;
-        buf_len_ = n;
-        end_pos_ = static_cast<
+        delete[] h_.buf;
+        h_.buf = buf;
+        h_.cbuf = buf;
+        h_.cap = n;
+        h_.size = static_cast<
             off_t>(n1);
-        count_ += 1;
+        h_.count += 1;
     }
     else
     {
-        BOOST_ASSERT(buf_ == nullptr);
+        BOOST_ASSERT(h_.buf == nullptr);
         BOOST_ASSERT(before == 0);
-        BOOST_ASSERT(count_ == 0);
+        BOOST_ASSERT(h_.count == 0);
 
         // initial allocation
-        auto s = default_buffer(kind_);
-        buf_ = new char[n];
-        cbuf_ = buf_;
-        buf_len_ = n;
-        start_len_ = static_cast<
+        auto s = default_buffer(h_.kind);
+        h_.buf = new char[n];
+        h_.cbuf = h_.buf;
+        h_.cap = n;
+        h_.prefix = static_cast<
             off_t>(s.size() - 2);
-        end_pos_ = static_cast<
+        h_.size = static_cast<
             off_t>(n1);
-        count_ = 1;
+        h_.count = 1;
 
         // start line
-        char* dest = buf_;
-        s.copy(dest, start_len_);
-        dest += start_len_;
+        char* dest = h_.buf;
+        s.copy(dest, h_.prefix);
+        dest += h_.prefix;
 
         // write field
         name.copy(dest, name.size());
@@ -499,7 +504,7 @@ insert_impl(
 
         // write table
         detail::fields_table ft(
-            buf_ + buf_len_);
+            h_.buf + h_.cap);
         auto& e = ft[before];
         e.id = id;
         e.np = 0;
@@ -518,10 +523,7 @@ void
 fields_base::
 swap(fields_base& other) noexcept
 {
-    using std::swap;
     this->fields_view_base::swap(other);
-    swap(buf_, other.buf_);
-    swap(kind_, other.kind_);
 }
 
 
@@ -529,18 +531,18 @@ void
 fields_base::
 clear() noexcept
 {
-    if(! buf_)
+    if(! h_.buf)
         return;
     auto s =
-        default_buffer(kind_);
-    end_pos_ = static_cast<
+        default_buffer(h_.kind);
+    h_.size = static_cast<
         off_t>(s.size());
-    start_len_ = end_pos_ - 2;
-    count_ = 0;
+    h_.prefix = h_.size - 2;
+    h_.count = 0;
     std::memcpy(
-        buf_,
+        h_.buf,
         s.data(),
-        end_pos_);
+        h_.size);
 }
 
 char*
@@ -548,60 +550,60 @@ fields_base::
 set_start_line_impl(
     std::size_t n)
 {
-    if( n > start_len_ ||
-        buf_ == nullptr)
+    if( n > h_.prefix ||
+        h_.buf == nullptr)
     {
         // allocate or grow
-        if( n > start_len_ &&
-            n - start_len_ >
-                max_off_t - end_pos_)
+        if( n > h_.prefix &&
+            n - h_.prefix >
+                max_off_t - h_.size)
             detail::throw_length_error(
                 "too large",
                 BOOST_CURRENT_LOCATION);
         auto n0 = detail::buffer_needed(
-            n + end_pos_ - start_len_,
-            count_);
+            n + h_.size - h_.prefix,
+            h_.count);
         auto buf = new char[n0];
-        if(buf_ != nullptr)
+        if(h_.buf != nullptr)
         {
             std::memcpy(
                 buf + n,
-                buf_ + start_len_,
-                end_pos_ - start_len_);
+                h_.buf + h_.prefix,
+                h_.size - h_.prefix);
             detail::fields_table ft(
-                buf_ + buf_len_);
-            ft.copy(buf + n0, count_);
-            delete[] buf_;
+                h_.buf + h_.cap);
+            ft.copy(buf + n0, h_.count);
+            delete[] h_.buf;
         }
         else
         {
             std::memcpy(
                 buf + n,
-                cbuf_ + start_len_,
-                end_pos_ - start_len_);
+                h_.cbuf + h_.prefix,
+                h_.size - h_.prefix);
         }
-        buf_ = buf;
-        cbuf_ = buf;
-        end_pos_ = static_cast<
-            off_t>(end_pos_ +
-                n - start_len_);
-        start_len_ = static_cast<
+        h_.buf = buf;
+        h_.cbuf = buf;
+        h_.size = static_cast<
+            off_t>(h_.size +
+                n - h_.prefix);
+        h_.prefix = static_cast<
             off_t>(n);
-        buf_len_ = n0;
-        return buf_;
+        h_.cap = n0;
+        return h_.buf;
     }
 
     // shrink
     std::memmove(
-        buf_ + n,
-        buf_ + start_len_,
-        end_pos_ - start_len_);
-    end_pos_ = static_cast<
-        off_t>(end_pos_ -
-            start_len_ + n);
-    start_len_ = static_cast<
+        h_.buf + n,
+        h_.buf + h_.prefix,
+        h_.size - h_.prefix);
+    h_.size = static_cast<
+        off_t>(h_.size -
+            h_.prefix + n);
+    h_.prefix = static_cast<
         off_t>(n);
-    return buf_;
+    return h_.buf;
 }
 
 } // http_proto

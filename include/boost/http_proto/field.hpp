@@ -19,7 +19,7 @@ namespace http_proto {
 
 enum class field : unsigned short
 {
-    unknown = 0,
+    unknown = 0,    // must be zero
 
     a_im,
     accept,

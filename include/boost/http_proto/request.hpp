@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_REQUEST_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/header_info.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/version.hpp>
@@ -29,16 +28,14 @@ class BOOST_SYMBOL_VISIBLE
     request
     : public fields_base
 {
-    http_proto::method method_;
-    http_proto::version version_;
-    std::size_t method_len_;
-    std::size_t target_len_;
-
 public:
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
-    request();
+    request() noexcept
+        : fields_base(
+            detail::kind::request)
+    {
+    }
 
     /** Constructor
     */
@@ -94,7 +91,7 @@ public:
     http_proto::method
     method() const noexcept
     {
-        return method_;
+        return h_.req.method;
     }
 
     /** Return the method of this request as a string
@@ -103,7 +100,7 @@ public:
     method_str() const noexcept
     {
         return string_view(
-            cbuf_, method_len_);
+            h_.cbuf, h_.req.method_len);
     }
 
     /** Return the request-target
@@ -112,8 +109,8 @@ public:
     target() const noexcept
     {
         return string_view(
-            cbuf_ + method_len_ + 1,
-                target_len_);
+            h_.cbuf + h_.req.method_len + 1,
+                h_.req.target_len);
     }
 
     /** Return the HTTP version of this request
@@ -121,7 +118,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return version_;
+        return h_.req.version;
     }
 
     /** Return a read-only view to the request
@@ -129,12 +126,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     operator
     request_view() const noexcept;
-
-    /** Return serialization information
-    */
-    BOOST_HTTP_PROTO_DECL
-    operator
-    header_info() const noexcept;
 
     //--------------------------------------------
     //
@@ -184,7 +175,7 @@ public:
     set_target(string_view s)
     {
         set_impl(
-            method_,
+            h_.req.method,
             method_str(),
             s,
             version());
@@ -197,7 +188,7 @@ public:
         http_proto::version v)
     {
         set_impl(
-            method_,
+            h_.req.method,
             method_str(),
             target(),
             v);

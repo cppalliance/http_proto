@@ -26,6 +26,7 @@ in a translation unit of the program.
 #include <boost/http_proto.hpp>
 
 #include <boost/http_proto/detail/impl/except.ipp>
+#include <boost/http_proto/detail/impl/header.ipp>
 
 #include <boost/http_proto/impl/context.ipp>
 #include <boost/http_proto/impl/error.ipp>
@@ -34,7 +35,6 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/fields_base.ipp>
 #include <boost/http_proto/impl/fields_view.ipp>
 #include <boost/http_proto/impl/fields_view_base.ipp>
-#include <boost/http_proto/impl/header_info.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>
