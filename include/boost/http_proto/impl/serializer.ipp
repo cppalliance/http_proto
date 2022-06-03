@@ -30,8 +30,26 @@ namespace http_proto {
 
 
     2^64-1 = 20 digits
-
 */
+
+//------------------------------------------------
+
+void
+serializer::
+set_header_impl(
+    detail::header const& h)
+{
+    h_copy_ = h;
+    h_ = &h_copy_;
+}
+
+void
+serializer::
+set_header_impl(
+    detail::header const* ph)
+{
+    h_ = ph;
+}
 
 //------------------------------------------------
 
@@ -39,9 +57,7 @@ bool
 serializer::
 is_complete() const noexcept
 {
-    return
-        hs_.empty() &&
-        bs_.empty();
+    return hs_.empty();
 }
 
 const_buffers
@@ -49,18 +65,8 @@ serializer::
 prepare(error_code& ec)
 {
     ec.clear();
-    auto p = &v_[0];
-    if(! hs_.empty())
-    {
-        *p = { hs_.data(), hs_.size() };
-        ++p;
-    }
-    if(! bs_.empty())
-    {
-        *p = { bs_.data(), bs_.size() };
-        ++p;
-    }
-    return const_buffers(v_, p - &v_[0]);
+    v_[0] = { hs_.data(), hs_.size() };
+    return const_buffers(v_, 1);
 }
 
 void
@@ -76,17 +82,6 @@ consume(std::size_t n) noexcept
     {
         n -= hs_.size();
         hs_ = {};
-    }
-
-    if(n < bs_.size())
-    {
-        bs_.remove_prefix(n);
-        n = 0;
-    }
-    else
-    {
-        n -= bs_.size();
-        bs_ = {};
     }
 }
 

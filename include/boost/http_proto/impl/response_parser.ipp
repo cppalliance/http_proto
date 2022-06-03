@@ -21,59 +21,18 @@ response_parser::
 response_parser(
     config const& cfg,
     std::size_t buffer_bytes)
-    : parser(cfg, buffer_bytes)
+    : parser(
+        detail::kind::response,
+        cfg,
+        buffer_bytes)
 {
 }
 
-char*
+response_view
 response_parser::
-parse_start_line(
-    char* const start,
-    char const* const end,
-    error_code& ec) noexcept
+get() const noexcept
 {
-    status_line_rule t;
-    char const* it = start;
-    if(! grammar::parse(
-        it, end, ec, t))
-        return start;
-
-    m_.version = t.v;
-    status_ = t.status_int;
-    return start + (it - start);
-}
-
-void
-response_parser::
-finish_header(
-    error_code& ec)
-{
-    ec = {};
-
-    // https://tools.ietf.org/html/rfc7230#section-3.3
-    if((status_ /  100 == 1) || // 1xx e.g. Continue
-        status_ == 204 ||       // No Content
-        status_ == 304)         // Not Modified
-    {
-        // Content-Length may be present, but we
-        // treat the message as not having a body.
-        m_.skip_body = true;
-        return;
-    }
-    else if(m_.content_len.has_value())
-    {
-        if(*m_.content_len > 0)
-        {
-            //has_body_ = true;
-            state_ = state::body;
-
-            if( *m_.content_len > cfg_.body_limit)
-            {
-                ec = error::body_limit;
-                return;
-            }
-        }
-    }
+    return response_view(h_);
 }
 
 } // http_proto

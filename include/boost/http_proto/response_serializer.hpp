@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_RESPONSE_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
@@ -19,16 +18,24 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class response;
+class response_view;
+#endif
+
 class BOOST_SYMBOL_VISIBLE
     response_serializer
     : public serializer
 {
 public:
-#if 0
     BOOST_HTTP_PROTO_DECL
     void
-    reset(response_view const& prv);
-#endif
+    set_header(
+        response_view const& res);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header(response const& res);
 };
 
 } // http_proto

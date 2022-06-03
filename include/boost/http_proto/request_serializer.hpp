@@ -16,11 +16,24 @@
 namespace boost {
 namespace http_proto {
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+class request;
+class request_view;
+#endif
+
 class BOOST_SYMBOL_VISIBLE
     request_serializer
     : public serializer
 {
 public:
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header(
+        request_view const& res);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header(request const& res);
 };
 
 } // http_proto

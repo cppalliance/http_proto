@@ -32,17 +32,6 @@ class context;
 enum class version : char;
 #endif
 
-struct chunk_info
-{
-    chunk_info() = default;
-
-    std::uint64_t size; // of this chunk
-    bnf::range<
-        chunk_ext_rule> ext; // chunk extensions (can be empty)
-    grammar::range<field_rule> trailer;
-    bool fresh;         // true if this is a fresh chunk
-};
-
 /** A parser for HTTP/1 messages.
 
     The parser is strict. Any malformed
@@ -57,14 +46,26 @@ public:
     // applies to all messages
     struct config
     {
-        /// max header size
-        std::size_t header_limit = 4096;
+        /** Largest allowed size for the complete header
+        */
+        std::size_t max_header_size = 65536;
 
-        /// max body size
+        /** Largest size for any one field
+        */
+        std::size_t max_field_size = 4096;
+
+        /** Largest allowed number of fields
+        */
+        std::size_t max_field_count = 100;
+
+        /** Largest allowed size for a body
+        */
         std::uint64_t body_limit = 1024 * 1024;
     };
 
-BOOST_HTTP_PROTO_PROTECTED:
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
 
     enum class state
     {
@@ -79,21 +80,14 @@ BOOST_HTTP_PROTO_PROTECTED:
     // per-message state
     struct message
     {
-        off_t count;          // number of fields
-        off_t start_len;      // chars in start-line
-        off_t fields_len;     // chars in fields,
-                                    //   including last CRLF
         std::size_t n_chunk;        // bytes of chunk header
         std::size_t n_payload;      // bytes of body or chunk
         std::uint64_t n_remain;     // remaining body or chunk
 
         std::uint64_t payload_seen; // total body received
-        chunk_info chunk;
 
         optional<std::uint64_t>
             content_len;            // value of Content-Length
-        http_proto::version
-            version;                // HTTP-version
 
         bool skip_body : 1;         // no body expected
         bool got_chunked : 1;
@@ -104,8 +98,8 @@ BOOST_HTTP_PROTO_PROTECTED:
     };
 
     config cfg_;
-    char* buf_;
-    std::size_t cap_;           // allocated size
+    detail::header h_;
+
     std::size_t size_ = 0;      // committed part
     std::size_t used_ = 0;      // parsed part
     state state_ = state::start_line;
@@ -115,11 +109,13 @@ BOOST_HTTP_PROTO_PROTECTED:
     message m_;
 
     parser(
+        detail::kind k,
         config const& cfg,
         std::size_t buffer_size);
 
 public:
-    using mutable_buffers_type = mutable_buffers;
+    using mutable_buffers_type =
+        mutable_buffers;
 
     struct result_base
     {
@@ -200,12 +196,8 @@ public:
     bool
     need_more() const noexcept
     {
-        return size_ < cap_;
+        return size_ < h_.cap;
     }
-
-    BOOST_HTTP_PROTO_DECL
-    chunk_info
-    chunk() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
     string_view
@@ -333,9 +325,9 @@ public:
     skip_body();
 
 private:
-    virtual char* parse_start_line(
-        char*, char const*, error_code&) noexcept = 0;
-    virtual void finish_header(error_code&) = 0;
+    char* parse_start_line(
+        char*, char const*, error_code&) noexcept;
+    void finish_header(error_code&);
 
     void do_connection(string_view, error_code&);
     void do_content_length(string_view, error_code&);

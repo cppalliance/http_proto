@@ -163,12 +163,12 @@ make_request(
                 h.size = static_cast<
                     off_t>(s.size());
                 h.count = 0;
+                h.version = t0.v;
                 h.req.method_len = static_cast<
                     off_t>(t0.ms.size());
                 h.req.target_len = static_cast<
                     off_t>(t0.t.size());
                 h.req.method = t0.m;
-                h.req.version = t0.v;
                 field_rule t1;
                 for(;;)
                 {
@@ -223,7 +223,7 @@ make_response(
                 h.size = static_cast<
                     off_t>(s.size());
                 h.count = 0;
-                h.res.version = t0.v;
+                h.version = t0.v;
                 h.res.status = int_to_status(
                     t0.status_int);
                 h.res.status_int = t0.status_int;

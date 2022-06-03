@@ -118,7 +118,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.req.version;
+        return h_.version;
     }
 
     /** Return a read-only view to the request

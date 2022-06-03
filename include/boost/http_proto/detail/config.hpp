@@ -19,9 +19,7 @@ namespace http_proto {
 
 #if defined(BOOST_HTTP_PROTO_DOCS)
 # define BOOST_HTTP_PROTO_DECL
-# define BOOST_HTTP_PROTO_PROTECTED private
 #else
-# define BOOST_HTTP_PROTO_PROTECTED protected
 # if (defined(BOOST_HTTP_PROTO_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)) && !defined(BOOST_HTTP_PROTO_STATIC_LINK)
 #  if defined(BOOST_HTTP_PROTO_SOURCE)
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_EXPORT

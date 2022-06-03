@@ -27,10 +27,10 @@ request_parser::
 request_parser(
     config const& cfg,
     std::size_t buffer_bytes)
-    : parser(cfg, buffer_bytes)
-    , method_(http_proto::method::unknown)
-    , method_len_(0)
-    , target_len_(0)
+    : parser(
+        detail::kind::request,
+        cfg,
+        buffer_bytes)
 {
 }
 
@@ -38,81 +38,7 @@ request_view
 request_parser::
 get() const noexcept
 {
-    detail::header h;
-    h.kind = detail::kind::request;
-    h.cbuf = buf_;
-    h.cap = cap_;
-    h.prefix = m_.start_len;
-    h.size =
-        m_.start_len +
-        m_.fields_len /* - 2 */;
-    h.count = m_.count;
-    h.req.method_len = method_len_;
-    h.req.target_len = target_len_;
-    h.req.method = method_;
-    h.req.version = m_.version;
-    return request_view(h);
-}
-
-//------------------------------------------------
-
-char*
-request_parser::
-parse_start_line(
-    char* const start,
-    char const* const end,
-    error_code& ec) noexcept
-{
-    request_line_rule t;
-    char const* it = start;
-    if(! grammar::parse(
-        it, end, ec, t))
-        return start;
-
-    method_ = t.m;
-    method_len_ = static_cast<
-        off_t>(t.ms.size());
-    target_len_ = static_cast<
-        off_t>(t.t.size());
-    m_.version = t.v;
-    return start + (it - start);
-}
-
-void
-request_parser::
-finish_header(
-    error_code& ec)
-{
-    // https://tools.ietf.org/html/rfc7230#section-3.3
-    if(m_.skip_body)
-    {
-        ec = error::end_of_message;
-        state_ = state::end_of_message;
-        return;
-    }
-    if(m_.content_len.has_value())
-    {
-        if( *m_.content_len > cfg_.body_limit)
-        {
-            ec = error::body_limit;
-            return;
-        }
-        if(*m_.content_len > 0)
-        {
-            state_ = state::body;
-            return;
-        }
-        ec = error::end_of_message;
-        state_ = state::end_of_message;
-        return;
-    }
-    else if(m_.got_chunked)
-    {
-        state_ = state::body;
-        return;
-    }
-    ec = error::end_of_message;
-    state_ = state::end_of_message;
+    return request_view(h_);
 }
 
 } // http_proto

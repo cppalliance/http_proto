@@ -14,6 +14,7 @@
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/header.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -31,11 +32,30 @@ class BOOST_SYMBOL_VISIBLE
     std::size_t cap_ = 0;
 
     string_view hs_; // header
-    string_view bs_; // body
 
     asio::const_buffer v_[2];
 
+    detail::header const* h_ = nullptr;
+    detail::header h_copy_;
+
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header_impl(
+        detail::header const& h);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_header_impl(
+        detail::header const* ph);
+
 public:
+    using const_buffers_type =
+        const_buffers;
+
     BOOST_HTTP_PROTO_DECL
     bool
     is_complete() const noexcept;

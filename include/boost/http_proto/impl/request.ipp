@@ -136,8 +136,8 @@ set_impl(
     *dest++ = '\r';
     *dest++ = '\n';
 
+    h_.version = v;
     h_.req.method = m;
-    h_.req.version = v;
     h_.req.method_len =
         static_cast<off_t>(ms.size());
     h_.req.target_len =

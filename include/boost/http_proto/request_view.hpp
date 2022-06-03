@@ -99,7 +99,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.req.version;
+        return h_.version;
     }
 };
 

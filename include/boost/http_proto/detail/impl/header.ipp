@@ -17,37 +17,6 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-void
-header::
-swap(header& h) noexcept
-{
-    std::swap(cbuf, h.cbuf);
-    std::swap(buf, h.buf);
-    std::swap(cap, h.cap);
-    std::swap(size, h.size);
-    std::swap(count, h.count);
-    std::swap(prefix, h.prefix);
-    switch(this->kind)
-    {
-    case detail::kind::fields:
-        break;
-    case detail::kind::request:
-        std::swap(
-            req.method_len, h.req.method_len);
-        std::swap(
-            req.target_len, h.req.target_len);
-        std::swap(req.method, h.req.method);
-        std::swap(req.version, h.req.version);
-        break;
-    case detail::kind::response:
-        std::swap(
-            res.status_int, h.res.status_int);
-        std::swap(res.status, h.res.status);
-        std::swap(res.version, h.res.version);
-        break;
-    }
-}
-
 } // detail
 } // http_proto
 } // boost

@@ -50,7 +50,7 @@ fields_base(
     fields_view_base const& fv,
     detail::kind k)
     : fields_base(
-    [&fv, k]
+    [this, &fv, k]
     {
         BOOST_ASSERT(k == fv.h_.kind);
         detail::header h = fv.h_;

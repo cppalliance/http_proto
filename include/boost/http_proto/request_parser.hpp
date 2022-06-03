@@ -25,46 +25,17 @@ class BOOST_SYMBOL_VISIBLE
     request_parser
     : public parser
 {
-    http_proto::method method_;
-
-    off_t method_len_;
-    off_t target_len_;
-
 public:
-    struct result : result_base
-    {
-        request_view header;
-    };
-
     BOOST_HTTP_PROTO_DECL
     request_parser(
         config const& cfg,
         std::size_t buffer_bytes);
 
-    /** Return a reference to the parsed request header.
+    /** Return the parsed request
     */
     BOOST_HTTP_PROTO_DECL
     request_view
     get() const noexcept;
-
-    result const&
-    get_() const noexcept
-    {
-        return r_;
-    }
-
-private:
-    result r_;
-
-    char*
-    parse_start_line(
-        char*,
-        char const*,
-        error_code&) noexcept override;
-
-    void
-    finish_header(
-        error_code& ec) override;
 };
 
 } // http_proto

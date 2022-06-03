@@ -30,18 +30,9 @@ public:
         config const& cfg,
         std::size_t buffer_bytes);
 
-private:
-    char*
-    parse_start_line(
-        char*,
-        char const*,
-        error_code&) noexcept override;
-
-    void
-    finish_header(
-        error_code& ec) override;
-
-    int status_;
+    BOOST_HTTP_PROTO_DECL
+    response_view
+    get() const noexcept;
 };
 
 } // http_proto

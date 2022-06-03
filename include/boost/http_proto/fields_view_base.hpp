@@ -39,6 +39,8 @@ protected:
 
     friend class fields;
     friend class fields_base;
+    friend class request_serializer;
+    friend class response_serializer;
 
     static string_view default_buffer(detail::kind) noexcept;
     static bool is_default(char const*) noexcept;
@@ -53,11 +55,6 @@ protected:
     explicit fields_view_base(detail::kind) noexcept;
 
 protected:
-    struct metadata
-    {
-
-    };
-
     fields_view_base(
         fields_view_base const&) = default;
     fields_view_base&

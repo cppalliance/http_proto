@@ -305,11 +305,6 @@ public:
     void
     run()
     {
-        BOOST_TEST(valid(
-            "GET / HTTP/1.1\r\n"
-            "x:\r\n"
-            "\r\n", 1));
-
         testParse();
         testParseField();
         testGet();

@@ -36,7 +36,7 @@ set_start_line_impl(
     auto dest = this->fields_base::
         set_start_line_impl(n);
 
-    h_.res.version = v;
+    h_.version = v;
     vs.copy(dest, vs.size());
     dest += vs.size();
     *dest++ = ' ';
@@ -62,7 +62,7 @@ response(
     : response()
 {
     if( sc != h_.res.status ||
-        v != h_.res.version)
+        v != h_.version)
         set_start_line(sc, v);
 }
 
@@ -121,9 +121,6 @@ operator=(
     response_view const& rv)
 {
     this->fields_base::copy(rv);
-    h_.res.status = rv.status();
-    h_.res.status_int = rv.status_int();
-    h_.res.version = rv.version();
     return *this;
 }
 

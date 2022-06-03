@@ -15,6 +15,22 @@
 namespace boost {
 namespace http_proto {
 
+void
+request_serializer::
+set_header(
+    request_view const& res)
+{
+    set_header_impl(res.h_);
+}
+
+void
+request_serializer::
+set_header(
+    request const& res)
+{
+    set_header_impl(&res.h_);
+}
+
 } // http_proto
 } // boost
 

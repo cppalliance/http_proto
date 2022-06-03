@@ -303,7 +303,31 @@ void
 fields_view_base::
 swap(fields_view_base& other) noexcept
 {
-    h_.swap(other.h_);
+    auto& h = other.h_;
+    std::swap(h_.cbuf, h.cbuf);
+    std::swap(h_.buf, h.buf);
+    std::swap(h_.cap, h.cap);
+    std::swap(h_.size, h.size);
+    std::swap(h_.count, h.count);
+    std::swap(h_.prefix, h.prefix);
+    std::swap(h_.version, h.version);
+    switch(h_.kind)
+    {
+    case detail::kind::fields:
+        break;
+    case detail::kind::request:
+        std::swap(
+            h_.req.method_len, h.req.method_len);
+        std::swap(
+            h_.req.target_len, h.req.target_len);
+        std::swap(h_.req.method, h.req.method);
+        break;
+    case detail::kind::response:
+        std::swap(
+            h_.res.status_int, h.res.status_int);
+        std::swap(h_.res.status, h.res.status);
+        break;
+    }
 }
 
 fields_view_base::
@@ -354,6 +378,8 @@ fields_view_base(
             off_t>(s.size() - 2);
         h.size = h.prefix + 2;
         h.count = 0;
+        h.version =
+            http_proto::version::http_1_1;
         switch(h.kind)
         {
         case detail::kind::fields:
@@ -363,12 +389,8 @@ fields_view_base(
             h.req.target_len = 1;
             h.req.method =
                 http_proto::method::get;
-            h.req.version =
-                http_proto::version::http_1_1;
             break;
         case detail::kind::response:
-            h.res.version =
-                http_proto::version::http_1_1;
             h.res.status =
                 http_proto::status::ok;
             h.res.status_int = 200;

@@ -133,7 +133,7 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.res.version;
+        return h_.version;
     }
 
     /** Return a read-only view to the response

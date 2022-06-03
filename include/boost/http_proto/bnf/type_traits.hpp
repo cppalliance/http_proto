@@ -41,7 +41,7 @@ namespace bnf {
     };
     @endcode
 */
-#if BOOST_HTTP_PROTO_DOCS
+#ifdef BOOST_HTTP_PROTO_DOCS
 template<class T>
 using is_element = __see_below__;
 
@@ -86,7 +86,7 @@ std::integral_constant<bool,
             error_code& ec);
     @endcode
 */
-#if BOOST_HTTP_PROTO_DOCS
+#ifdef BOOST_HTTP_PROTO_DOCS
 template<class T>
 using is_list = __see_below__;
 

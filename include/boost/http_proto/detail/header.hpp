@@ -39,14 +39,12 @@ struct header
         off_t method_len;
         off_t target_len;
         http_proto::method method;
-        http_proto::version version;
     };
 
     struct res_t
     {
         unsigned short status_int;
         http_proto::status status;
-        http_proto::version version;
     };
 
     char const* cbuf = nullptr;
@@ -55,6 +53,7 @@ struct header
     off_t size = 0;
     off_t count = 0;
     off_t prefix = 0;
+    http_proto::version version;
 
     union
     {
@@ -62,7 +61,7 @@ struct header
         res_t res;
     };
 
-    BOOST_HTTP_PROTO_DECL void swap(header& h) noexcept;
+    // VFALCO swap() is in fields_view_base
 };
 
 } // detail
