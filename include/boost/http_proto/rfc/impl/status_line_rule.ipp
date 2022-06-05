@@ -32,6 +32,9 @@ parse(
     status_code_rule t1;
     reason_phrase_rule t2;
 
+    // VFALCO silence "may be used uninitialized"
+    t0.v = http_proto::version::http_1_1;
+
     if(! grammar::parse(
         it, end, ec,
         t0, ' ',

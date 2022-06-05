@@ -55,10 +55,11 @@ get_error_cat() noexcept
             case error::bad_transfer_encoding: return "bad transfer-encoding";
             case error::syntax: return "syntax error";
 
-            case error::body_limit: return "body limit";
-            case error::header_limit: return "header limit";
+            case error::body_too_large: return "body too large";
+            case error::field_too_large: return "field too large";
+            case error::header_too_large: return "header too large";
+            case error::too_many_fields: return "too many fields";
             case error::numeric_overflow: return "numeric overflow";
-            case error::incomplete: return "incomplete";
 
             default:
                 return "unknown";
@@ -92,8 +93,10 @@ get_error_cat() noexcept
             case error::syntax:
                 return condition::syntax_error;
 
-            case error::body_limit:
-            case error::header_limit:
+            case error::body_too_large:
+            case error::field_too_large:
+            case error::header_too_large:
+            case error::too_many_fields:
             case error::numeric_overflow:
             default:
                 return {ev, *this};

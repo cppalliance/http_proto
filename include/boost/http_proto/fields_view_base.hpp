@@ -39,8 +39,7 @@ protected:
 
     friend class fields;
     friend class fields_base;
-    friend class request_serializer;
-    friend class response_serializer;
+    friend class serializer;
 
     static string_view default_buffer(detail::kind) noexcept;
     static bool is_default(char const*) noexcept;

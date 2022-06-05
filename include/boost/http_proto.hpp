@@ -24,11 +24,9 @@
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/request_serializer.hpp>
 #include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/response_parser.hpp>
-#include <boost/http_proto/response_serializer.hpp>
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/status.hpp>

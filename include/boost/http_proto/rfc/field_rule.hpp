@@ -23,7 +23,7 @@ namespace http_proto {
 */
 BOOST_HTTP_PROTO_DECL
 void
-replace_obs_fold(
+remove_obs_fold(
     char *start,
     char const* end) noexcept;
 

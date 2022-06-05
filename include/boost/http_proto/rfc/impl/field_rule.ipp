@@ -184,7 +184,7 @@ done:
 //------------------------------------------------
 
 void
-replace_obs_fold(
+remove_obs_fold(
     char* it,
     char const* const end) noexcept
 {

@@ -20,11 +20,11 @@ namespace http_proto {
 response_parser::
 response_parser(
     config const& cfg,
-    std::size_t buffer_bytes)
+    std::size_t buffer_size)
     : parser(
         detail::kind::response,
         cfg,
-        buffer_bytes)
+        buffer_size)
 {
 }
 

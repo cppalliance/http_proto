@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_HEADER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdint>
 
@@ -20,10 +21,11 @@ namespace http_proto {
 enum class version : char;
 enum class method : char;
 enum class status : unsigned short;
+enum class field : unsigned short;
 
 namespace detail {
 
-enum kind : unsigned char
+enum class kind : unsigned char
 {
     fields = 0,
     request,
@@ -61,8 +63,37 @@ struct header
         res_t res;
     };
 
+    std::uint64_t content_length = 0;
+
+    int n_content_length : 2;
+
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    header(detail::kind k) noexcept;
+
+    void reset() noexcept;
+
+    void on_field_add(
+        field id, string_view v) noexcept;
+
     // VFALCO swap() is in fields_view_base
 };
+
+BOOST_HTTP_PROTO_DECL
+void
+parse_start_line(
+    header& h,
+    std::size_t,
+    error_code&) noexcept;
+
+BOOST_HTTP_PROTO_DECL
+bool
+parse_field(
+    header& h,
+    std::size_t,
+    field& id,
+    string_view& v,
+    error_code&) noexcept;
 
 } // detail
 } // http_proto

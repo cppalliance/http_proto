@@ -39,11 +39,9 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>
 #include <boost/http_proto/impl/request_parser.ipp>
-#include <boost/http_proto/impl/request_serializer.ipp>
 #include <boost/http_proto/impl/request_view.ipp>
 #include <boost/http_proto/impl/response.ipp>
 #include <boost/http_proto/impl/response_parser.ipp>
-#include <boost/http_proto/impl/response_serializer.ipp>
 #include <boost/http_proto/impl/response_view.ipp>
 #include <boost/http_proto/impl/serializer.ipp>
 #include <boost/http_proto/impl/status.ipp>

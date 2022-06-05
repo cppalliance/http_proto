@@ -28,6 +28,20 @@
 namespace boost {
 namespace http_proto {
 
+#if 0
+parser::
+message::
+message() noexcept
+    : skip_body(false)
+    , got_chunked(false)
+    , got_close(false)
+    , got_keep_alive(false)
+    , got_upgrade(false)
+    , need_eof(false)
+{
+}
+#endif
+
 //------------------------------------------------
 
 parser::
@@ -36,7 +50,9 @@ parser(
     config const& cfg,
     std::size_t buffer_bytes)
     : cfg_(cfg)
-    , state_(state::start_line)
+    , h_(k)
+    , committed_(0)
+    , state_(state::empty)
     , got_eof_(false)
     , m_{}
 {
@@ -47,7 +63,6 @@ parser(
         buffer_bytes =
             cfg.max_header_size;
 
-    h_.kind = k;
     h_.cap = buffer_bytes;
     h_.buf = new char[buffer_bytes];
     h_.cbuf = h_.buf;
@@ -98,6 +113,7 @@ void
 parser::
 clear() noexcept
 {
+    reset();
 }
 
 void
@@ -108,8 +124,7 @@ reset()
     {
         // new connection, throw
         // out all previous state.
-        used_ = 0;
-        size_ = 0;
+        committed_ = 0;
         got_eof_ = false;
     }
     else
@@ -117,66 +132,90 @@ reset()
         // Throwing out partial data
         // will desync the HTTP stream
         //BOOST_ASSERT(is_complete());
-        if( size_ > used_ &&
-            used_ > 0)
+        if( committed_ > h_.size &&
+            h_.size > 0)
         {
             // move unused octets to front
             std::memcpy(
                 h_.buf,
-                h_.buf + used_,
-                size_ - used_);
-            size_ -= used_;
-            used_ = 0;
+                h_.buf + h_.size,
+                committed_ - h_.size);
+            committed_ -= h_.size;
+            h_.size = 0;
         }
     }
 
+    h_.reset();
     m_ = message{};
-    state_ = state::start_line;
+    state_ = state::empty;
 }
 
 mutable_buffers
 parser::
 prepare()
 {
-    if(got_eof_)
-    {
-        // call reset() after
-        // reaching end of stream
-        detail::throw_invalid_argument(
-            "eof", BOOST_CURRENT_LOCATION);
-    }
+    // Can't commit bytes after eof
+    BOOST_ASSERT(! got_eof_);
+
     mb_ = {
-        h_.buf + size_,
-        h_.cap - size_ };
+        h_.buf + committed_,
+        h_.cap - committed_ };
     return { &mb_, 1 };
 }
 
 void
 parser::
 commit(
-    std::size_t n)
+    std::size_t n,
+    error_code& ec)
 {
-    if(got_eof_)
-    {
-        // call reset() after
-        // reaching end of stream
-        detail::throw_invalid_argument(
-            "eof", BOOST_CURRENT_LOCATION);
-    }
-    BOOST_ASSERT(n <= h_.cap - size_);
-    size_ += n;
+    BOOST_ASSERT(! got_eof_);
+    BOOST_ASSERT(
+        n <= h_.cap - committed_);
+    committed_ += n;
+    parse(ec);
 }
 
 void
 parser::
-commit_eof()
+commit_eof(
+    error_code &ec)
 {
     got_eof_ = true;
+    parse(ec);
 }
 
 //------------------------------------------------
 //
-// Parsing
+//
+//
+//------------------------------------------------
+
+void
+parser::
+discard_header() noexcept
+{
+}
+
+// discard all of the body,
+// but don't discard chunk-ext
+void
+parser::
+discard_body() noexcept
+{
+}
+
+// discard all of the payload
+// including any chunk-ext
+void
+parser::
+discard_chunk() noexcept
+{
+}
+
+//------------------------------------------------
+//
+// Implementation
 //
 //------------------------------------------------
 
@@ -185,182 +224,135 @@ parser::
 parse(
     error_code& ec)
 {
-    switch(state_)
+    ec.clear();
+    while(state_ != state::complete)
     {
-    case state::start_line:
-    {
-        BOOST_ASSERT(used_ == 0);
-        BOOST_ASSERT(h_.prefix == 0);
-        BOOST_ASSERT(h_.size == 0);
-        std::size_t n;
-        bool const limit = size_ >
-            cfg_.max_header_size;
-        if(! limit)
-            n = size_;
-        else
-            n = cfg_.max_header_size;
-        ec = {};
-        auto it = parse_start_line(
-            h_.buf, h_.buf + n, ec);
-        used_ += it - h_.buf;
-        if(ec == grammar::error::incomplete)
+        switch(state_)
         {
-            if(! limit)
+        case state::empty:
+            if(got_eof_)
+            {
+                BOOST_ASSERT(h_.size == 0);
+                ec = error::end_of_stream;
                 return;
-            ec = error::header_limit;
-            return;
-        }
-        if(ec.failed())
-            return;
-        h_.prefix = static_cast<
-            off_t>(it - h_.buf);
-        state_ = state::header_fields;
-        BOOST_FALLTHROUGH;
-    }
-    case state::header_fields:
-    {
-        std::size_t n;
-        bool const limit = size_ >
-            cfg_.max_header_size;
-        if(! limit)
-            n = size_;
-        else
-            n = cfg_.max_header_size;
-        BOOST_ASSERT(h_.size <
-            cfg_.max_header_size);
-        ec = {};
-        auto start = h_.buf + h_.prefix;
-        auto it = parse_fields(
-            start, h_.buf + n, ec);
-        used_ += it - start;
-        if(ec == grammar::error::incomplete)
-        {
-            if(! limit)
-                return;
-            ec = error::header_limit;
-            return;
-        }
-        if(ec.failed())
-            return;
-        h_.size = static_cast<
-            off_t>(it - h_.buf);
-        break;
-    }
-    case state::body:
-    {
-        ec = {};
-        return;
-    }
-    case state::complete:
-    {
-        ec = error::end_of_message;
-        if(! got_eof_)
-            return;
-        state_ = state::end_of_stream;
-        return;
-    }
-    case state::end_of_stream:
-    {
-        ec = error::end_of_stream;
-        return;
-    }
-    }
+            }
+            state_ = state::start_line;
+            BOOST_FALLTHROUGH;
 
-    finish_header(ec);
-    if(ec)
-        return;
-    if(! m_.skip_body)
-    {
-        state_ = state::body;
-    }
-    else
-    {
-        state_ = state::complete;
+        case state::start_line:
+            parse_start_line(ec);
+            if(ec.failed())
+                return;
+            state_ = state::header_fields;
+            BOOST_FALLTHROUGH;
+
+        case state::header_fields:
+            parse_fields(ec);
+            if(ec.failed())
+                return;
+            state_ = state::body;
+            BOOST_FALLTHROUGH;
+
+        case state::body:
+            parse_body(ec);
+            if(ec.failed())
+                return;
+            state_ = state::complete;
+            BOOST_FALLTHROUGH;
+
+        default:
+            break;
+        }
     }
 }
 
-char*
+void
 parser::
-parse_fields(
-    char* const start,
-    char const* const end,
+parse_start_line(
     error_code& ec)
 {
-    field_rule t;
-    char* it0 = start;
-    char const* it = start;
+    BOOST_ASSERT(h_.size == 0);
+    std::size_t const new_size =
+        committed_ <= cfg_.max_header_size
+        ? committed_
+        : cfg_.max_header_size;
+    detail::parse_start_line(
+        h_, new_size, ec);
+    if(ec ==
+        grammar::error::incomplete)
+    {
+        if( new_size <
+            cfg_.max_header_size)
+            return;
+        ec = error::header_too_large;
+        return;
+    }
+    if(ec.failed())
+        return;
+}
+
+void
+parser::
+parse_fields(
+    error_code& ec)
+{
+    std::size_t const new_size =
+        committed_ <= cfg_.max_header_size
+        ? committed_
+        : cfg_.max_header_size;
+    field id;
+    string_view v;
     for(;;)
     {
-        grammar::parse(it, end, ec, t);
-        if(ec == grammar::error::end)
+        auto const size0 = h_.size;
+        auto got_one = detail::parse_field(
+            h_, new_size, id, v, ec);
+        if(ec == grammar::error::incomplete)
         {
-            // end of fields
-            ec = {};
-            it0 = it0 + (it - it0);
-            break;
+            if(new_size >=
+                    cfg_.max_header_size)
+                ec = error::header_too_large;
         }
-        if(ec.failed())
-            return it0;
-        // remove obs-fold if needed
-        if(t.v.has_obs_fold)
-            replace_obs_fold(it0, it);
-        it0 = it0 + (it - it0);
-        auto const id =
-            string_to_field(t.v.name);
+        if(! got_one)
+            return;
+        if(h_.count > cfg_.max_field_count)
+        {
+            ec = error::too_many_fields;
+            return;
+        }
+        if(h_.size >
+            cfg_.max_field_size + size0)
+        {
+            ec = error::field_too_large;
+            return;
+        }
         switch(id)
         {
         case field::connection:
         case field::proxy_connection:
-            do_connection(
-                t.v.value, ec);
+            do_connection(v, ec);
             if(ec.failed())
-                return it0;
+                return;
             break;
         case field::content_length:
-            do_content_length(
-                t.v.value, ec);
+            do_content_length(v, ec);
             if(ec.failed())
-                return it0;
+                return;
             break;
         case field::transfer_encoding:
-            do_transfer_encoding(
-                t.v.value, ec);
+            do_transfer_encoding(v, ec);
             if(ec.failed())
-                return it0;
+                return;
             break;
         case field::upgrade:
-            do_upgrade(t.v.value, ec);
+            do_upgrade(v, ec);
             if(ec.failed())
-                return it0;
+                return;
             break;
         default:
             break;
         }
-        auto& e =
-            detail::fields_table(
-            h_.buf + h_.cap)[h_.count];
-        auto const base =
-            h_.buf + h_.prefix;
-        e.np = static_cast<off_t>(
-            t.v.name.data() - base);
-        e.nn = static_cast<off_t>(
-            t.v.name.size());
-        e.vp = static_cast<off_t>(
-            t.v.value.data() - base);
-        e.vn = static_cast<off_t>(
-            t.v.value.size());
-        e.id = id;
-    #if 0
-        // VFALCO handling zero-length value?
-        if(fi.value_len > 0)
-            fi.value_pos = static_cast<
-                off_t>(t.v.value.data() - h_.buf);
-        else
-            fi.value_pos = 0; // empty string
-    #endif
-        ++h_.count;
     }
-    return it0;
 }
 
 void
@@ -368,39 +360,77 @@ parser::
 parse_body(
     error_code& ec)
 {
-    ec = {};
-    switch(state_)
+    (void)ec;
+return;
+// VFALCO TODO
+#if 0
+    BOOST_ASSERT(state_ == state::body);
+
+    if(h_.kind == detail::kind::request)
     {
-    case state::start_line:
-    case state::header_fields:
-        parse(ec);
-        if(ec.failed())
+        // https://tools.ietf.org/html/rfc7230#section-3.3
+        if(m_.skip_body)
             return;
-        BOOST_ASSERT(state_ >
-            state::header_fields);
-        break;
-    case state::body:
-        break;
-    case state::complete:
-        ec = error::end_of_message;
-        if(! got_eof_)
+        if(m_.content_len.has_value())
+        {
+            if(*m_.content_len > cfg_.body_too_large)
+            {
+                ec = error::body_too_large;
+                return;
+            }
+            if(*m_.content_len == 0)
+                return;
+        }
+        else if(m_.got_chunked)
+        {
+            // VFALCO TODO
             return;
-        state_ = state::end_of_stream;
-        return;
-    case state::end_of_stream:
-        ec = error::end_of_stream;
-        return;
+        }
+        else
+        {
+            // Content-Length: 0
+            return;
+        }
+    }
+    else
+    {
+        BOOST_ASSERT(h_.kind ==
+            detail::kind::response);
+
+        // https://tools.ietf.org/html/rfc7230#section-3.3
+        if((h_.res.status_int /  100 == 1) || // 1xx e.g. Continue
+            h_.res.status_int == 204 ||       // No Content
+            h_.res.status_int == 304)         // Not Modified
+        {
+            // Content-Length may be present, but we
+            // treat the message as not having a body.
+        }
+        else if(m_.content_len.has_value())
+        {
+            if(*m_.content_len > 0)
+            {
+                if(*m_.content_len > cfg_.body_too_large)
+                {
+                    ec = error::body_too_large;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            // No Content-Length
+            return;
+        }
     }
 
-    auto avail = size_ - used_;
-
+    auto avail = committed_ - size_;
     if(m_.content_len.has_value())
     {
         // known payload length
         BOOST_ASSERT(! m_.got_chunked);
         BOOST_ASSERT(m_.n_remain > 0);
         BOOST_ASSERT(m_.content_len <
-            cfg_.body_limit);
+            cfg_.body_too_large);
         if(avail == 0)
         {
             if(! got_eof_)
@@ -414,7 +444,7 @@ parse_body(
         if( avail > m_.n_remain)
             avail = static_cast<
                 std::size_t>(m_.n_remain);
-        used_ += avail;
+        size_ += avail;
         m_.payload_seen += avail;
         m_.n_payload += avail;
         m_.n_remain -= avail;
@@ -441,7 +471,7 @@ parse_body(
                 ec = error::numeric_overflow;
                 return;
             }
-            used_ += avail;
+            size_ += avail;
             m_.n_payload += avail;
             ec = {};
             return;
@@ -461,9 +491,9 @@ parse_body(
         // start of chunk
         bnf::chunk_part p;
         auto it = p.parse(
-            h_.buf + used_,
+            h_.buf + size_,
             h_.buf + (
-                size_ - used_),
+                committed_ - size_),
             ec);
         if(ec)
             return;
@@ -481,6 +511,7 @@ parse_body(
         // continuation of chunk
 
     }
+#endif
 #endif
 }
 
@@ -516,18 +547,18 @@ parse_chunk(
         return;
     }
 
-    auto const avail = size_ - used_;
-    auto const start = h_.buf + used_;
+    auto const avail = committed_ - size_;
+    auto const start = h_.buf + size_;
     if(m_.payload_left == 0)
     {
         // start of chunk
         // VFALCO What about chunk_part_next?
         BOOST_ASSERT(
-            used_ == m_.header_size);
+            size_ == m_.header_size);
         bnf::chunk_part p;
         auto it = p.parse(start,
             h_.buf + (
-                size_ - used_), ec);
+                committed_ - size_), ec);
         BOOST_ASSERT(it == start);
         if(ec)
             return;
@@ -541,7 +572,7 @@ parse_chunk(
             m_.chunk.trailer = {};
             m_.payload_left =
                 v.size - v.data.size();
-            used_ += it - start; // excludes CRLF
+            size_ += it - start; // excludes CRLF
             return;
         }
         // last-chunk
@@ -550,7 +581,7 @@ parse_chunk(
         m_.chunk.trailer =
             v.trailer;
         m_.body = {};
-        used_ += it - start; // excludes CRLF
+        size_ += it - start; // excludes CRLF
         state_ = state::complete;
     }
     else
@@ -559,184 +590,6 @@ parse_chunk(
 
     }
 #endif
-}
-
-//------------------------------------------------
-//
-// Special Members
-//
-//------------------------------------------------
-
-void
-parser::
-discard_header() noexcept
-{
-    auto const n = h_.size;
-    if(n == 0)
-        return;
-    if(state_ < state::body)
-        return;
-    size_ -= n;
-    used_ -= n;
-    std::memmove(
-        h_.buf,
-        h_.buf + n,
-        size_);
-    h_.count = 0;
-    h_.prefix = 0;
-    h_.size = 0;
-    // VFALCO NOTE The field
-    // table is also discarded...
-}
-
-// discard all of the body,
-// but don't discard chunk-ext
-void
-parser::
-discard_body() noexcept
-{
-    if(state_ != state::body)
-        return;
-    if(m_.n_payload == 0)
-        return;
-    size_ -= m_.n_payload;
-    used_ -= m_.n_payload;
-    if(! m_.got_chunked)
-    {
-        auto const n = h_.size;
-        auto const pos = h_.buf + n;
-        std::memmove(pos, pos + n,
-            size_ - n - m_.n_payload);
-        m_.n_payload = 0;
-        return;
-    }
-    auto const n =
-        h_.size +
-        m_.n_chunk;
-    auto const pos = h_.buf + n;
-    std::memmove(pos, pos + n,
-        size_ - n - m_.n_payload);
-    m_.n_payload = 0;
-}
-
-// discard all of the payload
-// including any chunk-ext
-void
-parser::
-discard_chunk() noexcept
-{
-}
-
-//------------------------------------------------
-
-char*
-parser::
-parse_start_line(
-    char* const start,
-    char const* const end,
-    error_code& ec) noexcept
-{
-    if(h_.kind == detail::kind::request)
-    {
-        request_line_rule t;
-        char const* it = start;
-        if(! grammar::parse(
-            it, end, ec, t))
-            return start;
-
-        h_.version = t.v;
-        h_.req.method = t.m;
-        h_.req.method_len = static_cast<
-            off_t>(t.ms.size());
-        h_.req.target_len = static_cast<
-            off_t>(t.t.size());
-        return start + (it - start);
-    }
-    else
-    {
-        BOOST_ASSERT(h_.kind ==
-            detail::kind::response);
-
-        status_line_rule t;
-        char const* it = start;
-        if(! grammar::parse(
-            it, end, ec, t))
-            return start;
-
-        h_.version = t.v;
-        h_.res.status_int = t.status_int;
-        return start + (it - start);
-    }
-}
-
-void
-parser::
-finish_header(
-    error_code& ec)
-{
-    if(h_.kind == detail::kind::request)
-    {
-        // https://tools.ietf.org/html/rfc7230#section-3.3
-        if(m_.skip_body)
-        {
-            ec = error::end_of_message;
-            state_ = state::end_of_message;
-            return;
-        }
-        if(m_.content_len.has_value())
-        {
-            if( *m_.content_len > cfg_.body_limit)
-            {
-                ec = error::body_limit;
-                return;
-            }
-            if(*m_.content_len > 0)
-            {
-                state_ = state::body;
-                return;
-            }
-            ec = error::end_of_message;
-            state_ = state::end_of_message;
-            return;
-        }
-        else if(m_.got_chunked)
-        {
-            state_ = state::body;
-            return;
-        }
-        ec = error::end_of_message;
-        state_ = state::end_of_message;
-    }
-    else
-    {
-        BOOST_ASSERT(h_.kind ==
-            detail::kind::response);
-
-        // https://tools.ietf.org/html/rfc7230#section-3.3
-        if((h_.res.status_int /  100 == 1) || // 1xx e.g. Continue
-            h_.res.status_int == 204 ||       // No Content
-            h_.res.status_int == 304)         // Not Modified
-        {
-            // Content-Length may be present, but we
-            // treat the message as not having a body.
-            m_.skip_body = true;
-            return;
-        }
-        else if(m_.content_len.has_value())
-        {
-            if(*m_.content_len > 0)
-            {
-                //has_body_ = true;
-                state_ = state::body;
-
-                if( *m_.content_len > cfg_.body_limit)
-                {
-                    ec = error::body_limit;
-                    return;
-                }
-            }
-        }
-    }
 }
 
 //------------------------------------------------
@@ -790,9 +643,9 @@ do_content_length(
     auto v = *it;
     if(! m_.content_len.has_value())
     {
-        if(v > cfg_.body_limit)
+        if(v > cfg_.max_body_size)
         {
-            ec = error::body_limit;
+            ec = error::body_too_large;
             return;
         }
         m_.content_len = v;

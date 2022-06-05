@@ -88,35 +88,6 @@ struct BOOST_SYMBOL_VISIBLE
 {
 };
 
-//------------------------------------------------
-
-class string_view_source
-    : public source
-{
-    asio::const_buffer b_;
-
-public:
-    explicit
-    string_view_source(
-        string_view s) noexcept
-        : b_(s.data(), s.size())
-    {
-    }
-
-    const_buffers
-    prepare(error_code& ec) override
-    {
-        ec = {};
-        return const_buffers(&b_, 1);
-    }
-
-    void
-    consume(std::size_t n) noexcept override
-    {
-        b_ += n;
-    }
-};
-
 } // http_proto
 } // boost
 

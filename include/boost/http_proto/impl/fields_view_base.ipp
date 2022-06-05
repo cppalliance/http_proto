@@ -368,10 +368,8 @@ fields_view_base(
     : fields_view_base(
     [k]
     {
-        auto s =
-            default_buffer(k);
-        detail::header h;
-        h.kind = k;
+        auto s = default_buffer(k);
+        detail::header h(k);
         h.cbuf = s.data();
         h.cap = 0;
         h.prefix = static_cast<

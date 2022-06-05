@@ -65,7 +65,7 @@ struct field_rule_test
         {
             std::string s(
                 sv0.data(), sv0.size());
-            replace_obs_fold(
+            remove_obs_fold(
                 &s[0], s.data() + s.size());
             BOOST_TEST(sv1 == s);
         };

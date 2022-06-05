@@ -47,7 +47,8 @@ fields(
     : fields_base(
     [&f]
     {
-        detail::header h;
+        detail::header h(
+            detail::kind::fields);
         if(f.h_.count > 0)
         {
             // copy fields
@@ -67,7 +68,6 @@ fields(
                 f.h_.size - f.h_.prefix;
             h.count = f.h_.count;
             h.buf = buf;
-            h.kind = detail::kind::fields;
             return h;
         }
 
@@ -81,7 +81,6 @@ fields(
         h.size = h.prefix + 2;
         h.count = 0;
         h.buf = nullptr;
-        h.kind = detail::kind::fields;
         return h;       
     }())
 {

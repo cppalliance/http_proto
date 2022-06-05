@@ -111,26 +111,38 @@ enum class error
     // Other errors (unrecoverable)
     //
 
-    /** Body limit exceeded.
+    /** Body too large
 
-        The parser detected an incoming message body which
-        exceeded a configured limit.
+        The parser encountered a message
+        body whose size which exceeded the
+        configured limit.
     */
-    ,body_limit
+    ,body_too_large
 
-    /** Header limit exceeded.
+    /** Field too large
 
-        The parser detected an incoming message header which
-        exceeded a configured limit.
+        The parser encountered a field whose
+        size exceeded the configured limit.
     */
-    ,header_limit
+    ,field_too_large
+
+    /** Header too large
+
+        The parser encountered a header whose
+        total size exceeded the configured limit.
+    */
+    ,header_too_large
+
+    /** Too many fields
+
+        The parser encountered a header
+        whose total number of fields exceeded
+        the configured limit.
+    */
+    ,too_many_fields
 
     /// A number overflowed
     ,numeric_overflow
-
-    /** End of input was reached before the message completed
-    */
-    ,incomplete
 };
 
 //------------------------------------------------

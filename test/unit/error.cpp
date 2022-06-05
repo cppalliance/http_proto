@@ -81,10 +81,13 @@ public:
         check(n, error::bad_transfer_encoding, c);
         check(n, error::syntax, c);
 
-        check(n, error::body_limit);
-        check(n, error::header_limit);
+        check(n, error::body_too_large);
+        check(n, error::field_too_large);
+        check(n, error::header_too_large);
+        check(n, error::too_many_fields);
         check(n, error::numeric_overflow);
 
+        check(n, error::numeric_overflow);
         BOOST_TEST(
             make_error_code(
                 grammar::error::incomplete) ==

@@ -13,12 +13,9 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/bnf/range.hpp>
-#include <boost/http_proto/rfc/chunk_ext_rule.hpp>
-#include <boost/http_proto/rfc/field_rule.hpp>
-#include <boost/url/grammar/range.hpp>
+#include <boost/http_proto/detail/header.hpp>
+#include <boost/url/grammar/error.hpp>
 #include <boost/optional.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -60,7 +57,7 @@ public:
 
         /** Largest allowed size for a body
         */
-        std::uint64_t body_limit = 1024 * 1024;
+        std::uint64_t max_body_size = 1024 * 1024;
     };
 
 #ifndef BOOST_HTTP_PROTO_DOCS
@@ -69,44 +66,44 @@ protected:
 
     enum class state
     {
+        empty,
         start_line,
         header_fields,
         body,
         complete,
-        end_of_message,
-        end_of_stream
     };
 
     // per-message state
     struct message
     {
-        std::size_t n_chunk;        // bytes of chunk header
-        std::size_t n_payload;      // bytes of body or chunk
-        std::uint64_t n_remain;     // remaining body or chunk
+        std::size_t n_chunk = 0;    // bytes of chunk header
+        std::size_t n_payload = 0;  // bytes of body or chunk
+        std::uint64_t n_remain = 0; // remaining body or chunk
 
-        std::uint64_t payload_seen; // total body received
+        std::uint64_t
+            payload_seen = 0;       // total body received
 
         optional<std::uint64_t>
             content_len;            // value of Content-Length
 
-        bool skip_body : 1;         // no body expected
+        bool skip_body : 1;
         bool got_chunked : 1;
         bool got_close : 1;
         bool got_keep_alive : 1;
         bool got_upgrade : 1;
         bool need_eof : 1;
+
+        //message() noexcept;
     };
 
     config cfg_;
     detail::header h_;
 
-    std::size_t size_ = 0;      // committed part
-    std::size_t used_ = 0;      // parsed part
-    state state_ = state::start_line;
-    bool got_eof_ = false;
-
-    asio::mutable_buffer mb_;
+    std::size_t committed_;
+    state state_;
+    bool got_eof_;
     message m_;
+    asio::mutable_buffer mb_;
 
     parser(
         detail::kind k,
@@ -116,14 +113,6 @@ protected:
 public:
     using mutable_buffers_type =
         mutable_buffers;
-
-    struct result_base
-    {
-        std::size_t size;
-        std::size_t body;
-        string_view chunk_ext;
-        fields_view trailer;
-    };
 
     //--------------------------------------------
     //
@@ -146,7 +135,7 @@ public:
     got_some() const noexcept
     {
         // VFALCO What if discard_header was called?
-        return size_ > 0;
+        return state_ != state::empty;
     }
 
     /** Return true if the complete header was parsed.
@@ -176,27 +165,6 @@ public:
     {
         return state_ ==
             state::complete;
-    }
-
-    /** Returns `true` if no input remains and no more is coming.
-
-        Calling @ref reset prepares the parser
-        for additional input from a new stream.
-    */
-    bool
-    //end_of_stream() const noexcept // ??
-    is_end_of_stream() const noexcept
-    {
-        return state_ ==
-            state::end_of_stream;
-    }
-
-    /** Return true if the parser needs more input.
-    */
-    bool
-    need_more() const noexcept
-    {
-        return size_ < h_.cap;
     }
 
     BOOST_HTTP_PROTO_DECL
@@ -231,52 +199,15 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    commit(std::size_t n);
+    commit(
+        std::size_t n,
+        error_code& ec);
 
     /** Indicate there will be no more input
     */
     BOOST_HTTP_PROTO_DECL
     void
-    commit_eof();
-
-    //--------------------------------------------
-    //
-    // Parsing
-    //
-    //--------------------------------------------
-
-    /** Parse the message header using buffered input
-
-        If the message header is incomplete, this
-        function attempts to parse buffered input
-        until a complete message header is parsed.
-        Otherwise, if the header is already complete
-        this function does nothing.
-
-        If there is insufficient buffered input, the
-        error will be set to @ref grammar::error::incomplete.
-        In this case the caller should transfer more
-        input to the parser and call this function
-        again.
-
-        @param ec Set to the error, if any occurred.
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse(
-        error_code& ec);
-
-private:
-    char* parse_fields(char*, char const*, error_code&);
-public:
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_body(error_code& ec);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_chunk(
+    commit_eof(
         error_code& ec);
 
     //--------------------------------------------
@@ -325,9 +256,11 @@ public:
     skip_body();
 
 private:
-    char* parse_start_line(
-        char*, char const*, error_code&) noexcept;
-    void finish_header(error_code&);
+    void parse(error_code&);
+    void parse_start_line(error_code&);
+    void parse_fields(error_code&);
+    void parse_body(error_code&);
+    void parse_chunk(error_code&);
 
     void do_connection(string_view, error_code&);
     void do_content_length(string_view, error_code&);

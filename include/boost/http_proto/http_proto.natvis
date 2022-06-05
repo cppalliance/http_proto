@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="boost::http_proto::headers">
+  <Type Name="boost::http_proto::fields">
     <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
     <Expand>
       <CustomListItems>
@@ -19,17 +19,37 @@
     </Expand>
   </Type>
 
-  <Type Name="boost::http_proto::headers_view">
-    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
+<!--
+  <Type Name="boost::http_proto::fields_view_base">
+    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fitem*)(buf_ + capacity_))"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
         <Loop>
-          <Break Condition="i == this->count_"/>
+          <Break Condition="i == this->h_.count"/>
           <Item Name="[{i}]">
-            buf_+ft[-1-i].name_pos,
-            [ft[-1-i].value_pos + ft[-1-i].value_len - ft[-1-i].name_pos]s
+            h_.buf+h_.prefix+ft[-1-i].np,
+            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+-->
+
+  <Type Name="boost::http_proto::detail::header">
+    <DisplayString>{cbuf,[prefix]s} [{count}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(cbuf + cap))"/>
+        <Loop>
+          <Break Condition="i == this->count"/>
+          <Item Name="[{i}]">
+            buf+prefix+ft[-1-i].np,
+            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
           </Item>
           <Exec>i++</Exec>
         </Loop>

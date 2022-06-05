@@ -39,6 +39,7 @@ protected:
 #endif
 
     explicit fields_base(detail::header const&) noexcept;
+    BOOST_HTTP_PROTO_DECL
     explicit fields_base(detail::kind) noexcept;
     fields_base(fields_view_base const&, detail::kind);
     void copy(fields_view_base const&);

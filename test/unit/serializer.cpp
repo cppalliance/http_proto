@@ -19,41 +19,44 @@
 namespace boost {
 namespace http_proto {
 
+/*
+    chunked-body   = *chunk
+                    last-chunk
+                    trailer-part
+                    CRLF
+
+    chunk          = chunk-size [ chunk-ext ] CRLF
+                    chunk-data CRLF
+    chunk-size     = 1*HEXDIG
+    last-chunk     = 1*("0") [ chunk-ext ] CRLF
+
+    chunk-data     = 1*OCTET ; a sequence of chunk-size octets
+
+    trailer-part   = *( header-field CRLF )
+
+    ----------------------------------------------
+
+    Design Notes
+
+    serializing a file
+        read into a buffer
+
+    zlib inflate on serialize
+        process input and produce output
+
+    chunk prefix
+        000 [ ; <ext> ] CRLF
+        <data> CRLF
+*/
+
 //------------------------------------------------
 
 class serializer_test
 {
 public:
-    template<class Buffer>
-    std::size_t
-    write(Buffer const&, error_code&)
-    {
-        return {};
-    }
-
-    void
-    testPrototypes()
-    {
-#if 0
-        // send memory-mapped file
-        // send serialized json::value
-
-
-        // entire body in serializer buffer
-        // buffer-at-a-time in serializer buffer
-        // entire body in external buffer
-
-
-#endif
-    }
-
     void
     run()
     {
-        //testPrototypes();
-
-        context ctx;
-        serializer sr;
     }
 };
 

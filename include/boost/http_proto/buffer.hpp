@@ -22,6 +22,7 @@ namespace http_proto {
 */
 class mutable_buffers
 {
+    asio::mutable_buffer v_[8];
     asio::mutable_buffer const* begin_ = nullptr;
     asio::mutable_buffer const* end_ = nullptr;
 
@@ -31,9 +32,12 @@ public:
     mutable_buffers(
         asio::mutable_buffer const* data,
         std::size_t size) noexcept
-        : begin_(data)
-        , end_(data + size)
+        : begin_(&v_[0])
+        , end_(&v_[size])
     {
+        for(std::size_t i = 0;
+            i < size; ++i)
+            v_[i] = data[i];
     }
 
     asio::mutable_buffer const*
@@ -55,6 +59,7 @@ public:
 */
 class const_buffers
 {
+    asio::const_buffer v_[8];
     asio::const_buffer const* begin_ = nullptr;
     asio::const_buffer const* end_ = nullptr;
 
@@ -64,9 +69,12 @@ public:
     const_buffers(
         asio::const_buffer const* data,
         std::size_t size) noexcept
-        : begin_(data)
-        , end_(data + size)
+        : begin_(&v_[0])
+        , end_(&v_[size])
     {
+        for(std::size_t i = 0;
+            i < size; ++i)
+            v_[i] = data[i];
     }
 
     asio::const_buffer const*

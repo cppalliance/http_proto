@@ -28,7 +28,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     response_parser(
         config const& cfg,
-        std::size_t buffer_bytes);
+        std::size_t buffer_size);
 
     BOOST_HTTP_PROTO_DECL
     response_view

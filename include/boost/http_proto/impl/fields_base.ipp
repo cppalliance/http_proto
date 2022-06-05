@@ -50,7 +50,7 @@ fields_base(
     fields_view_base const& fv,
     detail::kind k)
     : fields_base(
-    [this, &fv, k]
+    [&fv, k]
     {
         BOOST_ASSERT(k == fv.h_.kind);
         detail::header h = fv.h_;
@@ -70,18 +70,8 @@ fields_base(
         }
 
         // default buffer
-#if 1
         BOOST_ASSERT(h.cap == 0);
         BOOST_ASSERT(h.buf == nullptr);
-#else
-        h.cbuf = fv.h_.cbuf;
-        h.cap = 0;
-        h.prefix = fv.h_.prefix;
-        h.size = fv.h_.size;
-        h.count = fv.h_.count;
-        h.buf = nullptr;
-        h.kind = k;
-#endif
         return h;
     }())
 {
@@ -449,6 +439,7 @@ insert_impl(
             ft[i + 1] = ft0[i] + n0;
 
         auto& e = ft[before];
+        pos -= h_.prefix;
         e.np = static_cast<
             off_t>(pos);
         e.nn = static_cast<
@@ -555,8 +546,10 @@ set_start_line_impl(
     {
         // allocate or grow
         if( n > h_.prefix &&
-            n - h_.prefix >
-                max_off_t - h_.size)
+            static_cast<std::size_t>(
+                n - h_.prefix) >
+            static_cast<std::size_t>(
+                max_off_t - h_.size))
             detail::throw_length_error(
                 "too large",
                 BOOST_CURRENT_LOCATION);

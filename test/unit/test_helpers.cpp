@@ -37,8 +37,8 @@ make_fields(
             : fields_view(
             [&s]
             {
-                detail::header h;
-                h.kind = detail::kind::fields;
+                detail::header h(
+                    detail::kind::fields);
                 h.cbuf = s.data();
                 h.cap = 0;
                 h.prefix = 0;
@@ -88,7 +88,7 @@ make_fields(
     std::size_t i = 0;
     detail::fields_table ft(
         &buf[0] + buf.size());
-    for(auto const& v : f)
+    for(auto v : f)
     {
         auto& e = ft[i++];
         e.np = static_cast<off_t>(
@@ -113,8 +113,8 @@ make_fields(
                 std::string& buf,
                 fields_view const& f)
                 {
-                    detail::header h;
-                    h.kind = detail::kind::fields;
+                    detail::header h(
+                        detail::kind::fields);
                     h.cbuf = buf.data();
                     h.cap = buf.size();
                     h.prefix = 0;
@@ -145,30 +145,17 @@ make_request(
             [&s]
             {
                 error_code ec;
-                auto it = s.data();
-                auto const end =
-                    it + s.size();
-                request_line_rule t0;
-                if(! grammar::parse(
-                    it, end, ec, t0))
+                detail::header h(
+                    detail::kind::request);
+                h.cbuf = s.data();
+                detail::parse_start_line(
+                    h, s.size(), ec);
+                if(ec.failed())
                     detail::throw_system_error(
                         ec, BOOST_CURRENT_LOCATION);
+                auto it = s.data() + h.prefix;
+                auto const end = it + s.size();
 
-                detail::header h;
-                h.kind = detail::kind::request;
-                h.cbuf = s.data();
-                h.cap = 0;
-                h.prefix = static_cast<
-                    off_t>(it - s.data());
-                h.size = static_cast<
-                    off_t>(s.size());
-                h.count = 0;
-                h.version = t0.v;
-                h.req.method_len = static_cast<
-                    off_t>(t0.ms.size());
-                h.req.target_len = static_cast<
-                    off_t>(t0.t.size());
-                h.req.method = t0.m;
                 field_rule t1;
                 for(;;)
                 {
@@ -183,6 +170,8 @@ make_request(
                     detail::throw_system_error(ec,
                         BOOST_CURRENT_LOCATION);
                 }
+                h.size = static_cast<
+                    off_t>(it - s.data());
                 return h;
             }())
         {
@@ -205,28 +194,17 @@ make_response(
             [&s]
             {
                 error_code ec;
-                auto it = s.data();
-                auto const end =
-                    it + s.size();
-                status_line_rule t0;
-                if(! grammar::parse(
-                    it, end, ec, t0))
+                detail::header h(
+                    detail::kind::response);
+                h.cbuf = s.data();
+                detail::parse_start_line(
+                    h, s.size(), ec);
+                if(ec.failed())
                     detail::throw_system_error(
                         ec, BOOST_CURRENT_LOCATION);
+                auto it = s.data() + h.prefix;
+                auto const end = it + s.size();
 
-                detail::header h;
-                h.kind = detail::kind::response;
-                h.cbuf = s.data();
-                h.cap = 0;
-                h.prefix = static_cast<
-                    off_t>(it - s.data());
-                h.size = static_cast<
-                    off_t>(s.size());
-                h.count = 0;
-                h.version = t0.v;
-                h.res.status = int_to_status(
-                    t0.status_int);
-                h.res.status_int = t0.status_int;
                 field_rule t1;
                 for(;;)
                 {
@@ -241,6 +219,8 @@ make_response(
                     detail::throw_system_error(ec,
                         BOOST_CURRENT_LOCATION);
                 }
+                h.size = static_cast<
+                    off_t>(it - s.data());
                 return h;
             }())
         {
@@ -259,7 +239,7 @@ check(
 {
     std::string s;
     s.reserve(m.size());
-    for(auto const& v : f)
+    for(auto v : f)
     {
         s.append(v.name);
         s.append(": ", 2);

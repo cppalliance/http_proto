@@ -31,11 +31,9 @@ set(PFILES
     parser.cpp
     request.cpp
     request_parser.cpp
-    request_serializer.cpp
     request_view.cpp
     response.cpp
     response_parser.cpp
-    response_serializer.cpp
     response_view.cpp
     serializer.cpp
     status.cpp

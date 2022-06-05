@@ -41,10 +41,9 @@ public:
                 n = s.size();
             std::memcpy(b.data(),
                 s.data(), n);
-            p.commit(n);
-            s.remove_prefix(n);
             error_code ec;
-            p.parse(ec);
+            p.commit(n, ec);
+            s.remove_prefix(n);
             if(ec == error::end_of_message
                 || ! ec)
                 break;
@@ -76,15 +75,13 @@ public:
                 n = nmax;
             std::memcpy(b.data(),
                 s.data(), n);
-            p.commit(n);
-            s.remove_prefix(n);
             error_code ec;
-            p.parse(ec);
+            p.commit(n, ec);
+            s.remove_prefix(n);
             if(ec == grammar::error::incomplete)
                 continue;
             auto const es = ec.message();
-            return ec ==
-                error::end_of_message;
+            return ! ec.failed();
         }
         return false;
     }
@@ -133,8 +130,7 @@ public:
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n);
-            p.parse(ec);
+            p.commit(n, ec);
             BOOST_TEST(! ec);
             //BOOST_TEST(p.is_done());
             if(! ec)
@@ -142,7 +138,7 @@ public:
         }
 
         // two buffers
-        for(std::size_t i = 1;
+        for(std::size_t i = 27;
             i < s.size(); ++i)
         {
             error_code ec;
@@ -154,8 +150,7 @@ public:
             BOOST_TEST(n == i);
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n);
-            p.parse(ec);
+            p.commit(n, ec);
             if(! BOOST_TEST(
                 ec == grammar::error::incomplete))
                 continue;
@@ -166,10 +161,11 @@ public:
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data() + i, n - i);
-            p.commit(n);
-            p.parse(ec);
-            BOOST_TEST(! ec ||
-                ec == error::end_of_message);
+            p.commit(n, ec);
+            if(! BOOST_TEST(! ec))
+            {
+                ec = ec;
+            }
             if(ec.failed())
                 continue;
             //BOOST_TEST(p.is_done());
