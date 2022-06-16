@@ -20,6 +20,13 @@
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/filter.hpp>
+
+#include <boost/http_proto/file.hpp>
+#include <boost/http_proto/file_base.hpp>
+#include <boost/http_proto/file_posix.hpp>
+#include <boost/http_proto/file_win32.hpp>
+#include <boost/http_proto/file_stdio.hpp>
+
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request.hpp>

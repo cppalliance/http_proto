@@ -25,6 +25,11 @@ set(PFILES
     fields_base.cpp
     fields_view.cpp
     fields_view_base.cpp
+    file.cpp
+    file_base.cpp
+    file_posix.cpp
+    file_stdio.cpp
+    file_win32.cpp
     filter.cpp
     http_proto.cpp
     method.cpp
@@ -80,4 +85,4 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
 target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/include)
-target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto)
+target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto Boost::filesystem)

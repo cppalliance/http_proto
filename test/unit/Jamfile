@@ -27,6 +27,12 @@ local SOURCES =
     fields_base.cpp
     fields_view.cpp
     fields_view_base.cpp
+    file.cpp
+    file_base.cpp
+    file_posix.cpp
+    file_stdio.cpp
+    file_win32.cpp
+    filter.cpp
     http_proto.cpp
     method.cpp
     parser.cpp
@@ -78,5 +84,9 @@ local SOURCES =
 
 for local f in $(SOURCES)
 {
-    run $(f) ./test_helpers.cpp /boost/http_proto//boost_http_proto ;
+    run $(f)
+        ./test_helpers.cpp
+        /boost/http_proto//boost_http_proto
+        /boost/filesystem//boost_filesystem
+        ;
 }

@@ -29,6 +29,30 @@ using error_category = boost::system::error_category;
 /// The type of error condition used by the library
 using error_condition = boost::system::error_condition;
 
+/// A function to return the generic error category used by the library
+#if BOOST_HTTP_PROTO_DOCS
+    error_category const& generic_category();
+#else
+    using boost::system::generic_category;
+#endif
+
+/// A function to return the system error category used by the library
+#if BOOST_HTTP_PROTO_DOCS
+    error_category const& system_category();
+#else
+    using boost::system::system_category;
+#endif
+
+/// The type of error condition used by the library
+using error_condition = boost::system::error_condition;
+
+/// The set of constants used for cross-platform error codes
+#if BOOST_HTTP_PROTO_DOXYGEN
+enum errc{};
+#else
+namespace errc = boost::system::errc;
+#endif
+
 /// Error codes returned from HTTP algorithms and operations.
 enum class error
 {

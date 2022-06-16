@@ -14,6 +14,7 @@ project boost/http_proto
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
       <define>BOOST_HTTP_PROTO_SOURCE
+      #<target-os>windows:<define>_WIN32_WINNT=0x0601 # VFALCO?
     : usage-requirements
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
