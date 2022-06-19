@@ -18,55 +18,12 @@
 namespace boost {
 namespace http_proto {
 
-void
 response::
-set_start_line_impl(
-    http_proto::status sc,
-    unsigned short si,
-    string_view rs,
-    http_proto::version v)
+response() noexcept
+    : fields_base(
+        detail::kind::response)
 {
-    // measure and resize
-    auto const vs = to_string(v);
-    auto const n =
-        vs.size() + 1 +
-        3 + 1 +
-        rs.size() +
-        2;
-    auto dest = this->fields_base::
-        set_start_line_impl(n);
-
-    h_.version = v;
-    vs.copy(dest, vs.size());
-    dest += vs.size();
-    *dest++ = ' ';
-
-    h_.res.status = sc;
-    h_.res.status_int = si;
-    dest[0] = '0' + ((h_.res.status_int / 100) % 10);
-    dest[1] = '0' + ((h_.res.status_int /  10) % 10);
-    dest[2] = '0' + ((h_.res.status_int /   1) % 10);
-    dest[3] = ' ';
-    dest += 4;
-
-    rs.copy(dest, rs.size());
-    dest += rs.size();
-    dest[0] = '\r';
-    dest[1] = '\n';
 }
-
-response::
-response(
-    http_proto::status sc,
-    http_proto::version v)
-    : response()
-{
-    if( sc != h_.res.status ||
-        v != h_.version)
-        set_start_line(sc, v);
-}
-
-//------------------------------------------------
 
 response::
 response(
@@ -80,6 +37,14 @@ response::
 response(
     response const& other)
     : fields_base(other,
+        detail::kind::response)
+{
+}
+
+response::
+response(
+    response_view const& rv)
+    : fields_base(rv,
         detail::kind::response)
 {
 }
@@ -100,37 +65,28 @@ response::
 operator=(
     response const& other)
 {
-    response temp(other);
-    this->swap(temp);
+    copy(other);
     return *this;
-}
-
-//------------------------------------------------
-
-response::
-response(
-    response_view const& rv)
-    : fields_base(rv,
-        detail::kind::response)
-{
 }
 
 response&
 response::
 operator=(
-    response_view const& rv)
+    response_view const& other)
 {
-    this->fields_base::copy(rv);
+    copy(other);
     return *this;
 }
 
-//------------------------------------------------
-
 response::
-operator
-response_view() const noexcept
+response(
+    http_proto::status sc,
+    http_proto::version v)
+    : response()
 {
-    return response_view(h_);
+    if( sc != h_.res.status ||
+        v != h_.version)
+        set_start_line(sc, v);
 }
 
 //------------------------------------------------
@@ -154,6 +110,42 @@ swap(response& other) noexcept
 }
 
 //------------------------------------------------
+
+void
+response::
+set_impl(
+    http_proto::status sc,
+    unsigned short si,
+    string_view rs,
+    http_proto::version v)
+{
+    // measure and resize
+    auto const vs = to_string(v);
+    auto const n =
+        vs.size() + 1 +
+        3 + 1 +
+        rs.size() +
+        2;
+    auto dest = set_prefix_impl(n);
+
+    h_.version = v;
+    vs.copy(dest, vs.size());
+    dest += vs.size();
+    *dest++ = ' ';
+
+    h_.res.status = sc;
+    h_.res.status_int = si;
+    dest[0] = '0' + ((h_.res.status_int / 100) % 10);
+    dest[1] = '0' + ((h_.res.status_int /  10) % 10);
+    dest[2] = '0' + ((h_.res.status_int /   1) % 10);
+    dest[3] = ' ';
+    dest += 4;
+
+    rs.copy(dest, rs.size());
+    dest += rs.size();
+    dest[0] = '\r';
+    dest[1] = '\n';
+}
 
 } // http_proto
 } // boost

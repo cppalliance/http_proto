@@ -18,6 +18,8 @@
 namespace boost {
 namespace http_proto {
 
+#if 0
+
 class request_view_test
 {
 public:
@@ -105,6 +107,8 @@ public:
 TEST_SUITE(
     request_view_test,
     "boost.http_proto.request_view");
+
+#endif
 
 } // http_proto
 } // boost

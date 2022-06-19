@@ -67,6 +67,7 @@ set(PFILES
     rfc/charsets.cpp
     rfc/chunk_ext_rule.cpp
     rfc/crlf_rule.cpp
+    rfc/digits_rule.cpp
     rfc/field_rule.cpp
     rfc/list_rule.cpp
     rfc/method_rule.cpp

@@ -578,8 +578,9 @@ find(
 
 auto
 fields_view_base::
-find_all(field id) const noexcept ->
-    subrange
+find_all(
+    field id) const noexcept ->
+        subrange
 {
     return subrange(
         find(id), end());

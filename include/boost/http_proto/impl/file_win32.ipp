@@ -16,6 +16,7 @@
 
 #include <boost/http_proto/detail/win32_unicode_path.hpp>
 #include <boost/core/exchange.hpp>
+#include <boost/assert/source_location.hpp>
 #include <boost/winapi/access_rights.hpp>
 #include <boost/winapi/error_codes.hpp>
 #include <boost/winapi/get_last_error.hpp>
@@ -98,7 +99,8 @@ close(error_code& ec)
     if(h_ != boost::winapi::INVALID_HANDLE_VALUE_)
     {
         if(! boost::winapi::CloseHandle(h_))
-            ec.assign(boost::winapi::GetLastError(),
+            ec.assign(
+                boost::winapi::GetLastError(),
                 system_category());
         else
             ec = {};

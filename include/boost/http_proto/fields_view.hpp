@@ -23,6 +23,8 @@ class BOOST_SYMBOL_VISIBLE
     fields_view
     : public fields_view_base
 {
+    friend class fields;
+
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif

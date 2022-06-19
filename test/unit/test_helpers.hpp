@@ -11,70 +11,159 @@
 #define BOOST_HTTP_PROTO_TEST_HELPERS_HPP
 
 #include <boost/http_proto/string_view.hpp>
+
 #include "test_suite.hpp"
+
+#include <iterator>
 #include <string>
 
 namespace boost {
 namespace http_proto {
 
 class fields;
-class fields_view;
 class fields_view_base;
 
-class request;
-class request_view;
-class response;
-class response_view;
+//------------------------------------------------
 
-fields_view
-make_fields(
-    string_view s);
-
-// with table
-fields_view
-make_fields(
-    string_view s,
-    std::string& buf);
-
-request_view
-make_request(
-    string_view s);
-
-response_view
-make_response(
-    string_view s);
-
-// with table
-/*
-request_view
-make_request(
-    string_view s,
-    std::string& buf);
+/** ForwardRange of fields used for testing
 */
+class fields_range
+{
+    string_view s_;
 
+public:
+    struct value_type
+    {
+        string_view name;
+        string_view value;
+
+        value_type const*
+        operator->() const noexcept
+        {
+            return this;
+        }
+    };
+
+    class iterator;
+    using const_iterator = iterator;
+
+    fields_range(
+        string_view s) noexcept
+        : s_(s)
+    {
+    }
+
+    iterator begin() const noexcept;
+    iterator end() const noexcept;
+};
+
+//------------------------------------------------
+
+class fields_range::iterator
+{
+public:
+    using value_type =
+        fields_range::value_type;
+    using reference = value_type;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category =
+        std::forward_iterator_tag;
+    using pointer = void;
+
+    iterator() = default;
+    iterator(iterator const&) = default;
+    iterator& operator=(iterator const&) = default;
+
+    bool
+    operator==(
+        iterator const& it) const noexcept
+    {
+        return
+            s_.data() ==
+                it.s_.data() &&
+            s_.size() ==
+                it.s_.size();
+    }
+
+    bool
+    operator!=(
+        iterator const& it) const noexcept
+    {
+        return !(*this == it);
+    }
+
+    iterator& operator++() noexcept;
+
+    iterator
+    operator++(int) noexcept
+    {
+        auto temp = *this;
+        ++(*this);
+        return temp;
+    }
+
+    value_type const
+    operator->() const noexcept
+    {
+        return v_;
+    }
+
+    reference const
+    operator*() const noexcept
+    {
+        return v_;
+    }
+
+private:
+    string_view s_;
+    value_type v_;
+
+    friend class fields_range;
+
+    explicit
+    iterator(
+        string_view s) noexcept
+        : s_(s)
+    {
+        read();
+    }
+
+    void read() noexcept;
+};
+
+//------------------------------------------------
+
+inline
+auto
+fields_range::
+begin() const noexcept ->
+    iterator
+{
+    return iterator(s_);
+}
+
+inline
+auto
+fields_range::
+end() const noexcept ->
+    iterator
+{
+    return iterator(s_.substr(
+        s_.size() - 2));
+}
+
+//------------------------------------------------
+
+// Create fields from HTTP string
+fields
+make_fields(
+    string_view s);
+
+// Test that fields equals HTTP string
 void
-check(
+test_fields(
     fields_view_base const& f,
-    std::size_t n,
-    string_view m);
-
-void
-check(
-    request_view const& req,
-    std::size_t n,
-    string_view m);
-
-void
-check(
-    request const& req,
-    std::size_t n,
-    string_view m);
-
-void
-check(
-    response const& res,
-    std::size_t n,
-    string_view m);
+    string_view match);
 
 } // http_proto
 } // boost

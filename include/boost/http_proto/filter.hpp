@@ -27,6 +27,10 @@ struct BOOST_SYMBOL_VISIBLE
 {
     virtual ~source() = 0;
 
+    virtual
+    bool
+    more() const noexcept = 0;
+
     /** Return prepared buffers for reading
 
         @param ec Set to the error, if any occurred

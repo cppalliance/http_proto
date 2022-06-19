@@ -13,6 +13,9 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/bnf/ctype.hpp>
+#include <boost/http_proto/rfc/digits_rule.hpp>
+#include <boost/assert.hpp>
 #include <utility>
 
 namespace boost {
@@ -22,8 +25,75 @@ namespace detail {
 header::
 header(detail::kind k) noexcept
     : kind(k)
-    , n_content_length(0)
 {
+}
+
+fields_table
+header::
+tab() noexcept
+{
+    BOOST_ASSERT(cap > 0);
+    BOOST_ASSERT(buf != nullptr);
+    return fields_table(buf + cap);
+}
+
+const_fields_table
+header::
+ctab() const noexcept
+{
+    BOOST_ASSERT(cap > 0);
+    BOOST_ASSERT(cbuf != nullptr);
+    return const_fields_table(cbuf + cap);
+}
+
+std::size_t
+header::
+find(
+    field id) const noexcept
+{
+    if(count == 0)
+        return 0;
+    std::size_t i = 0;
+    auto const* p = &ctab()[0];
+    while(i < count)
+    {
+        if(p->id == id)
+            break;
+        ++i;
+        --p;
+    }
+    return i;
+}
+
+std::size_t
+header::
+find(
+    string_view name) const noexcept
+{
+    if(count == 0)
+        return 0;
+    std::size_t i = 0;
+    auto const* p = &ctab()[0];
+    while(i < count)
+    {
+        string_view s(
+            cbuf + prefix + p->np,
+            p->nn);
+        if(bnf::iequals(s, name))
+            break;
+        ++i;
+        --p;
+    }
+    return i;
+}
+
+string_view
+header::
+name(std::size_t i) const noexcept
+{
+    auto const* p = &ctab()[i];
+    return string_view(
+        cbuf + prefix + p->np, p->nn);
 }
 
 void
@@ -44,19 +114,62 @@ reset() noexcept
 // called after a field is inserted
 void
 header::
-on_field_add(
+on_insert(
     field id,
-    string_view) noexcept
+    string_view v) noexcept
 {
     switch(id)
     {
     case field::content_length:
-        break;
+        return on_insert_content_length(id, v);
     default:
         break;
     }
 }
 
+void
+header::
+on_insert_content_length(
+    field id,
+    string_view v) noexcept
+{
+    (void)id;
+    ++cl.count;
+    error_code ec;
+    digits_rule t;
+    grammar::parse_string(v, ec, t);
+    if( ! ec.failed() &&
+        ! t.overflow)
+    {
+        if(cl.count == 1)
+        {
+            // first one
+            cl.value = t.v;
+            cl.has_value = true;
+            return;
+        }
+
+        if(cl.has_value)
+        {
+            if(t.v == cl.value)
+            {
+                // matching dupe is ok
+                return;
+            }
+
+            // mismatch
+        }
+        else
+        {
+            BOOST_ASSERT(
+                cl.value == 0);
+            return;
+        }
+    }
+
+    cl.value = 0;
+    cl.has_value = false;
+}
 
 //------------------------------------------------
 
@@ -182,7 +295,7 @@ parse_field(
     #endif
     }
     ++h.count;
-    h.on_field_add(id, v);
+    h.on_insert(id, v);
     return true;
 }
 

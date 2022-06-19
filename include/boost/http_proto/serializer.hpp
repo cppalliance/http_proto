@@ -29,6 +29,12 @@ class request_view;
 class response_view;
 #endif
 
+/** A serializer for HTTP/1 messages
+
+    This is used to serialize one or more complete
+    HTTP/1 messages. Each message consists of a
+    required header followed by an optional body.
+*/
 class BOOST_SYMBOL_VISIBLE
     serializer
 {
@@ -36,12 +42,15 @@ class BOOST_SYMBOL_VISIBLE
     std::size_t cap_;
     detail::header const* h_ = nullptr;
     detail::header h_copy_;
-    asio::const_buffer v_[2];
+    asio::const_buffer cb_;
+    source* ps_ = nullptr;
 
 public:
     using const_buffers_type =
         const_buffers;
 
+    /** Destructor
+    */
     BOOST_HTTP_PROTO_DECL
     ~serializer();
 
@@ -72,14 +81,14 @@ public:
     set_header(
         response const& res);
 
-    template<class Body>
-    typename std::remove_const<
-        Body>::type&
-    set_body(Body&& body);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_body(string_view s);
+    template<
+        class Body,
+        class... Args>
+    friend
+    Body&
+    set_body(
+        serializer& sr,
+        Args&&... args);
 
     BOOST_HTTP_PROTO_DECL
     bool
@@ -96,7 +105,25 @@ public:
 private:
     void set_header_impl(detail::header const& h);
     void set_header_impl(detail::header const* ph);
+
+    template<class Body, class... Args>
+    Body& set_body_impl(Args&&...);
 };
+
+//------------------------------------------------
+
+template<
+    class Body,
+    class... Args>
+Body&
+set_body(
+    serializer& sr,
+    Args&&... args);
+
+void
+set_body(
+    serializer& sr,
+    string_view s);
 
 } // http_proto
 } // boost

@@ -24,7 +24,9 @@ public:
     }
 };
 
-TEST_SUITE(response_view_test, "boost.http_proto.response_view");
+TEST_SUITE(
+    response_view_test,
+    "boost.http_proto.response_view");
 
 } // http_proto
 } // boost

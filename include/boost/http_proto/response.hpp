@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
+#include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
 
@@ -28,15 +29,53 @@ class BOOST_SYMBOL_VISIBLE
     response
     : public fields_base
 {
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_start_line_impl(
-        http_proto::status sc,
-        unsigned short si,
-        string_view reason,
-        http_proto::version v);
-
 public:
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    response() noexcept;
+
+    /** Constructor
+
+        The moved-from object will be
+        left in the default-constructed
+        state.
+    */
+    BOOST_HTTP_PROTO_DECL
+    response(response&& other) noexcept;
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    response(response const& other);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    response(
+        response_view const& other);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    response&
+    operator=(
+        response&& other) noexcept;
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    response&
+    operator=(
+        response const& other);
+
+    /** Assignment
+    */
+    BOOST_HTTP_PROTO_DECL
+    response&
+    operator=(
+        response_view const& other);
+
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
@@ -46,55 +85,13 @@ public:
         http_proto::version v =
             http_proto::version::http_1_1);
 
-    //--------------------------------------------
-
-    /** Constructor
+    /** Return a read-only view to the response
     */
-    response() noexcept
-        : fields_base(
-            detail::kind::response)
+    operator
+    response_view() const noexcept
     {
+        return response_view(h_);
     }
-
-    /** Constructor
-
-        The moved-from object will be
-        left in the default-constructed
-        state.
-    */
-    BOOST_HTTP_PROTO_DECL
-    response(response&&) noexcept;
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    response(response const&);
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    response&
-    operator=(response&&) noexcept;
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    response&
-    operator=(response const&);
-
-    //--------------------------------------------
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    response(
-        response_view const&);
-
-    /** Assignment
-    */
-    BOOST_HTTP_PROTO_DECL
-    response&
-    operator=(response_view const&);
 
     //--------------------------------------------
     //
@@ -136,12 +133,6 @@ public:
         return h_.version;
     }
 
-    /** Return a read-only view to the response
-    */
-    BOOST_HTTP_PROTO_DECL
-    operator
-    response_view() const noexcept;
-
     //--------------------------------------------
     //
     // Modifiers
@@ -171,7 +162,7 @@ public:
         http_proto::version v =
             http_proto::version::http_1_1)
     {
-        set_start_line_impl(
+        set_impl(
             sc,
             static_cast<
                 unsigned short>(sc),
@@ -185,7 +176,7 @@ public:
         string_view reason,
         http_proto::version v)
     {
-        set_start_line_impl(
+        set_impl(
             int_to_status(si),
             si,
             reason,
@@ -200,6 +191,7 @@ public:
 
     /** Swap two instances
     */
+    // hidden friend
     friend
     void
     swap(
@@ -208,6 +200,15 @@ public:
     {
         v1.swap(v2);
     }
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_impl(
+        http_proto::status sc,
+        unsigned short si,
+        string_view reason,
+        http_proto::version v);
 };
 
 } // http_proto

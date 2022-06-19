@@ -18,6 +18,8 @@
 namespace boost {
 namespace http_proto {
 
+#if 0
+
 class response_test
 {
 public:
@@ -293,6 +295,8 @@ public:
 TEST_SUITE(
     response_test,
     "boost.http_proto.response");
+
+#endif
 
 } // http_proto
 } // boost

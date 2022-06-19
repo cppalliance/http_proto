@@ -12,27 +12,26 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
+#include <boost/http_proto/fields_view.hpp>
+#include <initializer_list>
 
 namespace boost {
 namespace http_proto {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-class fields_view;
-#endif
-
 /** A modifiable container of HTTP fields
-
-    @par Iterators
-
-    Iterators obtained from @ref fields
-    containers are not invalidated when
-    the underlying container is modified.
 */
 class BOOST_SYMBOL_VISIBLE
     fields
     : public fields_base
 {
 public:
+
+    //--------------------------------------------
+    //
+    // Special Members
+    //
+    //--------------------------------------------
+
     /** Constructor
 
         Default-constructed fields have no
@@ -54,7 +53,7 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    fields(fields_view_base const& f);
+    fields(fields_view const& other);
 
     /** Assignment
     */
@@ -66,13 +65,20 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     fields&
-    operator=(fields const& f);
+    operator=(fields const& f) noexcept;
 
     /** Assignment
     */
     BOOST_HTTP_PROTO_DECL
     fields&
     operator=(fields_view const& f);
+
+    /** Conversion
+    */
+    operator fields_view() const noexcept
+    {
+        return fields_view(h_);
+    }
 
     //--------------------------------------------
     //
@@ -98,6 +104,7 @@ public:
 
     /** Swap two instances
     */
+    // hidden friend
     friend
     void
     swap(

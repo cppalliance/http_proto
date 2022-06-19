@@ -38,8 +38,10 @@ in a translation unit of the program.
 
 #include <boost/http_proto/impl/file_posix.ipp>
 #include <boost/http_proto/impl/file_win32.ipp>
+#include <boost/http_proto/impl/file_source.ipp>
 #include <boost/http_proto/impl/file_stdio.ipp>
 
+#include <boost/http_proto/impl/filter.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>
@@ -67,6 +69,7 @@ in a translation unit of the program.
 #include <boost/http_proto/mime/impl/mime_types.ipp>
 
 #include <boost/http_proto/rfc/impl/chunk_ext_rule.ipp>
+#include <boost/http_proto/rfc/impl/digits_rule.ipp>
 #include <boost/http_proto/rfc/impl/field_rule.ipp>
 #include <boost/http_proto/rfc/impl/method_rule.ipp>
 #include <boost/http_proto/rfc/impl/quoted_string_rule.ipp>

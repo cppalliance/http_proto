@@ -17,29 +17,46 @@
 namespace boost {
 namespace http_proto {
 
-template<class Body>
-typename std::remove_const<
-    Body>::type&
+template<
+    class Body,
+    class... Args>
+Body&
 serializer::
-set_body(Body&& body)
+set_body_impl(
+    Args&&... args)
 {
     // Body must be derived from source
     BOOST_STATIC_ASSERT(
         std::is_base_of<source, Body>::value);
 
-    using T = typename
-        std::remove_const<Body>::type;
-    auto const Align = alignof(T);
+    auto const Align = alignof(Body);
     auto const buf = reinterpret_cast<
         std::uintptr_t>(buf_);
-    auto p = (buf + cap_ - sizeof(T)
+    auto p = (buf + cap_ - sizeof(Body)
         ) & ~(Align - 1);
     if(p < buf)
         detail::throw_length_error(
-            "set_body",
+            "set_body_impl",
             BOOST_CURRENT_LOCATION);
-    return *new(reinterpret_cast<
-        void*>(p)) T(std::move(body));
+    auto& body = *new(reinterpret_cast<void*>(p)
+        ) Body(std::forward<Args>(args)...);
+    ps_ = &body;
+    return body;
+}
+
+//------------------------------------------------
+
+template<
+    class Body,
+    class... Args>
+Body&
+set_body(
+    serializer& sr,
+    Args&&... args)
+{
+    return
+        sr.template set_body_impl<Body>(
+            std::forward<Args>(args)...);
 }
 
 } // http_proto

@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_FIELDS_VIEW_BASE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/url/const_string.hpp>
@@ -20,12 +21,6 @@
 
 namespace boost {
 namespace http_proto {
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-enum class field : unsigned short;
-#endif
-
-//------------------------------------------------
 
 /** Mixin for a read-only, forward range of HTTP fields
 */
@@ -172,6 +167,16 @@ public:
     iterator
     end() const noexcept;
 
+    /** Return the value of a field, or the empty string
+    */
+    string_view
+    operator[](field id) const noexcept;
+
+    /** Return the value of a field, or the empty string
+    */
+    string_view
+    operator[](string_view name) const noexcept;
+
     //--------------------------------------------
     //
     // Observers
@@ -244,6 +249,10 @@ public:
     find(field id) const noexcept;
 
     /** Returns an iterator to the first matching field, otherwise returns end()
+
+        If `name` refers to a known field, it is faster
+        to call @ref find with a field id instead of a
+        string.
     */
     BOOST_HTTP_PROTO_DECL
     iterator

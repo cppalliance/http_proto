@@ -20,7 +20,8 @@ namespace http_proto {
 
 fields::
 fields() noexcept
-    : fields_base(detail::kind::fields)
+    : fields_base(
+        detail::kind::fields)
 {
 }
 
@@ -34,64 +35,26 @@ fields(
 
 fields::
 fields(
-    fields const& f)
-    : fields_base(f,
+    fields const& other)
+    : fields_base(other,
         detail::kind::fields)
 {
 }
 
-// copy without start-line
 fields::
 fields(
-    fields_view_base const& f)
-    : fields_base(
-    [&f]
-    {
-        detail::header h(
-            detail::kind::fields);
-        if(f.h_.count > 0)
-        {
-            // copy fields
-            auto n = detail::buffer_needed(
-                f.h_.size - f.h_.prefix,
-                    f.h_.count);
-            auto buf = new char[n];
-            std::memcpy(
-                buf,
-                f.h_.cbuf + f.h_.prefix,
-                f.h_.size - f.h_.prefix);
-            f.write_table(buf + n);
-            h.cbuf = buf;
-            h.cap = n;
-            h.prefix = 0;
-            h.size =
-                f.h_.size - f.h_.prefix;
-            h.count = f.h_.count;
-            h.buf = buf;
-            return h;
-        }
-
-        // default buffer
-        auto const s = default_buffer(
-            detail::kind::fields);
-        h.cbuf = s.data();
-        h.cap = 0;
-        h.prefix = static_cast<
-            off_t>(s.size() - 2);
-        h.size = h.prefix + 2;
-        h.count = 0;
-        h.buf = nullptr;
-        return h;       
-    }())
+    fields_view const& other)
+    : fields_base(other,
+        detail::kind::fields)
 {
 }
 
 fields&
 fields::
 operator=(
-    fields&& f) noexcept
+    fields&& other) noexcept
 {
-    fields tmp(std::move(f));
+    fields tmp(std::move(other));
     tmp.swap(*this);
     return *this;
 }
@@ -99,54 +62,20 @@ operator=(
 fields&
 fields::
 operator=(
-    fields const& f)
+    fields const& f) noexcept
 {
-    fields tmp(f);
-    tmp.swap(*this);
+    copy(f);
     return *this;
 }
 
-// copy fields in f
-// without start-line
+/** Assignment
+*/
 fields&
 fields::
 operator=(
     fields_view const& f)
 {
-    BOOST_ASSERT(h_.kind ==
-        detail::kind::fields);
-    if(is_default(f.h_.cbuf))
-    {
-        fields tmp;
-        tmp.swap(*this);
-        return *this;
-    }
-    auto const n0 =
-        f.h_.size -
-        f.h_.prefix;
-    auto const n =
-        detail::buffer_needed(
-            n0, f.h_.count);
-    if(h_.cap < n)
-    {
-        // copy with strong
-        // exception safety
-        fields tmp(f);
-        tmp.swap(*this);
-        return *this;
-    }
-    // use existing capacity
-    std::memcpy(
-        h_.buf,
-        f.h_.cbuf +
-            f.h_.prefix,
-        n0);
-    f.write_table(
-        h_.buf + h_.cap);
-    h_.prefix = 0;
-    h_.size = static_cast<
-        off_t>(n0);
-    h_.count = f.h_.count;
+    copy(f);
     return *this;
 }
 

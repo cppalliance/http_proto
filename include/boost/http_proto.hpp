@@ -25,6 +25,7 @@
 #include <boost/http_proto/file_base.hpp>
 #include <boost/http_proto/file_posix.hpp>
 #include <boost/http_proto/file_win32.hpp>
+#include <boost/http_proto/file_source.hpp>
 #include <boost/http_proto/file_stdio.hpp>
 
 #include <boost/http_proto/method.hpp>
@@ -63,6 +64,7 @@
 #include <boost/http_proto/rfc/charsets.hpp>
 #include <boost/http_proto/rfc/chunk_ext_rule.hpp>
 #include <boost/http_proto/rfc/crlf_rule.hpp>
+#include <boost/http_proto/rfc/digits_rule.hpp>
 #include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/method_rule.hpp>

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <cstdint>
 
@@ -24,6 +25,9 @@ enum class status : unsigned short;
 enum class field : unsigned short;
 
 namespace detail {
+
+struct fields_table;
+struct const_fields_table;
 
 enum class kind : unsigned char
 {
@@ -52,6 +56,7 @@ struct header
     char const* cbuf = nullptr;
     char* buf = nullptr;
     std::size_t cap = 0;
+
     off_t size = 0;
     off_t count = 0;
     off_t prefix = 0;
@@ -63,17 +68,31 @@ struct header
         res_t res;
     };
 
-    std::uint64_t content_length = 0;
-
-    int n_content_length : 2;
+    content_length cl;
 
     BOOST_HTTP_PROTO_DECL
     explicit
     header(detail::kind k) noexcept;
 
+    fields_table
+    tab() noexcept;
+
+    const_fields_table
+    ctab() const noexcept;
+
+    std::size_t
+    find(field id) const noexcept;
+
+    std::size_t
+    find(string_view name) const noexcept;
+
+    string_view
+    name(std::size_t i) const noexcept;
+
     void reset() noexcept;
 
-    void on_field_add(
+    void on_insert(field id, string_view v) noexcept;
+    void on_insert_content_length(
         field id, string_view v) noexcept;
 
     // VFALCO swap() is in fields_view_base

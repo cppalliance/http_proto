@@ -186,7 +186,8 @@ public:
     iterator() = default;
 
     operator
-    fields_view_base::iterator() const noexcept
+    fields_view_base::
+    iterator const&() const noexcept
     {
         return it_;
     }
@@ -233,6 +234,34 @@ public:
         return temp;
     }
 };
+
+//------------------------------------------------
+
+inline
+string_view
+fields_view_base::
+operator[](
+    field id) const noexcept
+{
+    BOOST_ASSERT(
+        id != field::unknown);
+    auto it = find(id);
+    if( it != end())
+        return it->value;
+    return {};
+}
+
+inline
+string_view
+fields_view_base::
+operator[](
+    string_view name) const noexcept
+{
+    auto it = find(name);
+    if( it != end())
+        return it->value;
+    return {};
+}
 
 //------------------------------------------------
 

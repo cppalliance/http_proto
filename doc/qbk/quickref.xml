@@ -25,10 +25,12 @@
       <entry valign="top">
         <bridgehead renderas="sect3">Classes</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__basic_header">basic_header</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__context">context</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__headers">headers</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__headers_view">headers_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__fields">fields</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__fields_base">fields_base</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__fields_view">fields_view</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__fields_view_base">fields_view_base</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__filter">filter</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__parser">parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request">request</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request_parser">request_parser</link></member>
@@ -37,6 +39,8 @@
           <member><link linkend="http_proto.ref.boost__http_proto__response_parser">response_parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__response_view">response_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__sink">sink</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__source">source</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">

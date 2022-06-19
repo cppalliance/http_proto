@@ -2,16 +2,52 @@
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="boost::http_proto::fields">
-    <DisplayString>{buf_,[start_len_]s} [{count_}]</DisplayString>
+    <DisplayString>[{h_.count}]</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fitem*)(buf_ + cap_))"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
         <Loop>
-          <Break Condition="i == this->count_"/>
+          <Break Condition="i == this->h_.count"/>
           <Item Name="[{i}]">
-            buf_+ft[-1-i].name_pos,
-            [ft[-1-i].value_pos + ft[-1-i].value_len - ft[-1-i].name_pos]s
+            h_.buf + h_.prefix + ft[-1-i].np,
+            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::request">
+    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
+        <Loop>
+          <Break Condition="i == this->h_.count"/>
+          <Item Name="[{i}]">
+            h_.buf + h_.prefix + ft[-1-i].np,
+            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
+          </Item>
+          <Exec>i++</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::response">
+    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
+    <Expand>
+      <CustomListItems>
+        <Variable Name="i" InitialValue="0"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
+        <Loop>
+          <Break Condition="i == this->h_.count"/>
+          <Item Name="[{i}]">
+            h_.buf + h_.prefix + ft[-1-i].np,
+            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
           </Item>
           <Exec>i++</Exec>
         </Loop>

@@ -19,6 +19,22 @@ namespace boost {
 namespace http_proto {
 
 request::
+request() noexcept
+    : fields_base(
+        detail::kind::request)
+{
+}
+
+request::
+request(
+    request&& other) noexcept
+    : fields_base(
+        detail::kind::request)
+{
+    swap(other);
+}
+
+request::
 request(
     request const& other)
     : fields_base(other,
@@ -27,15 +43,17 @@ request(
 }
 
 request::
-request(request&& other) noexcept
-    : request()
+request(
+    request_view const& other)
+    : fields_base(other,
+        detail::kind::request)
 {
-    swap(other);
 }
 
 request&
 request::
-operator=(request&& other) noexcept
+operator=(
+    request&& other) noexcept
 {
     request temp(
         std::move(other));
@@ -48,26 +66,17 @@ request::
 operator=(
     request const& other)
 {
-    request temp(other);
-    swap(temp);
+    copy(other);
     return *this;
 }
 
+request&
 request::
-request(
-    request_view const& rv)
-    : fields_base(rv,
-        detail::kind::request)
+operator=(
+    request_view const& other)
 {
-}
-
-//------------------------------------------------
-
-request::
-operator
-request_view() const noexcept
-{
-    return request_view(h_);
+    copy(other);
+    return *this;
 }
 
 //------------------------------------------------
@@ -114,8 +123,7 @@ set_impl(
         ms.size() + 1 +
         t.size() + 1 +
         vs.size() + 2;
-    auto dest =
-        set_start_line_impl(n);
+    auto dest = set_prefix_impl(n);
     std::memcpy(
         dest,
         ms.data(),

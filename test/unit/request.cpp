@@ -21,6 +21,8 @@
 namespace boost {
 namespace http_proto {
 
+#if 0
+
 class request_test
 {
 public:
@@ -419,6 +421,8 @@ public:
 TEST_SUITE(
     request_test,
     "boost.http_proto.request");
+
+#endif
 
 } // http_proto
 } // boost

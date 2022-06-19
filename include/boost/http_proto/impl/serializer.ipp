@@ -56,6 +56,8 @@ serializer(
 serializer::
 ~serializer()
 {
+    if( ps_)
+        ps_->~source();
     delete[] buf_;
 }
 
@@ -63,17 +65,19 @@ void
 serializer::
 reset() noexcept
 {
-    v_[0] = {};
-    v_[1] = {};
+    cb_ = {};
+    if(ps_)
+    {
+        ps_->~source();
+        ps_ = nullptr;
+    }
 }
 
 bool
 serializer::
 is_complete() const noexcept
 {
-    return
-        v_[0].size() == 0 &&
-        v_[1].size() == 0;
+    return cb_.size() == 0;
 }
 
 void
@@ -114,31 +118,57 @@ const_buffers
 serializer::
 prepare(error_code& ec)
 {
-    ec.clear();
-    if(v_[0].size() > 0)
+    if(ps_)
     {
-        if(v_[1].size() > 0)
-            return const_buffers(v_, 2);
-        return const_buffers(v_, 1);
+        const_buffers cb;
+        if(cb_.size() > 0)
+            cb = { &cb_, 1 };
+        cb = cb + ps_->prepare(ec);
+        return cb;
     }
-    return const_buffers(v_ + 1, 1);
+
+    ec = {};
+    if(cb_.size() > 0)
+        return const_buffers(&cb_, 1);
+    return {};
 }
 
 void
 serializer::
 consume(std::size_t n) noexcept
 {
-    if(n <= v_[0].size())
+    if(cb_.size() > 0)
     {
-        v_[0] += n;
-        return;
+        if(cb_.size() >= n)
+        {
+            cb_ += n;
+            return;
+        }
+        n -= cb_.size();
     }
-    else
-    {
-        n -= v_[0].size();
-        v_[0] = {};
-    }
-    v_[1] += n;
+    BOOST_ASSERT(ps_ != nullptr);
+    ps_->consume(n);
+}
+
+//------------------------------------------------
+
+void
+serializer::
+set_header_impl(
+    detail::header const& h)
+{
+    h_copy_ = h;
+    h_ = &h_copy_;
+    cb_ = { h_->cbuf, h_->size };
+}
+
+void
+serializer::
+set_header_impl(
+    detail::header const* ph)
+{
+    h_ = ph;
+    cb_ = { h_->cbuf, h_->size };
 }
 
 //------------------------------------------------
@@ -156,6 +186,12 @@ public:
     {
     }
 
+    bool
+    more() const noexcept override
+    {
+        return b_.size() > 0;
+    }
+
     const_buffers
     prepare(error_code& ec) override
     {
@@ -171,31 +207,11 @@ public:
 };
 
 void
-serializer::
-set_body(string_view s)
+set_body(
+    serializer& sr,
+    string_view s)
 {
-    v_[1] = { s.data(), s.size() };
-}
-
-//------------------------------------------------
-
-void
-serializer::
-set_header_impl(
-    detail::header const& h)
-{
-    h_copy_ = h;
-    h_ = &h_copy_;
-    v_[0] = { h_->cbuf, h_->size };
-}
-
-void
-serializer::
-set_header_impl(
-    detail::header const* ph)
-{
-    h_ = ph;
-    v_[0] = { h_->cbuf, h_->size };
+    set_body<string_view_source>(sr, s);
 }
 
 } // http_proto

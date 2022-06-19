@@ -25,15 +25,8 @@ class number_string
     char buf_[buf_size + 1];
     std::size_t size_ = 0;
 
-public:
-    number_string() = default;
-    number_string(
-        number_string const&) = default;
-    number_string& operator=
-        (number_string const&) = default;
-
-    explicit
-    number_string(
+    void
+    construct_unsigned(
         std::uint64_t n) noexcept
     {
         buf_[buf_size] = '\0';
@@ -55,11 +48,25 @@ public:
         size_ = end - p;
     }
 
+public:
+    number_string() = default;
+    number_string(
+        number_string const&) = default;
+    number_string& operator=
+        (number_string const&) = default;
+
+    explicit
+    number_string(
+        std::uint64_t n) noexcept
+    {
+        construct_unsigned(n);
+    }
+
     char const*
     data() const noexcept
     {
         return &buf_[
-            buf_size - 1] - size_;
+            buf_size] - size_;
     }
 
     std::size_t
@@ -68,7 +75,8 @@ public:
         return size_;
     }
 
-    operator string_view() const noexcept
+    string_view
+    str() const noexcept
     {
         return string_view(
             data(), size());

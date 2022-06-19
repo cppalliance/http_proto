@@ -7,40 +7,34 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_RFC_METHOD_RULE_HPP
-#define BOOST_HTTP_PROTO_RFC_METHOD_RULE_HPP
+#ifndef BOOST_HTTP_PROTO_RFC_DIGITS_RULE_HPP
+#define BOOST_HTTP_PROTO_RFC_DIGITS_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/string_view.hpp>
 #include <boost/url/grammar/parse_tag.hpp>
+#include <cstdlib>
 
 namespace boost {
 namespace http_proto {
 
-/** Rule for method
+/** Rule for decimal numbers of unlimited length
 
     @par BNF
     @code
-    method          = token
-
-    token           = 1*tchar
-    tchar           = "!" / "#" / "$" / "%" / "&" / "'"
-                    / "*" / "+" / "-" / "." / "^" / "_"
-                    / "`" / "|" / "~" / DIGIT / ALPHA
+    number          = 1*DIGIT
     @endcode
 
     @par Specification
-    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1"
-        >3.1.1. Request Line (rfc7230)</a>
-
-    @see
-        @ref token.
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc5234#section-3.6"
+        >3.6. Variable Repetition: *Rule (rfc5234)</a>
 */
-struct method_rule
+struct digits_rule
 {
-    method m = method::unknown;
     string_view s;
+    std::uint64_t v = 0;
+    bool overflow = false;
 
     friend
     void
@@ -49,7 +43,7 @@ struct method_rule
         char const*& it,
         char const* end,
         error_code& ec,
-        method_rule& t) noexcept
+        digits_rule& t) noexcept
     {
         parse(it, end, ec, t);
     }
@@ -62,7 +56,7 @@ private:
         char const*& it,
         char const* end,
         error_code& ec,
-        method_rule& t) noexcept;
+        digits_rule& t) noexcept;
 };
 
 } // http_proto

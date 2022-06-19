@@ -12,10 +12,31 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <cstdint>
 #include <iosfwd>
+#include <type_traits>
 
 namespace boost {
 namespace http_proto {
+
+/** Metadata for Content-Length fields
+*/
+struct content_length
+{
+    /** The total number of fields
+    */
+    std::size_t count = 0;
+
+    /** The value as an integer, if valid
+    */
+    std::uint64_t value = 0;
+
+    /** True if fields are valid and no overflow
+    */
+    bool has_value = false;
+};
+
+//------------------------------------------------
 
 enum class field : unsigned short
 {
@@ -378,6 +399,8 @@ enum class field : unsigned short
     x400_trace,
     xref
 };
+
+//------------------------------------------------
 
 /** Convert a field enum to a string.
 

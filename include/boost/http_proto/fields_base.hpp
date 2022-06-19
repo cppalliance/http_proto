@@ -38,10 +38,15 @@ class BOOST_SYMBOL_VISIBLE
 protected:
 #endif
 
-    explicit fields_base(detail::header const&) noexcept;
+    explicit fields_base(
+        detail::header const&) noexcept;
+
+    fields_base(fields_view_base const&, detail::kind);
+
     BOOST_HTTP_PROTO_DECL
     explicit fields_base(detail::kind) noexcept;
-    fields_base(fields_view_base const&, detail::kind);
+
+    BOOST_HTTP_PROTO_DECL
     void copy(fields_view_base const&);
 
 public:
@@ -82,6 +87,8 @@ public:
     void
     shrink_to_fit() noexcept;
 
+    //--------------------------------------------
+
     /** Append the field with the given name and value.
 
         The name and value must contain only valid characters
@@ -91,12 +98,25 @@ public:
         additional field with the same name is appended.
 
         @note HTTP field names are case-insensitive.
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
     */
-    BOOST_HTTP_PROTO_DECL
     void
-    emplace_back(
+    append(
         field id,
-        string_view value);
+        string_view value)
+    {
+        BOOST_ASSERT(
+            id != field::unknown);
+        insert_impl(
+            id,
+            to_string(id),
+            value,
+            h_.count);
+    }
 
     /** Append the field with the given field enum and value.
 
@@ -107,38 +127,36 @@ public:
         additional header with the same name is appended.
 
         @note HTTP field names are case-insensitive.
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
     */
-    BOOST_HTTP_PROTO_DECL
     void
-    emplace_back(
+    append(
         string_view name,
-        string_view value);
+        string_view value)
+    {
+        insert_impl(
+            string_to_field(
+                name),
+            name,
+            value,
+            h_.count);
+    }
 
-    /** Insert a field
-    */
-    BOOST_HTTP_PROTO_DECL
-    iterator
-    emplace(
-        iterator before,
-        field id,
-        string_view value);
-
-    /** Insert a field
-    */
-    BOOST_HTTP_PROTO_DECL
-    iterator
-    emplace(
-        iterator before,
-        string_view name,
-        string_view value);
+    //--------------------------------------------
 
     /** Erase an element
     */
-    BOOST_HTTP_PROTO_DECL
-    iterator
-    erase(iterator it) noexcept;
+    void
+    erase(iterator it) noexcept
+    {
+        erase_impl(it.i_, it->id);
+    }
 
-    /** Erase the first matching field
+    /** Erase all matching fields
 
         @return The number of fields erased
     */
@@ -146,7 +164,7 @@ public:
     std::size_t
     erase(field id) noexcept;
 
-    /** Erase the first matching field
+    /** Erase all matching fields
 
         @return The number of fields erased
     */
@@ -154,38 +172,156 @@ public:
     std::size_t
     erase(string_view name) noexcept;
 
-    /** Erase all matching fields
+    //--------------------------------------------
 
-        @return The number of fields erased
+    /** Insert a field
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
+    */
+    void
+    insert(
+        iterator before,
+        field id,
+        string_view value)
+    {
+        BOOST_ASSERT(
+            id != field::unknown);
+        insert_impl(
+            id,
+            to_string(id),
+            value,
+            before.i_);
+    }
+
+    /** Insert a field
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
+    */
+    void
+    insert(
+        iterator before,
+        string_view name,
+        string_view value)
+    {
+        insert_impl(
+            string_to_field(
+                name),
+            name,
+            value,
+            before.i_);
+    }
+
+    //--------------------------------------------
+
+    /** Set the value of a field
     */
     BOOST_HTTP_PROTO_DECL
-    std::size_t
-    erase_all(field id) noexcept;
+    void
+    set(
+        iterator it,
+        string_view value);
 
-    /** Erase all matching fields
+    /** Set the value of a field
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
     */
     BOOST_HTTP_PROTO_DECL
-    std::size_t
-    erase_all(string_view name) noexcept;
+    void
+    set(
+        field id,
+        string_view value);
 
-#if 0
-    void set(std::size_t index, string_view value);
-    void set(field f, string_view value);
-    void set(string_view name, string_view value);
-#endif
+    /** Set the value of a field
+
+        @param value The corresponding value, which
+        @li must be syntactically valid for the field,
+        @li must be semantically valid for the message, and
+        @li may not contain leading or trailing whitespace.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set(
+        string_view name,
+        string_view value);
+
+    //--------------------------------------------
+
+    /** Return metadata about the Content-Length field
+    */
+    http_proto::content_length const&
+    content_length() const noexcept
+    {
+        return h_.cl;
+    }
+
+    /** Set the Content-Length
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_content_length(
+        std::uint64_t n);
 
 private:
     std::size_t
     offset(
-        detail::fields_table const& ft,
+        detail::fields_table ft,
         std::size_t i) const noexcept;
 
+    std::size_t
+    length(
+        detail::fields_table ft,
+        std::size_t i) const noexcept;
+
+    void
+    raw_erase(
+        std::size_t i) noexcept;
+
+    std::size_t
+    raw_erase_all(
+        std::size_t i0) noexcept;
+
+    void
+    raw_insert(
+        field id,
+        string_view name,
+        string_view value,
+        std::size_t before);
+
+    void
+    raw_set(
+        std::size_t i,
+        string_view value);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    erase_impl(
+        std::size_t i,
+        field id) noexcept;
+
+    std::size_t
+    erase_all_impl(
+        std::size_t i0,
+        field id) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
     void
     insert_impl(
         field id,
         string_view name,
         string_view value,
         std::size_t before);
+
+    void on_erase(field id) noexcept;
+    void on_erase_all(field id) noexcept;
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
@@ -200,7 +336,7 @@ protected:
     clear() noexcept;
 
     char*
-    set_start_line_impl(
+    set_prefix_impl(
         std::size_t n);
 };
 

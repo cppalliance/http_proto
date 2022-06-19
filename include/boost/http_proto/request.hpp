@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/method.hpp>
+#include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/version.hpp>
 
 namespace boost {
@@ -31,16 +32,8 @@ class BOOST_SYMBOL_VISIBLE
 public:
     /** Constructor
     */
-    request() noexcept
-        : fields_base(
-            detail::kind::request)
-    {
-    }
-
-    /** Constructor
-    */
     BOOST_HTTP_PROTO_DECL
-    request(request const&);
+    request() noexcept;
 
     /** Constructor
 
@@ -49,7 +42,18 @@ public:
         state.
     */
     BOOST_HTTP_PROTO_DECL
-    request(request&&) noexcept;
+    request(request&& other) noexcept;
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    request(request const& other);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    request(
+        request_view const& other);
 
     /** Assignment
     */
@@ -61,19 +65,22 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     request&
-    operator=(request const&);
+    operator=(request const& other);
 
     /** Assignment
     */
     BOOST_HTTP_PROTO_DECL
     request&
-    operator=(request_view const&);
+    operator=(
+        request_view const& other);
 
-    /** Constructor
+    /** Return a read-only view to the request
     */
-    BOOST_HTTP_PROTO_DECL
-    request(
-        request_view const&);
+    operator
+    request_view() const noexcept
+    {
+        return request_view(h_);
+    }
 
     //--------------------------------------------
     //
@@ -120,12 +127,6 @@ public:
     {
         return h_.version;
     }
-
-    /** Return a read-only view to the request
-    */
-    BOOST_HTTP_PROTO_DECL
-    operator
-    request_view() const noexcept;
 
     //--------------------------------------------
     //
@@ -232,6 +233,7 @@ public:
 
     /** Swap two instances
     */
+    // hidden friend
     friend
     void
     swap(
