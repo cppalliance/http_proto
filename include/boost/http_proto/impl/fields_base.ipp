@@ -14,7 +14,6 @@
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/http_proto/detail/number_string.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/assert.hpp>
@@ -50,7 +49,7 @@ fields_base(
             h.buf = new char[n];
             std::memcpy(
                 h.buf, fv.h_.cbuf, fv.h_.size);
-            fv.write_table(h.buf + n);
+            fv.h_.copy_table(h.buf + n);
             h.cbuf = h.buf;
             h.cap = n;
             return h;
@@ -93,7 +92,7 @@ copy(fields_view_base const& other)
                 h_.buf = buf;
                 h_.cap = cap;
             }
-            other.write_table(
+            other.h_.copy_table(
                 h_.buf + h_.cap);
             std::memcpy(
                 h_.buf,
@@ -138,7 +137,7 @@ reserve(std::size_t n)
             buf,
             h_.cbuf,
             h_.size);
-        write_table(buf + n);
+        h_.copy_table(buf + n);
         delete[] h_.buf;
     }
     else
@@ -189,7 +188,7 @@ erase(
     auto const i0 = h_.find(name);
     if(i0 == h_.count)
         return 0;
-    auto const id = h_.ctab()[i0].id;
+    auto const id = h_.tab()[i0].id;
     if(id == field::unknown)
         return raw_erase_all(i0);
     return erase_all_impl(i0, id);
@@ -377,19 +376,25 @@ raw_erase_all(
     std::size_t i0) noexcept
 {
     std::size_t n = 1;
-    // get name from field
-    auto const name = h_.name(i0);
+    auto const* e = &h_.tab()[i0];
+    auto const p = h_.buf + h_.prefix;
+    auto const name = string_view(
+        p + e->np, e->nn);
     // backwards to reduce memmoves
     std::size_t i = h_.count - 1;
+    e = &h_.tab()[i];
     while(i != i0)
     {
         if(bnf::iequals(
-            h_.name(i), name))
+            string_view(
+                p + e->np, e->nn),
+            name))
         {
             raw_erase(i);
             ++n;
         }
         --i;
+        ++e;
     }
     raw_erase(i0);
     return n;
@@ -488,7 +493,7 @@ raw_insert(
             h_.size - pos);
 
         // write table
-        ft0.copy(buf + n, before);
+        h_.copy_table(buf + n, before);
         detail::fields_table ft(buf + n);
         for(auto i = before;
             i < h_.count; ++i)
@@ -644,7 +649,7 @@ raw_set(
         h_.size - pos);
 
     // write table
-    ft0.copy(buf + n, i + 1);
+    h_.copy_table(buf + n, i + 1);
     detail::fields_table ft(buf + n);
     auto const dn = n1 -
         length(ft0, i);
@@ -690,7 +695,7 @@ erase_all_impl(
         id != field::unknown);
     std::size_t n = 1;
     std::size_t i = h_.count - 1;
-    auto const ft = h_.ctab();
+    auto const ft = h_.tab();
     while(i > i0)
     {
         if(ft[i].id == id)
@@ -801,7 +806,7 @@ set_prefix_impl(
                 h_.size - h_.prefix);
             detail::fields_table ft(
                 h_.buf + h_.cap);
-            ft.copy(buf + n0, h_.count);
+            h_.copy_table(buf + n0);
             delete[] h_.buf;
         }
         else

@@ -22,7 +22,10 @@
 namespace boost {
 namespace http_proto {
 
-/** Mixin for a read-only, forward range of HTTP fields
+/** A read-only, bidirectional range of HTTP fields
+
+    This is a mix-in used to add common
+    functionality to derived classes.
 */
 class BOOST_SYMBOL_VISIBLE
     fields_view_base
@@ -38,7 +41,6 @@ protected:
 
     static string_view default_buffer(detail::kind) noexcept;
     static bool is_default(char const*) noexcept;
-    void write_table(void*) const noexcept;
     void swap(fields_view_base& other) noexcept;
 
     BOOST_HTTP_PROTO_DECL
@@ -61,24 +63,9 @@ public:
     //
     //--------------------------------------------
 
-    /** A read-only iterator to fields
-    */
-#ifdef BOOST_HTTP_PROTO_DOCS
-    using iterator = __see_below__;
-#else
-    class iterator;
-#endif
-
-    /** A ForwardRange with values for a field
-    */
-#ifdef BOOST_HTTP_PROTO_DOCS
-    using subrange = __see_below__;
-#else
-    class subrange;
-#endif
-
     /** A field
     */
+    /**@{*/
     struct reference
     {
         field id;
@@ -94,6 +81,9 @@ public:
     #endif
     };
 
+    using const_reference = reference;
+    /**@}*/
+ 
     /** A type which can represent a field as a value
 
         This type allows for making a copy of
@@ -106,24 +96,9 @@ public:
         std::string name;
         std::string value;
 
-        value_type(
-            reference const& other)
-            : id(other.id)
-            , name(other.name)
-            , value(other.value)
-        {
-        }
-
-        operator
-        reference() const noexcept
-        {
-            return reference {
-                id, name, value };
-        }
+        value_type(reference const& other);
+        operator reference() const noexcept;
     };
-
-    using const_reference =
-        reference;
 
     /** An unsigned integer type
     */
@@ -133,6 +108,29 @@ public:
     */
     using difference_type =
         std::ptrdiff_t;
+
+    /** A bidirectional iterator to HTTP fields
+    */
+    /**@{*/
+#ifdef BOOST_HTTP_PROTO_DOCS
+    using iterator = __see_below__;
+#else
+    class iterator;
+#endif
+
+    using const_iterator = iterator;
+    /**@}*/
+
+    /** A forward range of matching fields
+
+        Objects of this type are returned by
+        the function @ref find_all.
+    */
+#ifdef BOOST_HTTP_PROTO_DOCS
+    using subrange = __see_below__;
+#else
+    class subrange;
+#endif
 
     //--------------------------------------------
     //
@@ -157,13 +155,11 @@ public:
 
     /** Return an iterator to the beginning of the range of fields
     */
-    BOOST_HTTP_PROTO_DECL
     iterator
     begin() const noexcept;
 
     /** Return an iterator to the end of the range of fields
     */
-    BOOST_HTTP_PROTO_DECL
     iterator
     end() const noexcept;
 

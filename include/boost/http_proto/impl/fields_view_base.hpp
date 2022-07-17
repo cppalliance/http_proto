@@ -15,27 +15,51 @@
 namespace boost {
 namespace http_proto {
 
+//------------------------------------------------
+
+inline
+fields_view_base::
+value_type::
+value_type(
+    reference const& other)
+    : id(other.id)
+    , name(other.name)
+    , value(other.value)
+{
+}
+
+inline
+fields_view_base::
+value_type::
+operator
+fields_view_base::
+reference() const noexcept
+{
+    return reference{
+        id, name, value};
+}
+
+//------------------------------------------------
+//
+// fields_view_base::iterator
+//
+//------------------------------------------------
+
 class fields_view_base::iterator
 {
-    fields_view_base const* f_ = nullptr;
-    char const* it_ = nullptr;
-
-    off_t i_ = 0;
-    off_t np_;
-    off_t nn_;
-    off_t vp_;
-    off_t vn_;
-    field id_;
+    detail::header const* h_ = nullptr;
+    std::size_t i_ = 0;
 
     friend class fields_base;
     friend class fields_view_base;
 
-    void
-    read() noexcept;
-
     iterator(
-        fields_view_base const* f,
-        std::size_t i) noexcept;
+        detail::header const* h,
+        std::size_t i) noexcept
+        : h_(h)
+        , i_(i)
+    {
+    }
 
 public:
     using value_type =
@@ -46,7 +70,7 @@ public:
     using difference_type =
         std::ptrdiff_t;
     using iterator_category =
-        std::forward_iterator_tag;
+        std::bidirectional_iterator_tag;
 
     iterator(
         iterator const&) = default;
@@ -61,9 +85,11 @@ public:
     operator==(
         iterator const& other) const noexcept
     {
-        // can't compare iterators
-        // from different containers
-        BOOST_ASSERT(f_ == other.f_);
+        // If this assert goes off, it means you
+        // are trying to compare iterators from
+        // different containers, which is undefined!
+        BOOST_ASSERT(h_ == other.h_);
+
         return i_ == other.i_;
     }
 
@@ -75,10 +101,159 @@ public:
     }
 
     BOOST_HTTP_PROTO_DECL
-    reference
+    reference const
     operator*() const noexcept;
 
-    reference
+    reference const
+    operator->() const noexcept
+    {
+        return *(*this);
+    }
+
+    iterator&
+    operator++() noexcept
+    {
+        BOOST_ASSERT(i_ < h_->count);
+        ++i_;
+        return *this;
+    }
+
+    iterator
+    operator++(int) noexcept
+    {
+        auto temp = *this;
+        ++(*this);
+        return temp;
+    }
+
+    iterator&
+    operator--() noexcept
+    {
+        BOOST_ASSERT(i_ > 0);
+        --i_;
+        return *this;
+    }
+
+    iterator
+    operator--(int) noexcept
+    {
+        auto temp = *this;
+        --(*this);
+        return temp;
+    }
+};
+
+//------------------------------------------------
+
+class fields_view_base::subrange
+{
+    detail::header const* h_ = nullptr;
+    std::size_t i_ = 0;
+
+    friend class fields_view;
+    friend class fields_view_base;
+
+    subrange(
+        detail::header const* h,
+        std::size_t i) noexcept
+        : h_(h)
+        , i_(i)
+    {
+    }
+
+public:
+    class iterator;
+    using const_iterator = iterator;
+    using value_type =
+        fields_view_base::value_type;
+    using reference =
+        fields_view_base::reference;
+    using const_reference =
+        fields_view_base::reference;
+    using size_type = std::size_t;
+    using difference_type =
+        std::ptrdiff_t;
+
+    /** Constructor
+
+        Default-constructed subranges are empty.
+    */
+    subrange() noexcept = default;
+
+    subrange(
+        subrange const&) noexcept = default;
+    subrange& operator=(
+        subrange const&) noexcept = default;
+
+    iterator begin() const noexcept;
+    iterator end() const noexcept;
+};
+
+//------------------------------------------------
+
+class fields_view_base::subrange::
+    iterator
+{
+    detail::header const* h_ = nullptr;
+    std::size_t i_ = 0;
+
+    friend class fields_view_base::subrange;
+
+    iterator(
+        detail::header const* h,
+        std::size_t i) noexcept
+        : h_(h)
+        , i_(i)
+    {
+    }
+
+public:
+    using value_type =
+        fields_view_base::value_type;
+    using reference =
+        fields_view_base::reference;
+    using pointer = void;
+    using difference_type =
+        std::ptrdiff_t;
+    using iterator_category =
+        std::forward_iterator_tag;
+
+    iterator() = default;
+    iterator(iterator const&) = default;
+    iterator& operator=(
+        iterator const&) = default;
+
+    operator
+    fields_view_base::
+    iterator const&() const noexcept
+    {
+        return {h_, i_};
+    }
+
+    bool
+    operator==(
+        iterator const& other) const noexcept
+    {
+        // If this assert goes off, it means you
+        // are trying to compare iterators from
+        // different containers, which is undefined!
+        BOOST_ASSERT(h_ == other.h_);
+
+        return i_ == other.i_;
+    }
+
+    bool
+    operator!=(
+        iterator const& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
+    BOOST_HTTP_PROTO_DECL
+    reference const
+    operator*() const noexcept;
+
+    reference const
     operator->() const noexcept
     {
         return *(*this);
@@ -99,143 +274,23 @@ public:
 
 //------------------------------------------------
 
-class fields_view_base::subrange
+inline
+auto
+fields_view_base::
+begin() const noexcept ->
+    iterator
 {
-    fields_view_base::iterator it_;
-    fields_view_base::iterator end_;
-    field id_;
+    return iterator(&h_, 0);
+}
 
-    friend class fields_view;
-    friend class fields_view_base;
-
-    BOOST_HTTP_PROTO_DECL
-    subrange(
-        fields_view_base::iterator it,
-        fields_view_base::iterator end) noexcept;
-
-public:
-    class iterator;
-
-    using value_type =
-        fields_view_base::value_type;
-    using reference =
-        fields_view_base::reference;
-    using const_reference =
-        fields_view_base::reference;
-    using size_type = std::size_t;
-    using difference_type =
-        std::ptrdiff_t;
-
-    BOOST_HTTP_PROTO_DECL
-    subrange(
-        subrange const&) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    subrange& operator=(
-        subrange const&) noexcept;
-
-    /** Constructor
-
-        Default-constructed subranges are empty.
-    */
-    BOOST_HTTP_PROTO_DECL
-    subrange() noexcept;
-
-    BOOST_HTTP_PROTO_DECL
+inline
+auto
+fields_view_base::
+end() const noexcept ->
     iterator
-    begin() const noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    iterator
-    end() const noexcept;
-};
-
-//------------------------------------------------
-
-class fields_view_base::subrange::iterator
 {
-    fields_view_base::iterator it_;
-    fields_view_base::iterator end_;
-    field id_;
-
-    friend class fields_view_base::subrange;
-
-    iterator(
-        fields_view_base::iterator it,
-        fields_view_base::iterator end,
-        field id) noexcept;
-
-public:
-    using value_type =
-        fields_view_base::value_type;
-    using reference =
-        fields_view_base::reference;
-    using pointer = void const*;
-    using difference_type =
-        std::ptrdiff_t;
-    using iterator_category =
-        std::forward_iterator_tag;
-
-    iterator(
-        iterator const&) = default;
-
-    iterator&
-    operator=(
-        iterator const&) = default;
-
-    iterator() = default;
-
-    operator
-    fields_view_base::
-    iterator const&() const noexcept
-    {
-        return it_;
-    }
-
-    bool
-    operator==(
-        iterator const& other) const noexcept
-    {
-        // can't compare iterators
-        // from different containers
-        BOOST_ASSERT(
-            end_ == other.end_);
-        return it_ == other.it_;
-    }
-
-    bool
-    operator!=(
-        iterator const& other) const noexcept
-    {
-        return !(*this == other);
-    }
-
-    reference
-    operator*() const noexcept
-    {
-        return *it_;
-    }
-
-    reference
-    operator->() const noexcept
-    {
-        return it_.operator->();
-    }
-
-    BOOST_HTTP_PROTO_DECL
-    iterator&
-    operator++() noexcept;
-
-    iterator
-    operator++(int) noexcept
-    {
-        auto temp = *this;
-        ++(*this);
-        return temp;
-    }
-};
-
-//------------------------------------------------
+    return iterator(&h_, h_.count);
+}
 
 inline
 string_view
@@ -261,6 +316,28 @@ operator[](
     if( it != end())
         return it->value;
     return {};
+}
+
+//------------------------------------------------
+
+inline
+auto
+fields_view_base::
+subrange::
+begin() const noexcept ->
+    iterator
+{
+    return {h_, i_};
+}
+
+inline
+auto
+fields_view_base::
+subrange::
+end() const noexcept ->
+    iterator
+{
+    return {h_, h_->count};
 }
 
 //------------------------------------------------

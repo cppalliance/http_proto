@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/fields_view.hpp>
-#include <boost/http_proto/detail/fields_table.hpp>
 #include <string>
 
 namespace boost {

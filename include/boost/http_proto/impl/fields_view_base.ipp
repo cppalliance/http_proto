@@ -15,7 +15,6 @@
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/assert/source_location.hpp>
 #include <utility>
@@ -25,197 +24,79 @@ namespace http_proto {
 
 //------------------------------------------------
 
-fields_view_base::
-subrange::
-subrange(
-    fields_view_base::iterator it,
-    fields_view_base::iterator end) noexcept
-    : it_(it)
-    , end_(end)
-    , id_(it == end
-        ? field::unknown
-        : it->id)
-{
-}
-
-fields_view_base::
-subrange::
-subrange(
-    subrange const&) noexcept = default;
-
-auto
-fields_view_base::
-subrange::
-operator=(
-    subrange const&) noexcept ->
-        subrange& = default;
-
-fields_view_base::
-subrange::
-subrange() noexcept = default;
-
-auto
-fields_view_base::
-subrange::
-begin() const noexcept ->
-    iterator
-{
-    return subrange::iterator(
-        it_, end_, id_);
-}
-
-auto
-fields_view_base::
-subrange::
-end() const noexcept ->
-    iterator
-{
-    return subrange::iterator(
-        end_, end_, id_);
-}
-
-//------------------------------------------------
-
-fields_view_base::
-subrange::
-iterator::
-iterator(
-    fields_view_base::iterator it,
-    fields_view_base::iterator end,
-    field id) noexcept
-    : it_(it)
-    , end_(end)
-    , id_(id)
-{
-}
-
-auto
-fields_view_base::
-subrange::
-iterator::
-operator++() noexcept ->
-    iterator&
-{
-    if(id_ != field::unknown)
-    {
-        ++it_;
-        while(it_ != end_)
-        {
-            if(it_->id == id_)
-                break;
-            ++it_;
-        }
-        return *this;
-    }
-    string_view name =
-        it_->name;
-    ++it_;
-    while(it_ != end_)
-    {
-        if(bnf::iequals(
-            name, it_->name))
-            break;
-        ++it_;
-    }
-    return *this;
-}
-
-//------------------------------------------------
-
-void
-fields_view_base::
-iterator::
-read() noexcept
-{
-    if(i_ >= f_->h_.count)
-    {
-        it_ =
-            f_->h_.cbuf +
-            f_->h_.size;
-        return;
-    }
-
-    if(f_->h_.cap != 0)
-    {
-        // use field table
-        return;
-    }
-
-    error_code ec;
-    field_rule r;
-    auto const end = 
-        f_->h_.cbuf + f_->h_.size;
-    grammar::parse(it_, end, ec, r);
-    BOOST_ASSERT(! ec.failed());
-    auto const base =
-        f_->h_.cbuf + f_->h_.prefix;
-    np_ = static_cast<off_t>(
-        r.v.name.data() - base);
-    nn_ = static_cast<off_t>(
-        r.v.name.size());
-    vp_ = static_cast<off_t>(
-        r.v.value.data() - base);
-    vn_ = static_cast<off_t>(
-        r.v.value.size());
-    id_ = string_to_field(
-        r.v.name);
-}
-
-fields_view_base::
-iterator::
-iterator(
-    fields_view_base const* f,
-    std::size_t i) noexcept
-    : f_(f)
-    , it_(f->h_.cbuf + f->h_.prefix)
-    , i_(static_cast<
-        off_t>(i))
-{
-    BOOST_ASSERT(
-        f->h_.cap != 0 || (
-            i == 0 ||
-            i == f->h_.count));
-    read();
-}
-
 auto
 fields_view_base::
 iterator::
 operator*() const noexcept ->
-    reference
+    reference const
 {
-    auto const base =
-        f_->h_.cbuf + f_->h_.prefix;
-    if(f_->h_.cap != 0)
-    {
-        // use field table
-        auto const& e =
-            detail::const_fields_table(
-                f_->h_.cbuf + f_->h_.cap)[i_];
-        return {
-            e.id,
-            string_view(
-                base + e.np,
-                e.nn),
-            string_view(
-                base + e.vp,
-                e.vn) };
-    }
-    return { id_,
+    auto const& e =
+        h_->tab()[i_];
+    auto const* p =
+        h_->cbuf + h_->prefix;
+    return {
+        e.id,
         string_view(
-            base + np_, nn_),
+            p + e.np, e.nn),
         string_view(
-            base + vp_, vn_) };
+            p + e.vp, e.vn) };
+}
+
+//------------------------------------------------
+
+auto
+fields_view_base::
+subrange::
+iterator::
+operator*() const noexcept ->
+    reference const
+{
+    auto const& e =
+        h_->tab()[i_];
+    auto const p =
+        h_->cbuf + h_->prefix;
+    return {
+        e.id,
+        string_view(
+            p + e.np, e.nn),
+        string_view(
+            p + e.vp, e.vn)};
 }
 
 auto
 fields_view_base::
+subrange::
 iterator::
 operator++() noexcept ->
     iterator&
 {
+    auto const* e = &h_->tab()[i_];
+    auto const id = e->id;
+    if(id != field::unknown)
+    {
+        ++i_;
+        --e;
+        while(i_ != h_->count)
+        {
+            if(e->id == id)
+                break;
+            ++i_;
+        }
+        return *this;
+    }
+    auto const p = h_->cbuf + h_->prefix;
+    auto name =
+        string_view(p + e->np, e->nn);
     ++i_;
-    read();
+    --e;
+    while(i_ != h_->count)
+    {
+        if(bnf::iequals(name, string_view(
+                p + e->np, e->nn)))
+            break;
+        ++i_;
+        --e;
+    }
     return *this;
 }
 
@@ -259,44 +140,6 @@ is_default(
             detail::kind::request).data() ||
         s == default_buffer(
             detail::kind::response).data();
-}
-
-// copy or build table
-void
-fields_view_base::
-write_table(
-    void* dest) const noexcept
-{
-    if(h_.cap > 0)
-    {
-        detail::const_fields_table(
-            h_.cbuf + h_.cap).copy(
-                dest, h_.count);
-        return;
-    }
-
-    auto it = begin();
-    auto const end = this->end();
-    std::size_t i = 0;
-    detail::fields_table ft(dest);
-    auto const base =
-        h_.cbuf + h_.prefix;
-    while(it != end)
-    {
-        auto const v = *it;
-        ft[i] = {
-            static_cast<off_t>(
-                v.name.data() - base),
-            static_cast<off_t>(
-                v.name.size()),
-            static_cast<off_t>(
-                v.value.data() - base),
-            static_cast<off_t>(
-                v.value.size()),
-            v.id };
-        ++it;
-        ++i;
-    }
 }
 
 void
@@ -397,26 +240,6 @@ fields_view_base(
         return h;
     }())
 {
-}
-
-//------------------------------------------------
-
-auto
-fields_view_base::
-begin() const noexcept ->
-    iterator
-{
-    return iterator(
-        this, 0);
-}
-
-auto
-fields_view_base::
-end() const noexcept ->
-    iterator
-{
-    return iterator(
-        this, h_.count);
 }
 
 //------------------------------------------------
@@ -583,7 +406,7 @@ find_all(
         subrange
 {
     return subrange(
-        find(id), end());
+        &h_, find(id).i_);
 }
 
 auto
@@ -593,7 +416,7 @@ find_all(
         subrange
 {
     return subrange(
-        find(name), end());
+        &h_, find(name).i_);
 }
 
 //------------------------------------------------

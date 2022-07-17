@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_HEADER_IPP
 
 #include <boost/http_proto/detail/header.hpp>
-#include <boost/http_proto/detail/fields_table.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/rfc/digits_rule.hpp>
@@ -30,20 +29,11 @@ header(detail::kind k) noexcept
 
 fields_table
 header::
-tab() noexcept
+tab() const noexcept
 {
     BOOST_ASSERT(cap > 0);
     BOOST_ASSERT(buf != nullptr);
     return fields_table(buf + cap);
-}
-
-const_fields_table
-header::
-ctab() const noexcept
-{
-    BOOST_ASSERT(cap > 0);
-    BOOST_ASSERT(cbuf != nullptr);
-    return const_fields_table(cbuf + cap);
 }
 
 std::size_t
@@ -54,7 +44,7 @@ find(
     if(count == 0)
         return 0;
     std::size_t i = 0;
-    auto const* p = &ctab()[0];
+    auto const* p = &tab()[0];
     while(i < count)
     {
         if(p->id == id)
@@ -73,7 +63,7 @@ find(
     if(count == 0)
         return 0;
     std::size_t i = 0;
-    auto const* p = &ctab()[0];
+    auto const* p = &tab()[0];
     while(i < count)
     {
         string_view s(
@@ -87,14 +77,24 @@ find(
     return i;
 }
 
-string_view
+void
 header::
-name(std::size_t i) const noexcept
+copy_table(
+    void* dest,
+    std::size_t n) const noexcept
 {
-    auto const* p = &ctab()[i];
-    return string_view(
-        cbuf + prefix + p->np, p->nn);
+    std::memcpy(
+        reinterpret_cast<
+            fields_table_entry*>(
+                dest) - n,
+        reinterpret_cast<
+            fields_table_entry const*>(
+                cbuf + cap) - n,
+        n * sizeof(
+            fields_table_entry));
 }
+
+//------------------------------------------------
 
 void
 header::
