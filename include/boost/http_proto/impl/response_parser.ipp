@@ -32,7 +32,7 @@ response_view
 response_parser::
 get() const noexcept
 {
-    return response_view(h_);
+    return response_view(&h_);
 }
 
 } // http_proto

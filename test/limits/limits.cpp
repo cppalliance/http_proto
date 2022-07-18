@@ -32,7 +32,8 @@ public:
             BOOST_TEST_THROWS(
                 req.set_start_line(
                     method::connect,
-                    "https://www.example.com"),
+                    "https://www.example.com",
+                    version::http_1_1),
                 std::length_error);
         }
     }

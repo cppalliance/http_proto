@@ -13,121 +13,38 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/method.hpp>
+#include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/version.hpp>
 #include <boost/assert.hpp>
 #include <cstdint>
 #include <type_traits>
 
 namespace boost {
 namespace http_proto {
-
-enum class version : char;
-enum class method : char;
-enum class status : unsigned short;
-
 namespace detail {
 
-//------------------------------------------------
-
-// field array stored at the
-// end of allocated message data
-
-struct fields_table_entry
-{
-    off_t np;   // name pos
-    off_t nn;   // name size
-    off_t vp;   // value pos
-    off_t vn;   // value size
-    field id;
-
-    fields_table_entry
-    operator+(std::size_t dv) const noexcept
-    {
-        return {
-            static_cast<
-                off_t>(np + dv),
-            nn,
-            static_cast<
-                off_t>(vp + dv),
-            vn,
-            id };
-    }
-
-    fields_table_entry
-    operator-(std::size_t dv) const noexcept
-    {
-        return {
-            static_cast<
-                off_t>(np - dv),
-            nn,
-            static_cast<
-                off_t>(vp - dv),
-            vn,
-            id };
-    }
-};
-
-//------------------------------------------------
-
-struct fields_table
-{
-    explicit
-    fields_table(
-        void* end) noexcept
-        : p_(reinterpret_cast<
-            fields_table_entry*>(
-                end))
-    {
-    }
-
-    fields_table_entry&
-    operator[](
-        std::size_t i) const noexcept
-    {
-        return p_[-1 * (
-            static_cast<
-                long>(i) + 1)];
-    }
-
-private:
-    fields_table_entry* p_;
-};
-
-//------------------------------------------------
-
-// return total bytes needed
-// to store message of `size`
-// bytes and `count` fields.
-inline
-std::size_t
-buffer_needed(
-    std::size_t size,
-    std::size_t count) noexcept
-{
-    // make sure `size` is big enough
-    // to hold the largest default buffer:
-    // "HTTP/1.1 200 OK\r\n\r\n"
-    if( size < 19)
-        size = 19;
-    static constexpr auto A =
-        alignof(fields_table_entry);
-    return A * (
-        (size + A - 1) / A) +
-            (count * sizeof(
-                fields_table_entry));
-}
-
-//------------------------------------------------
-
-enum class kind : unsigned char
+enum kind : unsigned char
 {
     fields = 0,
     request,
     response, 
 };
 
+struct fields_tag {};
+struct request_tag {};
+struct response_tag {};
+
 struct header
 {
+    // this field lookup table is
+    // stored at the end of the
+    // allocated buffer, in
+    // reverse order.
+    struct entry;
+    struct table;
+
     detail::kind kind;
     char const* cbuf = nullptr;
     char* buf = nullptr;
@@ -136,8 +53,13 @@ struct header
     off_t size = 0;
     off_t count = 0;
     off_t prefix = 0;
-    http_proto::version version;
+    http_proto::version version =
+        http_proto::version::http_1_1;
     content_length cl;
+
+    struct fld_t
+    {
+    };
 
     struct req_t
     {
@@ -154,39 +76,40 @@ struct header
 
     union
     {
+        fld_t fld;
         req_t req;
         res_t res;
     };
 
+    //--------------------------------------------
+
+    header() = default;
+    constexpr header(fields_tag) noexcept;
+    constexpr header(request_tag) noexcept;
+    constexpr header(response_tag) noexcept;
+
     BOOST_HTTP_PROTO_DECL
-    explicit
     header(detail::kind k) noexcept;
 
-    fields_table
-    tab() const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    static
+    header const*
+    get_default(detail::kind k) noexcept;
 
-    std::size_t
-    find(field id) const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    void swap(header& h) noexcept;
 
-    std::size_t
-    find(string_view name) const noexcept;
-
-    void copy_table(void* dest,
-        std::size_t n) const noexcept;
-
-    void copy_table(
-        void* dest) const noexcept
-    {
-        copy_table(dest, count);
-    }
-
-    void reset() noexcept;
-
+    table tab() const noexcept;
+    bool is_default() const noexcept;
+    std::size_t find(field id) const noexcept;
+    std::size_t find(string_view name) const noexcept;
+    void copy_table(void* dest, std::size_t n) const noexcept;
+    void copy_table(void* dest) const noexcept;
+    void assign_to(header& dest) const noexcept;
+ 
+    void on_erase(field id) noexcept;
+    void on_erase_all(field id) noexcept;
     void on_insert(field id, string_view v) noexcept;
-    void on_insert_content_length(
-        field id, string_view v) noexcept;
-
-    // VFALCO swap() is in fields_view_base
 };
 
 //------------------------------------------------

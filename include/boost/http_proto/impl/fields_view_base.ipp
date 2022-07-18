@@ -22,6 +22,16 @@
 namespace boost {
 namespace http_proto {
 
+fields_view_base::
+value_type::
+value_type(
+    reference const& other)
+    : id(other.id)
+    , name(other.name)
+    , value(other.value)
+{
+}
+
 //------------------------------------------------
 
 auto
@@ -31,9 +41,9 @@ operator*() const noexcept ->
     reference const
 {
     auto const& e =
-        h_->tab()[i_];
+        ph_->tab()[i_];
     auto const* p =
-        h_->cbuf + h_->prefix;
+        ph_->cbuf + ph_->prefix;
     return {
         e.id,
         string_view(
@@ -52,9 +62,9 @@ operator*() const noexcept ->
     reference const
 {
     auto const& e =
-        h_->tab()[i_];
+        ph_->tab()[i_];
     auto const p =
-        h_->cbuf + h_->prefix;
+        ph_->cbuf + ph_->prefix;
     return {
         e.id,
         string_view(
@@ -70,13 +80,15 @@ iterator::
 operator++() noexcept ->
     iterator&
 {
-    auto const* e = &h_->tab()[i_];
+    BOOST_ASSERT(i_ < ph_->count);
+
+    auto const* e = &ph_->tab()[i_];
     auto const id = e->id;
     if(id != field::unknown)
     {
         ++i_;
         --e;
-        while(i_ != h_->count)
+        while(i_ != ph_->count)
         {
             if(e->id == id)
                 break;
@@ -84,14 +96,16 @@ operator++() noexcept ->
         }
         return *this;
     }
-    auto const p = h_->cbuf + h_->prefix;
+    auto const p =
+        ph_->cbuf + ph_->prefix;
     auto name =
         string_view(p + e->np, e->nn);
     ++i_;
     --e;
-    while(i_ != h_->count)
+    while(i_ != ph_->count)
     {
-        if(bnf::iequals(name, string_view(
+        if(bnf::iequals(
+            name, string_view(
                 p + e->np, e->nn)))
             break;
         ++i_;
@@ -104,144 +118,6 @@ operator++() noexcept ->
 //
 // fields_view_base
 //
-//------------------------------------------------
-
-// return default buffer for kind
-// 0 = fields (no start-line)
-// 1 = request
-// 2 = response
-string_view
-fields_view_base::
-default_buffer(
-    detail::kind k) noexcept
-{
-    switch(k)
-    {
-    default:
-    case detail::kind::fields: return {
-        "\r\n", 2 };
-    case detail::kind::request: return {
-        "GET / HTTP/1.1\r\n\r\n", 18 };
-    case detail::kind::response: return {
-        "HTTP/1.1 200 OK\r\n\r\n", 19 };
-    }
-}
-
-// return true if s is a default string
-bool
-fields_view_base::
-is_default(
-    char const* s) noexcept
-{
-    return
-        s == default_buffer(
-            detail::kind::fields).data() ||
-        s == default_buffer(
-            detail::kind::request).data() ||
-        s == default_buffer(
-            detail::kind::response).data();
-}
-
-void
-fields_view_base::
-swap(fields_view_base& other) noexcept
-{
-    auto& h = other.h_;
-    std::swap(h_.cbuf, h.cbuf);
-    std::swap(h_.buf, h.buf);
-    std::swap(h_.cap, h.cap);
-    std::swap(h_.size, h.size);
-    std::swap(h_.count, h.count);
-    std::swap(h_.prefix, h.prefix);
-    std::swap(h_.version, h.version);
-    switch(h_.kind)
-    {
-    case detail::kind::fields:
-        break;
-    case detail::kind::request:
-        std::swap(
-            h_.req.method_len, h.req.method_len);
-        std::swap(
-            h_.req.target_len, h.req.target_len);
-        std::swap(h_.req.method, h.req.method);
-        break;
-    case detail::kind::response:
-        std::swap(
-            h_.res.status_int, h.res.status_int);
-        std::swap(h_.res.status, h.res.status);
-        break;
-    }
-}
-
-fields_view_base::
-fields_view_base(
-    detail::header const& h) noexcept
-    : h_(h)
-{
-    BOOST_ASSERT(
-        h_.cap == 0 ||
-        h_.cap >= h_.size);
-    BOOST_ASSERT(
-        h_.size >= h_.prefix);
-    BOOST_ASSERT(
-        h_.prefix <= max_off_t);
-    BOOST_ASSERT(
-        h_.size <= max_off_t);
-    BOOST_ASSERT(
-        h_.count <= max_off_t);
-
-    switch(h_.kind)
-    {
-    case detail::kind::fields:
-        break;
-    case detail::kind::request:
-        BOOST_ASSERT(
-            h_.req.method_len <= max_off_t);
-        BOOST_ASSERT(
-            h_.req.target_len <= max_off_t);
-        break;
-    case detail::kind::response:
-        break;
-    }
-}
-
-fields_view_base::
-fields_view_base(
-    detail::kind k) noexcept
-    : fields_view_base(
-    [k]
-    {
-        auto s = default_buffer(k);
-        detail::header h(k);
-        h.cbuf = s.data();
-        h.cap = 0;
-        h.prefix = static_cast<
-            off_t>(s.size() - 2);
-        h.size = h.prefix + 2;
-        h.count = 0;
-        h.version =
-            http_proto::version::http_1_1;
-        switch(h.kind)
-        {
-        case detail::kind::fields:
-            break;
-        case detail::kind::request:
-            h.req.method_len = 3;
-            h.req.target_len = 1;
-            h.req.method =
-                http_proto::method::get;
-            break;
-        case detail::kind::response:
-            h.res.status =
-                http_proto::status::ok;
-            h.res.status_int = 200;
-            break;
-        }
-        return h;
-    }())
-{
-}
-
 //------------------------------------------------
 
 bool
@@ -406,7 +282,7 @@ find_all(
         subrange
 {
     return subrange(
-        &h_, find(id).i_);
+        ph_, find(id).i_);
 }
 
 auto
@@ -416,7 +292,7 @@ find_all(
         subrange
 {
     return subrange(
-        &h_, find(name).i_);
+        ph_, find(name).i_);
 }
 
 //------------------------------------------------

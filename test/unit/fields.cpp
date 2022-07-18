@@ -837,17 +837,6 @@ struct fields_test
     }
 
     void
-    testContentLength()
-    {
-#if 0
-        fields f = make_fields(make_header(
-            { "Content-Length: 0" }));
-        BOOST_TEST(f.content_length().has_value);
-        BOOST_TEST_EQ(f.content_length().value, 0);
-#endif
-    }
-
-    void
     run()
     {
         testSpecial();
@@ -857,7 +846,6 @@ struct fields_test
         testErase();
         testInsert();
         testSet();
-        testContentLength();
     }
 };
 

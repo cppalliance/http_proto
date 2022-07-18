@@ -27,20 +27,6 @@
 namespace boost {
 namespace http_proto {
 
-#if 0
-parser::
-message::
-message() noexcept
-    : skip_body(false)
-    , got_chunked(false)
-    , got_close(false)
-    , got_keep_alive(false)
-    , got_upgrade(false)
-    , need_eof(false)
-{
-}
-#endif
-
 //------------------------------------------------
 
 parser::
@@ -49,12 +35,12 @@ parser(
     config const& cfg,
     std::size_t buffer_bytes)
     : cfg_(cfg)
-    , h_(k)
     , committed_(0)
     , state_(state::empty)
     , got_eof_(false)
     , m_{}
 {
+    h_.kind = k;
     // buffer must be large enough to
     // hold a complete header.
     if( buffer_bytes <
@@ -62,9 +48,9 @@ parser(
         buffer_bytes =
             cfg.max_header_size;
 
-    h_.cap = buffer_bytes;
     h_.buf = new char[buffer_bytes];
     h_.cbuf = h_.buf;
+    h_.cap = buffer_bytes;
 }
 
 //------------------------------------------------
@@ -144,7 +130,12 @@ reset()
         }
     }
 
-    h_.reset();
+    // reset the header but
+    // preserve the capacity
+    detail::header h;
+    h.kind = h_.kind;
+    h.assign_to(h_);
+
     m_ = message{};
     state_ = state::empty;
 }

@@ -37,16 +37,14 @@ request(
 request::
 request(
     request const& other)
-    : fields_base(other,
-        detail::kind::request)
+    : fields_base(*other.ph_)
 {
 }
 
 request::
 request(
     request_view const& other)
-    : fields_base(other,
-        detail::kind::request)
+    : fields_base(*other.ph_)
 {
 }
 
@@ -66,7 +64,7 @@ request::
 operator=(
     request const& other)
 {
-    copy(other);
+    copy_impl(*other.ph_);
     return *this;
 }
 
@@ -75,7 +73,7 @@ request::
 operator=(
     request_view const& other)
 {
-    copy(other);
+    copy_impl(*other.ph_);
     return *this;
 }
 
@@ -87,19 +85,12 @@ clear() noexcept
 {
     if(h_.buf == nullptr)
         return;
-    this->fields_base::clear();
+    clear_impl();
     set_impl(
         http_proto::method::get,
         "GET",
         "/",
         http_proto::version::http_1_1);
-}
-
-void
-request::
-swap(request& other) noexcept
-{
-    this->fields_view_base::swap(other);
 }
 
 //------------------------------------------------

@@ -16,47 +16,23 @@ namespace boost {
 namespace http_proto {
 
 //------------------------------------------------
-
-inline
-fields_view_base::
-value_type::
-value_type(
-    reference const& other)
-    : id(other.id)
-    , name(other.name)
-    , value(other.value)
-{
-}
-
-inline
-fields_view_base::
-value_type::
-operator
-fields_view_base::
-reference() const noexcept
-{
-    return reference{
-        id, name, value};
-}
-
-//------------------------------------------------
 //
-// fields_view_base::iterator
+// iterator
 //
 //------------------------------------------------
 
 class fields_view_base::iterator
 {
-    detail::header const* h_ = nullptr;
+    detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
     friend class fields_base;
     friend class fields_view_base;
 
     iterator(
-        detail::header const* h,
+        detail::header const* ph,
         std::size_t i) noexcept
-        : h_(h)
+        : ph_(ph)
         , i_(i)
     {
     }
@@ -72,14 +48,10 @@ public:
     using iterator_category =
         std::bidirectional_iterator_tag;
 
-    iterator(
-        iterator const&) = default;
-
-    iterator&
-    operator=(
-        iterator const&) = default;
-
     iterator() = default;
+    iterator(iterator const&) = default;
+    iterator& operator=(
+        iterator const&) = default;
 
     bool
     operator==(
@@ -88,7 +60,7 @@ public:
         // If this assert goes off, it means you
         // are trying to compare iterators from
         // different containers, which is undefined!
-        BOOST_ASSERT(h_ == other.h_);
+        BOOST_ASSERT(ph_ == other.ph_);
 
         return i_ == other.i_;
     }
@@ -113,7 +85,7 @@ public:
     iterator&
     operator++() noexcept
     {
-        BOOST_ASSERT(i_ < h_->count);
+        BOOST_ASSERT(i_ < ph_->count);
         ++i_;
         return *this;
     }
@@ -144,19 +116,23 @@ public:
 };
 
 //------------------------------------------------
+//
+// subrange
+//
+//------------------------------------------------
 
 class fields_view_base::subrange
 {
-    detail::header const* h_ = nullptr;
+    detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
     friend class fields_view;
     friend class fields_view_base;
 
     subrange(
-        detail::header const* h,
+        detail::header const* ph,
         std::size_t i) noexcept
-        : h_(h)
+        : ph_(ph)
         , i_(i)
     {
     }
@@ -180,8 +156,7 @@ public:
     */
     subrange() noexcept = default;
 
-    subrange(
-        subrange const&) noexcept = default;
+    subrange(subrange const&) noexcept = default;
     subrange& operator=(
         subrange const&) noexcept = default;
 
@@ -190,19 +165,23 @@ public:
 };
 
 //------------------------------------------------
+//
+// subrange::iterator
+//
+//------------------------------------------------
 
 class fields_view_base::subrange::
     iterator
 {
-    detail::header const* h_ = nullptr;
+    detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
     friend class fields_view_base::subrange;
 
     iterator(
-        detail::header const* h,
+        detail::header const* ph,
         std::size_t i) noexcept
-        : h_(h)
+        : ph_(ph)
         , i_(i)
     {
     }
@@ -223,11 +202,12 @@ public:
     iterator& operator=(
         iterator const&) = default;
 
+    // conversion to regular iterator
     operator
     fields_view_base::
-    iterator const&() const noexcept
+    iterator() const noexcept
     {
-        return {h_, i_};
+        return {ph_, i_};
     }
 
     bool
@@ -237,7 +217,7 @@ public:
         // If this assert goes off, it means you
         // are trying to compare iterators from
         // different containers, which is undefined!
-        BOOST_ASSERT(h_ == other.h_);
+        BOOST_ASSERT(ph_ == other.ph_);
 
         return i_ == other.i_;
     }
@@ -272,6 +252,39 @@ public:
     }
 };
 
+inline
+auto
+fields_view_base::
+subrange::
+begin() const noexcept ->
+    iterator
+{
+    return {ph_, i_};
+}
+
+inline
+auto
+fields_view_base::
+subrange::
+end() const noexcept ->
+    iterator
+{
+    return {ph_, ph_->count};
+}
+
+//------------------------------------------------
+
+inline
+fields_view_base::
+value_type::
+operator
+fields_view_base::
+reference() const noexcept
+{
+    return reference{
+        id, name, value};
+}
+
 //------------------------------------------------
 
 inline
@@ -280,7 +293,7 @@ fields_view_base::
 begin() const noexcept ->
     iterator
 {
-    return iterator(&h_, 0);
+    return iterator(ph_, 0);
 }
 
 inline
@@ -289,7 +302,7 @@ fields_view_base::
 end() const noexcept ->
     iterator
 {
-    return iterator(&h_, h_.count);
+    return iterator(ph_, ph_->count);
 }
 
 inline
@@ -320,28 +333,7 @@ operator[](
 
 //------------------------------------------------
 
-inline
-auto
-fields_view_base::
-subrange::
-begin() const noexcept ->
-    iterator
-{
-    return {h_, i_};
-}
-
-inline
-auto
-fields_view_base::
-subrange::
-end() const noexcept ->
-    iterator
-{
-    return {h_, h_->count};
-}
-
-//------------------------------------------------
-
+// VFALCO This function is deprecated
 template<class Allocator>
 urls::const_string
 make_list(

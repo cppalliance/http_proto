@@ -85,7 +85,7 @@ serializer::
 set_header(
     request_view const& req)
 {
-    set_header_impl(req.h_);
+    set_header_impl(req.ph_);
 }
 
 void
@@ -101,7 +101,7 @@ serializer::
 set_header(
     response_view const& res)
 {
-    set_header_impl(res.h_);
+    set_header_impl(res.ph_);
 }
 
 void

@@ -16,12 +16,6 @@
 namespace boost {
 namespace http_proto {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-namespace detail {
-struct fields_table;
-} // detail
-#endif
-
 /** Mixin for modifiable HTTP fields
 
     @par Iterators
@@ -37,17 +31,14 @@ class BOOST_SYMBOL_VISIBLE
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
+    friend class serializer;
 
-    explicit fields_base(
-        detail::header const&) noexcept;
-
-    fields_base(fields_view_base const&, detail::kind);
+    detail::header h_;
 
     BOOST_HTTP_PROTO_DECL
     explicit fields_base(detail::kind) noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    void copy(fields_view_base const&);
+    fields_base(detail::header const&);
 
 public:
     /** Destructor
@@ -270,15 +261,30 @@ public:
     set_content_length(
         std::uint64_t n);
 
+#ifndef BOOST_HTTP_PROTO_DOCS
+protected:
+#endif
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear_impl() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    copy_impl(detail::header const&);
+
+    char*
+    set_prefix_impl(
+        std::size_t n);
+
 private:
     std::size_t
     offset(
-        detail::fields_table ft,
+        detail::header::table ft,
         std::size_t i) const noexcept;
 
     std::size_t
     length(
-        detail::fields_table ft,
+        detail::header::table ft,
         std::size_t i) const noexcept;
 
     void
@@ -319,25 +325,6 @@ private:
         string_view name,
         string_view value,
         std::size_t before);
-
-    void on_erase(field id) noexcept;
-    void on_erase_all(field id) noexcept;
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
-    BOOST_HTTP_PROTO_DECL
-    void
-    swap(
-        fields_base& other) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
-
-    char*
-    set_prefix_impl(
-        std::size_t n);
 };
 
 } // http_proto

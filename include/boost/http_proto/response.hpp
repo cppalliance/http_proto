@@ -13,15 +13,9 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/response_view.hpp>
-#include <boost/http_proto/status.hpp>
-#include <boost/http_proto/version.hpp>
 
 namespace boost {
 namespace http_proto {
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-class response_view;
-#endif
 
 /** Container for HTTP responses
 */
@@ -79,18 +73,16 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    explicit
     response(
         http_proto::status sc,
-        http_proto::version v =
-            http_proto::version::http_1_1);
+        http_proto::version v);
 
     /** Return a read-only view to the response
     */
     operator
     response_view() const noexcept
     {
-        return response_view(h_);
+        return response_view(ph_);
     }
 
     //--------------------------------------------
@@ -100,13 +92,17 @@ public:
     //--------------------------------------------
 
     /** Return the reason string
+
+        This field is obsolete in HTTP/1
+        and should only be used for display
+        purposes.
     */
     string_view
     reason() const noexcept
     {
         return string_view(
-            h_.cbuf + 13,
-            h_.prefix - 15);
+            ph_->cbuf + 13,
+            ph_->prefix - 15);
     }
 
     /** Return the status code
@@ -114,7 +110,7 @@ public:
     http_proto::status
     status() const noexcept
     {
-        return h_.res.status;
+        return ph_->res.status;
     }
 
     /** Return the status code
@@ -122,7 +118,7 @@ public:
     unsigned short
     status_int() const noexcept
     {
-        return h_.res.status_int;
+        return ph_->res.status_int;
     }
 
     /** Return the HTTP version
@@ -130,7 +126,17 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.version;
+        return ph_->version;
+    }
+
+    //--------------------------------------------
+
+    /** Return metadata about the Content-Length field
+    */
+    http_proto::content_length
+    content_length() const noexcept
+    {
+        return ph_->cl;
     }
 
     //--------------------------------------------
@@ -185,9 +191,11 @@ public:
 
     /** Swap this with another instance
     */
-    BOOST_HTTP_PROTO_DECL
     void
-    swap(response& other) noexcept;
+    swap(response& other) noexcept
+    {
+        h_.swap(other.h_);
+    }
 
     /** Swap two instances
     */
@@ -195,10 +203,10 @@ public:
     friend
     void
     swap(
-        response& v1,
-        response& v2) noexcept
+        response& t0,
+        response& t1) noexcept
     {
-        v1.swap(v2);
+        t0.swap(t1);
     }
 
 private:

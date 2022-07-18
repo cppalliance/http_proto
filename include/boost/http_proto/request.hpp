@@ -12,16 +12,10 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
-#include <boost/http_proto/method.hpp>
 #include <boost/http_proto/request_view.hpp>
-#include <boost/http_proto/version.hpp>
 
 namespace boost {
 namespace http_proto {
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-class request_view;
-#endif
 
 /** Container for HTTP requests
 */
@@ -79,7 +73,7 @@ public:
     operator
     request_view() const noexcept
     {
-        return request_view(h_);
+        return request_view(ph_);
     }
 
     //--------------------------------------------
@@ -88,7 +82,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Return the method of this request as a known-method enum
+    /** Return the method as an integral constant
 
         If the method returned is equal to
         @ref method::unknown, the method may
@@ -98,34 +92,46 @@ public:
     http_proto::method
     method() const noexcept
     {
-        return h_.req.method;
+        return ph_->req.method;
     }
 
-    /** Return the method of this request as a string
+    /** Return the method as a string
     */
     string_view
     method_str() const noexcept
     {
         return string_view(
-            h_.cbuf, h_.req.method_len);
+            ph_->cbuf,
+            ph_->req.method_len);
     }
 
-    /** Return the request-target
+    /** Return the request-target string
     */
     string_view
     target() const noexcept
     {
         return string_view(
-            h_.cbuf + h_.req.method_len + 1,
-                h_.req.target_len);
+            ph_->cbuf +
+                ph_->req.method_len + 1,
+            ph_->req.target_len);
     }
 
-    /** Return the HTTP version of this request
+    /** Return the HTTP-version
     */
     http_proto::version
     version() const noexcept
     {
-        return h_.version;
+        return ph_->version;
+    }
+
+    //--------------------------------------------
+
+    /** Return metadata about the Content-Length field
+    */
+    http_proto::content_length
+    content_length() const noexcept
+    {
+        return ph_->cl;
     }
 
     //--------------------------------------------
@@ -156,7 +162,8 @@ public:
     /** Set the method of the request to the string
     */
     void
-    set_method(string_view s)
+    set_method(
+        string_view s)
     {
         set_impl(
             string_to_method(s),
@@ -173,10 +180,11 @@ public:
         valid.
     */
     void
-    set_target(string_view s)
+    set_target(
+        string_view s)
     {
         set_impl(
-            h_.req.method,
+            ph_->req.method,
             method_str(),
             s,
             version());
@@ -189,7 +197,7 @@ public:
         http_proto::version v)
     {
         set_impl(
-            h_.req.method,
+            ph_->req.method,
             method_str(),
             target(),
             v);
@@ -204,8 +212,7 @@ public:
     set_start_line(
         http_proto::method m,
         string_view t,
-        http_proto::version v =
-            http_proto::version::http_1_1)
+        http_proto::version v)
     {
         set_impl(m, to_string(m), t, v);
     }
@@ -219,17 +226,18 @@ public:
     set_start_line(
         string_view m,
         string_view t,
-        http_proto::version v =
-            http_proto::version::http_1_1)
+        http_proto::version v)
     {
         set_impl(string_to_method(m), m, t, v);
     }
 
     /** Swap this with another instance
     */
-    BOOST_HTTP_PROTO_DECL
     void
-    swap(request& other) noexcept;
+    swap(request& other) noexcept
+    {
+        h_.swap(other.h_);
+    }
 
     /** Swap two instances
     */
@@ -237,10 +245,10 @@ public:
     friend
     void
     swap(
-        request& v1,
-        request& v2) noexcept
+        request& t0,
+        request& t1) noexcept
     {
-        v1.swap(v2);
+        t0.swap(t1);
     }
 
 private:

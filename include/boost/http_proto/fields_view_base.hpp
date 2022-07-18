@@ -11,11 +11,8 @@
 #define BOOST_HTTP_PROTO_FIELDS_VIEW_BASE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/field.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/url/const_string.hpp>
-#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -33,24 +30,19 @@ class BOOST_SYMBOL_VISIBLE
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:
 #endif
-    detail::header h_;
+    detail::header const* ph_;
 
     friend class fields;
     friend class fields_base;
     friend class serializer;
 
-    static string_view default_buffer(detail::kind) noexcept;
-    static bool is_default(char const*) noexcept;
-    void swap(fields_view_base& other) noexcept;
+    explicit
+    fields_view_base(
+        detail::header const* ph) noexcept
+        : ph_(ph)
+    {
+    }
 
-    BOOST_HTTP_PROTO_DECL
-    explicit fields_view_base(
-        detail::header const&) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    explicit fields_view_base(detail::kind) noexcept;
-
-protected:
     fields_view_base(
         fields_view_base const&) = default;
     fields_view_base&
@@ -96,7 +88,10 @@ public:
         std::string name;
         std::string value;
 
-        value_type(reference const& other);
+        BOOST_HTTP_PROTO_DECL
+        value_type(
+            reference const& other);
+
         operator reference() const noexcept;
     };
 
@@ -144,7 +139,7 @@ public:
     string() const noexcept
     {
         return string_view(
-            h_.cbuf, h_.size);
+            ph_->cbuf, ph_->size);
     }
 
     //--------------------------------------------
@@ -184,7 +179,7 @@ public:
     std::size_t
     size() const noexcept
     {
-        return h_.count;
+        return ph_->count;
     }
 
     /** Return true if a field exists

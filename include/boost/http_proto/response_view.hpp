@@ -12,17 +12,12 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view.hpp>
-#include <boost/http_proto/string_view.hpp>
-#include <cstdint>
 
 namespace boost {
 namespace http_proto {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-enum class status : unsigned short;
-enum class version : char;
-#endif
-
+/** A reference to an HTTP response header
+*/
 class BOOST_SYMBOL_VISIBLE
     response_view
     : public fields_view_base
@@ -36,10 +31,10 @@ protected:
 
     explicit
     response_view(
-        detail::header const& h) noexcept
-        : fields_view_base(h)
+        detail::header const* ph) noexcept
+        : fields_view_base(ph)
     {
-        BOOST_ASSERT(h.kind ==
+        BOOST_ASSERT(ph_->kind ==
             detail::kind::response);
     }
 
@@ -48,31 +43,40 @@ public:
     */
     response_view() noexcept
         : fields_view_base(
-            detail::kind::response)
+            detail::header::get_default(
+                detail::kind::response))
     {
     }
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
     response_view(
-        response_view const&) noexcept;
+        response_view const&) noexcept = default;
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     response_view&
     operator=(
-        response_view const&) noexcept;
+        response_view const&) noexcept = default;
+
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
 
     /** Return the reason string
+
+        This field is obsolete in HTTP/1
+        and should only be used for display
+        purposes.
     */
     string_view
     reason() const noexcept
     {
         return string_view(
-            h_.cbuf + 13,
-            h_.prefix - 15);
+            ph_->cbuf + 13,
+            ph_->prefix - 15);
     }
 
     /** Return the status code
@@ -80,7 +84,7 @@ public:
     http_proto::status
     status() const noexcept
     {
-        return h_.res.status;
+        return ph_->res.status;
     }
 
     /** Return the status code integer
@@ -88,7 +92,7 @@ public:
     unsigned short
     status_int() const noexcept
     {
-        return h_.res.status_int;
+        return ph_->res.status_int;
     }
 
     /** Return the HTTP-version
@@ -96,7 +100,29 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.version;
+        return ph_->version;
+    }
+
+    /** Swap this with another instance
+    */
+    void
+    swap(response_view& other) noexcept
+    {
+        auto ph = ph_;
+        ph_ = other.ph_;
+        ph_ = ph;
+    }
+
+    /** Swap two instances
+    */
+    // hidden friend
+    friend
+    void
+    swap(
+        response_view& t0,
+        response_view& t1) noexcept
+    {
+        t0.swap(t1);
     }
 };
 

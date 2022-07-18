@@ -31,10 +31,10 @@ protected:
 
     explicit
     fields_view(
-        detail::header const& h) noexcept
-        : fields_view_base(h)
+        detail::header const* ph) noexcept
+        : fields_view_base(ph)
     {
-        BOOST_ASSERT(h.kind ==
+        BOOST_ASSERT(ph_->kind ==
             detail::kind::fields);
     }
 
@@ -46,40 +46,43 @@ public:
     */
     fields_view() noexcept
         : fields_view_base(
-            detail::kind::fields)
+            detail::header::get_default(
+                detail::kind::fields))
     {
     }
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
     fields_view(
-        fields_view const&) noexcept;
+        fields_view const&) noexcept = default;
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     fields_view&
     operator=(
-        fields_view const&) noexcept;
+        fields_view const&) noexcept = default;
 
     //--------------------------------------------
 
     /** Swap this with another instance
     */
-    BOOST_HTTP_PROTO_DECL
     void
-    swap(fields_view& other) noexcept;
+    swap(fields_view& other) noexcept
+    {
+        auto ph = ph_;
+        ph_ = other.ph_;
+        other.ph_ = ph;
+    }
 
     /** Swap two instances
     */
     friend
     void
     swap(
-        fields_view& v1,
-        fields_view& v2) noexcept
+        fields_view& t0,
+        fields_view& t1) noexcept
     {
-        v1.swap(v2);
+        t0.swap(t1);
     }
 };
 

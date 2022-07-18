@@ -21,6 +21,27 @@ public:
     void
     run()
     {
+        // response_view()
+        {
+            response_view req;
+        }
+
+        // response_view(response_view const&)
+        {
+            {
+                response_view res1;
+                response_view res2(res1);
+            }
+        }
+
+        // operator=(response_view const&)
+        {
+            {
+                response_view res1;
+                response_view res2;
+                res1 = res2;
+            }
+        }
     }
 };
 

@@ -36,16 +36,14 @@ response(
 response::
 response(
     response const& other)
-    : fields_base(other,
-        detail::kind::response)
+    : fields_base(*other.ph_)
 {
 }
 
 response::
 response(
-    response_view const& rv)
-    : fields_base(rv,
-        detail::kind::response)
+    response_view const& other)
+    : fields_base(*other.ph_)
 {
 }
 
@@ -65,7 +63,7 @@ response::
 operator=(
     response const& other)
 {
-    copy(other);
+    copy_impl(*other.ph_);
     return *this;
 }
 
@@ -74,7 +72,7 @@ response::
 operator=(
     response_view const& other)
 {
-    copy(other);
+    copy_impl(*other.ph_);
     return *this;
 }
 
@@ -96,17 +94,13 @@ response::
 clear() noexcept
 {
     if(h_.buf == nullptr)
+    {
+        // default buffer
         return;
-    this->fields_base::clear();
+    }
+    clear_impl();
     set_start_line(
         http_proto::status::ok);
-}
-
-void
-response::
-swap(response& other) noexcept
-{
-    this->fields_base::swap(other);
 }
 
 //------------------------------------------------

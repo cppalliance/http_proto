@@ -280,6 +280,28 @@ struct fields_view_test
     void
     run()
     {
+        // fields_view()
+        {
+            fields_view fv;
+        }
+
+        // fields_view(fields_view const&)
+        {
+            {
+                fields_view f1;
+                fields_view f2(f1);
+            }
+        }
+
+        // operator=(fields_view const&)
+        {
+            {
+                fields_view f1;
+                fields_view f2;
+                f1 = f2;
+            }
+        }
+
         testViews();
         testSubrange();
     }

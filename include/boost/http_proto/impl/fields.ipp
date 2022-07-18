@@ -29,22 +29,20 @@ fields(
     fields&& other) noexcept
     : fields_base(other.h_.kind)
 {
-    this->swap(other);
+    swap(other);
 }
 
 fields::
 fields(
     fields const& other)
-    : fields_base(other,
-        detail::kind::fields)
+    : fields_base(*other.ph_)
 {
 }
 
 fields::
 fields(
     fields_view const& other)
-    : fields_base(other,
-        detail::kind::fields)
+    : fields_base(*other.ph_)
 {
 }
 
@@ -63,18 +61,16 @@ fields::
 operator=(
     fields const& f) noexcept
 {
-    copy(f);
+    copy_impl(*f.ph_);
     return *this;
 }
 
-/** Assignment
-*/
 fields&
 fields::
 operator=(
     fields_view const& f)
 {
-    copy(f);
+    copy_impl(*f.ph_);
     return *this;
 }
 

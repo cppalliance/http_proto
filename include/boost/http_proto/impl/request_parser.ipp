@@ -38,7 +38,7 @@ request_view
 request_parser::
 get() const noexcept
 {
-    return request_view(h_);
+    return request_view(&h_);
 }
 
 } // http_proto

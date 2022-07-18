@@ -12,16 +12,9 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view.hpp>
-#include <boost/http_proto/string_view.hpp>
-#include <cstdint>
 
 namespace boost {
 namespace http_proto {
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-enum class method : char;
-enum class version : char;
-#endif
 
 /** A read-only reference to an HTTP request
 */
@@ -38,10 +31,10 @@ protected:
 
     explicit
     request_view(
-        detail::header const& h) noexcept
-        : fields_view_base(h)
+        detail::header const* ph) noexcept
+        : fields_view_base(ph)
     {
-        BOOST_ASSERT(h.kind ==
+        BOOST_ASSERT(ph_->kind ==
             detail::kind::request);
     }
 
@@ -50,37 +43,49 @@ public:
     */
     request_view() noexcept
         : fields_view_base(
-            detail::kind::request)
+            detail::header::get_default(
+                detail::kind::request))
     {
     }
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
     request_view(
-        request_view const&) noexcept;
+        request_view const&) noexcept = default;
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     request_view&
-    operator=(request_view const&) noexcept;
+    operator=(
+        request_view const&) noexcept = default;
 
-    /** Return the known method constant
+    //--------------------------------------------
+    //
+    // Observers
+    //
+    //--------------------------------------------
+
+    /** Return the method as an integral constant
+
+        If the method returned is equal to
+        @ref method::unknown, the method may
+        be obtained as a string instead, by
+        calling @ref method_str.
     */
     http_proto::method
     method() const noexcept
     {
-        return h_.req.method;
+        return ph_->req.method;
     };
 
-    /** Return the exact method string
+    /** Return the method as a string
     */
     string_view
     method_str() const noexcept
     {
         return string_view(
-            h_.cbuf, h_.req.method_len);
+            ph_->cbuf,
+            ph_->req.method_len);
     }
 
     /** Return the request-target string
@@ -89,9 +94,9 @@ public:
     target() const noexcept
     {
         return string_view(
-            h_.cbuf +
-                h_.req.method_len + 1,
-            h_.req.target_len);
+            ph_->cbuf +
+                ph_->req.method_len + 1,
+            ph_->req.target_len);
     }
 
     /** Return the HTTP-version
@@ -99,7 +104,29 @@ public:
     http_proto::version
     version() const noexcept
     {
-        return h_.version;
+        return ph_->version;
+    }
+
+    /** Swap this with another instance
+    */
+    void
+    swap(request_view& other) noexcept
+    {
+        auto ph = ph_;
+        ph_ = other.ph_;
+        ph_ = ph;
+    }
+
+    /** Swap two instances
+    */
+    // hidden friend
+    friend
+    void
+    swap(
+        request_view& t0,
+        request_view& t1) noexcept
+    {
+        t0.swap(t1);
     }
 };
 

@@ -77,7 +77,7 @@ public:
     */
     operator fields_view() const noexcept
     {
-        return fields_view(h_);
+        return fields_view(ph_);
     }
 
     //--------------------------------------------
@@ -91,7 +91,7 @@ public:
     void
     clear() noexcept
     {
-        this->fields_base::clear();
+        clear_impl();
     }
 
     /** Swap this with another instance
@@ -99,7 +99,7 @@ public:
     void
     swap(fields& other) noexcept
     {
-        this->fields_base::swap(other);
+        h_.swap(other.h_);
     }
 
     /** Swap two instances
@@ -108,10 +108,10 @@ public:
     friend
     void
     swap(
-        fields& v1,
-        fields& v2) noexcept
+        fields& t0,
+        fields& t1) noexcept
     {
-        v1.swap(v2);
+        t0.swap(t1);
     }
 };
 
