@@ -331,11 +331,11 @@ on_erase(field id) noexcept
             cl = {};
             return;
         }
+        --cl.count;
         if(cl.has_value)
         {
             // don't scan, remaining
             // Content-Length are same
-            --cl.count;
             return;
         }
         // scan all Content-Length
@@ -349,7 +349,7 @@ on_erase(field id) noexcept
                 on_insert(id,
                     string_view(
                         p + e->vp,
-                        e->nn));
+                        e->vn));
             --n;
             --e;
         }
@@ -432,6 +432,11 @@ on_insert(
         // overflow or parse error
         cl.value = 0;
         cl.has_value = false;
+        return;
+    }
+
+    case field::transfer_encoding:
+    {
         return;
     }
 

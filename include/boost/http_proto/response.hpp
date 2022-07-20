@@ -139,6 +139,31 @@ public:
         return ph_->cl;
     }
 
+    /** Set the Content-Length to the specified value
+    */
+    void
+    set_content_length(
+        std::uint64_t n)
+    {
+        set_content_length_impl(n);
+    }
+
+    /** Return metadata about the Transfer-Encoding field
+    */
+    http_proto::transfer_encoding
+    transfer_encoding() const noexcept
+    {
+        return ph_->te;
+    }
+
+    /** Set whether the payload is chunked.
+    */
+    void
+    set_chunked(bool value)
+    {
+        set_chunked_impl(value);
+    }
+
     //--------------------------------------------
     //
     // Modifiers

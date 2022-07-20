@@ -378,6 +378,37 @@ set_prefix_impl(
     return h_.buf;
 }
 
+void
+fields_base::
+set_content_length_impl(
+    std::uint64_t n)
+{
+    set(field::content_length,
+        detail::number_string(n));
+}
+
+void
+fields_base::
+set_chunked_impl(bool value)
+{
+    if(value)
+    {
+        // set chunked
+        if(h_.te.chunked_count == 0)
+        {
+            append(
+                field::transfer_encoding,
+                "chunked");
+            return;
+        }
+    }
+    else
+    {
+        // clear chunked
+
+    }
+}
+
 //------------------------------------------------
 
 // return i-th field absolute offset

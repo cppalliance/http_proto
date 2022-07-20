@@ -10,10 +10,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/request.hpp>
 
-#include <boost/http_proto/field.hpp>
-#include <boost/http_proto/method.hpp>
-#include <boost/http_proto/request_view.hpp>
-
 #include "test_helpers.hpp"
 
 #include <utility>
@@ -21,11 +17,10 @@
 namespace boost {
 namespace http_proto {
 
-#if 0
-
 class request_test
 {
 public:
+#if 0
     void
     testHelpers()
     {
@@ -407,14 +402,79 @@ public:
             }
         }
     }
+#endif
+
+    void
+    testContentLength()
+    {
+        auto const check = [](
+            request const& req,
+            content_length cl1)
+        {
+            auto const cl0 =
+                req.content_length();
+            BOOST_TEST_EQ(
+                cl0.count, cl1.count);
+            BOOST_TEST_EQ(
+                cl0.value, cl1.value);
+            BOOST_TEST_EQ(
+                cl0.has_value, cl1.has_value);
+        };
+
+        request req;
+        check(req, { 0, 0, false });
+
+        req.append(field::content_length, "0");
+        check(req, { 1, 0, true });
+
+        req.set(field::content_length, "1");
+        check(req, { 1, 1, true });
+
+        req.append(field::content_length, "1");
+        check(req, { 2, 1, true });
+
+        req.erase(field::content_length);
+        check(req, { 0, 0, false });
+
+        req.set(field::content_length, "2");
+        check(req, { 1, 2, true });
+
+        // non-matching values
+        req.append(field::content_length, "3");
+        check(req, { 2, 0, false });
+
+        // back to one value
+        req.erase(req.find(field::content_length));
+        check(req, { 1, 3, true });
+
+        req.set_content_length(42);
+        check(req, { 1, 42, true });
+
+        req.set_content_length(0);
+        check(req, { 1, 0, true });
+
+        // overflow
+        req.set(field::content_length,
+            "18446744073709551616");
+        check(req, { 1, 0, false });
+        req.append(field::content_length, "42");
+        check(req, { 2, 0, false });
+
+        // back to one value
+        req.erase(req.find(field::content_length));
+        check(req, { 1, 42, true });
+    }
 
     void
     run()
     {
+#if 0
         testHelpers();
         testSpecial();
         testObservers();
         testModifiers();
+#endif
+        testContentLength();
     }
 };
 
@@ -422,8 +482,5 @@ TEST_SUITE(
     request_test,
     "boost.http_proto.request");
 
-#endif
-
 } // http_proto
 } // boost
-

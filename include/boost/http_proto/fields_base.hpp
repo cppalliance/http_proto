@@ -276,6 +276,16 @@ protected:
     set_prefix_impl(
         std::size_t n);
 
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_content_length_impl(
+        std::uint64_t n);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_chunked_impl(
+        bool value);
+
 private:
     std::size_t
     offset(

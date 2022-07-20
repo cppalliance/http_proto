@@ -81,6 +81,12 @@ public:
         return string_view(
             data(), size());
     }
+
+    operator
+    string_view() const noexcept
+    {
+        return str();
+    }
 };
 
 } // detail

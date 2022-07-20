@@ -13,6 +13,7 @@
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/detail/copied_strings.hpp>
+#include <boost/http_proto/detail/number_string.hpp>
 #include <utility>
 
 namespace boost {

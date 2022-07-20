@@ -53,9 +53,11 @@ struct header
     off_t size = 0;
     off_t count = 0;
     off_t prefix = 0;
+
     http_proto::version version =
         http_proto::version::http_1_1;
     content_length cl;
+    transfer_encoding te;
 
     struct fld_t
     {

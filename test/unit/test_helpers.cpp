@@ -58,7 +58,7 @@ make_fields(
     string_view s)
 {
     fields f;
-    for(auto const& v : fields_range(s))
+    for(auto v : fields_range(s))
         f.append(v.name, v.value);
     BOOST_TEST(f.string() == s);
     return f;
