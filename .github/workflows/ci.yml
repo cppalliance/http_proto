@@ -76,7 +76,7 @@ jobs:
               compiler: clang-12,  cxxstd: '11,14,17,20', os: ubuntu-20.04, install: [clang-12, libc++-12-dev, libc++abi-12-dev], env: {B2_STDLIB: libc++ } }
           
           # OSX, clang
-          - { compiler: clang,     cxxstd: '11,14,17,2a', os: macos-10.15, sanitize: yes }
+          - { compiler: clang,     cxxstd: '11,14,17,2a', os: macos-11, sanitize: yes }
 
           - { name: CMake tests, cmake_tests: 1, os: ubuntu-20.04 }
 
