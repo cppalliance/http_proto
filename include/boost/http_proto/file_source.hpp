@@ -25,7 +25,7 @@ class BOOST_SYMBOL_VISIBLE
 {
     file f_;
     char* buf_;
-    std::uint64_t pos_;
+    //std::uint64_t pos_;
     std::uint64_t remain_;
     std::uint64_t n_;
     bool more_ = false;

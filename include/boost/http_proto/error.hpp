@@ -11,47 +11,10 @@
 #define BOOST_HTTP_PROTO_ERROR_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/system/error_code.hpp>
-#include <boost/system/system_error.hpp>
+#include <boost/http_proto/error_code.hpp>
 
 namespace boost {
 namespace http_proto {
-
-/// The type of error code used by the library
-using error_code = boost::system::error_code;
-
-/// The type of system error thrown by the library
-using system_error = boost::system::system_error;
-
-/// The type of error category used by the library
-using error_category = boost::system::error_category;
-
-/// The type of error condition used by the library
-using error_condition = boost::system::error_condition;
-
-/// A function to return the generic error category used by the library
-#if BOOST_HTTP_PROTO_DOCS
-    error_category const& generic_category();
-#else
-    using boost::system::generic_category;
-#endif
-
-/// A function to return the system error category used by the library
-#if BOOST_HTTP_PROTO_DOCS
-    error_category const& system_category();
-#else
-    using boost::system::system_category;
-#endif
-
-/// The type of error condition used by the library
-using error_condition = boost::system::error_condition;
-
-/// The set of constants used for cross-platform error codes
-#if BOOST_HTTP_PROTO_DOXYGEN
-enum errc{};
-#else
-namespace errc = boost::system::errc;
-#endif
 
 /// Error codes returned from HTTP algorithms and operations.
 enum class error
@@ -169,38 +132,6 @@ enum class error
     ,numeric_overflow
 };
 
-//------------------------------------------------
-
-/** Error conditions corresponding to HTTP errors
-*/
-enum class condition
-{
-    /**
-      * A parser requires additional input
-    */
-    need_more = 1
-
-    /// A recoverable, partial success
-    ,partial_success
-
-    /// Inputs are not standards-conforming
-    ,syntax_error
-};
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-
-BOOST_HTTP_PROTO_DECL
-error_code
-make_error_code(
-    error ev) noexcept;
-
-BOOST_HTTP_PROTO_DECL
-error_condition
-make_error_condition(
-    condition c) noexcept;
-
-#endif
-
 } // http_proto
 } // boost
 
@@ -216,14 +147,9 @@ struct is_error_code_enum<
     static bool const value = true;
 };
 
-template<>
-struct is_error_condition_enum<
-    ::boost::http_proto::condition>
-{
-    static bool const value = true;
-};
-
 } // system
 } // boost
+
+#include <boost/http_proto/impl/error.hpp>
 
 #endif

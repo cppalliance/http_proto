@@ -333,44 +333,46 @@ operator[](
 
 //------------------------------------------------
 
-// VFALCO This function is deprecated
-template<class Allocator>
-urls::const_string
+template<class MutableString>
+MutableString&
 make_list(
     fields_view_base::subrange const& r,
-    Allocator const& a)
+    MutableString& dest)
 {
+    // If you get a compilation error here it
+    // means that type of `dest` does not meet
+    // the requirments. Please consult the
+    // documentation.
+    static_assert(
+        grammar::is_mutable_string<
+            MutableString>::value,
+        "MutableString requirements not met");
+
+    {
+        // clear string
+        string_view s;
+        dest.assign(
+            s.begin(), s.begin());
+    }
     auto it = r.begin();
     auto const end = r.end();
     if(it == end)
-        return {};
-    // measure
-    std::size_t n = 0;
-    n += it->value.size();
-    while(++it != end)
-        n += 1 + it->value.size();
-    // output
-    it = r.begin();
-    return urls::const_string(n, a,
-        [&it, &end]
-        (std::size_t, char* dest)
-        {
-            auto const n =
-                it->value.size();
-            std::memcpy(
-                dest,
-                it->value.data(),
-                n);
-            while(++it != end)
-            {
-                dest += n;
-                *dest++ = ',';
-                std::memcpy(
-                    dest,
-                    it->value.data(),
-                    n);
-            }
-        });
+        return dest;
+    // first value
+    dest.assign(
+        it->value.begin(),
+        it->value.end());
+    ++it;
+    while(it != end)
+    {
+        static constexpr char comma = ',';
+        dest.append(&comma, &comma + 1);
+        dest.append(
+            it->value.begin(),
+            it->value.end());
+        ++it;
+    }
+    return dest;
 }
 
 } // http_proto

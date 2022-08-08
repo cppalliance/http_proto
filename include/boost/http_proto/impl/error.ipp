@@ -65,94 +65,6 @@ get_error_cat() noexcept
                 return "unknown";
             }
         }
-
-        error_condition
-        default_error_condition(
-            int ev) const noexcept override
-        {
-            switch(static_cast<error>(ev))
-            {
-            case error::end:
-            case error::end_of_message:
-            case error::end_of_stream:
-                return condition::partial_success;
-
-            case error::bad_content_length:
-            case error::bad_field_name:
-            case error::bad_field_value:
-            case error::bad_line_ending:
-            case error::bad_list:
-            case error::bad_method:
-            case error::bad_number:
-            case error::bad_version:
-            case error::bad_reason:
-            case error::bad_request_target:
-            case error::bad_status_code:
-            case error::bad_status_line:
-            case error::bad_transfer_encoding:
-            case error::syntax:
-                return condition::syntax_error;
-
-            case error::body_too_large:
-            case error::field_too_large:
-            case error::header_too_large:
-            case error::too_many_fields:
-            case error::numeric_overflow:
-            default:
-                return {ev, *this};
-            }
-        }
-    };
-    static T const t{};
-    return t;
-}
-
-//------------------------------------------------
-
-static
-error_category const&
-get_cond_cat() noexcept
-{
-    struct T : error_category
-    {
-        const char*
-        name() const noexcept override
-        {
-            return "boost.http.proto";
-        }
-
-        std::string
-        message(int cv) const override
-        {
-            switch(static_cast<condition>(cv))
-            {
-            case condition::partial_success:
-                return "partial success";
-
-            default:
-            case condition::syntax_error:
-                return "syntax error";
-            }
-        }
- 
-        bool
-        equivalent(
-            error_code const& ec,
-            int cv) const noexcept override
-        {
-            BOOST_ASSERT(ec.category() !=
-                detail::get_error_cat());
-
-            switch(static_cast<
-                condition>(cv))
-            {
-            case condition::need_more:
-                return ec == grammar::error::incomplete;
-
-            default:
-                return false;
-            }
-        }
     };
     static T const t{};
     return t;
@@ -168,15 +80,6 @@ make_error_code(
         std::underlying_type<
             error>::type>(ev),
         detail::get_error_cat()};
-}
-
-error_condition
-make_error_condition(condition c) noexcept
-{
-    return error_condition{static_cast<
-        std::underlying_type<
-            condition>::type>(c),
-        detail::get_cond_cat()};
 }
 
 } // http_proto

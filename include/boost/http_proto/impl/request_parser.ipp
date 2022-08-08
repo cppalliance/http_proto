@@ -11,12 +11,6 @@
 #define BOOST_HTTP_PROTO_IMPL_REQUEST_PARSER_IPP
 
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/method.hpp>
-#include <boost/http_proto/version.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/rfc/charsets.hpp>
-#include <boost/http_proto/rfc/request_line_rule.hpp>
-#include <boost/url/grammar/parse.hpp>
 
 namespace boost {
 namespace http_proto {

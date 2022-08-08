@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/mime/mime_types.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
 
 namespace boost {
 namespace http_proto {

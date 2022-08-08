@@ -12,9 +12,8 @@
 
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/rfc/field_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/assert/source_location.hpp>
 #include <utility>
@@ -104,7 +103,7 @@ operator++() noexcept ->
     --e;
     while(i_ != ph_->count)
     {
-        if(bnf::iequals(
+        if(grammar::ci_is_equal(
             name, string_view(
                 p + e->np, e->nn)))
             break;
@@ -153,7 +152,7 @@ count(string_view name) const noexcept
 {
     std::size_t n = 0;
     for(auto v : *this)
-        if(bnf::iequals(
+        if(grammar::ci_is_equal(
             v.name, name))
             ++n;
     return n;
@@ -232,7 +231,7 @@ find(string_view name) const noexcept ->
     auto const last = end();
     while(it != last)
     {
-        if(bnf::iequals(
+        if(grammar::ci_is_equal(
             it->name, name))
             break;
         ++it;
@@ -267,7 +266,7 @@ find(
     auto const last = end();
     while(from != last)
     {
-        if( bnf::iequals(
+        if( grammar::ci_is_equal(
             name, from->name))
             break;
         ++from;

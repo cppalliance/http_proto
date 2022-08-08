@@ -7,25 +7,18 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-// Test that header file is self-contained.
-#include <boost/http_proto/rfc/ows_rule.hpp>
+#ifndef BOOST_HTTP_PROTO_ERROR_CODE_HPP
+#define BOOST_HTTP_PROTO_ERROR_CODE_HPP
 
-#include "test_suite.hpp"
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/url/error_code.hpp>
 
 namespace boost {
 namespace http_proto {
 
-struct ows_rule_test
-{
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(
-    ows_rule_test,
-    "boost.http_proto.ows_rule");
+using namespace urls::error_types;
 
 } // http_proto
 } // boost
+
+#endif

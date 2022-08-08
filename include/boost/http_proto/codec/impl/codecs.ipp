@@ -12,8 +12,8 @@
 
 #include <boost/http_proto/codec/codecs.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/url/grammar/ci_string.hpp>
 #include <boost/container/map.hpp>
 //#include <boost/unordered_map.hpp> // doesn't support heterogenous lookup yet
 #include <string>
@@ -33,13 +33,13 @@ class codecs_impl
     boost::container::map<
         std::string,
         decoder_type*,
-        bnf::iless_pred
+        grammar::ci_less
             > decoders_;
 
     boost::container::map<
         std::string,
         encoder_type*,
-        bnf::iless_pred
+        grammar::ci_less
             > encoders_;
 public:
     using key_type = codecs;

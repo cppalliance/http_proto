@@ -42,44 +42,28 @@ public:
     }
 
     void
-    check(
-        char const* name,
-        error ev,
-        condition c)
-    {
-        check(name, ev);
-
-        error_code ec = ev;
-        BOOST_TEST(ec == c);
-    }
-
-    void
     run()
     {
         char const* const n = "boost.http.proto";
 
-        condition c;
+        check(n, error::end);
+        check(n, error::end_of_message);
+        check(n, error::end_of_stream);
 
-        c = condition::partial_success;
-        check(n, error::end, c);
-        check(n, error::end_of_message, c);
-        check(n, error::end_of_stream, c);
-
-        c = condition::syntax_error;
-        check(n, error::bad_content_length, c);
-        check(n, error::bad_field_name, c);
-        check(n, error::bad_field_value, c);
-        check(n, error::bad_line_ending, c);
-        check(n, error::bad_list, c);
-        check(n, error::bad_method, c);
-        check(n, error::bad_number, c);
-        check(n, error::bad_version, c);
-        check(n, error::bad_reason, c);
-        check(n, error::bad_request_target, c);
-        check(n, error::bad_status_code, c);
-        check(n, error::bad_status_line, c);
-        check(n, error::bad_transfer_encoding, c);
-        check(n, error::syntax, c);
+        check(n, error::bad_content_length);
+        check(n, error::bad_field_name);
+        check(n, error::bad_field_value);
+        check(n, error::bad_line_ending);
+        check(n, error::bad_list);
+        check(n, error::bad_method);
+        check(n, error::bad_number);
+        check(n, error::bad_version);
+        check(n, error::bad_reason);
+        check(n, error::bad_request_target);
+        check(n, error::bad_status_code);
+        check(n, error::bad_status_line);
+        check(n, error::bad_transfer_encoding);
+        check(n, error::syntax);
 
         check(n, error::body_too_large);
         check(n, error::field_too_large);
@@ -88,10 +72,6 @@ public:
         check(n, error::numeric_overflow);
 
         check(n, error::numeric_overflow);
-        BOOST_TEST(
-            make_error_code(
-                grammar::error::incomplete) ==
-            condition::need_more);
     }
 };
 

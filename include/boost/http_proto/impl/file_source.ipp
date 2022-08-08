@@ -29,7 +29,7 @@ file_source(
     std::uint64_t size) noexcept
     : f_(std::move(f))
     , buf_(new char[4096])
-    , pos_(offset)
+    //, pos_(offset)
     , remain_(size)
     , n_(0)
     , more_(size > 0)

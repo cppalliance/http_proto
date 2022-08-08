@@ -14,6 +14,8 @@
 
 #include "test_helpers.hpp"
 
+#include <string>
+
 namespace boost {
 namespace http_proto {
 
@@ -99,20 +101,21 @@ struct fields_view_test
 
         // find_all
         // make_list
+        std::string s;
         BOOST_TEST(
-            make_list(f.find_all("x")) ==
+            make_list(f.find_all("x"), s) ==
             "1,3,5");
         BOOST_TEST(
-            make_list(f.find_all("y")) ==
+            make_list(f.find_all("y"), s) ==
             "2");
         BOOST_TEST(
-            make_list(f.find_all("q")) == "");
+            make_list(f.find_all("q"), s) == "");
         BOOST_TEST(
             make_list(f.find_all(
-                field::user_agent)) == "boost");
+                field::user_agent), s) == "boost");
         BOOST_TEST(
             make_list(f.find_all(
-                field::set_cookie)) == "a,b");
+                field::set_cookie), s) == "a,b");
 
         // iterator
         BOOST_TEST(

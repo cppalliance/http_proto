@@ -50,6 +50,15 @@ using off_t = ::uint16_t; // private
 static constexpr auto max_off_t =
     BOOST_HTTP_PROTO_MAX_HEADER;
 
+// Add source location to error codes
+#ifdef BOOST_HTTP_PROTO_NO_SOURCE_LOCATION
+# define BOOST_HTTP_PROTO_RETURN_EC(ev) return (ev)
+#else
+# define BOOST_HTTP_PROTO_RETURN_EC(ev) \
+    static constexpr auto loc ## __LINE__(BOOST_CURRENT_LOCATION); \
+    return ::boost::system::error_code((ev), &loc ## __LINE__)
+#endif
+
 } // http_proto
 
 // lift grammar into our namespace

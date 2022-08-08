@@ -93,7 +93,7 @@ parse(
             it, end, qdtext);
         if(it == end)
         {
-            ec = grammar::error::incomplete;
+            ec = grammar::error::need_more;
             return;
         }
 
@@ -103,7 +103,7 @@ parse(
             ++it;
             if(it == end)
             {
-                ec = grammar::error::incomplete;
+                ec = grammar::error::need_more;
                 return;
             }
             if(! qpchars(*it))

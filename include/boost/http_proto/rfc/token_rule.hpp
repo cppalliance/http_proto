@@ -11,85 +11,44 @@
 #define BOOST_HTTP_PROTO_RFC_TOKEN_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error.hpp>
-#include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/rfc/charsets.hpp>
-#include <boost/url/grammar/charset.hpp>
-#include <boost/url/grammar/error.hpp>
-#include <boost/url/grammar/parse_tag.hpp>
+#include <boost/url/grammar/lut_chars.hpp>
+#include <boost/url/grammar/token_rule.hpp>
 
 namespace boost {
 namespace http_proto {
 
-/** Rule for token
+/** The set of token characters
 
     @par BNF
     @code
-    token           = 1*tchar
+    tchar       = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+                / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+                / DIGIT / ALPHA
+                ; any VCHAR, except delimiters
 
-    tchar           = "!" / "#" / "$" / "%" / "&" / "'"
-                    / "*" / "+" / "-" / "." / "^" / "_"
-                    / "`" / "|" / "~" / DIGIT / ALPHA
+    VCHAR       =  %x21-7E
     @endcode
 
     @par Specification
-    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6"
-        >3.2.6. Field Value Components (rfc7230)</a>
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.3"
+        >3.2.3. Whitespace (rfc7230)</a>
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc5234#appendix-B.1"
+        >B.1. Core Rules (rfc5234)</a>
 */
-struct token
-{
-    using value_type = string_view;
+constexpr grammar::lut_chars tchars =
+    "!#$%&'*+-.^_`|~"
+    "0123456789"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz";
 
-    string_view s;
+/** Match a token
 
-    string_view
-    operator*() const noexcept
-    {
-        return s;
-    }
-
-    friend
-    void
-    tag_invoke(
-        grammar::parse_tag const&,
-        char const*& it,
-        char const* end,
-        error_code& ec,
-        token& t) noexcept
-    {
-        parse(it, end, ec, t);
-    }
-
-private:
-    static
-    void
-    parse(
-        char const*& it,
-        char const* end,
-        error_code& ec,
-        token& t) noexcept
-    {
-        if(it == end)
-        {
-            ec = grammar::error::incomplete;
-            return;
-        }
-
-        auto const start = it;
-
-        it = grammar::find_if_not(
-            it, end, tchars);
-
-        if(it == start)
-        {
-            ec = grammar::error::syntax;
-            return;
-        }
-
-        t.s = string_view(
-            start, it - start);
-    }
-};
+    @par BNF
+    @code
+    token = 1*tchar
+    @endcode
+*/
+constexpr auto token_rule = grammar::token_rule( tchars );
 
 } // http_proto
 } // boost

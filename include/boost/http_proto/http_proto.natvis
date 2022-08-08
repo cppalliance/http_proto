@@ -1,80 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="boost::http_proto::fields">
-    <DisplayString>[{h_.count}]</DisplayString>
-    <Expand>
-      <CustomListItems>
-        <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
-        <Loop>
-          <Break Condition="i == this->h_.count"/>
-          <Item Name="[{i}]">
-            h_.buf + h_.prefix + ft[-1-i].np,
-            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
-          </Item>
-          <Exec>i++</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::request">
-    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
-    <Expand>
-      <CustomListItems>
-        <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
-        <Loop>
-          <Break Condition="i == this->h_.count"/>
-          <Item Name="[{i}]">
-            h_.buf + h_.prefix + ft[-1-i].np,
-            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
-          </Item>
-          <Exec>i++</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::response">
-    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
-    <Expand>
-      <CustomListItems>
-        <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
-        <Loop>
-          <Break Condition="i == this->h_.count"/>
-          <Item Name="[{i}]">
-            h_.buf + h_.prefix + ft[-1-i].np,
-            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
-          </Item>
-          <Exec>i++</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>
-
-<!--
-  <Type Name="boost::http_proto::fields_view_base">
-    <DisplayString>{h_.cbuf,[h_.prefix]s} [{h_.count}]</DisplayString>
-    <Expand>
-      <CustomListItems>
-        <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(h_.cbuf + h_.cap))"/>
-        <Loop>
-          <Break Condition="i == this->h_.count"/>
-          <Item Name="[{i}]">
-            h_.buf+h_.prefix+ft[-1-i].np,
-            [ft[-1-i].vp + ft[-1-i].vn - ft[-1-i].np]s
-          </Item>
-          <Exec>i++</Exec>
-        </Loop>
-      </CustomListItems>
-    </Expand>
-  </Type>
--->
-
   <Type Name="boost::http_proto::detail::header">
     <DisplayString>{cbuf,[prefix]s} [{count}]</DisplayString>
     <Expand>
@@ -91,6 +17,48 @@
         </Loop>
       </CustomListItems>
     </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::fields">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::request">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::response">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::fields_view">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::request_view">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::response_view">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
   </Type>
 
   <Type Name="boost::http_proto::parser">

@@ -8,25 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/bnf/range.hpp>
-
-#include "test_suite.hpp"
-
-namespace boost {
-namespace http_proto {
-namespace bnf {
-
-class range_test
-{
-public:
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(range_test, "boost.http_proto.range");
-
-} // bnf
-} // http_proto
-} // boost
+#include <boost/http_proto/error_code.hpp>

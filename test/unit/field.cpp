@@ -10,8 +10,8 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/field.hpp>
 
-#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/http_proto/detail/sv.hpp>
+#include <boost/url/grammar/ci_string.hpp>
 
 #include "test_suite.hpp"
 
@@ -27,7 +27,8 @@ public:
         auto const match =
             [&](field f, string_view s)
             {
-                BOOST_TEST(bnf::iequals(to_string(f), s));
+                BOOST_TEST(grammar::ci_is_equal(
+                    to_string(f), s));
                 BOOST_TEST(string_to_field(s) == f);
             };
 

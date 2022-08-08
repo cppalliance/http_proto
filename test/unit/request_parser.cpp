@@ -48,7 +48,7 @@ public:
                 || ! ec)
                 break;
             if(! BOOST_TEST(
-                ec == grammar::error::incomplete))
+                ec == grammar::error::need_more))
             {
                 test_suite::debug_stream dout(
                     std::cout);
@@ -78,7 +78,7 @@ public:
             error_code ec;
             p.commit(n, ec);
             s.remove_prefix(n);
-            if(ec == grammar::error::incomplete)
+            if(ec == grammar::error::need_more)
                 continue;
             auto const es = ec.message();
             return ! ec.failed();
@@ -152,7 +152,7 @@ public:
                 b.data(), s.data(), n);
             p.commit(n, ec);
             if(! BOOST_TEST(
-                ec == grammar::error::incomplete))
+                ec == grammar::error::need_more))
                 continue;
             // second buffer
             b = *p.prepare().begin();
@@ -290,12 +290,13 @@ public:
                 field::connection);
         BOOST_TEST(
             rv.find("a")->value == "1");
+        std::string tmp;
         BOOST_TEST(make_list(rv.find_all(
-            field::user_agent)) == "x");
+            field::user_agent), tmp) == "x");
         BOOST_TEST(make_list(rv.find_all(
-            "b")) == "2");
+            "b"), tmp) == "2");
         BOOST_TEST(make_list(rv.find_all(
-            "a")) == "1,3");
+            "a"), tmp) == "1,3");
     }
 
     void

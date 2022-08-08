@@ -11,8 +11,6 @@
 #define BOOST_HTTP_PROTO_IMPL_RESPONSE_PARSER_IPP
 
 #include <boost/http_proto/response_parser.hpp>
-#include <boost/http_proto/rfc/charsets.hpp>
-#include <boost/http_proto/rfc/status_line_rule.hpp>
 
 namespace boost {
 namespace http_proto {

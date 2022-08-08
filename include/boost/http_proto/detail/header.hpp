@@ -42,8 +42,42 @@ struct header
     // stored at the end of the
     // allocated buffer, in
     // reverse order.
-    struct entry;
-    struct table;
+    struct entry
+    {
+        off_t np;   // name pos
+        off_t nn;   // name size
+        off_t vp;   // value pos
+        off_t vn;   // value size
+        field id;
+
+        entry operator+(
+            std::size_t dv) const noexcept;
+        entry operator-(
+            std::size_t dv) const noexcept;
+    };
+
+    struct table
+    {
+        explicit
+        table(
+            void* end) noexcept
+            : p_(reinterpret_cast<
+                entry*>(end))
+        {
+        }
+
+        entry&
+        operator[](
+            std::size_t i) const noexcept
+        {
+            return p_[-1 * (
+                static_cast<
+                    long>(i) + 1)];
+        }
+
+    private:
+        entry* p_;
+    };
 
     detail::kind kind;
     char const* cbuf = nullptr;

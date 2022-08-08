@@ -12,14 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/bnf/chunk_part.hpp>
-#include <boost/http_proto/bnf/connection.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/bnf/list.hpp>
-#include <boost/http_proto/bnf/number.hpp>
-#include <boost/http_proto/bnf/range.hpp>
-#include <boost/http_proto/bnf/transfer_encoding.hpp>
-#include <boost/http_proto/rfc/field_rule.hpp>
+#include <boost/url/grammar/ci_string.hpp>
 #include <boost/assert.hpp>
 #include <boost/none.hpp>
 #include <memory>
@@ -269,7 +262,7 @@ parse_start_line(
     detail::parse_start_line(
         h_, new_size, ec);
     if(ec ==
-        grammar::error::incomplete)
+        grammar::error::need_more)
     {
         if( new_size <
             cfg_.max_header_size)
@@ -297,7 +290,7 @@ parse_fields(
         auto const size0 = h_.size;
         auto got_one = detail::parse_field(
             h_, new_size, id, v, ec);
-        if(ec == grammar::error::incomplete)
+        if(ec == grammar::error::need_more)
         {
             if(new_size >=
                     cfg_.max_header_size)
@@ -425,10 +418,10 @@ return;
         {
             if(! got_eof_)
             {
-                ec = grammar::error::incomplete;
+                ec = grammar::error::need_more;
                 return;
             }
-            ec = error::incomplete;
+            ec = error::need_more;
             return;
         }
         if( avail > m_.n_remain)
@@ -468,7 +461,7 @@ return;
         }
         if(! got_eof_)
         {
-            ec = grammar::error::incomplete;
+            ec = grammar::error::need_more;
             return;
         }
         state_ = state::complete;
@@ -592,21 +585,23 @@ do_connection(
 {
     (void)ec;
 
+#if 0
     for(auto v : bnf::range<bnf::connection>(s))
     {
-        if(bnf::iequals(v, "close"))
+        if(grammar::ci_is_equal(v, "close"))
         {
             m_.got_close = true;
         }
-        else if(bnf::iequals(v, "keep-alive"))
+        else if(grammar::ci_is_equal(v, "keep-alive"))
         {
             m_.got_keep_alive = true;
         }
-        else if(bnf::iequals(v, "upgrade"))
+        else if(grammar::ci_is_equal(v, "upgrade"))
         {
             m_.got_upgrade = true;
         }
     }
+#endif
 }
 
 void
@@ -615,6 +610,7 @@ do_content_length(
     string_view s,
     error_code& ec)
 {
+#if 0
     // https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
     // Content-Length can be a comma separated
     // list, with all the same values, as well
@@ -666,6 +662,7 @@ do_content_length(
     }
     if(! m_.skip_body)
         m_.n_remain = *m_.content_len;
+#endif
 }
 
 void
@@ -673,6 +670,7 @@ parser::
 do_transfer_encoding(
     string_view s, error_code& ec)
 {
+#if 0
     using namespace detail::string_literals;
 
     bnf::range<bnf::transfer_encoding> te(s);
@@ -694,12 +692,13 @@ do_transfer_encoding(
         auto prev = it++;
         if(it == end)
         {
-            if(bnf::iequals(
+            if(grammar::ci_is_equal(
                 prev->name, "chunked"))
                 m_.got_chunked = true;
             break;
         }
     }
+#endif
 }
 
 void

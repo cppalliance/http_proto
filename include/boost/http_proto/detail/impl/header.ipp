@@ -12,51 +12,16 @@
 
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
-#include <boost/http_proto/rfc/digits_rule.hpp>
+#include <boost/http_proto/rfc/detail/rules.hpp>
+#include <boost/url/grammar/ci_string.hpp>
+#include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/unsigned_rule.hpp>
 #include <boost/assert.hpp>
 #include <utility>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
-
-struct header::entry
-{
-    off_t np;   // name pos
-    off_t nn;   // name size
-    off_t vp;   // value pos
-    off_t vn;   // value size
-    field id;
-
-    entry operator+(
-        std::size_t dv) const noexcept;
-    entry operator-(
-        std::size_t dv) const noexcept;
-};
-
-struct header::table
-{
-    explicit
-    table(
-        void* end) noexcept
-        : p_(reinterpret_cast<
-            entry*>(end))
-    {
-    }
-
-    entry&
-    operator[](
-        std::size_t i) const noexcept
-    {
-        return p_[-1 * (
-            static_cast<
-                long>(i) + 1)];
-    }
-
-private:
-    entry* p_;
-};
 
 //------------------------------------------------
 
@@ -233,7 +198,7 @@ find(
         string_view s(
             cbuf + prefix + p->np,
             p->nn);
-        if(bnf::iequals(s, name))
+        if(grammar::ci_is_equal(s, name))
             break;
         ++i;
         --p;
@@ -397,23 +362,22 @@ on_insert(
     case field::content_length:
     {
         ++cl.count;
-        error_code ec;
-        digits_rule t;
-        grammar::parse_string(v, ec, t);
-        if( ! ec.failed() &&
-            ! t.overflow)
+        auto rv = grammar::parse(v,
+            grammar::unsigned_rule<
+                std::uint64_t>{});
+        if(rv.has_value())
         {
             if(cl.count == 1)
             {
                 // first one
-                cl.value = t.v;
+                cl.value = *rv;
                 cl.has_value = true;
                 return;
             }
 
             if(cl.has_value)
             {
-                if(t.v == cl.value)
+                if(*rv == cl.value)
                 {
                     // matching dupe is ok
                     return;
@@ -468,41 +432,72 @@ parse_start_line(
     // request
     if(h.kind == detail::kind::request)
     {
-        request_line_rule t;
-        if(grammar::parse(it, end, ec, t))
+        auto rv = grammar::parse(
+            it, end, request_line_rule);
+        if(rv.has_value())
         {
-            h.version = t.v;
-            h.req.method = t.m;
+            switch(std::get<2>(*rv))
+            {
+            case 10:
+                h.version = version::http_1_0;
+                break;
+            case 11:
+                h.version = version::http_1_1;
+                break;
+            default:
+                ec = error::bad_version;
+                return;
+            }
+            auto sm = std::get<0>(*rv);
+            auto st = std::get<1>(*rv);
+            h.req.method = string_to_method(sm);
             h.req.method_len = static_cast<
-                off_t>(t.ms.size());
+                off_t>(sm.size());
             h.req.target_len = static_cast<
-                off_t>(t.t.size());
+                off_t>(st.size());
             h.prefix = static_cast<
                 off_t>(it - it0);
             h.size = h.prefix;
+            ec = {};
             return;
         }
-        if(ec == grammar::error::incomplete)
+        if(rv == grammar::error::need_more)
+        {
+            ec = rv.error();
             return;
+        }
+        ec = rv.error();
         return;
     }
 
     // response
     BOOST_ASSERT(h.kind ==
         detail::kind::response);
-    status_line_rule t;
-    if(grammar::parse(it, end, ec, t))
+    auto rv = grammar::parse(
+        it, end, status_line_rule);
+    if(rv.has_value())
     {
-        h.version = t.v;
-        h.res.status_int = t.status_int;
-        h.res.status =
-            int_to_status(t.status_int);
+        switch(std::get<0>(*rv))
+        {
+        case 10:
+            h.version = version::http_1_0;
+            break;
+        case 11:
+            h.version = version::http_1_1;
+            break;
+        default:
+            ec = error::bad_version;
+            return;
+        }
+        h.res.status_int = static_cast<
+            unsigned short>(std::get<1>(*rv).v);
+        h.res.status = std::get<1>(*rv).st;
         h.prefix = static_cast<
             off_t>(it - it0);
         h.size = h.prefix;
         return;
     }
-    if(ec == grammar::error::incomplete)
+    if(ec == grammar::error::need_more)
         return;
 }
 
@@ -518,11 +513,12 @@ parse_field(
     auto const it0 = h.cbuf + h.size;
     auto const end = h.cbuf + new_size;
     char const* it = it0;
-    field_rule t;
-    grammar::parse(it, end , ec, t);
-    if(ec.failed())
+    auto rv = grammar::parse(
+        it, end, field_rule);
+    if(rv.has_error())
     {
-        if(ec == grammar::error::end)
+        ec = rv.error();
+        if(ec == grammar::error::range_end)
         {
             // final CRLF
             ec.clear();
@@ -531,14 +527,14 @@ parse_field(
         }
         return false;
     }
-    if(t.v.has_obs_fold)
+    if(rv->has_obs_fold)
     {
         // obs fold not allowed in test views
         BOOST_ASSERT(h.buf != nullptr);
         remove_obs_fold(h.buf + h.size, it);
     }
-    v = t.v.value;
-    id = string_to_field(t.v.name);
+    v = rv->value;
+    id = string_to_field(rv->name);
     h.size = static_cast<off_t>(
         it - h.cbuf);
 
@@ -550,13 +546,13 @@ parse_field(
         auto const base =
             h.buf + h.prefix;
         e.np = static_cast<off_t>(
-            t.v.name.data() - base);
+            rv->name.data() - base);
         e.nn = static_cast<off_t>(
-            t.v.name.size());
+            rv->name.size());
         e.vp = static_cast<off_t>(
-            t.v.value.data() - base);
+            rv->value.data() - base);
         e.vn = static_cast<off_t>(
-            t.v.value.size());
+            rv->value.size());
         e.id = id;
 
     #if 0

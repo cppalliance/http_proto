@@ -10,6 +10,15 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 #define BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 
-//#include <type_traits>
+namespace boost {
+namespace http_proto {
+
+BOOST_HTTP_PROTO_DECL
+error_code
+make_error_code(
+    error ev) noexcept;
+
+} // http_proto
+} // boost
 
 #endif

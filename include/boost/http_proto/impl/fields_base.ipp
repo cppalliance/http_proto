@@ -15,7 +15,6 @@
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/number_string.hpp>
-#include <boost/http_proto/bnf/ctype.hpp>
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <string>
@@ -479,7 +478,7 @@ raw_erase_all(
     e = &h_.tab()[i];
     while(i != i0)
     {
-        if(bnf::iequals(
+        if(grammar::ci_is_equal(
             string_view(
                 p + e->np, e->nn),
             name))

@@ -7,25 +7,22 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-// Test that header file is self-contained.
-#include <boost/http_proto/rfc/crlf_rule.hpp>
+#ifndef BOOST_HTTP_PROTO_RESULT_HPP
+#define BOOST_HTTP_PROTO_RESULT_HPP
 
-#include "test_suite.hpp"
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/error_code.hpp>
+#include <boost/url/result.hpp>
 
 namespace boost {
 namespace http_proto {
 
-struct crlf_rule_test
-{
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(
-    crlf_rule_test,
-    "boost.http_proto.crlf_rule");
+/** The type of result used by the library
+*/
+template<class T>
+using result = urls::result<T>;
 
 } // http_proto
 } // boost
+
+#endif
