@@ -11,11 +11,11 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
-#include <boost/http_proto/error.hpp>
-#include <boost/http_proto/filter.hpp>
+#include <boost/http_proto/error_types.hpp>
+#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
 #include <cstdint>
 #include <type_traits>
 
@@ -38,22 +38,13 @@ class response_view;
 class BOOST_SYMBOL_VISIBLE
     serializer
 {
-    char* buf_;
-    std::size_t cap_;
-    detail::header const* h_ = nullptr;
-    detail::header h_copy_;
-    asio::const_buffer cb_;
-    source* ps_ = nullptr;
-
 public:
-    using const_buffers_type =
-        const_buffers;
-
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL
     ~serializer();
 
+    BOOST_HTTP_PROTO_DECL
     explicit
     serializer(
         std::size_t buffer_size);
@@ -95,8 +86,9 @@ public:
     is_complete() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    const_buffers
-    prepare(error_code& ec);
+    auto
+    prepare() ->
+        result<const_buffers>;
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -108,6 +100,12 @@ private:
 
     template<class Body, class... Args>
     Body& set_body_impl(Args&&...);
+
+    detail::workspace ws_;
+    detail::header const* h_ = nullptr;
+    detail::header h_copy_;
+    source* src_ = nullptr;
+    const_buffer bs_[8];
 };
 
 //------------------------------------------------

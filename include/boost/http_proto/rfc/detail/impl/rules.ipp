@@ -24,34 +24,17 @@ parse(
     char const* end) const noexcept ->
         result<value_type>
 {
-    switch(end - it)
-    {
-    case 0:
-    {
-        BOOST_HTTP_PROTO_RETURN_EC(
-            grammar::error::need_more);
-    }
-    case 1:
-    {
-        if(it[0] == '\r')
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::need_more);
-        }
-        BOOST_HTTP_PROTO_RETURN_EC(
-            grammar::error::mismatch);
-    }
-    default:
-        break;
-    }
-    if( it[0] == '\r' &&
-        it[1] == '\n')
-    {
-        it += 2;
-        return {};
-    }
-    BOOST_HTTP_PROTO_RETURN_EC(
-        grammar::error::mismatch);
+    if(it == end)
+        return grammar::error::need_more;
+    if(*it != '\r')
+        return grammar::error::mismatch;
+    ++it;
+    if(it == end)
+        return grammar::error::need_more;
+    if(*it != '\n')
+        return grammar::error::mismatch;
+    ++it;
+    return {};
 }
 
 //------------------------------------------------

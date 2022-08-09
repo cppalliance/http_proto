@@ -64,7 +64,8 @@ file_win32::
 }
 
 file_win32::
-file_win32(file_win32&& other)
+file_win32(
+    file_win32&& other) noexcept
     : h_(boost::exchange(other.h_,
         boost::winapi::INVALID_HANDLE_VALUE_))
 {
@@ -72,7 +73,8 @@ file_win32(file_win32&& other)
 
 file_win32&
 file_win32::
-operator=(file_win32&& other)
+operator=(
+    file_win32&& other) noexcept
 {
     if(&other == this)
         return *this;

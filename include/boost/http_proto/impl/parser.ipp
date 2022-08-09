@@ -584,7 +584,7 @@ do_connection(
     string_view s, error_code& ec)
 {
     (void)ec;
-
+    (void)s;
 #if 0
     for(auto v : bnf::range<bnf::connection>(s))
     {
@@ -610,6 +610,8 @@ do_content_length(
     string_view s,
     error_code& ec)
 {
+    (void)ec;
+    (void)s;
 #if 0
     // https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
     // Content-Length can be a comma separated
@@ -670,6 +672,8 @@ parser::
 do_transfer_encoding(
     string_view s, error_code& ec)
 {
+    (void)s;
+    (void)ec;
 #if 0
     using namespace detail::string_literals;
 

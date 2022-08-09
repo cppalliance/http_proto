@@ -18,44 +18,35 @@ namespace boost {
 namespace http_proto {
 
 template<
-    class Body,
+    class Source,
     class... Args>
-Body&
+Source&
 serializer::
 set_body_impl(
     Args&&... args)
 {
-    // Body must be derived from source
-    BOOST_STATIC_ASSERT(
-        std::is_base_of<source, Body>::value);
-
-    auto const Align = alignof(Body);
-    auto const buf = reinterpret_cast<
-        std::uintptr_t>(buf_);
-    auto p = (buf + cap_ - sizeof(Body)
-        ) & ~(Align - 1);
-    if(p < buf)
-        detail::throw_length_error(
-            "set_body_impl",
-            BOOST_CURRENT_LOCATION);
-    auto& body = *new(reinterpret_cast<void*>(p)
-        ) Body(std::forward<Args>(args)...);
-    ps_ = &body;
-    return body;
+    static_assert(
+        std::is_base_of<
+            source, Source>::value,
+        "Type requirements not met");
+    auto& src = detail::push<Source>(ws_,
+        std::forward<Args>(args)...);
+    src_ = &src;
+    return src;
 }
 
 //------------------------------------------------
 
 template<
-    class Body,
+    class Source,
     class... Args>
-Body&
+Source&
 set_body(
     serializer& sr,
     Args&&... args)
 {
     return
-        sr.template set_body_impl<Body>(
+        sr.template set_body_impl<Source>(
             std::forward<Args>(args)...);
 }
 

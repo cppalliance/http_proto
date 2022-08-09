@@ -7,29 +7,18 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-// Test that header file is self-contained.
-#include <boost/http_proto/filter.hpp>
+#ifndef BOOST_HTTP_PROTO_IMPL_SOURCE_IPP
+#define BOOST_HTTP_PROTO_IMPL_SOURCE_IPP
 
-#include <boost/http_proto/string_view.hpp>
-
-#include "test_suite.hpp"
+#include <boost/http_proto/source.hpp>
 
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
-
-struct filter_test
-{
-    void
-    run()
-    {
-    }
-};
-
-TEST_SUITE(
-    filter_test,
-    "boost.http.proto.filter");
+source::
+~source() = default;
 
 } // http_proto
 } // boost
+
+#endif

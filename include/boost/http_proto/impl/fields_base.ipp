@@ -15,6 +15,7 @@
 #include <boost/http_proto/detail/copied_strings.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/number_string.hpp>
+#include <boost/http_proto/detail/move_chars.hpp>
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <string>
@@ -77,10 +78,11 @@ reserve(std::size_t n)
         detail::throw_length_error(
             " n > max off_t",
             BOOST_CURRENT_LOCATION);
-    // align up
-    n = detail::buffer_needed(n, 0);
+    n = detail::buffer_needed(
+        n, h_.count);
     if(n <= h_.cap)
         return;
+    // VFALCO What about alignment?
     auto buf = new char[n];
     if(h_.cap > 0)
     {
@@ -250,17 +252,6 @@ set(
 }
 
 //------------------------------------------------
-
-void
-fields_base::
-set_content_length(
-    std::uint64_t n)
-{
-    detail::number_string s(n);
-    set(field::content_length, s.str());
-}
-
-//------------------------------------------------
 //
 // (implementation)
 //
@@ -314,100 +305,6 @@ copy_impl(
     tmp.h_.swap(h_);
 }
 
-char*
-fields_base::
-set_prefix_impl(
-    std::size_t n)
-{
-    if( n > h_.prefix ||
-        h_.buf == nullptr)
-    {
-        // allocate or grow
-        if( n > h_.prefix &&
-            static_cast<std::size_t>(
-                n - h_.prefix) >
-            static_cast<std::size_t>(
-                max_off_t - h_.size))
-            detail::throw_length_error(
-                "too large",
-                BOOST_CURRENT_LOCATION);
-        auto n0 = detail::buffer_needed(
-            n + h_.size - h_.prefix,
-            h_.count);
-        auto buf = new char[n0];
-        if(h_.buf != nullptr)
-        {
-            std::memcpy(
-                buf + n,
-                h_.buf + h_.prefix,
-                h_.size - h_.prefix);
-            detail::header::table ft(
-                h_.buf + h_.cap);
-            h_.copy_table(buf + n0);
-            delete[] h_.buf;
-        }
-        else
-        {
-            std::memcpy(
-                buf + n,
-                h_.cbuf + h_.prefix,
-                h_.size - h_.prefix);
-        }
-        h_.buf = buf;
-        h_.cbuf = buf;
-        h_.size = static_cast<
-            off_t>(h_.size +
-                n - h_.prefix);
-        h_.prefix = static_cast<
-            off_t>(n);
-        h_.cap = n0;
-        return h_.buf;
-    }
-
-    // shrink
-    std::memmove(
-        h_.buf + n,
-        h_.buf + h_.prefix,
-        h_.size - h_.prefix);
-    h_.size = static_cast<
-        off_t>(h_.size -
-            h_.prefix + n);
-    h_.prefix = static_cast<
-        off_t>(n);
-    return h_.buf;
-}
-
-void
-fields_base::
-set_content_length_impl(
-    std::uint64_t n)
-{
-    set(field::content_length,
-        detail::number_string(n));
-}
-
-void
-fields_base::
-set_chunked_impl(bool value)
-{
-    if(value)
-    {
-        // set chunked
-        if(h_.te.chunked_count == 0)
-        {
-            append(
-                field::transfer_encoding,
-                "chunked");
-            return;
-        }
-    }
-    else
-    {
-        // clear chunked
-
-    }
-}
-
 //------------------------------------------------
 
 // return i-th field absolute offset
@@ -437,61 +334,10 @@ length(
 }
 
 //------------------------------------------------
-
-// erase i, without updating metadata
-void
-fields_base::
-raw_erase(
-    std::size_t i) noexcept
-{
-    BOOST_ASSERT(i < h_.count);
-    BOOST_ASSERT(h_.buf != nullptr);
-    auto ft = h_.tab();
-    auto const p0 = offset(ft, i);
-    auto const p1 = offset(ft, i + 1);
-    std::memmove(
-        h_.buf + p0,
-        h_.buf + p1,
-        h_.size - p1);
-    auto const n = p1 - p0;
-    --h_.count;
-    for(;i < h_.count; ++i)
-        ft[i] = ft[i + 1] - n;
-    h_.size = static_cast<
-        off_t>(h_.size - n);
-}
-
-// erase fields matching i0
-// name, without updating metadata.
-std::size_t
-fields_base::
-raw_erase_all(
-    std::size_t i0) noexcept
-{
-    std::size_t n = 1;
-    auto const* e = &h_.tab()[i0];
-    auto const p = h_.buf + h_.prefix;
-    auto const name = string_view(
-        p + e->np, e->nn);
-    // backwards to reduce memmoves
-    std::size_t i = h_.count - 1;
-    e = &h_.tab()[i];
-    while(i != i0)
-    {
-        if(grammar::ci_is_equal(
-            string_view(
-                p + e->np, e->nn),
-            name))
-        {
-            raw_erase(i);
-            ++n;
-        }
-        --i;
-        ++e;
-    }
-    raw_erase(i0);
-    return n;
-}
+//
+// raw implementation
+//
+//------------------------------------------------
 
 // insert without updating metadata
 void
@@ -508,9 +354,7 @@ raw_insert(
         value.size() + 2;
     auto const n1 = h_.size + n0;
     if(n1 > max_off_t)
-        detail::throw_length_error(
-            "too large",
-            BOOST_CURRENT_LOCATION);
+        detail::throw_length_error();
     auto const n =
         detail::buffer_needed(
             n1, h_.count + 1);
@@ -518,18 +362,16 @@ raw_insert(
     {
         // no reallocation
         BOOST_ASSERT(h_.buf != nullptr);
-        detail::copied_strings cs(
-            string_view(h_.cbuf, h_.size));
-        name = cs.maybe_copy(name);
-        value = cs.maybe_copy(value);
         detail::header::table ft(
             h_.buf + h_.cap);
         auto pos = offset(ft, before);
         char* dest = h_.buf + pos;
-        std::memmove(
+        detail::move_chars(
             dest + n0,
             dest,
-            h_.size - pos);
+            h_.size - pos,
+            name,
+            value);
         name.copy(dest, name.size());
         dest += name.size();
         *dest++ = ':';
@@ -646,10 +488,8 @@ raw_insert(
         dest += value.size();
         *dest++ = '\r';
         *dest++ = '\n';
-
         *dest++ = '\r';
         *dest++ = '\n';
-
         // write table
         auto& e = h_.tab()[before];
         e.id = id;
@@ -661,6 +501,61 @@ raw_insert(
         e.vn = static_cast<
             off_t>(value.size());
     }
+}
+
+// erase i, without updating metadata
+void
+fields_base::
+raw_erase(
+    std::size_t i) noexcept
+{
+    BOOST_ASSERT(i < h_.count);
+    BOOST_ASSERT(h_.buf != nullptr);
+    auto ft = h_.tab();
+    auto const p0 = offset(ft, i);
+    auto const p1 = offset(ft, i + 1);
+    std::memmove(
+        h_.buf + p0,
+        h_.buf + p1,
+        h_.size - p1);
+    auto const n = p1 - p0;
+    --h_.count;
+    for(;i < h_.count; ++i)
+        ft[i] = ft[i + 1] - n;
+    h_.size = static_cast<
+        off_t>(h_.size - n);
+}
+
+// erase fields matching i0
+// name, without updating metadata.
+std::size_t
+fields_base::
+raw_erase_all(
+    std::size_t i0) noexcept
+{
+    std::size_t n = 1;
+    auto const* e = &h_.tab()[i0];
+    auto const p = h_.buf + h_.prefix;
+    auto const name = string_view(
+        p + e->np, e->nn);
+    // backwards to reduce memmoves
+    std::size_t i = h_.count - 1;
+    e = &h_.tab()[i];
+    while(i != i0)
+    {
+        if(grammar::ci_is_equal(
+            string_view(
+                p + e->np, e->nn),
+            name))
+        {
+            raw_erase(i);
+            ++n;
+        }
+        --i;
+        ++e;
+    }
+    raw_erase(i0);
+    return n;
 }
 
 // unconditionally set i-th field,
@@ -825,6 +720,128 @@ insert_impl(
     }
     raw_insert(
         id, name, value, before);
+}
+
+//------------------------------------------------
+//
+// Metadata
+//
+//------------------------------------------------
+
+void
+message_base::
+set_payload_size(
+    std::uint64_t n)
+{
+    h_.pay.kind = payload::sized;
+    h_.pay.size = n;
+
+    //if(! is_head_response())
+    if(true)
+    {
+        // comes first for exception safety
+        set_content_length(n);
+
+        set_chunked(false);
+    }
+    else
+    {
+        // VFALCO ?
+    }
+}
+
+void
+message_base::
+set_content_length(
+    std::uint64_t n)
+{
+    set(field::content_length,
+        detail::number_string(n));
+}
+
+char*
+message_base::
+set_prefix_impl(
+    std::size_t n)
+{
+    if( n > h_.prefix ||
+        h_.buf == nullptr)
+    {
+        // allocate or grow
+        if( n > h_.prefix &&
+            static_cast<std::size_t>(
+                n - h_.prefix) >
+            static_cast<std::size_t>(
+                max_off_t - h_.size))
+            detail::throw_length_error(
+                "too large",
+                BOOST_CURRENT_LOCATION);
+        auto n0 = detail::buffer_needed(
+            n + h_.size - h_.prefix,
+            h_.count);
+        auto buf = new char[n0];
+        if(h_.buf != nullptr)
+        {
+            std::memcpy(
+                buf + n,
+                h_.buf + h_.prefix,
+                h_.size - h_.prefix);
+            detail::header::table ft(
+                h_.buf + h_.cap);
+            h_.copy_table(buf + n0);
+            delete[] h_.buf;
+        }
+        else
+        {
+            std::memcpy(
+                buf + n,
+                h_.cbuf + h_.prefix,
+                h_.size - h_.prefix);
+        }
+        h_.buf = buf;
+        h_.cbuf = buf;
+        h_.size = static_cast<
+            off_t>(h_.size +
+                n - h_.prefix);
+        h_.prefix = static_cast<
+            off_t>(n);
+        h_.cap = n0;
+        return h_.buf;
+    }
+
+    // shrink
+    std::memmove(
+        h_.buf + n,
+        h_.buf + h_.prefix,
+        h_.size - h_.prefix);
+    h_.size = static_cast<
+        off_t>(h_.size -
+            h_.prefix + n);
+    h_.prefix = static_cast<
+        off_t>(n);
+    return h_.buf;
+}
+
+void
+message_base::
+set_chunked_impl(bool value)
+{
+    if(value)
+    {
+        // set chunked
+        if(h_.te.chunked_count == 0)
+        {
+            append(
+                field::transfer_encoding,
+                "chunked");
+            return;
+        }
+    }
+    else
+    {
+        // clear chunked
+
+    }
 }
 
 } // http_proto

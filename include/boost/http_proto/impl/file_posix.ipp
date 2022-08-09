@@ -77,14 +77,16 @@ file_posix::
 }
 
 file_posix::
-file_posix(file_posix&& other)
+file_posix(
+    file_posix&& other) noexcept
     : fd_(boost::exchange(other.fd_, -1))
 {
 }
 
 file_posix&
 file_posix::
-operator=(file_posix&& other)
+operator=(
+    file_posix&& other) noexcept
 {
     if(&other == this)
         return *this;

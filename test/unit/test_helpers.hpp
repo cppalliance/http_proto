@@ -10,7 +10,9 @@
 #ifndef BOOST_HTTP_PROTO_TEST_HELPERS_HPP
 #define BOOST_HTTP_PROTO_TEST_HELPERS_HPP
 
-#include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/fields.hpp>
+#include <boost/http_proto/request.hpp>
+#include <boost/http_proto/response.hpp>
 
 #include "test_suite.hpp"
 
@@ -19,9 +21,6 @@
 
 namespace boost {
 namespace http_proto {
-
-class fields;
-class fields_view_base;
 
 //------------------------------------------------
 
@@ -154,16 +153,16 @@ end() const noexcept ->
 
 //------------------------------------------------
 
-// Create fields from HTTP string
-fields
-make_fields(
-    string_view s);
-
 // Test that fields equals HTTP string
 void
 test_fields(
     fields_view_base const& f,
     string_view match);
+
+fields make_fields(string_view s);
+request make_request(string_view s);
+response make_response(string_view s);
+
 
 } // http_proto
 } // boost

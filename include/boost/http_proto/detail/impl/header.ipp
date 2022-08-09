@@ -276,7 +276,10 @@ swap(header& h) noexcept
 }
 
 //------------------------------------------------
-
+//
+// Metadata
+//
+//------------------------------------------------
 // update metadata for
 // one field id erased
 void
@@ -287,17 +290,22 @@ on_erase(field id) noexcept
         return;
     switch(id)
     {
+    case field::connection:
+    {
+        //auto rv = grammar::parse(
+        break;
+    }
     case field::content_length:
     {
-        BOOST_ASSERT(cl.count > 0);
-        if(cl.count == 1)
+        BOOST_ASSERT(clen.count > 0);
+        if(clen.count == 1)
         {
             // no more Content-Length
-            cl = {};
+            clen = {};
             return;
         }
-        --cl.count;
-        if(cl.has_value)
+        --clen.count;
+        if(clen.has_value)
         {
             // don't scan, remaining
             // Content-Length are same
@@ -306,8 +314,8 @@ on_erase(field id) noexcept
         // scan all Content-Length
         auto const p = cbuf + prefix;
         auto const* e = &tab()[0];
-        std::size_t n = cl.count;
-        cl = {};
+        std::size_t n = clen.count;
+        clen = {};
         while(n > 0)
         {
             if(e->id == id)
@@ -337,8 +345,12 @@ on_erase_all(
         return;
     switch(id)
     {
+    case field::connection:
+        con = {};
+        return;
+
     case field::content_length:
-        cl = {};
+        clen = {};
         return;
 
     default:
@@ -361,23 +373,23 @@ on_insert(
     {
     case field::content_length:
     {
-        ++cl.count;
+        ++clen.count;
         auto rv = grammar::parse(v,
             grammar::unsigned_rule<
                 std::uint64_t>{});
         if(rv.has_value())
         {
-            if(cl.count == 1)
+            if(clen.count == 1)
             {
                 // first one
-                cl.value = *rv;
-                cl.has_value = true;
+                clen.value = *rv;
+                clen.has_value = true;
                 return;
             }
 
-            if(cl.has_value)
+            if(clen.has_value)
             {
-                if(*rv == cl.value)
+                if(*rv == clen.value)
                 {
                     // matching dupe is ok
                     return;
@@ -388,14 +400,14 @@ on_insert(
             else
             {
                 BOOST_ASSERT(
-                    cl.value == 0);
+                    clen.value == 0);
                 return;
             }
         }
 
         // overflow or parse error
-        cl.value = 0;
-        cl.has_value = false;
+        clen.value = 0;
+        clen.has_value = false;
         return;
     }
 
@@ -409,7 +421,192 @@ on_insert(
     }
 }
 
+
+void
+header::
+update_payload() noexcept
+{
+#if 0
+    BOOST_ASSERT(kind !=
+        detail::kind::fields);
+
+    if(kind == detail::kind::request)
+    {
+    /*  https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
+
+        The presence of a message body in a
+        request is signaled by a Content-Length or
+        Transfer-Encoding header field. Request message
+        framing is independent of method semantics, even
+        if the method does not define any use for a
+        message body.
+    */
+        if(clen.count > 0)
+        {
+            if(body_limit_.has_value() &&
+               len_ > body_limit_)
+            {
+                ec = error::body_limit;
+                return;
+            }
+            if(len_ > 0)
+            {
+                f_ |= flagHasBody;
+                state_ = state::body0;
+            }
+            else
+            {
+                state_ = state::complete;
+            }
+        }
+        else if(f_ & flagChunked)
+        {
+            f_ |= flagHasBody;
+            state_ = state::chunk_header0;
+        }
+        else
+        {
+            len_ = 0;
+            len0_ = 0;
+            state_ = state::complete;
+        }
+    }
+    else
+    {
+        BOOST_ASSERT(kind ==
+            detail::kind::response);
+
+        // RFC 7230 section 3.3
+        // https://tools.ietf.org/html/rfc7230#section-3.3
+
+        if( //(f_ & flagSkipBody) ||          // e.g. response to a HEAD request
+            res.status_int /  100 == 1 ||   // 1xx e.g. Continue
+            res.status_int == 204 ||        // No Content
+            res.status_int == 304)          // Not Modified
+        {
+            // message semantics indicate no payload
+            // present regardless of header contents
+            //state_ = state::complete;
+        }
+        else if(f_ & flagContentLength)
+        {
+            if(len_ > 0)
+            {
+                f_ |= flagHasBody;
+                state_ = state::body0;
+
+                if(body_limit_.has_value() &&
+                   len_ > body_limit_)
+                {
+                    ec = error::body_limit;
+                    return;
+                }
+            }
+            else
+            {
+                state_ = state::complete;
+            }
+        }
+        else if(f_ & flagChunked)
+        {
+            //f_ |= flagHasBody;
+            pay.kind = payload::chunked;
+        }
+        else
+        {
+            //f_ |= flagHasBody;
+            //f_ |= flagNeedEOF;
+            pay.kind = payload::to_eof;
+        }
+    }
+#endif
+}
+
 //------------------------------------------------
+
+static
+void
+parse_request_line(
+    header& h,
+    std::size_t new_size,
+    error_code& ec) noexcept
+{
+    auto const it0 = h.cbuf;
+    auto const end = it0 + new_size;
+    char const* it = it0;
+
+    auto rv = grammar::parse(
+        it, end, request_line_rule);
+    if(! rv)
+    {
+        ec = rv.error();
+        return;
+    }
+    switch(std::get<2>(*rv))
+    {
+    case 10:
+        h.version = version::http_1_0;
+        break;
+    case 11:
+        h.version = version::http_1_1;
+        break;
+    default:
+        ec = error::bad_version;
+        return;
+    }
+    auto sm = std::get<0>(*rv);
+    auto st = std::get<1>(*rv);
+    h.req.method = string_to_method(sm);
+    h.req.method_len = static_cast<
+        off_t>(sm.size());
+    h.req.target_len = static_cast<
+        off_t>(st.size());
+    h.prefix = static_cast<
+        off_t>(it - it0);
+    h.size = h.prefix;
+    h.update_payload();
+    ec = {};
+}
+
+static
+void
+parse_status_line(
+    header& h,
+    std::size_t new_size,
+    error_code& ec) noexcept
+{
+    auto const it0 = h.cbuf;
+    auto const end = it0 + new_size;
+    char const* it = it0;
+
+    auto rv = grammar::parse(
+        it, end, status_line_rule);
+    if(! rv)
+    {
+        ec = rv.error();
+        return;
+    }
+    switch(std::get<0>(*rv))
+    {
+    case 10:
+        h.version = version::http_1_0;
+        break;
+    case 11:
+        h.version = version::http_1_1;
+        break;
+    default:
+        ec = error::bad_version;
+        return;
+    }
+    h.res.status_int = static_cast<
+        unsigned short>(std::get<1>(*rv).v);
+    h.res.status = std::get<1>(*rv).st;
+    h.prefix = static_cast<
+        off_t>(it - it0);
+    h.size = h.prefix;
+    h.update_payload();
+    ec = {};
+}
 
 void
 parse_start_line(
@@ -425,80 +622,10 @@ parse_start_line(
     // VFALCO do we need a separate
     //        limit on start line?
 
-    auto const it0 = h.cbuf;
-    auto const end = it0 + new_size;
-    char const* it = it0;
-
-    // request
     if(h.kind == detail::kind::request)
-    {
-        auto rv = grammar::parse(
-            it, end, request_line_rule);
-        if(rv.has_value())
-        {
-            switch(std::get<2>(*rv))
-            {
-            case 10:
-                h.version = version::http_1_0;
-                break;
-            case 11:
-                h.version = version::http_1_1;
-                break;
-            default:
-                ec = error::bad_version;
-                return;
-            }
-            auto sm = std::get<0>(*rv);
-            auto st = std::get<1>(*rv);
-            h.req.method = string_to_method(sm);
-            h.req.method_len = static_cast<
-                off_t>(sm.size());
-            h.req.target_len = static_cast<
-                off_t>(st.size());
-            h.prefix = static_cast<
-                off_t>(it - it0);
-            h.size = h.prefix;
-            ec = {};
-            return;
-        }
-        if(rv == grammar::error::need_more)
-        {
-            ec = rv.error();
-            return;
-        }
-        ec = rv.error();
-        return;
-    }
-
-    // response
-    BOOST_ASSERT(h.kind ==
-        detail::kind::response);
-    auto rv = grammar::parse(
-        it, end, status_line_rule);
-    if(rv.has_value())
-    {
-        switch(std::get<0>(*rv))
-        {
-        case 10:
-            h.version = version::http_1_0;
-            break;
-        case 11:
-            h.version = version::http_1_1;
-            break;
-        default:
-            ec = error::bad_version;
-            return;
-        }
-        h.res.status_int = static_cast<
-            unsigned short>(std::get<1>(*rv).v);
-        h.res.status = std::get<1>(*rv).st;
-        h.prefix = static_cast<
-            off_t>(it - it0);
-        h.size = h.prefix;
-        return;
-    }
-    if(ec == grammar::error::need_more)
-        return;
+        return parse_request_line(
+            h, new_size, ec);
+    parse_status_line(h, new_size, ec);
 }
 
 // returns: true if we added a field

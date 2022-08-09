@@ -293,6 +293,7 @@ struct fields_view_test
             {
                 fields_view f1;
                 fields_view f2(f1);
+                (void)f2;
             }
         }
 

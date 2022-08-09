@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields_view.hpp>
+#include <boost/http_proto/fields_view_base.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,19 +20,15 @@ namespace http_proto {
 */
 class BOOST_SYMBOL_VISIBLE
     request_view
-    : public fields_view_base
+    : public message_view_base
 {
     friend class request;
     friend class request_parser;
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
-
     explicit
     request_view(
         detail::header const* ph) noexcept
-        : fields_view_base(ph)
+        : message_view_base(ph)
     {
         BOOST_ASSERT(ph_->kind ==
             detail::kind::request);
@@ -42,7 +38,7 @@ public:
     /** Constructor
     */
     request_view() noexcept
-        : fields_view_base(
+        : message_view_base(
             detail::header::get_default(
                 detail::kind::request))
     {

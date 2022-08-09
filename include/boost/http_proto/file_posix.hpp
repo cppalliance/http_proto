@@ -73,14 +73,17 @@ public:
         The moved-from object behaves as if default constructed.
     */
     BOOST_HTTP_PROTO_DECL
-    file_posix(file_posix&& other);
+    file_posix(
+        file_posix&& other) noexcept;
 
     /** Assignment
 
         The moved-from object behaves as if default constructed.
     */
     BOOST_HTTP_PROTO_DECL
-    file_posix& operator=(file_posix&& other);
+    file_posix&
+    operator=(
+        file_posix&& other) noexcept;
 
     /// Returns the native handle associated with the file.
     native_handle_type

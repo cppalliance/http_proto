@@ -11,103 +11,211 @@
 #define BOOST_HTTP_PROTO_BUFFER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/asio/buffer.hpp>
 #include <cstdlib>
 
 namespace boost {
 namespace http_proto {
 
-/** Holds a buffer sequence that cannot be modified
-*/
-class mutable_buffers
+//------------------------------------------------
+
+class mutable_buffer
 {
+    void* p_ = nullptr;
     std::size_t n_ = 0;
-    asio::mutable_buffer v_[8];
 
 public:
-    mutable_buffers() = default;
+    mutable_buffer() = default;
+    mutable_buffer(
+        mutable_buffer const&) = default;
+    mutable_buffer& operator=(
+        mutable_buffer const&) = default;
 
-    mutable_buffers(
-        asio::mutable_buffer const* data,
+    mutable_buffer(
+        void* data,
         std::size_t size) noexcept
-        : n_(size)
+        : p_(data)
+        , n_(size)
     {
-        for(std::size_t i = 0;
-            i < n_; ++i)
-            v_[i] = data[i];
     }
 
-    asio::mutable_buffer const*
-    begin() const noexcept
+    void*
+    data() const noexcept
     {
-        return &v_[0];
+        return p_;
     }
 
-    asio::mutable_buffer const*
-    end() const noexcept
+    std::size_t
+    size() const noexcept
     {
-        return begin() + n_;
+        return n_;
+    }
+
+    mutable_buffer&
+    operator+=(std::size_t n) noexcept
+    {
+        if(n >= n_)
+        {
+            p_ = static_cast<
+                char*>(p_) + n_;
+            n_ = 0;
+            return *this;
+        }
+        p_ = static_cast<
+            char*>(p_) + n;
+        n_ -= n;
+        return *this;
     }
 };
 
 //------------------------------------------------
 
-/** Holds a buffer sequence that cannot be modified
-*/
-class const_buffers
+class const_buffer
 {
+    void const* p_ = nullptr;
     std::size_t n_ = 0;
-    asio::const_buffer v_[8];
 
 public:
+    const_buffer() = default;
+    const_buffer(
+        const_buffer const&) = default;
+    const_buffer& operator=(
+        const_buffer const&) = default;
+
+    const_buffer(
+        void const* data,
+        std::size_t size) noexcept
+        : p_(data)
+        , n_(size)
+    {
+    }
+
+    const_buffer(
+        mutable_buffer const& other) noexcept
+        : p_(other.data())
+        , n_(other.size())
+    {
+    }
+
+    void const*
+    data() const noexcept
+    {
+        return p_;
+    }
+
+    std::size_t
+    size() const noexcept
+    {
+        return n_;
+    }
+
+    const_buffer&
+    operator+=(std::size_t n) noexcept
+    {
+        if(n >= n_)
+        {
+            p_ = static_cast<
+                char const*>(p_) + n_;
+            n_ = 0;
+            return *this;
+        }
+        p_ = static_cast<
+            char const*>(p_) + n;
+        n_ -= n;
+        return *this;
+    }
+};
+
+//------------------------------------------------
+
+class const_buffers
+{
+    const_buffer const* p_ = nullptr;
+    std::size_t n_ = 0;
+
+public:
+    using value_type = const_buffer;
+
+    using iterator = value_type const*;
+
     const_buffers() = default;
 
     const_buffers(
-        asio::const_buffer const* data,
-        std::size_t size) noexcept
-        : n_(size)
-    {
-        for(std::size_t i = 0;
-            i < n_; ++i)
-            v_[i] = data[i];
-    }
+        const_buffers const&) = default;
+
+    const_buffers& operator=(
+        const_buffers const&) = default;
 
     const_buffers(
-        asio::const_buffer const* data1,
-        std::size_t size1,
-        asio::const_buffer const* data2,
-        std::size_t size2) noexcept
-        : n_(size1 + size2)
+        value_type const* p,
+        std::size_t n) noexcept
+        : p_(p)
+        , n_(n)
     {
-        std::size_t i = 0;
-        for(;i < size1; ++i)
-            v_[i] = data1[i];
-        size2 += size1;
-        for(;i < size2; ++i)
-            v_[i] = data2[i - size1];
     }
 
-    asio::const_buffer const*
+    std::size_t
+    size() const noexcept
+    {
+        return n_;
+    }
+
+    iterator
     begin() const noexcept
     {
-        return &v_[0];
+        return p_;
     }
 
-    asio::const_buffer const*
+    iterator
     end() const noexcept
     {
-        return begin() + n_;
+        return p_ + n_;
+    }
+};
+
+//------------------------------------------------
+
+class mutable_buffers
+{
+    mutable_buffer const* p_ = nullptr;
+    std::size_t n_ = 0;
+
+public:
+    using value_type = mutable_buffer;
+
+    using iterator = value_type const*;
+
+    mutable_buffers() = default;
+
+    mutable_buffers(
+        mutable_buffers const&) = default;
+
+    mutable_buffers& operator=(
+        mutable_buffers const&) = default;
+
+    mutable_buffers(
+        value_type const* p,
+        std::size_t n) noexcept
+        : p_(p)
+        , n_(n)
+    {
     }
 
-    friend
-    const_buffers
-    operator+(
-        const_buffers b1,
-        const_buffers b2)
+    std::size_t
+    size() const noexcept
     {
-        return const_buffers(
-            b1.begin(), b1.n_,
-            b2.begin(), b2.n_);
+        return n_;
+    }
+
+    iterator
+    begin() const noexcept
+    {
+        return p_;
+    }
+
+    iterator
+    end() const noexcept
+    {
+        return p_ + n_;
     }
 };
 

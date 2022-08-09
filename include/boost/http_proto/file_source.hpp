@@ -13,7 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/http_proto/filter.hpp>
+#include <boost/http_proto/serializer.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -21,16 +21,16 @@ namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
     file_source
-    : public source
 {
     file f_;
-    char* buf_;
     //std::uint64_t pos_;
-    std::uint64_t remain_;
     std::uint64_t n_;
-    bool more_ = false;
 
 public:
+    BOOST_HTTP_PROTO_DECL
+    file_source(
+        file_source&&) noexcept;
+
     BOOST_HTTP_PROTO_DECL
     ~file_source();
 
@@ -44,15 +44,14 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     bool
-    more() const noexcept override;
+    more() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    const_buffers
-    prepare(error_code& ec) override;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    consume(std::size_t n) noexcept override;
+    std::size_t
+    write(
+        void* dest,
+        std::size_t size,
+        error_code& ec);
 };
 
 } // http_proto

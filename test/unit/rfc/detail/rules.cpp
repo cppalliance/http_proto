@@ -8,9 +8,9 @@
 //
 
 // Test that header file is self-contained.
-//#include <boost/http_proto/rfc/detail/rules.hpp>
-#if 0
-#include "rule_tests.hpp"
+#include <boost/http_proto/rfc/detail/rules.hpp>
+
+#include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -18,63 +18,6 @@ namespace detail {
 
 struct rules_test
 {
-public:
-    void
-    testRequestLine()
-    {
-        auto const r = request_line_rule;
-
-        ok(r, "GET / HTTP/1.1\r\n");
-        ok(r, "POST / HTTP/1.0\r\n");
-        bad(r, "", grammar::error::need_more);
-        bad(r, "G", grammar::error::need_more);
-        bad(r, "GET ", grammar::error::need_more);
-        bad(r, "GET /", grammar::error::need_more);
-        bad(r, "GET / ", grammar::error::need_more);
-        bad(r, "GET / HTTP", grammar::error::need_more);
-        bad(r, "GET / HTTP/1", grammar::error::need_more);
-        bad(r, "GET / HTTP/1.", grammar::error::need_more);
-        bad(r, "GET / HTTP/1.1", grammar::error::need_more);
-        bad(r, "GET / HTTP/1.1\r", grammar::error::need_more);
-    }
-
-    void
-    testFieldRule()
-    {
-        auto const check = [](
-            string_view s,
-            string_view name,
-            string_view value)
-        {
-            auto it = s.data();
-            auto const end = it + s.size();
-            auto rv = grammar::parse(
-                it, end, field_rule);
-            if(BOOST_TEST(rv.has_value()))
-            {
-                BOOST_TEST(rv->name == name);
-                BOOST_TEST(rv->value == value);
-            }
-        };
-
-        check("x:\r\n\r\n", "x", "");
-        check("x: \r\n\r\n", "x", "");
-        check("x:y\r\n\r\n", "x", "y");
-        check("x: y\r\n\r\n", "x", "y");
-        check("x:y \r\n\r\n", "x", "y");
-        check("x: y \r\n\r\n", "x", "y");
-        check("x: yy \r\n\r\n", "x", "yy");
-        check("x: y y \r\n\r\n", "x", "y y");
-        check("x: y \t y \r\n\r\n", "x", "y \t y");
-        check("x: y \r\n \r\n\r\n", "x", "y");
-
-        check("xy:\r\n\r\n", "xy", "");
-        check("xyz:\r\n\r\n", "xyz", "");
-
-        // obs-fold
-        check("x:\r\n y\r\n\r\n", "x", "y");
-    }
-
     void
     testReplaceObsFold()
     {
@@ -106,8 +49,6 @@ public:
     void
     run()
     {
-        testRequestLine();
-        testFieldRule();
         testReplaceObsFold();
     }
 };
@@ -119,4 +60,3 @@ TEST_SUITE(
 } // detail
 } // http_proto
 } // boost
-#endif

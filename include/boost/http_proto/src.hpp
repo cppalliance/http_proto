@@ -27,6 +27,7 @@ in a translation unit of the program.
 
 #include <boost/http_proto/detail/impl/except.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>
+#include <boost/http_proto/detail/impl/workspace.ipp>
 
 #include <boost/http_proto/impl/context.ipp>
 #include <boost/http_proto/impl/error.ipp>
@@ -40,7 +41,6 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/file_source.ipp>
 #include <boost/http_proto/impl/file_stdio.ipp>
 
-#include <boost/http_proto/impl/filter.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>
@@ -48,6 +48,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/response.ipp>
 #include <boost/http_proto/impl/response_parser.ipp>
 #include <boost/http_proto/impl/serializer.ipp>
+#include <boost/http_proto/impl/source.ipp>
 #include <boost/http_proto/impl/status.ipp>
 #include <boost/http_proto/impl/version.ipp>
 

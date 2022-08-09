@@ -17,22 +17,20 @@ namespace boost {
 namespace http_proto {
 
 file_source::
-~file_source()
-{
-    delete[] buf_;
-}
+~file_source() = default;
+
+file_source::
+file_source(
+    file_source&&) noexcept = default;
 
 file_source::
 file_source(
     file&& f,
-    std::uint64_t offset,
+    std::uint64_t /*offset*/,
     std::uint64_t size) noexcept
     : f_(std::move(f))
-    , buf_(new char[4096])
     //, pos_(offset)
-    , remain_(size)
-    , n_(0)
-    , more_(size > 0)
+    , n_(size)
 {
 }
 
@@ -40,44 +38,32 @@ bool
 file_source::
 more() const noexcept
 {
-    return more_;
+    return n_ > 0;
 }
 
-const_buffers
+std::size_t
 file_source::
-prepare(error_code& ec)
+write(
+    void* dest,
+    std::size_t size,
+    error_code& ec)
 {
     std::size_t n;
-    if(remain_ > 0)
+    if(n_ > 0)
     {
+        if( n_ >= size)
+            n = size;
+        else
+            n = n_;
         n = f_.read(
-            buf_ + n_,
-            (std::min)(
-                remain_,
-                4096 - n_),
-            ec);
-        n_ += n;
-        remain_ -= n;
+            dest, n, ec);
+        n_ -= n;
     }
     else
     {
         n = 0;
     }
-    asio::const_buffer b( buf_, n_ );
-    return const_buffers(&b, 1);
-}
-
-void
-file_source::
-consume(std::size_t n) noexcept
-{
-    BOOST_ASSERT(n <= n_);
-    if(n < n_)
-        std::memmove(
-            buf_,
-            buf_ + n,
-            n_ - n);
-    n_ -= n;
+    return n;
 }
 
 } // http_proto

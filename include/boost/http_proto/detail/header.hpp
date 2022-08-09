@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/metadata.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_view.hpp>
@@ -90,7 +91,9 @@ struct header
 
     http_proto::version version =
         http_proto::version::http_1_1;
-    content_length cl;
+    payload pay;
+    connection con;
+    content_length clen;
     transfer_encoding te;
 
     struct fld_t
@@ -142,10 +145,11 @@ struct header
     void copy_table(void* dest, std::size_t n) const noexcept;
     void copy_table(void* dest) const noexcept;
     void assign_to(header& dest) const noexcept;
- 
+
     void on_erase(field id) noexcept;
     void on_erase_all(field id) noexcept;
     void on_insert(field id, string_view v) noexcept;
+    void update_payload() noexcept;
 };
 
 //------------------------------------------------

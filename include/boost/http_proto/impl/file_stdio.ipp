@@ -28,14 +28,16 @@ file_stdio::
 }
 
 file_stdio::
-file_stdio(file_stdio&& other)
+file_stdio(
+    file_stdio&& other) noexcept
     : f_(boost::exchange(other.f_, nullptr))
 {
 }
 
 file_stdio&
 file_stdio::
-operator=(file_stdio&& other)
+operator=(
+    file_stdio&& other) noexcept
 {
     if(&other == this)
         return *this;

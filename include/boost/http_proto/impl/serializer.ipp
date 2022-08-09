@@ -17,6 +17,8 @@
 namespace boost {
 namespace http_proto {
 
+//------------------------------------------------
+
 /*
     chunked-body   = *chunk
                     last-chunk
@@ -34,50 +36,38 @@ namespace http_proto {
     2^64-1 = 20 digits
 */
 
-serializer::
-serializer(
-    std::size_t buffer_size)
-    : h_copy_(detail::kind::request)
-{
-    auto const Align =
-        alignof(::max_align_t);
-    cap_ = buffer_size;
-    if( cap_ & (Align - 1))
-        cap_ = (cap_ | (Align - 1)) + 1;
-    if(cap_ < buffer_size)
-        detail::throw_length_error(
-            "buffer size",
-            BOOST_CURRENT_LOCATION);
-    buf_ = new char[cap_];
-}
-
 //------------------------------------------------
 
 serializer::
 ~serializer()
 {
-    if( ps_)
-        ps_->~source();
-    delete[] buf_;
+}
+
+serializer::
+serializer(
+    std::size_t buffer_size)
+    : ws_(buffer_size)
+    , h_copy_(detail::kind::request)
+{
 }
 
 void
 serializer::
 reset() noexcept
 {
-    cb_ = {};
-    if(ps_)
-    {
-        ps_->~source();
-        ps_ = nullptr;
-    }
+    ws_.clear();
+    src_ = nullptr;
+    bs_[0] = {};
+    bs_[1] = {};
 }
 
 bool
 serializer::
 is_complete() const noexcept
 {
-    return cb_.size() == 0;
+    return
+        bs_[0].size() == 0 &&
+        bs_[1].size() == 0;
 }
 
 void
@@ -114,40 +104,47 @@ set_header(
 
 //------------------------------------------------
 
-const_buffers
+auto
 serializer::
-prepare(error_code& ec)
+prepare() ->
+    result<const_buffers>
 {
-    if(ps_)
+    auto p = bs_;
+    std::size_t n = 0;
+    if(p[0].size() > 0)
+        ++n;
+    else
+        ++p;
+    if(src_)
     {
+        error_code ec;
         const_buffers cb;
-        if(cb_.size() > 0)
-            cb = { &cb_, 1 };
-        cb = cb + ps_->prepare(ec);
-        return cb;
+        src_->prepare(cb, ec);
+        if(ec.failed())
+            return ec;
+        auto it = cb.begin();
+        for(std::size_t i = 0;
+            i < cb.size(); ++i)
+            p[n++] = *it++;
     }
-
-    ec = {};
-    if(cb_.size() > 0)
-        return const_buffers(&cb_, 1);
-    return {};
+    return const_buffers(p, n);
 }
 
 void
 serializer::
 consume(std::size_t n) noexcept
 {
-    if(cb_.size() > 0)
+    if(bs_[0].size() > 0)
     {
-        if(cb_.size() >= n)
+        if(bs_[0].size() >= n)
         {
-            cb_ += n;
+            bs_[0] += n;
             return;
         }
-        n -= cb_.size();
+        n -= bs_[0].size();
+        bs_[0] = {};
     }
-    BOOST_ASSERT(ps_ != nullptr);
-    ps_->consume(n);
+    src_->consume(n);
 }
 
 //------------------------------------------------
@@ -159,7 +156,7 @@ set_header_impl(
 {
     h_copy_ = h;
     h_ = &h_copy_;
-    cb_ = { h_->cbuf, h_->size };
+    bs_[0] = { h_->cbuf, h_->size };
 }
 
 void
@@ -168,43 +165,10 @@ set_header_impl(
     detail::header const* ph)
 {
     h_ = ph;
-    cb_ = { h_->cbuf, h_->size };
+    bs_[0] = { h_->cbuf, h_->size };
 }
 
 //------------------------------------------------
-
-class string_view_source
-    : public source
-{
-    asio::const_buffer b_;
-
-public:
-    explicit
-    string_view_source(
-        string_view s) noexcept
-        : b_(s.data(), s.size())
-    {
-    }
-
-    bool
-    more() const noexcept override
-    {
-        return b_.size() > 0;
-    }
-
-    const_buffers
-    prepare(error_code& ec) override
-    {
-        ec = {};
-        return const_buffers(&b_, 1);
-    }
-
-    void
-    consume(std::size_t n) noexcept override
-    {
-        b_ += n;
-    }
-};
 
 void
 set_body(

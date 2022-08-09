@@ -12,7 +12,7 @@
 
 #include "test_suite.hpp"
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_code.hpp>
+#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/type_traits.hpp>

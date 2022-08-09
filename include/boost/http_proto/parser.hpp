@@ -103,7 +103,7 @@ protected:
     state state_;
     bool got_eof_;
     message m_;
-    asio::mutable_buffer mb_;
+    mutable_buffer mb_;
 
     parser(
         detail::kind k,

@@ -50,9 +50,8 @@ public:
             if(! BOOST_TEST(
                 ec == grammar::error::need_more))
             {
-                test_suite::debug_stream dout(
-                    std::cout);
-                dout << ec.message() << "\n";
+                test_suite::log <<
+                    ec.message() << "\n";
                 return false;
             }
         }

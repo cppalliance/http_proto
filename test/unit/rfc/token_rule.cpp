@@ -10,7 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/rfc/token_rule.hpp>
 
-#include "rule_tests.hpp"
+#include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {

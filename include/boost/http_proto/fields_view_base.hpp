@@ -27,13 +27,17 @@ namespace http_proto {
 class BOOST_SYMBOL_VISIBLE
     fields_view_base
 {
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
     detail::header const* ph_;
 
     friend class fields;
     friend class fields_base;
+    friend class fields_view;
+    friend class message_base;
+    friend class message_view_base;
+    friend class request;
+    friend class request_view;
+    friend class response;
+    friend class response_view;
     friend class serializer;
 
     explicit
@@ -129,31 +133,16 @@ public:
 
     //--------------------------------------------
     //
-    // Observers
-    //
-    //--------------------------------------------
-
-    /** Return a string representing the serialized data
-    */
-    string_view
-    string() const noexcept
-    {
-        return string_view(
-            ph_->cbuf, ph_->size);
-    }
-
-    //--------------------------------------------
-    //
     // Iterators
     //
     //--------------------------------------------
 
-    /** Return an iterator to the beginning of the range of fields
+    /** Return an iterator to the beginning
     */
     iterator
     begin() const noexcept;
 
-    /** Return an iterator to the end of the range of fields
+    /** Return an iterator to the end
     */
     iterator
     end() const noexcept;
@@ -173,6 +162,15 @@ public:
     // Observers
     //
     //--------------------------------------------
+
+    /** Return a string representing the serialized data
+    */
+    string_view
+    string() const noexcept
+    {
+        return string_view(
+            ph_->cbuf, ph_->size);
+    }
 
     /** Returns the number of fields in the container
     */
@@ -257,7 +255,7 @@ public:
         iterator from,
         field id) const noexcept;
 
-    /** Search [from, end), from==end is valid
+    /** Search for name, starting at from
     */
     BOOST_HTTP_PROTO_DECL
     iterator
@@ -276,6 +274,72 @@ public:
     BOOST_HTTP_PROTO_DECL
     subrange
     find_all(string_view name) const noexcept;
+};
+
+//------------------------------------------------
+
+/** Provides message metadata for requests and responses
+*/
+class BOOST_SYMBOL_VISIBLE
+    message_view_base
+    : public fields_view_base
+{
+    friend class request;
+    friend class request_view;
+    friend class response;
+    friend class response_view;
+
+    explicit
+    message_view_base(
+        detail::header const* ph) noexcept
+        : fields_view_base(ph)
+    {
+    }
+
+public:
+    //--------------------------------------------
+    //
+    // Metadata
+    //
+    //--------------------------------------------
+
+    /** Return metadata about the payload
+    */
+    auto
+    payload() const noexcept ->
+        http_proto::payload const&
+    {
+        return ph_->pay;
+    }
+
+    /** Return metadata about the Content-Length field
+    */
+    auto
+    connection() const noexcept ->
+        http_proto::connection const&
+    {
+        return ph_->con;
+    }
+
+    /** Return metadata about the Content-Length field
+    */
+    auto
+    content_length() const noexcept ->
+        http_proto::content_length const&
+    {
+        return ph_->clen;
+    }
+
+    /** Return metadata about the Transfer-Encoding field
+    */
+    auto
+    transfer_encoding() const noexcept ->
+        http_proto::transfer_encoding const&
+    {
+        return ph_->te;
+    }
+
+    //--------------------------------------------
 };
 
 //------------------------------------------------

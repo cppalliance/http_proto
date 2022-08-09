@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_RFC_DETAIL_RULES_HPP
 #define BOOST_HTTP_PROTO_RFC_DETAIL_RULES_HPP
 
-#include <boost/http_proto/result.hpp>
+#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -37,6 +37,46 @@ struct ws_t
 };
 
 constexpr ws_t ws{};
+
+//------------------------------------------------
+
+/*  Used with list_rule
+
+    @par BNF
+    @code
+    ows-comma   = OWS "," OWS
+    @endcode
+*/
+struct ows_comma_ows_rule_t
+{
+    using value_type = void;
+
+    constexpr
+    ows_comma_ows_rule_t() = default;
+
+    auto
+    parse(
+        char const*& it,
+        char const* end) const noexcept ->
+            result<void>
+    {
+        // OWS
+        it = grammar::find_if_not(
+            it, end, ws);
+        if(it == end)
+            return grammar::error::mismatch;
+        // ","
+        if(*it != ',')
+            return grammar::error::mismatch;
+        ++it;
+        // OWS
+        it = grammar::find_if_not(
+            it, end, ws);
+        return {};
+    }
+};
+
+constexpr ows_comma_ows_rule_t ows_comma_ows_rule{};
 
 //------------------------------------------------
 

@@ -7,17 +7,20 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_ERROR_CODE_HPP
-#define BOOST_HTTP_PROTO_ERROR_CODE_HPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_WORKSPACE_IPP
+#define BOOST_HTTP_PROTO_DETAIL_IMPL_WORKSPACE_IPP
 
-#include <boost/http_proto/detail/config.hpp>
-#include <boost/url/error_code.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
-using namespace urls::error_types;
+workspace::
+any::
+~any() = default;
 
+} // detail
 } // http_proto
 } // boost
 

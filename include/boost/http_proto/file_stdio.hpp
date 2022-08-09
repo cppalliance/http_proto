@@ -53,14 +53,17 @@ public:
         The moved-from object behaves as if default constructed.
     */
     BOOST_HTTP_PROTO_DECL
-    file_stdio(file_stdio&& other);
+    file_stdio(
+        file_stdio&& other) noexcept;
 
     /** Assignment
 
         The moved-from object behaves as if default constructed.
     */
     BOOST_HTTP_PROTO_DECL
-    file_stdio& operator=(file_stdio&& other);
+    file_stdio&
+    operator=(
+        file_stdio&& other) noexcept;
 
     /// Returns the native handle associated with the file.
     std::FILE*

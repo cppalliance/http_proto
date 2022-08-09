@@ -9,7 +9,7 @@
 
 set(EXTRAFILES
     ../../../url/extra/test_main.cpp
-    ../../../url/extra/include/test_suite.hpp
+    ../../../url/extra/test_suite.hpp
     ./test_helpers.hpp
     )
 
@@ -17,9 +17,11 @@ set(PFILES
     CMakeLists.txt
     Jamfile
     buffer.cpp
+    buffered_source.cpp
+    circular_buffer.cpp
     context.cpp
     error.cpp
-    error_code.cpp
+    error_types.cpp
     field.cpp
     fields.cpp
     fields_base.cpp
@@ -30,8 +32,8 @@ set(PFILES
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
-    filter.cpp
     http_proto.cpp
+    metadata.cpp
     method.cpp
     parser.cpp
     request.cpp
@@ -40,8 +42,8 @@ set(PFILES
     response.cpp
     response_parser.cpp
     response_view.cpp
-    result.cpp
     serializer.cpp
+    source.cpp
     status.cpp
     string_view.cpp
     test_helpers.cpp
@@ -52,7 +54,7 @@ set(PFILES
     codec/encoder.cpp
     mime/mime_types.cpp
     #rfc/chunk_ext_rule.cpp
-    #rfc/list_rule.cpp
+    rfc/list_rule.cpp
     #rfc/quoted_string_rule.cpp
     rfc/token_rule.cpp
     rfc/detail/rules.cpp
@@ -61,5 +63,5 @@ set(PFILES
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
-target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/include)
+target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra)
 target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto Boost::filesystem)

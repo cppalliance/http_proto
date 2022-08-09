@@ -31,6 +31,7 @@ public:
             {
                 response_view res1;
                 response_view res2(res1);
+                (void)res2;
             }
         }
 

@@ -21,7 +21,7 @@ namespace http_proto {
 */
 class BOOST_SYMBOL_VISIBLE
     request
-    : public fields_base
+    : public message_base
 {
 public:
     /** Constructor
@@ -122,41 +122,6 @@ public:
     version() const noexcept
     {
         return ph_->version;
-    }
-
-    //--------------------------------------------
-
-    /** Return metadata about the Content-Length field
-    */
-    http_proto::content_length
-    content_length() const noexcept
-    {
-        return ph_->cl;
-    }
-
-    /** Set the Content-Length to the specified value
-    */
-    void
-    set_content_length(
-        std::uint64_t n)
-    {
-        set_content_length_impl(n);
-    }
-
-    /** Return metadata about the Transfer-Encoding field
-    */
-    http_proto::transfer_encoding
-    transfer_encoding() const noexcept
-    {
-        return ph_->te;
-    }
-
-    /** Set whether the payload is chunked.
-    */
-    void
-    set_chunked(bool value)
-    {
-        set_chunked_impl(value);
     }
 
     //--------------------------------------------

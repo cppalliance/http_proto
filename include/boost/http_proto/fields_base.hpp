@@ -28,15 +28,17 @@ class BOOST_SYMBOL_VISIBLE
     fields_base
     : public fields_view_base
 {
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
-    friend class serializer;
-
     detail::header h_;
 
+    friend class fields;
+    friend class request;
+    friend class response;
+    friend class serializer;
+    friend class message_base;
+
     BOOST_HTTP_PROTO_DECL
-    explicit fields_base(detail::kind) noexcept;
+    explicit fields_base(
+        detail::kind) noexcept;
 
     fields_base(detail::header const&);
 
@@ -137,34 +139,6 @@ public:
             h_.count);
     }
 
-    //--------------------------------------------
-
-    /** Erase an element
-    */
-    void
-    erase(iterator it) noexcept
-    {
-        erase_impl(it.i_, it->id);
-    }
-
-    /** Erase all matching fields
-
-        @return The number of fields erased
-    */
-    BOOST_HTTP_PROTO_DECL
-    std::size_t
-    erase(field id) noexcept;
-
-    /** Erase all matching fields
-
-        @return The number of fields erased
-    */
-    BOOST_HTTP_PROTO_DECL
-    std::size_t
-    erase(string_view name) noexcept;
-
-    //--------------------------------------------
-
     /** Insert a field
 
         @param value The corresponding value, which
@@ -210,6 +184,32 @@ public:
 
     //--------------------------------------------
 
+    /** Erase an element
+    */
+    void
+    erase(iterator it) noexcept
+    {
+        erase_impl(it.i_, it->id);
+    }
+
+    /** Erase all matching fields
+
+        @return The number of fields erased
+    */
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    erase(field id) noexcept;
+
+    /** Erase all matching fields
+
+        @return The number of fields erased
+    */
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    erase(string_view name) noexcept;
+
+    //--------------------------------------------
+
     /** Set the value of a field
     */
     BOOST_HTTP_PROTO_DECL
@@ -246,24 +246,7 @@ public:
 
     //--------------------------------------------
 
-    /** Return metadata about the Content-Length field
-    */
-    http_proto::content_length const&
-    content_length() const noexcept
-    {
-        return h_.cl;
-    }
-
-    /** Set the Content-Length
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_content_length(
-        std::uint64_t n);
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
+private:
     BOOST_HTTP_PROTO_DECL
     void
     clear_impl() noexcept;
@@ -272,21 +255,6 @@ protected:
     void
     copy_impl(detail::header const&);
 
-    char*
-    set_prefix_impl(
-        std::size_t n);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_content_length_impl(
-        std::uint64_t n);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_chunked_impl(
-        bool value);
-
-private:
     std::size_t
     offset(
         detail::header::table ft,
@@ -297,25 +265,13 @@ private:
         detail::header::table ft,
         std::size_t i) const noexcept;
 
-    void
-    raw_erase(
-        std::size_t i) noexcept;
-
-    std::size_t
-    raw_erase_all(
-        std::size_t i0) noexcept;
-
-    void
-    raw_insert(
-        field id,
-        string_view name,
-        string_view value,
-        std::size_t before);
-
-    void
-    raw_set(
-        std::size_t i,
-        string_view value);
+    void memmove(char*, char const*, std::size_t,
+        string_view* = nullptr, string_view* = nullptr);
+    void raw_insert(field, string_view,
+        string_view, std::size_t);
+    void raw_erase(std::size_t) noexcept;
+    std::size_t raw_erase_all(std::size_t) noexcept;
+    void raw_set(std::size_t, string_view);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -335,6 +291,108 @@ private:
         string_view name,
         string_view value,
         std::size_t before);
+};
+
+//------------------------------------------------
+
+/** Provides message metadata for requests and responses
+*/
+class BOOST_SYMBOL_VISIBLE
+    message_base
+    : public fields_base
+{
+    friend class request;
+    friend class request_view;
+    friend class response;
+    friend class response_view;
+
+    explicit
+    message_base(
+        detail::kind k) noexcept
+        : fields_base(k)
+    {
+    }
+
+    explicit
+    message_base(
+        detail::header const& ph) noexcept
+        : fields_base(ph)
+    {
+    }
+
+public:
+    //--------------------------------------------
+    //
+    // Metadata
+    //
+    //--------------------------------------------
+
+    /** Return metadata about the payload
+    */
+    http_proto::payload const&
+    payload() const noexcept
+    {
+        return ph_->pay;
+    }
+
+    /** Return metadata about the Content-Length field
+    */
+    auto
+    connection() const noexcept ->
+        http_proto::connection const&
+    {
+        return ph_->con;
+    }
+
+    /** Return metadata about the Content-Length field
+    */
+    auto
+    content_length() const noexcept ->
+        http_proto::content_length const&
+    {
+        return ph_->clen;
+    }
+
+    /** Return metadata about the Transfer-Encoding field
+    */
+    auto
+    transfer_encoding() const noexcept ->
+        http_proto::transfer_encoding const&
+    {
+        return ph_->te;
+    }
+
+    //--------------------------------------------
+
+    /** Set the payload size
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_payload_size(
+        std::uint64_t n);
+
+    /** Set the Content-Length to the specified value
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_content_length(
+        std::uint64_t n);
+
+    /** Set whether the payload is chunked.
+    */
+    void
+    set_chunked(bool value)
+    {
+        set_chunked_impl(value);
+    }
+
+private:
+    char* set_prefix_impl(std::size_t);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_chunked_impl(
+        bool value);
 };
 
 } // http_proto

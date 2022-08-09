@@ -53,17 +53,6 @@ read() noexcept
 
 //------------------------------------------------
 
-fields
-make_fields(
-    string_view s)
-{
-    fields f;
-    for(auto v : fields_range(s))
-        f.append(v.name, v.value);
-    BOOST_TEST(f.string() == s);
-    return f;
-}
-
 void
 test_fields(
     fields_view_base const& f,
@@ -73,7 +62,6 @@ test_fields(
     std::size_t n = std::distance(
         f.begin(), f.end());
     BOOST_TEST_EQ(f.size(), n);
-    BOOST_TEST_EQ(f.string(), match);
     auto it0 = r.begin();
     auto it1 = f.begin();
     auto const end = r.end();
@@ -89,6 +77,39 @@ test_fields(
         ++it0;
         ++it1;
     }
+}
+
+fields
+make_fields(
+    string_view s)
+{
+    fields f;
+    for(auto v : fields_range(s))
+        f.append(v.name, v.value);
+    test_fields(f, s);
+    return f;
+}
+
+request
+make_request(
+    string_view s)
+{
+    request req;
+    for(auto v : fields_range(s))
+        req.append(v.name, v.value);
+    test_fields(req, s);
+    return req;
+}
+
+response
+make_response(
+    string_view s)
+{
+    response res;
+    for(auto v : fields_range(s))
+        res.append(v.name, v.value);
+    test_fields(res, s);
+    return res;
 }
 
 } // http_proto

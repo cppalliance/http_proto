@@ -14,14 +14,16 @@ project
       $(c11-requires)
       <source>../../../url/extra/test_main.cpp
       <include>.
-      <include>../../../url/extra/include
+      <include>../../../url/extra
     ;
 
 local SOURCES =
     buffer.cpp
+    buffered_source.cpp
+    circular_buffer.cpp
     context.cpp
     error.cpp
-    error_code.cpp
+    error_types.cpp
     field.cpp
     fields.cpp
     fields_base.cpp
@@ -32,8 +34,8 @@ local SOURCES =
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
-    filter.cpp
     http_proto.cpp
+    metadata.cpp
     method.cpp
     parser.cpp
     request.cpp
@@ -42,8 +44,8 @@ local SOURCES =
     response.cpp
     response_parser.cpp
     response_view.cpp
-    result.cpp
     serializer.cpp
+    source.cpp
     status.cpp
     string_view.cpp
     test_helpers.cpp
@@ -54,7 +56,7 @@ local SOURCES =
     codec/encoder.cpp
     mime/mime_types.cpp
     #rfc/chunk_ext_rule.cpp
-    #rfc/list_rule.cpp
+    rfc/list_rule.cpp
     #rfc/quoted_string_rule.cpp
     rfc/token_rule.cpp
     rfc/detail/rules.cpp

@@ -20,91 +20,70 @@
 namespace boost {
 namespace http_proto {
 
-class list_rule_test
+struct list_rule_test
 {
-public:
-    template<
-        std::size_t N = 0,
-        std::size_t M =
-            std::size_t(-1)>
     void
     bad(string_view s)
     {
-        error_code ec;
-        list_rule<token, N, M> t;
-        auto const success =
-            grammar::parse_string(s, ec, t);
-        if(! BOOST_TEST(! success))
-            return;
-        BOOST_TEST(ec.failed());
+        auto rv = grammar::parse(s,
+            list_rule(token_rule));
+        BOOST_TEST(rv.has_error());
     }
 
-    template<
-        std::size_t N = 0,
-        std::size_t M =
-            std::size_t(-1)>
     void
-    good(
-        string_view s,
+    ok( string_view s,
         std::initializer_list<
             string_view> init)
     {
-        error_code ec;
-        list_rule<token, N, M> t;
-        auto const success =
-            grammar::parse_string(s, ec, t);
-        if(! BOOST_TEST(success))
+        auto rv = grammar::parse(s,
+            list_rule(token_rule));
+        if(! BOOST_TEST(rv.has_value()))
             return;
-        if(ec.failed())
-            return;
-        if(! BOOST_TEST(t.size() == init.size()))
+        auto const& t = *rv;
+        if(! BOOST_TEST(
+                t.size() == init.size()))
             return;
         auto it = t.begin();
         for(std::size_t i = 0;
-            i < t.size(); ++i)
-            BOOST_TEST(*it++ == init.begin()[i]);
-    }
-
-    void
-    testSpecial()
-    {
-        list_rule<token> t("x,y");
-        BOOST_TEST(t.size() == 2);
+                i < t.size(); ++i)
+            BOOST_TEST(*it++ ==
+                init.begin()[i]);
     }
 
     void
     testParse()
     {
-        good("", {});
-        good("x", {"x"});
-        good("x,y", {"x","y"});
-
         bad(" ");
         bad("\t");
         bad(" \t");
         bad("     ");
 
-        bad( ",");
-        bad( ", ");
-        bad( ", ,");
-        bad( ",,,");
-        bad( "1, ");
-        good("", {});
-        good("1", {"1"});
-        good(",1", {"1"});
-        good("1,", {"1"});
-        good(", 1", {"1"});
-        good("1 ,", {"1"});
-        good("1,2", {"1", "2"});
-        good("1,2", {"1", "2"});
-        good("1,2,3", {"1", "2", "3"});
-        good(", 1,\t2, 3", {"1", "2", "3"});
+        ok("", {});
+        ok("x", {"x"});
+        ok("x,y", {"x","y"});
+
+        ok("", {});
+        ok(",", {});
+        ok(", ", {});
+        ok(", ,", {});
+        ok(",,,", {});
+
+        ok("1", {"1"});
+        ok(",1", {"1"});
+        ok("1,", {"1"});
+        ok(", 1", {"1"});
+        ok("1 ,", {"1"});
+
+        ok("1,2", {"1", "2"});
+        ok("1,2", {"1", "2"});
+
+        ok("1,2,3", {"1", "2", "3"});
+        ok(", 1,\t2, 3", {"1", "2", "3"});
     }
 
     void
     run()
     {
-        testSpecial();
         testParse();
     }
 };

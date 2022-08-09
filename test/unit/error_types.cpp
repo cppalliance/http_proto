@@ -8,4 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/error_code.hpp>
+#include <boost/http_proto/error_types.hpp>

@@ -6,7 +6,7 @@
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>
-        <Variable Name="ft" InitialValue="((boost::http_proto::detail::fields_table_entry const*)(cbuf + cap))"/>
+        <Variable Name="ft" InitialValue="((boost::http_proto::detail::header::entry const*)(cbuf + cap))"/>
         <Loop>
           <Break Condition="i == this->count"/>
           <Item Name="[{i}]">
