@@ -59,7 +59,10 @@ in a translation unit of the program.
 
 #include <boost/http_proto/mime/impl/mime_types.ipp>
 
-//#include <boost/http_proto/rfc/detail/impl/quoted_string_rule.ipp>
+#include <boost/http_proto/rfc/impl/quoted_token_rule.ipp>
+#include <boost/http_proto/rfc/impl/transfer_encoding_rule.ipp>
+#include <boost/http_proto/rfc/impl/upgrade_rule.ipp>
+
 #include <boost/http_proto/rfc/detail/impl/rules.ipp>
 
 // VFALCO These are tucked away here temporarily

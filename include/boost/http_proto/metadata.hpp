@@ -127,13 +127,17 @@ struct transfer_encoding
     */
     std::size_t count = 0;
 
-    /** The number of times "chunked" appears
+    /** The total number of codings
     */
-    std::size_t chunked_count = 0;
+    std::size_t codings = 0;
 
     /** True if valid and chunked is specified
     */
     bool is_chunked = false;
+
+    /** True if the fields are invalid
+    */
+    bool error = false;
 
 #ifndef BOOST_HTTP_PROTO_DOCS
     // workaround for C++ aggregate init
@@ -143,11 +147,13 @@ struct transfer_encoding
     constexpr
     transfer_encoding(
         std::size_t count_,
-        std::size_t chunked_count_,
-        bool is_chunked_) noexcept
+        std::size_t codings_,
+        bool is_chunked_,
+        bool error_) noexcept
         : count(count_)
-        , chunked_count(chunked_count_)
+        , codings(codings_)
         , is_chunked(is_chunked_)
+        , error(error_)
     {
     }
 #endif

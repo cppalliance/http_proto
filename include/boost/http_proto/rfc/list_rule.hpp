@@ -38,7 +38,9 @@ namespace http_proto {
 
     @par Legacy BNF
     @code
-    #element => [ element ] *( OWS "," OWS [ element ] )
+    #element    => [ ( "," / element ) *( OWS "," [ OWS element ] ) ]
+
+    1#element   => *( "," OWS ) element *( OWS "," [ OWS element ] )
     @endcode
 
     @tparam R The rule to use for elements
@@ -85,7 +87,8 @@ struct list_rule_t
             result<value_type>;
 
 private:
-    struct element_rule;
+    struct first_rule;
+    struct next_rule;
 
     std::size_t n_;
     std::size_t m_;

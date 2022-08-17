@@ -64,7 +64,7 @@ struct list_rule_test
 
         ok("", {});
         ok(",", {});
-        ok(", ", {});
+        bad(", ");
         ok(", ,", {});
         ok(",,,", {});
 

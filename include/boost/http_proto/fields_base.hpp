@@ -265,10 +265,6 @@ private:
         detail::header::table ft,
         std::size_t i) const noexcept;
 
-    void memmove(char*, char const*, std::size_t,
-        string_view* = nullptr, string_view* = nullptr);
-    void raw_insert(field, string_view,
-        string_view, std::size_t);
     void raw_erase(std::size_t) noexcept;
     std::size_t raw_erase_all(std::size_t) noexcept;
     void raw_set(std::size_t, string_view);
@@ -290,7 +286,10 @@ private:
         field id,
         string_view name,
         string_view value,
-        std::size_t before);
+        std::size_t before,
+        bool update = true);
+    void raw_insert(field, string_view,
+        string_view, std::size_t);
 };
 
 //------------------------------------------------

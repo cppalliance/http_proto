@@ -148,7 +148,11 @@ struct header
 
     void on_erase(field id) noexcept;
     void on_erase_all(field id) noexcept;
-    void on_insert(field id, string_view v) noexcept;
+    void on_insert(field id, string_view v);
+    void on_insert_clen(string_view v);
+    void on_insert_con(string_view v);
+    void on_insert_te(string_view v);
+    void on_insert_up(string_view v);
     void update_payload() noexcept;
 };
 

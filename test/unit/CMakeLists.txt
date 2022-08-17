@@ -55,8 +55,9 @@ set(PFILES
     mime/mime_types.cpp
     #rfc/chunk_ext_rule.cpp
     rfc/list_rule.cpp
-    #rfc/quoted_string_rule.cpp
+    rfc/quoted_token_rule.cpp
     rfc/token_rule.cpp
+    rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
     )
 

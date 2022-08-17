@@ -8,27 +8,31 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/token_rule.hpp>
+#include <boost/http_proto/rfc/upgrade_rule.hpp>
 
 #include "test_rule.hpp"
 
 namespace boost {
 namespace http_proto {
 
-struct token_rule_test
+struct upgrade_rule_test
 {
     void
     run()
     {
-        ok(token_rule, "x", "x");
-        ok(token_rule, "xyz", "xyz");
-        bad(token_rule, "", grammar::error::need_more);
+        ok(upgrade_rule, "x");
+        ok(upgrade_rule, "xyz");
+        ok(upgrade_rule, "xyz/1");
+        ok(upgrade_rule, "xyz/1, abc/2");
+        bad(upgrade_rule, "");
+        bad(upgrade_rule, "/");
+        bad(upgrade_rule, "", grammar::error::need_more);
     }
 };
 
 TEST_SUITE(
-    token_rule_test,
-    "boost.http_proto.token_rule");
+    upgrade_rule_test,
+    "boost.http_proto.upgrade_rule");
 
 } // http_proto
 } // boost

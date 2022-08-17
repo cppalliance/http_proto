@@ -12,11 +12,18 @@
 
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/detail/make_list.hpp>
+#include <boost/http_proto/rfc/list_rule.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
+#include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/range_rule.hpp>
+#include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/unsigned_rule.hpp>
 #include <boost/assert.hpp>
+#include <string>
 #include <utility>
 
 namespace boost {
@@ -363,64 +370,176 @@ on_erase_all(
 // called after a field is inserted
 void
 header::
-on_insert(
-    field id,
-    string_view v) noexcept
+on_insert(field id, string_view v)
 {
     if(kind == detail::kind::fields)
         return;
     switch(id)
     {
+    case field::connection:
+        return on_insert_con(v);
     case field::content_length:
-    {
-        ++clen.count;
-        auto rv = grammar::parse(v,
-            grammar::unsigned_rule<
-                std::uint64_t>{});
-        if(rv.has_value())
-        {
-            if(clen.count == 1)
-            {
-                // first one
-                clen.value = *rv;
-                clen.has_value = true;
-                return;
-            }
-
-            if(clen.has_value)
-            {
-                if(*rv == clen.value)
-                {
-                    // matching dupe is ok
-                    return;
-                }
-
-                // mismatch
-            }
-            else
-            {
-                BOOST_ASSERT(
-                    clen.value == 0);
-                return;
-            }
-        }
-
-        // overflow or parse error
-        clen.value = 0;
-        clen.has_value = false;
-        return;
-    }
-
+        return on_insert_clen(v);
     case field::transfer_encoding:
-    {
-        return;
-    }
-
+        return on_insert_te(v);
+    case field::upgrade:
+        return on_insert_up(v);
     default:
         break;
     }
 }
 
+void
+header::
+on_insert_clen(string_view v)
+{
+/*
+    Content-Length = 1*DIGIT
+*/
+    ++clen.count;
+    auto rv = grammar::parse(v,
+        grammar::unsigned_rule<
+            std::uint64_t>{});
+    if(rv.has_value())
+    {
+        if(clen.count == 1)
+        {
+            // first one
+            clen.value = *rv;
+            clen.has_value = true;
+            update_payload();
+            return;
+        }
+
+        if(clen.has_value)
+        {
+            if(*rv == clen.value)
+            {
+                // matching dupe is ok
+                return;
+            }
+
+            // mismatch
+        }
+        else
+        {
+            BOOST_ASSERT(
+                clen.value == 0);
+            return;
+        }
+    }
+
+    // overflow or parse error
+    clen.value = 0;
+    clen.has_value = false;
+}
+
+void
+header::
+on_insert_con(string_view v)
+{
+/*
+    Connection        = 1#connection-option
+    connection-option = token
+*/
+    ++con.count;
+    auto rv = grammar::parse(
+        v, list_rule(token_rule, 1));
+    if(! rv)
+    {
+        con.error = true;
+        return;
+    }
+    for(auto t : *rv)
+    {
+        if(grammar::ci_is_equal(
+                t, "close"))
+            ++con.n_close;
+        else if(grammar::ci_is_equal(
+                t, "keep-alive"))
+            ++con.n_keepalive;
+        else if(grammar::ci_is_equal(
+                t, "upgrade"))
+            ++con.n_upgrade;
+    }
+}
+
+void
+header::
+on_insert_te(string_view v)
+{
+/*
+    Transfer-Encoding  = 1#transfer-coding
+    transfer-coding    = "chunked"
+                        / "compress"
+                        / "deflate"
+                        / "gzip"
+                        / transfer-extension
+    transfer-extension = token *( OWS ";" OWS transfer-parameter )
+    transfer-parameter = token BWS "=" BWS ( token / quoted-string )
+*/
+    auto n = te.count + 1;
+    te = {};
+    te.count = n;
+    grammar::recycled_ptr<
+        std::string> rs(nullptr);
+    if(n > 1)
+    {
+        rs.acquire();
+        rs->clear();
+        detail::make_list(*rs,
+            field::transfer_encoding,
+                n, *this);
+        v = *rs;
+    }
+    auto rv = grammar::parse(
+        v, transfer_encoding_rule);
+    if(rv)
+    {
+        auto const& t = *rv;
+        te.codings = t.size();
+        auto next = t.begin();
+        auto const end = t.end();
+        while(next != end)
+        {
+            auto it = next++;
+            if((*it).id ==
+                transfer_coding::chunked)
+            {
+                if(next == end)
+                {
+                    te.is_chunked = true;
+                }
+                else
+                {
+                    // chunked not last!
+                    te.error = true;
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        // parse error
+        te.error = true;
+    }
+    update_payload();
+}
+
+void
+header::
+on_insert_up(string_view v)
+{
+/*
+     Upgrade          = 1#protocol
+
+     protocol         = protocol-name ["/" protocol-version]
+     protocol-name    = token
+     protocol-version = token
+*/
+    (void)v;
+}
 
 void
 header::

@@ -339,170 +339,6 @@ length(
 //
 //------------------------------------------------
 
-// insert without updating metadata
-void
-fields_base::
-raw_insert(
-    field id,
-    string_view name,
-    string_view value,
-    std::size_t before)
-{
-    BOOST_ASSERT(before <= h_.count);
-    auto const n0 =
-        name.size() + 2 +
-        value.size() + 2;
-    auto const n1 = h_.size + n0;
-    if(n1 > max_off_t)
-        detail::throw_length_error();
-    auto const n =
-        detail::buffer_needed(
-            n1, h_.count + 1);
-    if(h_.cap >= n)
-    {
-        // no reallocation
-        BOOST_ASSERT(h_.buf != nullptr);
-        detail::header::table ft(
-            h_.buf + h_.cap);
-        auto pos = offset(ft, before);
-        char* dest = h_.buf + pos;
-        detail::move_chars(
-            dest + n0,
-            dest,
-            h_.size - pos,
-            name,
-            value);
-        name.copy(dest, name.size());
-        dest += name.size();
-        *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        for(std::size_t i = h_.count;
-            i > before; --i)
-            ft[i] = ft[i-1] + n0;
-        pos -= h_.prefix;
-        auto& e = ft[before];
-        e.np = static_cast<
-            off_t>(pos);
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<off_t>(
-            pos + name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
-        e.id = id;
-        h_.size = static_cast<
-            off_t>(h_.size + n0);
-        ++h_.count;
-    }
-    else if(h_.cap > 0)
-    {
-        // grow
-        BOOST_ASSERT(h_.buf != nullptr);
-        auto buf = new char[n];
-
-        // copy existing fields
-        // and write new field
-        auto const ft0 = h_.tab();
-        auto pos = offset(ft0, before);
-        char* dest = buf;
-        std::memcpy(
-            dest,
-            h_.buf,
-            pos);
-        dest += pos;
-        name.copy(dest, name.size());
-        dest += name.size();
-        *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        std::memcpy(
-            dest,
-            h_.buf + pos,
-            h_.size - pos);
-
-        // write table
-        h_.copy_table(buf + n, before);
-        detail::header::table ft(buf + n);
-        for(auto i = before;
-            i < h_.count; ++i)
-            ft[i + 1] = ft0[i] + n0;
-
-        auto& e = ft[before];
-        pos -= h_.prefix;
-        e.np = static_cast<
-            off_t>(pos);
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<off_t>(
-            pos + name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
-        e.id = id;
-
-        delete[] h_.buf;
-        h_.buf = buf;
-        h_.cbuf = buf;
-        h_.cap = n;
-        h_.size = static_cast<
-            off_t>(n1);
-        h_.count += 1;
-    }
-    else
-    {
-        // new allocation
-        BOOST_ASSERT(h_.buf == nullptr);
-        BOOST_ASSERT(before == 0);
-        BOOST_ASSERT(h_.count == 0);
-
-        // default string
-        BOOST_ASSERT(h_.is_default());
-        string_view s(h_.cbuf, h_.size);
-
-        h_.buf = new char[n];
-        h_.cbuf = h_.buf;
-        h_.cap = n;
-        h_.prefix = static_cast<
-            off_t>(s.size() - 2);
-        h_.size = static_cast<
-            off_t>(n1);
-        h_.count = 1;
-
-        // start line
-        char* dest = h_.buf;
-        s.copy(dest, h_.prefix);
-        dest += h_.prefix;
-
-        // write field
-        name.copy(dest, name.size());
-        dest += name.size();
-        *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        *dest++ = '\r';
-        *dest++ = '\n';
-        // write table
-        auto& e = h_.tab()[before];
-        e.id = id;
-        e.np = 0;
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<
-            off_t>(name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
-    }
-}
-
 // erase i, without updating metadata
 void
 fields_base::
@@ -661,6 +497,186 @@ raw_set(
 
 //------------------------------------------------
 
+void
+fields_base::
+insert_impl(
+    field id,
+    string_view name,
+    string_view value,
+    std::size_t before,
+    bool update)
+{
+    BOOST_ASSERT(before <= h_.count);
+    auto const n0 =
+        name.size() + 2 +
+        value.size() + 2;
+    auto const n1 = h_.size + n0;
+    if(n1 > max_off_t)
+        detail::throw_length_error();
+    auto const n =
+        detail::buffer_needed(
+            n1, h_.count + 1);
+    if(h_.cap >= n)
+    {
+        // no reallocation
+        BOOST_ASSERT(h_.buf != nullptr);
+        detail::header::table ft(
+            h_.buf + h_.cap);
+        auto pos = offset(ft, before);
+        char* dest = h_.buf + pos;
+        detail::move_chars(
+            dest + n0,
+            dest,
+            h_.size - pos,
+            name,
+            value);
+        name.copy(dest, name.size());
+        dest += name.size();
+        *dest++ = ':';
+        *dest++ = ' ';
+        value.copy(dest, value.size());
+        dest += value.size();
+        *dest++ = '\r';
+        *dest++ = '\n';
+        for(std::size_t i = h_.count;
+            i > before; --i)
+            ft[i] = ft[i-1] + n0;
+        pos -= h_.prefix;
+        auto& e = ft[before];
+        e.np = static_cast<
+            off_t>(pos);
+        e.nn = static_cast<
+            off_t>(name.size());
+        e.vp = static_cast<off_t>(
+            pos + name.size() + 2);
+        e.vn = static_cast<
+            off_t>(value.size());
+        e.id = id;
+        h_.size = static_cast<
+            off_t>(h_.size + n0);
+        ++h_.count;
+    }
+    else if(h_.cap > 0)
+    {
+        // grow
+        BOOST_ASSERT(h_.buf != nullptr);
+        auto buf = new char[n];
+
+        // copy existing fields
+        // and write new field
+        auto const ft0 = h_.tab();
+        auto pos = offset(ft0, before);
+        char* dest = buf;
+        std::memcpy(
+            dest,
+            h_.buf,
+            pos);
+        dest += pos;
+        name.copy(dest, name.size());
+        dest += name.size();
+        *dest++ = ':';
+        *dest++ = ' ';
+        value.copy(dest, value.size());
+        dest += value.size();
+        *dest++ = '\r';
+        *dest++ = '\n';
+        std::memcpy(
+            dest,
+            h_.buf + pos,
+            h_.size - pos);
+
+        // write table
+        h_.copy_table(buf + n, before);
+        detail::header::table ft(buf + n);
+        for(auto i = before;
+            i < h_.count; ++i)
+            ft[i + 1] = ft0[i] + n0;
+
+        auto& e = ft[before];
+        pos -= h_.prefix;
+        e.np = static_cast<
+            off_t>(pos);
+        e.nn = static_cast<
+            off_t>(name.size());
+        e.vp = static_cast<off_t>(
+            pos + name.size() + 2);
+        e.vn = static_cast<
+            off_t>(value.size());
+        e.id = id;
+
+        delete[] h_.buf;
+        h_.buf = buf;
+        h_.cbuf = buf;
+        h_.cap = n;
+        h_.size = static_cast<
+            off_t>(n1);
+        h_.count += 1;
+    }
+    else
+    {
+        // new allocation
+        BOOST_ASSERT(h_.buf == nullptr);
+        BOOST_ASSERT(before == 0);
+        BOOST_ASSERT(h_.count == 0);
+
+        // default string
+        BOOST_ASSERT(h_.is_default());
+        string_view s(h_.cbuf, h_.size);
+
+        h_.buf = new char[n];
+        h_.cbuf = h_.buf;
+        h_.cap = n;
+        h_.prefix = static_cast<
+            off_t>(s.size() - 2);
+        h_.size = static_cast<
+            off_t>(n1);
+        h_.count = 1;
+
+        // start line
+        char* dest = h_.buf;
+        s.copy(dest, h_.prefix);
+        dest += h_.prefix;
+
+        // write field
+        name.copy(dest, name.size());
+        dest += name.size();
+        *dest++ = ':';
+        *dest++ = ' ';
+        value.copy(dest, value.size());
+        dest += value.size();
+        *dest++ = '\r';
+        *dest++ = '\n';
+        *dest++ = '\r';
+        *dest++ = '\n';
+        // write table
+        auto& e = h_.tab()[before];
+        e.id = id;
+        e.np = 0;
+        e.nn = static_cast<
+            off_t>(name.size());
+        e.vp = static_cast<
+            off_t>(name.size() + 2);
+        e.vn = static_cast<
+            off_t>(value.size());
+    }
+
+    if( update &&
+            id != field::unknown)
+        h_.on_insert(id, value);
+}
+
+// insert without updating metadata
+void
+fields_base::
+raw_insert(
+    field id,
+    string_view name,
+    string_view value,
+    std::size_t before)
+{
+    insert_impl(id, name, value, before, false);
+}
+
 // erase i and update metadata
 void
 fields_base::
@@ -700,26 +716,6 @@ erase_all_impl(
     raw_erase(i0);
     h_.on_erase_all(id);
     return n;
-}
-
-void
-fields_base::
-insert_impl(
-    field id,
-    string_view name,
-    string_view value,
-    std::size_t before)
-{
-    BOOST_ASSERT(before <= h_.count);
-    if(id != field::unknown)
-    {
-        raw_insert(
-            id, name, value, before);
-        h_.on_insert(id, value);
-        return;
-    }
-    raw_insert(
-        id, name, value, before);
 }
 
 //------------------------------------------------
@@ -829,7 +825,7 @@ set_chunked_impl(bool value)
     if(value)
     {
         // set chunked
-        if(h_.te.chunked_count == 0)
+        if(! h_.te.is_chunked )
         {
             append(
                 field::transfer_encoding,

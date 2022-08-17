@@ -51,9 +51,6 @@ struct ows_comma_ows_rule_t
 {
     using value_type = void;
 
-    constexpr
-    ows_comma_ows_rule_t() = default;
-
     auto
     parse(
         char const*& it,

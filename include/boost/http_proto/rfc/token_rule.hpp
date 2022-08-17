@@ -43,9 +43,18 @@ constexpr grammar::lut_chars tchars =
 
 /** Match a token
 
+    @par Value Type
+    @code
+    using value_type = string_view;
+    @endcode
+
+    @par Example
+    @code
+    @endcode
+
     @par BNF
     @code
-    token = 1*tchar
+    token           = 1*tchar
     @endcode
 */
 constexpr auto token_rule = grammar::token_rule( tchars );
