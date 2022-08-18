@@ -331,50 +331,6 @@ operator[](
     return {};
 }
 
-//------------------------------------------------
-
-template<class MutableString>
-MutableString&
-make_list(
-    fields_view_base::subrange const& r,
-    MutableString& dest)
-{
-    // If you get a compilation error here it
-    // means that type of `dest` does not meet
-    // the requirments. Please consult the
-    // documentation.
-    static_assert(
-        grammar::is_mutable_string<
-            MutableString>::value,
-        "MutableString requirements not met");
-
-    {
-        // clear string
-        string_view s;
-        dest.assign(
-            s.begin(), s.begin());
-    }
-    auto it = r.begin();
-    auto const end = r.end();
-    if(it == end)
-        return dest;
-    // first value
-    dest.assign(
-        it->value.begin(),
-        it->value.end());
-    ++it;
-    while(it != end)
-    {
-        static constexpr char comma = ',';
-        dest.append(&comma, &comma + 1);
-        dest.append(
-            it->value.begin(),
-            it->value.end());
-        ++it;
-    }
-    return dest;
-}
-
 } // http_proto
 } // boost
 

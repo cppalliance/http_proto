@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
 #include <memory>
 #include <string>
@@ -341,19 +342,6 @@ public:
 
     //--------------------------------------------
 };
-
-//------------------------------------------------
-
-/** Return a fields subrange as a comma separated string
-
-    @see
-        https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.2
-*/
-template<class MutableString>
-MutableString&
-make_list(
-    fields_view_base::subrange const& r,
-    MutableString& dest);
 
 } // http_proto
 } // boost

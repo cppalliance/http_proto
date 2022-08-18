@@ -13,6 +13,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/version.hpp>
+#include <boost/http_proto/rfc/combine_field_values.hpp>
 
 #include "test_suite.hpp"
 
@@ -289,13 +290,13 @@ public:
                 field::connection);
         BOOST_TEST(
             rv.find("a")->value == "1");
-        std::string tmp;
-        BOOST_TEST(make_list(rv.find_all(
-            field::user_agent), tmp) == "x");
-        BOOST_TEST(make_list(rv.find_all(
-            "b"), tmp) == "2");
-        BOOST_TEST(make_list(rv.find_all(
-            "a"), tmp) == "1,3");
+        grammar::recycled_ptr<std::string> temp;
+        BOOST_TEST(combine_field_values(rv.find_all(
+            field::user_agent), temp) == "x");
+        BOOST_TEST(combine_field_values(rv.find_all(
+            "b"), temp) == "2");
+        BOOST_TEST(combine_field_values(rv.find_all(
+            "a"), temp) == "1,3");
     }
 
     void

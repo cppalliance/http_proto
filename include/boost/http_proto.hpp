@@ -48,6 +48,7 @@
 
 #include <boost/http_proto/mime/mime_types.hpp>
 
+#include <boost/http_proto/rfc/combine_field_values.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>

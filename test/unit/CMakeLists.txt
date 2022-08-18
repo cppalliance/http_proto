@@ -54,6 +54,7 @@ set(PFILES
     codec/encoder.cpp
     mime/mime_types.cpp
     #rfc/chunk_ext_rule.cpp
+    rfc/combine_field_values.cpp
     rfc/list_rule.cpp
     rfc/quoted_token_rule.cpp
     rfc/token_rule.cpp

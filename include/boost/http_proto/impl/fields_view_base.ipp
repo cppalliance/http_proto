@@ -92,6 +92,7 @@ operator++() noexcept ->
             if(e->id == id)
                 break;
             ++i_;
+            --e;
         }
         return *this;
     }

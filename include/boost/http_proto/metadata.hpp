@@ -23,11 +23,28 @@ namespace http_proto {
 */
 struct payload
 {
+    // VFALCO 3 space indent or
+    // else Doxygen malfunctions
     enum what
     {
+        /**
+          * This message has no payload
+        */
         none,
+
+        /**
+          * This message has a known payload size
+        */
         sized,
+
+        /**
+          * The payload for this message continues until EOF
+        */
         to_eof,
+
+        /**
+          * This message contains a chunked payload
+        */
         chunked
     };
 
@@ -172,6 +189,12 @@ struct upgrade
     /** True if websocket appears at least once
     */
     bool websocket = false;
+};
+
+//------------------------------------------------
+
+struct metadata
+{
 };
 
 } // http_proto

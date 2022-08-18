@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_ERROR_TYPES_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/url/error_type.hpp>
+#include <boost/url/error_types.hpp>
 
 namespace boost {
 namespace http_proto {
