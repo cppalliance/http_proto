@@ -22,9 +22,8 @@ combine_field_values(
 {
     string_view result;
     bool acquired = false;
-    for(auto const& e : vr)
+    for(auto const& s : vr)
     {
-        auto s = e.value;
         if(s.empty())
             continue;
         if(result.empty())

@@ -140,15 +140,11 @@ class fields_view_base::subrange
 public:
     class iterator;
     using const_iterator = iterator;
-    using value_type =
-        fields_view_base::value_type;
-    using reference =
-        fields_view_base::reference;
-    using const_reference =
-        fields_view_base::reference;
+    using value_type = std::string;
+    using reference = string_view;
+    using const_reference = reference;
     using size_type = std::size_t;
-    using difference_type =
-        std::ptrdiff_t;
+    using difference_type = std::ptrdiff_t;
 
     /** Constructor
 
@@ -187,11 +183,9 @@ class fields_view_base::subrange::
     }
 
 public:
-    using value_type =
-        fields_view_base::value_type;
-    using reference =
-        fields_view_base::reference;
-    using pointer = void;
+    using value_type = std::string;
+    using reference = string_view;
+    using pointer = void const*;
     using difference_type =
         std::ptrdiff_t;
     using iterator_category =
@@ -306,7 +300,7 @@ end() const noexcept ->
 }
 
 inline
-string_view
+string_view const
 fields_view_base::
 operator[](
     field id) const noexcept
@@ -320,7 +314,7 @@ operator[](
 }
 
 inline
-string_view
+string_view const
 fields_view_base::
 operator[](
     string_view name) const noexcept

@@ -150,12 +150,12 @@ public:
 
     /** Return the value of a field, or the empty string
     */
-    string_view
+    string_view const
     operator[](field id) const noexcept;
 
     /** Return the value of a field, or the empty string
     */
-    string_view
+    string_view const
     operator[](string_view name) const noexcept;
 
     //--------------------------------------------

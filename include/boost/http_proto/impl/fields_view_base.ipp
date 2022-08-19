@@ -64,12 +64,8 @@ operator*() const noexcept ->
         ph_->tab()[i_];
     auto const p =
         ph_->cbuf + ph_->prefix;
-    return {
-        e.id,
-        string_view(
-            p + e.np, e.nn),
-        string_view(
-            p + e.vp, e.vn)};
+    return string_view(
+        p + e.vp, e.vn);
 }
 
 auto
@@ -141,7 +137,7 @@ fields_view_base::
 count(field id) const noexcept
 {
     std::size_t n = 0;
-    for(auto v : *this)
+    for(auto const& v : *this)
         if(v.id == id)
             ++n;
     return n;
