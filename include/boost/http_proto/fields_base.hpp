@@ -35,6 +35,7 @@ class BOOST_SYMBOL_VISIBLE
     friend class response;
     friend class serializer;
     friend class message_base;
+    friend struct detail::header;
 
     BOOST_HTTP_PROTO_DECL
     explicit fields_base(
@@ -294,105 +295,17 @@ private:
 
 //------------------------------------------------
 
-/** Provides message metadata for requests and responses
-*/
-class BOOST_SYMBOL_VISIBLE
-    message_base
-    : public fields_base
+#ifndef BOOST_HTTP_PROTO_DOCS
+namespace detail {
+inline
+header&
+header::
+get(fields_base& f) noexcept
 {
-    friend class request;
-    friend class request_view;
-    friend class response;
-    friend class response_view;
-
-    explicit
-    message_base(
-        detail::kind k) noexcept
-        : fields_base(k)
-    {
-    }
-
-    explicit
-    message_base(
-        detail::header const& ph) noexcept
-        : fields_base(ph)
-    {
-    }
-
-public:
-    //--------------------------------------------
-    //
-    // Metadata
-    //
-    //--------------------------------------------
-
-    /** Return metadata about the payload
-    */
-    http_proto::payload const&
-    payload() const noexcept
-    {
-        return ph_->pay;
-    }
-
-    /** Return metadata about the Content-Length field
-    */
-    auto
-    connection() const noexcept ->
-        http_proto::connection const&
-    {
-        return ph_->con;
-    }
-
-    /** Return metadata about the Content-Length field
-    */
-    auto
-    content_length() const noexcept ->
-        http_proto::content_length const&
-    {
-        return ph_->clen;
-    }
-
-    /** Return metadata about the Transfer-Encoding field
-    */
-    auto
-    transfer_encoding() const noexcept ->
-        http_proto::transfer_encoding const&
-    {
-        return ph_->te;
-    }
-
-    //--------------------------------------------
-
-    /** Set the payload size
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_payload_size(
-        std::uint64_t n);
-
-    /** Set the Content-Length to the specified value
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_content_length(
-        std::uint64_t n);
-
-    /** Set whether the payload is chunked.
-    */
-    void
-    set_chunked(bool value)
-    {
-        set_chunked_impl(value);
-    }
-
-private:
-    char* set_prefix_impl(std::size_t);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_chunked_impl(
-        bool value);
-};
+    return f.h_;
+}
+} // detail
+#endif
 
 } // http_proto
 } // boost

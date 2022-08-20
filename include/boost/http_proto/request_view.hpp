@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields_view_base.hpp>
+#include <boost/http_proto/message_view_base.hpp>
 
 namespace boost {
 namespace http_proto {

@@ -23,8 +23,14 @@ static
 error_category const&
 get_error_cat() noexcept
 {
-    struct T : error_category
+    struct codes : error_category
     {
+        codes() noexcept
+            : error_category(
+                0x3663257e7585fbfd)
+        {
+        }
+            
         const char*
         name() const noexcept override
         {
@@ -36,7 +42,6 @@ get_error_cat() noexcept
         {
             switch(static_cast<error>(ev))
             {
-            case error::end: return "range end";
             case error::end_of_message: return "end of message";
             case error::end_of_stream: return "end of stream";
 
@@ -61,12 +66,13 @@ get_error_cat() noexcept
             case error::too_many_fields: return "too many fields";
             case error::numeric_overflow: return "numeric overflow";
 
+            case error::multiple_content_length: return "multiple Content-Length";
             default:
                 return "unknown";
             }
         }
     };
-    static T const t{};
+    static codes const t{};
     return t;
 }
 

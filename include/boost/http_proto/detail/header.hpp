@@ -24,6 +24,9 @@
 
 namespace boost {
 namespace http_proto {
+
+class fields_base;
+
 namespace detail {
 
 enum kind : unsigned char
@@ -32,10 +35,6 @@ enum kind : unsigned char
     request,
     response, 
 };
-
-struct fields_tag {};
-struct request_tag {};
-struct response_tag {};
 
 struct header
 {
@@ -93,8 +92,9 @@ struct header
         http_proto::version::http_1_1;
     payload pay;
     connection con;
-    content_length clen;
     transfer_encoding te;
+    upgrade up;
+    metadata md;
 
     struct fld_t
     {
@@ -122,18 +122,26 @@ struct header
 
     //--------------------------------------------
 
-    header() = default;
+private:
+    struct fields_tag {};
+    struct request_tag {};
+    struct response_tag {};
+
     constexpr header(fields_tag) noexcept;
     constexpr header(request_tag) noexcept;
     constexpr header(response_tag) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    header(detail::kind k) noexcept;
-
+public:
     BOOST_HTTP_PROTO_DECL
     static
     header const*
     get_default(detail::kind k) noexcept;
+
+    static
+    header&
+    get(fields_base& f) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    header(detail::kind k) noexcept;
 
     BOOST_HTTP_PROTO_DECL
     void swap(header& h) noexcept;
@@ -146,24 +154,30 @@ struct header
     void copy_table(void* dest) const noexcept;
     void assign_to(header& dest) const noexcept;
 
-    void on_erase(field id) noexcept;
-    void on_erase_all(field id) noexcept;
     void on_insert(field id, string_view v);
     void on_insert_clen(string_view v);
     void on_insert_con(string_view v);
     void on_insert_te(string_view v);
     void on_insert_up(string_view v);
+
+    void on_erase(field id);
+    void on_erase_clen();
+    void on_erase_con();
+    void on_erase_te();
+    void on_erase_up();
+
+    void on_erase_all(field id);
+
     void update_payload() noexcept;
 };
 
 //------------------------------------------------
 
 BOOST_HTTP_PROTO_DECL
-void
+result<std::size_t>
 parse_start_line(
     header& h,
-    std::size_t,
-    error_code&) noexcept;
+    string_view s) noexcept;
 
 BOOST_HTTP_PROTO_DECL
 bool

@@ -101,6 +101,31 @@ make_request(
     return req;
 }
 
+request
+make_request_(
+    string_view s)
+{
+    request req;
+    detail::header h(
+        detail::kind::request);
+    h.size = 0;
+    h.prefix = 0;
+    using detail::parse_start_line;
+    s.remove_prefix(
+        parse_start_line(h, s).value());
+    req.set_start_line(
+        string_view(
+            h.cbuf, h.req.method_len),
+        string_view(
+            h.cbuf + h.req.method_len + 1 +
+                h.req.target_len),
+        h.version);
+    for(auto const& v : fields_range(s))
+        req.append(v.name, v.value);
+    test_fields(req, s);
+    return req;
+}
+
 response
 make_response(
     string_view s)

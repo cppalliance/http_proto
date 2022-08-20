@@ -27,6 +27,8 @@
 #include <boost/http_proto/file_win32.hpp>
 #include <boost/http_proto/file_source.hpp>
 #include <boost/http_proto/file_stdio.hpp>
+#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request.hpp>

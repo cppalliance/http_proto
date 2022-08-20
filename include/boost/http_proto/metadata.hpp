@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_METADATA_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/error_types.hpp>
+#include <boost/http_proto/error.hpp> // VFALCO TEMPORARY
 #include <cstdint>
 #include <cstdlib>
 
@@ -30,22 +32,27 @@ struct payload
         /**
           * This message has no payload
         */
-        none,
+        none
 
         /**
           * This message has a known payload size
         */
-        sized,
+        ,sized
 
         /**
           * The payload for this message continues until EOF
         */
-        to_eof,
+        ,to_eof
 
         /**
           * This message contains a chunked payload
         */
-        chunked
+        ,chunked
+
+        /**
+          * The payload is unknown due to errors
+        */
+        ,error
     };
 
     what kind = what::none;
@@ -95,40 +102,6 @@ struct connection
         , n_keepalive(n_keepalive_)
         , n_upgrade(n_upgrade_)
         , error(error_)
-    {
-    }
-#endif
-};
-
-/** Metadata for the Content-Length field
-*/
-struct content_length
-{
-    /** The total number of fields
-    */
-    std::size_t count = 0;
-
-    /** The value as an integer, if valid
-    */
-    std::uint64_t value = 0;
-
-    /** True if fields are valid and no overflow
-    */
-    bool has_value = false;
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-    // workaround for C++ aggregate init
-    constexpr
-    content_length() = default;
-
-    constexpr
-    content_length(
-        std::size_t count_,
-        std::uint64_t value_,
-        bool has_value_) noexcept
-        : count(count_)
-        , value(value_)
-        , has_value(has_value_)
     {
     }
 #endif
@@ -193,8 +166,55 @@ struct upgrade
 
 //------------------------------------------------
 
+/** Metadata about a request or response
+*/
 struct metadata
 {
+    /** Metadata for the Content-Length field
+    */
+    struct content_length_t
+    {
+        /** Error status of Content-Length
+        */
+        //error_code ec;
+        error ec = error::success;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** True if value is set
+        */
+        bool has_value = false;
+
+        /** The value as an integer
+        */
+        std::uint64_t value = 0;
+
+    #ifndef BOOST_HTTP_PROTO_DOCS
+        // workaround for C++ aggregate init
+        constexpr
+        content_length_t() = default;
+
+        constexpr
+        content_length_t(
+            error ec_,
+            std::size_t count_,
+            bool has_value_,
+            std::uint64_t value_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , has_value(has_value_)
+            , value(value_)
+        {
+        }
+    #endif
+    };
+
+    content_length_t content_length;
+    http_proto::connection connection;
+    http_proto::transfer_encoding transfer_encoding;
+    http_proto::upgrade upgrade;
 };
 
 } // http_proto

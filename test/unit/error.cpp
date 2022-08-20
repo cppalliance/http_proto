@@ -46,7 +46,6 @@ public:
     {
         char const* const n = "boost.http.proto";
 
-        check(n, error::end);
         check(n, error::end_of_message);
         check(n, error::end_of_stream);
 
@@ -71,7 +70,7 @@ public:
         check(n, error::too_many_fields);
         check(n, error::numeric_overflow);
 
-        check(n, error::numeric_overflow);
+        check(n, error::multiple_content_length);
     }
 };
 

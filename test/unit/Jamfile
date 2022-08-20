@@ -35,6 +35,8 @@ local SOURCES =
     file_stdio.cpp
     file_win32.cpp
     http_proto.cpp
+    message_base.cpp
+    message_view_base.cpp
     metadata.cpp
     method.cpp
     parser.cpp

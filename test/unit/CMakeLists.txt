@@ -11,6 +11,7 @@ set(EXTRAFILES
     ../../../url/extra/test_main.cpp
     ../../../url/extra/test_suite.hpp
     ./test_helpers.hpp
+    ./test_helpers.cpp
     )
 
 set(PFILES
@@ -33,6 +34,8 @@ set(PFILES
     file_stdio.cpp
     file_win32.cpp
     http_proto.cpp
+    message_base.cpp
+    message_view_base.cpp
     metadata.cpp
     method.cpp
     parser.cpp
@@ -46,7 +49,6 @@ set(PFILES
     source.cpp
     status.cpp
     string_view.cpp
-    test_helpers.cpp
     version.cpp
     codec/codecs.cpp
     codec/decoder.cpp

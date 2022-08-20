@@ -66,6 +66,17 @@ header(response_tag) noexcept
 {
 }
 
+header const*
+header::
+get_default(detail::kind k) noexcept
+{
+    static constexpr header h[3] = {
+        fields_tag{},
+        request_tag{},
+        response_tag{}};
+    return &h[k];
+}
+
 header::
 header(detail::kind k) noexcept
     : header(*get_default(k))
@@ -135,18 +146,6 @@ buffer_needed(
 }
 
 //------------------------------------------------
-
-
-header const*
-header::
-get_default(detail::kind k) noexcept
-{
-    static header h[3] = {
-        fields_tag{},
-        request_tag{},
-        response_tag{}};
-    return &h[k];
-}
 
 auto
 header::
@@ -263,6 +262,11 @@ swap(header& h) noexcept
     std::swap(count, h.count);
     std::swap(prefix, h.prefix);
     std::swap(version, h.version);
+    std::swap(pay, h.pay);
+    std::swap(con, h.con);
+    std::swap(te, h.te);
+    std::swap(up, h.up);
+    std::swap(md, h.md);
     switch(kind)
     {
     case detail::kind::fields:
@@ -286,85 +290,6 @@ swap(header& h) noexcept
 //
 // Metadata
 //
-//------------------------------------------------
-// update metadata for
-// one field id erased
-void
-header::
-on_erase(field id) noexcept
-{
-    if(kind == detail::kind::fields)
-        return;
-    switch(id)
-    {
-    case field::connection:
-    {
-        //auto rv = grammar::parse(
-        break;
-    }
-    case field::content_length:
-    {
-        BOOST_ASSERT(clen.count > 0);
-        if(clen.count == 1)
-        {
-            // no more Content-Length
-            clen = {};
-            return;
-        }
-        --clen.count;
-        if(clen.has_value)
-        {
-            // don't scan, remaining
-            // Content-Length are same
-            return;
-        }
-        // scan all Content-Length
-        auto const p = cbuf + prefix;
-        auto const* e = &tab()[0];
-        std::size_t n = clen.count;
-        clen = {};
-        while(n > 0)
-        {
-            if(e->id == id)
-                on_insert(id,
-                    string_view(
-                        p + e->vp,
-                        e->vn));
-            --n;
-            --e;
-        }
-        break;
-    }
-
-    default:
-        break;
-    }
-}
-
-// update metadata for
-// all field id erased
-void
-header::
-on_erase_all(
-    field id) noexcept
-{
-    if(kind == detail::kind::fields)
-        return;
-    switch(id)
-    {
-    case field::connection:
-        con = {};
-        return;
-
-    case field::content_length:
-        clen = {};
-        return;
-
-    default:
-        break;
-    }
-}
-
 //------------------------------------------------
 
 // called after a field is inserted
@@ -396,42 +321,38 @@ on_insert_clen(string_view v)
 /*
     Content-Length = 1*DIGIT
 */
-    ++clen.count;
+    ++md.content_length.count;
+    //if(md.content_length.ec.failed())
+    if(md.content_length.ec != error::success)
+        return;
     auto rv = grammar::parse(v,
         grammar::unsigned_rule<
             std::uint64_t>{});
-    if(rv.has_value())
+    if(! rv)
     {
-        if(clen.count == 1)
-        {
-            // first one
-            clen.value = *rv;
-            clen.has_value = true;
-            update_payload();
-            return;
-        }
-
-        if(clen.has_value)
-        {
-            if(*rv == clen.value)
-            {
-                // matching dupe is ok
-                return;
-            }
-
-            // mismatch
-        }
-        else
-        {
-            BOOST_ASSERT(
-                clen.value == 0);
-            return;
-        }
+        // parse failure
+        //md.content_length.ec = rv.error();
+        md.content_length.ec = error::bad_content_length;
+        md.content_length.has_value = 0;
+        update_payload();
+        return;
     }
-
-    // overflow or parse error
-    clen.value = 0;
-    clen.has_value = false;
+    if(md.content_length.count == 1)
+    {
+        md.content_length.value = *rv;
+        md.content_length.has_value = true;
+        update_payload();
+        return;
+    }
+    BOOST_ASSERT(md.content_length.has_value);
+    if(*rv == md.content_length.value)
+    {
+        // duplicate
+        return;
+    }
+    md.content_length.value = 0;
+    md.content_length.has_value = false;
+    md.content_length.ec = error::multiple_content_length;
 }
 
 void
@@ -541,6 +462,122 @@ on_insert_up(string_view v)
     (void)v;
 }
 
+//------------------------------------------------
+
+// update metadata for
+// one field id erased
+void
+header::
+on_erase(field id)
+{
+    if(kind == detail::kind::fields)
+        return;
+    switch(id)
+    {
+    case field::connection:
+        return on_erase_con();
+    case field::content_length:
+        return on_erase_clen();
+    case field::transfer_encoding:
+        return on_erase_te();
+    case field::upgrade:
+        return on_erase_up();
+    default:
+        break;
+    }
+}
+
+void
+header::
+on_erase_clen()
+{
+    BOOST_ASSERT(md.content_length.count > 0);
+    if(md.content_length.count == 1)
+    {
+        // no Content-Length
+        md.content_length = {};
+        update_payload();
+        return;
+    }
+    --md.content_length.count;
+    if(md.content_length.has_value)
+    {
+        // other Content-Length
+        // fields have the same value
+        //BOOST_ASSERT(! md.content_length.ec.failed());
+        BOOST_ASSERT(md.content_length.ec == error::success);
+        return;
+    }
+    // reset and re-insert
+    auto n = md.content_length.count;
+    auto const p = cbuf + prefix;
+    auto const* e = &tab()[0];
+    md.content_length = {};
+    while(n > 0)
+    {
+        if(e->id == field::content_length)
+            on_insert_clen(string_view(
+                p + e->vp, e->vn));
+        --n;
+        --e;
+    }
+    update_payload();
+}
+
+void
+header::
+on_erase_con()
+{
+}
+
+void
+header::
+on_erase_te()
+{
+}
+
+void
+header::
+on_erase_up()
+{
+}
+
+// update metadata for
+// all field id erased
+void
+header::
+on_erase_all(
+    field id)
+{
+    if(kind == detail::kind::fields)
+        return;
+    switch(id)
+    {
+    case field::connection:
+        con = {};
+        return;
+
+    case field::content_length:
+        md.content_length = {};
+        update_payload();
+        return;
+
+    case field::transfer_encoding:
+        te = {};
+        update_payload();
+        return;
+
+    case field::upgrade:
+        up = {};
+        return;
+
+    default:
+        break;
+    }
+}
+
+//------------------------------------------------
+
 void
 header::
 update_payload() noexcept
@@ -560,7 +597,7 @@ update_payload() noexcept
         if the method does not define any use for a
         message body.
     */
-        if(clen.count > 0)
+        if(md.content_length.count > 0)
         {
             if(body_limit_.has_value() &&
                len_ > body_limit_)
@@ -644,23 +681,28 @@ update_payload() noexcept
 //------------------------------------------------
 
 static
-void
+result<std::size_t>
 parse_request_line(
     header& h,
-    std::size_t new_size,
-    error_code& ec) noexcept
+    string_view s) noexcept
 {
-    auto const it0 = h.cbuf;
-    auto const end = it0 + new_size;
+    auto const it0 = s.data();
+    auto const end = it0 + s.size();
     char const* it = it0;
-
     auto rv = grammar::parse(
         it, end, request_line_rule);
     if(! rv)
-    {
-        ec = rv.error();
-        return;
-    }
+        return rv.error();
+    // method
+    auto sm = std::get<0>(*rv);
+    h.req.method = string_to_method(sm);
+    h.req.method_len =
+        static_cast<off_t>(sm.size());
+    // target
+    auto st = std::get<1>(*rv);
+    h.req.target_len =
+        static_cast<off_t>(st.size());
+    // version
     switch(std::get<2>(*rv))
     {
     case 10:
@@ -670,41 +712,31 @@ parse_request_line(
         h.version = version::http_1_1;
         break;
     default:
-        ec = error::bad_version;
-        return;
+        return error::bad_version;
     }
-    auto sm = std::get<0>(*rv);
-    auto st = std::get<1>(*rv);
-    h.req.method = string_to_method(sm);
-    h.req.method_len = static_cast<
-        off_t>(sm.size());
-    h.req.target_len = static_cast<
-        off_t>(st.size());
-    h.prefix = static_cast<
-        off_t>(it - it0);
+
+    h.cbuf = s.data();
+    h.prefix =
+        static_cast<off_t>(it - it0);
     h.size = h.prefix;
     h.update_payload();
-    ec = {};
+    return h.prefix;
 }
 
 static
-void
+result<std::size_t>
 parse_status_line(
     header& h,
-    std::size_t new_size,
-    error_code& ec) noexcept
+    string_view s) noexcept
 {
-    auto const it0 = h.cbuf;
-    auto const end = it0 + new_size;
+    auto const it0 = s.data();
+    auto const end = it0 + s.size();
     char const* it = it0;
-
     auto rv = grammar::parse(
         it, end, status_line_rule);
     if(! rv)
-    {
-        ec = rv.error();
-        return;
-    }
+        return rv.error();
+    // version
     switch(std::get<0>(*rv))
     {
     case 10:
@@ -714,37 +746,37 @@ parse_status_line(
         h.version = version::http_1_1;
         break;
     default:
-        ec = error::bad_version;
-        return;
+        return error::bad_version;
     }
-    h.res.status_int = static_cast<
-        unsigned short>(std::get<1>(*rv).v);
+    // status-code
+    h.res.status_int =
+        static_cast<unsigned short>(
+            std::get<1>(*rv).v);
     h.res.status = std::get<1>(*rv).st;
-    h.prefix = static_cast<
-        off_t>(it - it0);
+
+    h.cbuf = s.data();
+    h.prefix =
+        static_cast<off_t>(it - it0);
     h.size = h.prefix;
     h.update_payload();
-    ec = {};
+    return h.prefix;
 }
 
-void
+result<std::size_t>
 parse_start_line(
     header& h,
-    std::size_t new_size,
-    error_code& ec) noexcept
+    string_view s) noexcept
 {
-    BOOST_ASSERT(! ec.failed());
-    BOOST_ASSERT(h.prefix == 0);
+    BOOST_ASSERT(! s.empty());
     BOOST_ASSERT(h.size == 0);
-    BOOST_ASSERT(new_size > h.size);
+    BOOST_ASSERT(h.prefix == 0);
 
     // VFALCO do we need a separate
     //        limit on start line?
 
     if(h.kind == detail::kind::request)
-        return parse_request_line(
-            h, new_size, ec);
-    parse_status_line(h, new_size, ec);
+        return parse_request_line(h, s);
+    return parse_status_line(h, s);
 }
 
 // returns: true if we added a field

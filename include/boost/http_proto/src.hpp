@@ -41,6 +41,8 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/file_source.ipp>
 #include <boost/http_proto/impl/file_stdio.ipp>
 
+#include <boost/http_proto/impl/message_base.ipp>
+#include <boost/http_proto/impl/message_view_base.ipp>
 #include <boost/http_proto/impl/method.ipp>
 #include <boost/http_proto/impl/parser.ipp>
 #include <boost/http_proto/impl/request.ipp>

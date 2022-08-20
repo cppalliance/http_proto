@@ -29,74 +29,155 @@ struct metadata_test
     testContentLength()
     {
         auto const check = [](
-            request const& req,
-            content_length cl1)
+            string_view s,
+            void(*f)(message_base&),
+            metadata::content_length_t cl1)
         {
+            request req = make_request_(s);
+            f(req);
             auto const cl0 =
-                req.content_length();
+                req.metadata().content_length;
+            BOOST_TEST_EQ(
+                cl0.ec, cl1.ec);
             BOOST_TEST_EQ(
                 cl0.count, cl1.count);
             BOOST_TEST_EQ(
-                cl0.value, cl1.value);
-            BOOST_TEST_EQ(
                 cl0.has_value, cl1.has_value);
+            BOOST_TEST_EQ(
+                cl0.value, cl1.value);
         };
 
-        //
-        request req;
-        check(req, { 0, 0, false });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "\r\n",
+            [](message_base&)
+            {
+            },
+            { error::success, 0, false, 0 });
 
-        // Content-Length: 0
-        req.append(field::content_length, "0");
-        check(req, { 1, 0, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.append(field::content_length, "0");
+            },
+            { error::success, 1, true, 0 });
 
-        // Content-Length: 1
-        req.set(field::content_length, "1");
-        check(req, { 1, 1, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 0\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.set(field::content_length, "1");
+            },
+            { error::success, 1, true, 1 });
 
-        // Content-Length: 1
-        // Content-Length: 1
-        req.append(field::content_length, "1");
-        check(req, { 2, 1, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 1\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.append(field::content_length, "1");
+            },
+            { error::success, 2, true, 1 });
 
-        //
-        req.erase(field::content_length);
-        check(req, { 0, 0, false });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 1\r\n"
+            "Content-Length: 1\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.erase(field::content_length);
+            },
+            { error::success, 0, false, 0 });
 
-        // Content-Length: 2
-        req.set(field::content_length, "2");
-        check(req, { 1, 2, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.set(field::content_length, "2");
+            },
+            { error::success, 1, true, 2 });
 
-        // Content-Length: 2
-        // Content-Length: 3
-        req.append(field::content_length, "3");
-        check(req, { 2, 0, false });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 2\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.append(field::content_length, "3");
+            },
+            { error::multiple_content_length, 2, false, 0 });
 
-        // Content-Length: 3
-        req.erase(req.find(field::content_length));
-        check(req, { 1, 3, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 2\r\n"
+            "Content-Length: 3\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.erase(f.find(field::content_length));
+            },
+            { error::success, 1, true, 3 });
 
-        // Content-Length: 42
-        req.set_content_length(42);
-        check(req, { 1, 42, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 3\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.set_content_length(42);
+            },
+            { error::success, 1, true, 42 });
 
-        // Content-Length: 0
-        req.set_content_length(0);
-        check(req, { 1, 0, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 42\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.set_content_length(0);
+            },
+            { error::success, 1, true, 0 });
 
-        // Content-Length: 18446744073709551616
-        req.set(field::content_length,
-            "18446744073709551616");
-        check(req, { 1, 0, false });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 0\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.set(field::content_length,
+                    "18446744073709551616");
+            },
+            //{ grammar::error::invalid, 1, false, 0 });
+            { error::bad_content_length, 1, false, 0 });
 
-        // Content-Length: 18446744073709551616
-        // Content-Length: 42
-        req.append(field::content_length, "42");
-        check(req, { 2, 0, false });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 18446744073709551616\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.append(field::content_length, "42");
+            },
+            //{ grammar::error::invalid, 2, false, 0 });
+            { error::bad_content_length, 2, false, 0 });
 
-        // Content-Length: 42
-        req.erase(req.find(field::content_length));
-        check(req, { 1, 42, true });
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 18446744073709551616\r\n"
+            "Content-Length: 42\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.erase(f.find(field::content_length));
+            },
+            { error::success, 1, true, 42 });
     }
 
     void

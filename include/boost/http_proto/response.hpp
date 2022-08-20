@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields_base.hpp>
+#include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/response_view.hpp>
 
 namespace boost {

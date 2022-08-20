@@ -28,12 +28,12 @@ parser(
     config const& cfg,
     std::size_t buffer_bytes)
     : cfg_(cfg)
+    , h_(k)
     , committed_(0)
     , state_(state::empty)
     , got_eof_(false)
     , m_{}
 {
-    h_.kind = k;
     // buffer must be large enough to
     // hold a complete header.
     if( buffer_bytes <
@@ -44,6 +44,8 @@ parser(
     h_.buf = new char[buffer_bytes];
     h_.cbuf = h_.buf;
     h_.cap = buffer_bytes;
+    h_.size = 0;
+    h_.prefix = 0;
 }
 
 //------------------------------------------------
@@ -125,8 +127,7 @@ reset()
 
     // reset the header but
     // preserve the capacity
-    detail::header h;
-    h.kind = h_.kind;
+    detail::header h(h_.kind);
     h.assign_to(h_);
 
     m_ = message{};
@@ -259,19 +260,27 @@ parse_start_line(
         committed_ <= cfg_.max_header_size
         ? committed_
         : cfg_.max_header_size;
-    detail::parse_start_line(
-        h_, new_size, ec);
-    if(ec ==
-        grammar::error::need_more)
+    string_view s(
+        this->h_.buf, new_size);
+    auto rv =
+        detail::parse_start_line(h_, s);
+    if(rv == grammar::error::need_more)
     {
         if( new_size <
             cfg_.max_header_size)
+        {
+            ec = rv.error();
             return;
+        }
         ec = error::header_too_large;
         return;
     }
-    if(ec.failed())
+    if(! rv)
+    {
+        ec = rv.error();
         return;
+    }
+    ec = {};
 }
 
 void

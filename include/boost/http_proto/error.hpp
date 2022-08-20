@@ -22,23 +22,11 @@ enum class error
     // VFALCO 3 space indent or
     // else Doxygen malfunctions
 
-#ifndef BOOST_HTTO_PROTO_DOCS
-    success = 0 // VFALCO Is this correct?
-#endif
+    success = 0
 
     //
     // Partial success
     //
-
-    /**
-      * A BNF list reached the end of its range
-
-        This error is returned by the `begin` and
-        `increment` functions of a BNF list element
-        when iteration reaches one past the last
-        element of the range.
-    */
-    ,end
 
     /** A complete message has been parsed
     */
@@ -130,6 +118,15 @@ enum class error
 
     /// A number overflowed
     ,numeric_overflow
+
+    /**
+     *  Multiple Content-Length fields present
+
+        This error indicates there are
+        two or more Content-Length headers
+        with different field values.
+    */
+    ,multiple_content_length
 };
 
 } // http_proto
