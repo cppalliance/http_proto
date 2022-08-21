@@ -49,6 +49,7 @@ public:
         check(n, error::end_of_message);
         check(n, error::end_of_stream);
 
+        check(n, error::bad_connection);
         check(n, error::bad_content_length);
         check(n, error::bad_field_name);
         check(n, error::bad_field_value);
@@ -62,6 +63,7 @@ public:
         check(n, error::bad_status_code);
         check(n, error::bad_status_line);
         check(n, error::bad_transfer_encoding);
+        check(n, error::bad_upgrade);
         check(n, error::syntax);
 
         check(n, error::body_too_large);

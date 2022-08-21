@@ -145,6 +145,8 @@ set_impl(
     dest += rs.size();
     dest[0] = '\r';
     dest[1] = '\n';
+
+    h_.on_start_line();
 }
 
 } // http_proto

@@ -15,21 +15,6 @@
 namespace boost {
 namespace http_proto {
 
-#if 0
-
-auto
-get_connection_field(
-    fields_view_base const& f,
-    grammar::recycled_ptr<std::string>& temp) ->
-        result<grammar::range<string_view>>
-{
-    auto s = make_list(f.find_all(
-        field::connection), temp);
-    return grammar::parse(s,
-        grammar::range_rule(token_rule, 1));
-}
-#endif
-
 struct combine_field_values_test
 {
     void

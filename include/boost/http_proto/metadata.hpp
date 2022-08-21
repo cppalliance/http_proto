@@ -21,147 +21,41 @@ namespace http_proto {
 
 //------------------------------------------------
 
-/** Metadata about the payload in a message
+/** Identifies the payload type of a message
 */
-struct payload
+enum class payload
 {
-    // VFALCO 3 space indent or
-    // else Doxygen malfunctions
-    enum what
-    {
-        /**
-          * This message has no payload
-        */
-        none
+// VFALCO 3 space indent or
+// else Doxygen malfunctions
 
-        /**
-          * This message has a known payload size
-        */
-        ,sized
-
-        /**
-          * The payload for this message continues until EOF
-        */
-        ,to_eof
-
-        /**
-          * This message contains a chunked payload
-        */
-        ,chunked
-
-        /**
-          * The payload is unknown due to errors
-        */
-        ,error
-    };
-
-    what kind = what::none;
-    std::uint64_t size = 0;
-};
-
-//------------------------------------------------
-
-/** Metadata for the Connection field
-*/
-struct connection
-{
-    /** The total number of fields
+    /**
+      * This message has no payload
     */
-    std::size_t count = 0;
+    none
 
-    /** true if the close token was seen
+    /**
+      * The payload is unknown due to errors
     */
-    std::size_t n_close = 0;
+    ,error
 
-    /** Number of times keep-alive was seen
+    /**
+      * This message has a known payload size
+
+        The function @ref message_view_base::payload_size
+        may be used to obtain the exact number of
+        octets in the actual payload.
     */
-    std::size_t n_keepalive = 0;
+    ,size
 
-    /** Number of times upgrade token was seen
+    /**
+      * The payload for this message continues until EOF
     */
-    std::size_t n_upgrade = 0;
+    ,to_eof
 
-    /** True if any parse error occurred
+    /**
+      * This message contains a chunked payload
     */
-    bool error = false;
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-    // workaround for C++ aggregate init
-    constexpr
-    connection() = default;
-
-    constexpr
-    connection(
-        std::size_t count_,
-        std::size_t n_close_,
-        std::size_t n_keepalive_,
-        std::size_t n_upgrade_,
-        bool error_) noexcept
-        : count(count_)
-        , n_close(n_close_)
-        , n_keepalive(n_keepalive_)
-        , n_upgrade(n_upgrade_)
-        , error(error_)
-    {
-    }
-#endif
-};
-
-//------------------------------------------------
-
-/** Metadata for the Transfer-Encoding field
-*/
-struct transfer_encoding
-{
-    /** The total number of fields
-    */
-    std::size_t count = 0;
-
-    /** The total number of codings
-    */
-    std::size_t codings = 0;
-
-    /** True if valid and chunked is specified
-    */
-    bool is_chunked = false;
-
-    /** True if the fields are invalid
-    */
-    bool error = false;
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-    // workaround for C++ aggregate init
-    constexpr
-    transfer_encoding() = default;
-
-    constexpr
-    transfer_encoding(
-        std::size_t count_,
-        std::size_t codings_,
-        bool is_chunked_,
-        bool error_) noexcept
-        : count(count_)
-        , codings(codings_)
-        , is_chunked(is_chunked_)
-        , error(error_)
-    {
-    }
-#endif
-};
-
-//------------------------------------------------
-
-/** Metadata for Upgrade field
-*/
-struct upgrade
-{
-    /** The total number of fields
-    */
-    std::size_t count = 0;
-
-    /** True if websocket appears at least once
-    */
-    bool websocket = false;
+    ,chunked
 };
 
 //------------------------------------------------
@@ -170,51 +64,192 @@ struct upgrade
 */
 struct metadata
 {
+    /** Metadata for the Connection field
+    */
+    struct connection_t
+    {
+        /** Error status of Connection
+        */
+        error_code ec;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** true if a close token is present
+        */
+        bool close = false;
+
+        /** true if a keep-alive token is present
+        */
+        bool keep_alive = false;
+
+        /** true if an upgrade token is present
+        */
+        bool upgrade = false;
+
+    #ifndef HTTP_PROTO_DOCS
+        constexpr
+        connection_t() = default;
+    #endif
+
+    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
+        constexpr
+        connection_t(
+            error_code ec_,
+            std::size_t count_,
+            bool close_,
+            bool keep_alive_,
+            bool upgrade_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , close(close_)
+            , keep_alive(keep_alive_)
+            , upgrade(upgrade_)
+        {
+        }
+    #endif
+    };
+
     /** Metadata for the Content-Length field
     */
     struct content_length_t
     {
         /** Error status of Content-Length
         */
-        //error_code ec;
-        error ec = error::success;
+        error_code ec;
 
         /** The total number of fields
         */
         std::size_t count = 0;
 
-        /** True if value is set
-        */
-        bool has_value = false;
-
         /** The value as an integer
+
+            This is only valid when ec does
+            not hold a failure, and when
+            count is greater than zero.
         */
         std::uint64_t value = 0;
 
-    #ifndef BOOST_HTTP_PROTO_DOCS
-        // workaround for C++ aggregate init
+    #ifndef HTTP_PROTO_DOCS
         constexpr
         content_length_t() = default;
+    #endif
 
+    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
         constexpr
         content_length_t(
-            error ec_,
+            error_code ec_,
             std::size_t count_,
-            bool has_value_,
             std::uint64_t value_) noexcept
             : ec(ec_)
             , count(count_)
-            , has_value(has_value_)
             , value(value_)
         {
         }
     #endif
     };
 
+    /** Metadata for the Transfer-Encoding field
+    */
+    struct transfer_encoding_t
+    {
+        /** Error status of Content-Length
+        */
+        error_code ec;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** The total number of codings
+        */
+        std::size_t codings = 0;
+
+        /** True if valid and chunked is specified last
+        */
+        bool is_chunked = false;
+
+    #ifndef HTTP_PROTO_DOCS
+        constexpr
+        transfer_encoding_t() = default;
+    #endif
+
+    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
+        constexpr
+        transfer_encoding_t(
+            error_code ec_,
+            std::size_t count_,
+            std::size_t codings_,
+            bool is_chunked_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , codings(codings_)
+            , is_chunked(is_chunked_)
+        {
+        }
+    #endif
+    };
+
+    /** Metadata for Upgrade field
+    */
+    struct upgrade_t
+    {
+        /** Error status of Upgrade
+        */
+        error_code ec;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** True if websocket appears at least once
+        */
+        bool websocket = false;
+
+    #ifndef HTTP_PROTO_DOCS
+        constexpr
+        upgrade_t() = default;
+    #endif
+
+    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
+        constexpr
+        upgrade_t(
+            error_code ec_,
+            std::size_t count_,
+            bool websocket_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , websocket(websocket_)
+        {
+        }
+    #endif
+    };
+
+    constexpr metadata() = default;
+
+    //--------------------------------------------
+
+    /** True if payload is manually specified
+    */
+    bool manual_payload = false;
+
+    /** The type of payload
+    */
+    http_proto::payload payload =
+        http_proto::payload::none;
+
+    /** The size of the payload if known
+
+        This is only valid when @ref payload
+        equals @ref http_proto::payload::size.
+    */
+    std::uint64_t payload_size = 0;
+
+    upgrade_t upgrade;
+    connection_t connection;
     content_length_t content_length;
-    http_proto::connection connection;
-    http_proto::transfer_encoding transfer_encoding;
-    http_proto::upgrade upgrade;
+    transfer_encoding_t transfer_encoding;
 };
 
 } // http_proto

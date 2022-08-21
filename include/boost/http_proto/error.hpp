@@ -40,7 +40,10 @@ enum class error
     // Syntax errors (unrecoverable)
     //
 
-    /// Syntax error in Content-Length
+    /// Invalid Connection field value
+    ,bad_connection
+
+    /// Invalid Content-Length field value or values
     ,bad_content_length
 
     /// Syntax error in field-name
@@ -78,6 +81,9 @@ enum class error
 
     /// Syntax error in transfer-encoding
     ,bad_transfer_encoding
+
+    /// Syntax error or illegal Upgrade
+    ,bad_upgrade
 
     /// Unspecified syntax error
     ,syntax

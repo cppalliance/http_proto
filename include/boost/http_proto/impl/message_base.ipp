@@ -20,9 +20,6 @@ message_base::
 set_payload_size(
     std::uint64_t n)
 {
-    h_.pay.kind = payload::sized;
-    h_.pay.size = n;
-
     //if(! is_head_response())
     if(true)
     {
@@ -116,7 +113,7 @@ set_chunked_impl(bool value)
     if(value)
     {
         // set chunked
-        if(! h_.te.is_chunked )
+        if(! h_.md.transfer_encoding.is_chunked )
         {
             append(
                 field::transfer_encoding,

@@ -165,6 +165,7 @@ request make_request(string_view s);
 response make_response(string_view s);
 
 request make_request_(string_view s);
+response make_response_(string_view s);
 
 //------------------------------------------------
 

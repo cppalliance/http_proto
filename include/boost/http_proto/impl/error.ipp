@@ -44,8 +44,8 @@ get_error_cat() noexcept
             {
             case error::end_of_message: return "end of message";
             case error::end_of_stream: return "end of stream";
-
-            case error::bad_content_length: return "bad content-length";
+            case error::bad_connection: return "bad Connection";
+            case error::bad_content_length: return "bad Content-Length";
             case error::bad_field_name: return "bad field name";
             case error::bad_field_value: return "bad field value";
             case error::bad_line_ending: return "bad line ending";
@@ -57,7 +57,8 @@ get_error_cat() noexcept
             case error::bad_request_target: return "bad request-target";
             case error::bad_status_code: return "bad status-code";
             case error::bad_status_line: return "bad status-line";
-            case error::bad_transfer_encoding: return "bad transfer-encoding";
+            case error::bad_transfer_encoding: return "bad Transfer-Encoding";
+            case error::bad_upgrade: return "bad Upgrade";
             case error::syntax: return "syntax error";
 
             case error::body_too_large: return "body too large";

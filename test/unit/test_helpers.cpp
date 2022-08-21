@@ -117,13 +117,37 @@ make_request_(
         string_view(
             h.cbuf, h.req.method_len),
         string_view(
-            h.cbuf + h.req.method_len + 1 +
-                h.req.target_len),
+            h.cbuf + h.req.method_len + 1,
+            h.req.target_len),
         h.version);
     for(auto const& v : fields_range(s))
         req.append(v.name, v.value);
     test_fields(req, s);
     return req;
+}
+
+response
+make_response_(
+    string_view s)
+{
+    response res;
+    detail::header h(
+        detail::kind::response);
+    h.size = 0;
+    h.prefix = 0;
+    using detail::parse_start_line;
+    s.remove_prefix(
+        parse_start_line(h, s).value());
+    res.set_start_line(
+        h.res.status_int,
+        string_view(
+            h.cbuf + 13,
+            h.prefix - 15),
+        h.version);
+    for(auto const& v : fields_range(s))
+        res.append(v.name, v.value);
+    test_fields(res, s);
+    return res;
 }
 
 response

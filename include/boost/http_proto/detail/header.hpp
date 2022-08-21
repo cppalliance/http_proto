@@ -90,10 +90,6 @@ struct header
 
     http_proto::version version =
         http_proto::version::http_1_1;
-    payload pay;
-    connection con;
-    transfer_encoding te;
-    upgrade up;
     metadata md;
 
     struct fld_t
@@ -130,6 +126,7 @@ private:
     constexpr header(fields_tag) noexcept;
     constexpr header(request_tag) noexcept;
     constexpr header(response_tag) noexcept;
+
 public:
     BOOST_HTTP_PROTO_DECL
     static
@@ -154,21 +151,25 @@ public:
     void copy_table(void* dest) const noexcept;
     void assign_to(header& dest) const noexcept;
 
+    // called when things change
+    void on_start_line();
     void on_insert(field id, string_view v);
     void on_insert_clen(string_view v);
     void on_insert_con(string_view v);
-    void on_insert_te(string_view v);
+    void on_insert_te();
     void on_insert_up(string_view v);
-
     void on_erase(field id);
     void on_erase_clen();
     void on_erase_con();
     void on_erase_te();
     void on_erase_up();
-
     void on_erase_all(field id);
 
     void update_payload() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    bool
+    keep_alive() const noexcept;
 };
 
 //------------------------------------------------

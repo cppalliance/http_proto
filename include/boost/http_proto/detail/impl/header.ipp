@@ -12,10 +12,11 @@
 
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/detail/make_list.hpp>
+#include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
+#include <boost/http_proto/rfc/upgrade_rule.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
@@ -57,7 +58,7 @@ header(request_tag) noexcept
 constexpr
 header::
 header(response_tag) noexcept
-    : kind(detail::kind::request)
+    : kind(detail::kind::response)
     , cbuf("HTTP/1.1 200 OK\r\n\r\n")
     , size(19)
     , prefix(17)
@@ -262,10 +263,6 @@ swap(header& h) noexcept
     std::swap(count, h.count);
     std::swap(prefix, h.prefix);
     std::swap(version, h.version);
-    std::swap(pay, h.pay);
-    std::swap(con, h.con);
-    std::swap(te, h.te);
-    std::swap(up, h.up);
     std::swap(md, h.md);
     switch(kind)
     {
@@ -292,6 +289,19 @@ swap(header& h) noexcept
 //
 //------------------------------------------------
 
+// called when the start-line changes
+void
+header::
+on_start_line()
+{
+    if(kind ==
+        detail::kind::response)
+    {
+        // maybe status_int
+        update_payload();
+    }
+}
+
 // called after a field is inserted
 void
 header::
@@ -306,166 +316,197 @@ on_insert(field id, string_view v)
     case field::content_length:
         return on_insert_clen(v);
     case field::transfer_encoding:
-        return on_insert_te(v);
+        return on_insert_te();
     case field::upgrade:
         return on_insert_up(v);
-    default:
-        break;
     }
 }
 
+// called when Content-Length is inserted
 void
 header::
 on_insert_clen(string_view v)
 {
-/*
-    Content-Length = 1*DIGIT
-*/
+    static
+    constexpr
+    grammar::unsigned_rule<
+        std::uint64_t> num_rule{};
+
     ++md.content_length.count;
-    //if(md.content_length.ec.failed())
-    if(md.content_length.ec != error::success)
+    if(md.content_length.ec.failed())
         return;
-    auto rv = grammar::parse(v,
-        grammar::unsigned_rule<
-            std::uint64_t>{});
+    auto rv =
+        grammar::parse(v, num_rule);
     if(! rv)
     {
         // parse failure
-        //md.content_length.ec = rv.error();
-        md.content_length.ec = error::bad_content_length;
-        md.content_length.has_value = 0;
+        BOOST_HTTP_PROTO_SET_EC(
+            md.content_length.ec,
+            error::bad_content_length);
+        md.content_length.value = 0;
         update_payload();
         return;
     }
     if(md.content_length.count == 1)
     {
+        // one value
+        md.content_length.ec = {};
         md.content_length.value = *rv;
-        md.content_length.has_value = true;
         update_payload();
         return;
     }
-    BOOST_ASSERT(md.content_length.has_value);
     if(*rv == md.content_length.value)
     {
-        // duplicate
+        // ok: duplicate value
         return;
     }
+    // bad: different values
+    BOOST_HTTP_PROTO_SET_EC(
+        md.content_length.ec,
+        error::multiple_content_length);
     md.content_length.value = 0;
-    md.content_length.has_value = false;
-    md.content_length.ec = error::multiple_content_length;
+    update_payload();
 }
 
+// called when Connection is inserted
 void
 header::
 on_insert_con(string_view v)
 {
-/*
-    Connection        = 1#connection-option
-    connection-option = token
-*/
-    ++con.count;
+    ++md.connection.count;
+    if(md.connection.ec.failed())
+        return;
     auto rv = grammar::parse(
         v, list_rule(token_rule, 1));
     if(! rv)
     {
-        con.error = true;
+        BOOST_HTTP_PROTO_SET_EC(
+            md.connection.ec,
+            error::bad_connection);
         return;
     }
-    for(auto t : *rv)
+    md.connection.ec = {};
+    for(auto const& t : *rv)
     {
         if(grammar::ci_is_equal(
                 t, "close"))
-            ++con.n_close;
+            md.connection.close = true;
         else if(grammar::ci_is_equal(
                 t, "keep-alive"))
-            ++con.n_keepalive;
+            md.connection.keep_alive = true;
         else if(grammar::ci_is_equal(
                 t, "upgrade"))
-            ++con.n_upgrade;
+            md.connection.upgrade = true;
     }
 }
 
+// called when Transfer-Encoding is inserted
 void
 header::
-on_insert_te(string_view v)
+on_insert_te()
 {
-/*
-    Transfer-Encoding  = 1#transfer-coding
-    transfer-coding    = "chunked"
-                        / "compress"
-                        / "deflate"
-                        / "gzip"
-                        / transfer-extension
-    transfer-extension = token *( OWS ";" OWS transfer-parameter )
-    transfer-parameter = token BWS "=" BWS ( token / quoted-string )
-*/
-    auto n = te.count + 1;
-    te = {};
-    te.count = n;
-    grammar::recycled_ptr<
-        std::string> rs(nullptr);
-    if(n > 1)
+    ++md.transfer_encoding.count;
+    if(md.transfer_encoding.ec.failed())
+        return;
+    auto const n =
+        md.transfer_encoding.count;
+    md.transfer_encoding = {};
+    md.transfer_encoding.count = n;
+    for(auto const& s :
+        fields_view_base::subrange(
+            this, find(field::transfer_encoding)))
     {
-        rs.acquire();
-        rs->clear();
-        detail::make_list(*rs,
-            field::transfer_encoding,
-                n, *this);
-        v = *rs;
-    }
-    auto rv = grammar::parse(
-        v, transfer_encoding_rule);
-    if(rv)
-    {
-        auto const& t = *rv;
-        te.codings = t.size();
-        auto next = t.begin();
-        auto const end = t.end();
-        while(next != end)
+        auto rv = grammar::parse(
+            s, transfer_encoding_rule);
+        if(! rv)
         {
-            auto it = next++;
-            if((*it).id ==
-                transfer_coding::chunked)
-            {
-                if(next == end)
-                {
-                    te.is_chunked = true;
-                }
-                else
-                {
-                    // chunked not last!
-                    te.error = true;
-                    break;
-                }
-            }
+            // parse error
+            BOOST_HTTP_PROTO_SET_EC(
+                md.transfer_encoding.ec,
+                error::bad_transfer_encoding);
+            md.transfer_encoding.codings = 0;
+            md.transfer_encoding.is_chunked = false;
+            update_payload();
+            return;
         }
-    }
-    else
-    {
-        // parse error
-        te.error = true;
+        md.transfer_encoding.codings += rv->size();
+        for(auto const& t : *rv)
+        {
+            if(! md.transfer_encoding.is_chunked)
+            {
+                if(t.id == transfer_coding::chunked)
+                    md.transfer_encoding.is_chunked = true;
+                continue;
+            }
+            if(t.id == transfer_coding::chunked)
+            {
+                // chunked appears twice
+                BOOST_HTTP_PROTO_SET_EC(
+                    md.transfer_encoding.ec,
+                    error::bad_transfer_encoding);
+                md.transfer_encoding.codings = 0;
+                md.transfer_encoding.is_chunked = false;
+                update_payload();
+                return;
+            }
+            // chunked must be last
+            BOOST_HTTP_PROTO_SET_EC(
+                md.transfer_encoding.ec,
+                error::bad_transfer_encoding);
+            md.transfer_encoding.codings = 0;
+            md.transfer_encoding.is_chunked = false;
+            update_payload();
+            return;
+        }
     }
     update_payload();
 }
 
+// called when Upgrade is inserted
 void
 header::
 on_insert_up(string_view v)
 {
-/*
-     Upgrade          = 1#protocol
-
-     protocol         = protocol-name ["/" protocol-version]
-     protocol-name    = token
-     protocol-version = token
-*/
-    (void)v;
+    ++md.upgrade.count;
+    if(md.upgrade.ec.failed())
+        return;
+    if( version !=
+        http_proto::version::http_1_1)
+    {
+        BOOST_HTTP_PROTO_SET_EC(
+            md.upgrade.ec,
+            error::bad_upgrade);
+        md.upgrade.websocket = false;
+        return;
+    }
+    auto rv = grammar::parse(
+        v, upgrade_rule);
+    if(! rv)
+    {
+        BOOST_HTTP_PROTO_SET_EC(
+            md.upgrade.ec,
+            error::bad_upgrade);
+        md.upgrade.websocket = false;
+        return;
+    }
+    if(! md.upgrade.websocket)
+    {
+        for(auto const& t : *rv)
+        {
+            if( grammar::ci_is_equal(
+                    t.name, "websocket") &&
+                t.version.empty())
+            {
+                md.upgrade.websocket = true;
+                break;
+            }
+        }
+    }
 }
 
 //------------------------------------------------
 
-// update metadata for
-// one field id erased
+// called when one field is erased
 void
 header::
 on_erase(field id)
@@ -482,30 +523,27 @@ on_erase(field id)
         return on_erase_te();
     case field::upgrade:
         return on_erase_up();
-    default:
-        break;
     }
 }
 
+// called when Content-Length is erased
 void
 header::
 on_erase_clen()
 {
-    BOOST_ASSERT(md.content_length.count > 0);
-    if(md.content_length.count == 1)
+    BOOST_ASSERT(
+        md.content_length.count > 0);
+    --md.content_length.count;
+    if(md.content_length.count == 0)
     {
         // no Content-Length
         md.content_length = {};
         update_payload();
         return;
     }
-    --md.content_length.count;
-    if(md.content_length.has_value)
+    if(! md.content_length.ec.failed())
     {
-        // other Content-Length
-        // fields have the same value
-        //BOOST_ASSERT(! md.content_length.ec.failed());
-        BOOST_ASSERT(md.content_length.ec == error::success);
+        // removing a duplicate value
         return;
     }
     // reset and re-insert
@@ -524,26 +562,78 @@ on_erase_clen()
     update_payload();
 }
 
+// called when Connection is erased
 void
 header::
 on_erase_con()
 {
+    BOOST_ASSERT(
+        md.connection.count > 0);
+    // reset and re-insert
+    auto n = md.connection.count - 1;
+    auto const p = cbuf + prefix;
+    auto const* e = &tab()[0];
+    md.connection = {};
+    while(n > 0)
+    {
+        if(e->id == field::connection)
+            on_insert_con(string_view(
+                p + e->vp, e->vn));
+        --n;
+        --e;
+    }
 }
 
+// called when Transfer-Encoding is erased
 void
 header::
 on_erase_te()
 {
+    BOOST_ASSERT(
+        md.transfer_encoding.count > 0);
+    --md.transfer_encoding.count;
+    if(md.transfer_encoding.count == 0)
+    {
+        // no more Transfer-Encoding
+        md.transfer_encoding = {};
+        update_payload();
+        return;
+    }
+    // re-insert everything
+    --md.transfer_encoding.count;
+    on_insert_te();
 }
 
+// called when Upgrade is erased
 void
 header::
 on_erase_up()
 {
+    BOOST_ASSERT(
+        md.upgrade.count > 0);
+    --md.upgrade.count;
+    if(md.upgrade.count == 0)
+    {
+        // no Upgrade
+        md.upgrade = {};
+        return;
+    }
+    // reset and re-insert
+    auto n = md.upgrade.count;
+    auto const p = cbuf + prefix;
+    auto const* e = &tab()[0];
+    md.upgrade = {};
+    while(n > 0)
+    {
+        if(e->id == field::upgrade)
+            on_insert_up(string_view(
+                p + e->vp, e->vn));
+        --n;
+        --e;
+    }
 }
 
-// update metadata for
-// all field id erased
+// called when all fields with id are removed
 void
 header::
 on_erase_all(
@@ -554,7 +644,7 @@ on_erase_all(
     switch(id)
     {
     case field::connection:
-        con = {};
+        md.connection = {};
         return;
 
     case field::content_length:
@@ -563,119 +653,186 @@ on_erase_all(
         return;
 
     case field::transfer_encoding:
-        te = {};
+        md.transfer_encoding = {};
         update_payload();
         return;
 
     case field::upgrade:
-        up = {};
+        md.upgrade = {};
         return;
-
-    default:
-        break;
     }
 }
 
 //------------------------------------------------
 
+/*  References:
+
+    3.3.  Message Body
+    https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
+
+    3.3.1.  Transfer-Encoding
+    https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
+
+    3.3.2.  Content-Length
+    https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+*/
 void
 header::
 update_payload() noexcept
 {
-#if 0
     BOOST_ASSERT(kind !=
         detail::kind::fields);
-
-    if(kind == detail::kind::request)
+    if(md.manual_payload)
     {
-    /*  https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
+        // e.g. response to
+        // a HEAD request
+        return;
+    }
 
-        The presence of a message body in a
-        request is signaled by a Content-Length or
-        Transfer-Encoding header field. Request message
-        framing is independent of method semantics, even
-        if the method does not define any use for a
-        message body.
+/*  If there is an error in either Content-Length
+    or Transfer-Encoding, then the payload is
+    undefined. Clients should probably close the
+    connection. Servers can send a Bad Request
+    and avoid reading any payload bytes.
+*/
+    if(md.content_length.ec.failed())
+    {
+        // invalid Content-Length
+        md.payload = payload::error;
+        md.payload_size = 0;
+        return;
+    }
+    if(md.transfer_encoding.ec.failed())
+    {
+        // invalid Transfer-Encoding
+        md.payload = payload::error;
+        md.payload_size = 0;
+        return;
+    }
+
+/*  A sender MUST NOT send a Content-Length
+    header field in any message that contains
+    a Transfer-Encoding header field.
+    https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+*/
+    if( md.content_length.count > 0 &&
+        md.transfer_encoding.count > 0)
+    {
+        md.payload = payload::error;
+        md.payload_size = 0;
+        return;
+    }
+
+    if(kind == detail::kind::response)
+        goto do_response;
+
+    //--------------------------------------------
+
+/*  The presence of a message body in a
+    request is signaled by a Content-Length
+    or Transfer-Encoding header field. Request
+    message framing is independent of method
+    semantics, even if the method does not
+    define any use for a message body.
+*/
+    if(md.content_length.count > 0)
+    {
+        if(md.content_length.value > 0)
+        {
+            // non-zero Content-Length
+            md.payload = payload::size;
+            md.payload_size = md.content_length.value;
+            return;
+        }
+        // Content-Length: 0
+        md.payload = payload::none;
+        md.payload_size = 0;
+        return;
+    }
+    if(md.transfer_encoding.is_chunked)
+    {
+        // chunked
+        md.payload = payload::chunked;
+        md.payload_size = 0;
+        return;
+    }
+    // no payload
+    md.payload = payload::none;
+    md.payload_size = 0;
+    return;
+
+    //--------------------------------------------
+do_response:
+
+    if( res.status_int /  100 == 1 ||   // 1xx e.g. Continue
+        res.status_int == 204 ||        // No Content
+        res.status_int == 304)          // Not Modified
+    {
+    /*  The correctness of any Content-Length
+        here is defined by the particular
+        resource, and cannot be determined
+        here. In any case there is no payload.
     */
-        if(md.content_length.count > 0)
+        md.payload = payload::none;
+        md.payload_size = 0;
+        return;
+    }
+    if(md.content_length.count > 0)
+    {
+        if(md.content_length.value > 0)
         {
-            if(body_limit_.has_value() &&
-               len_ > body_limit_)
-            {
-                ec = error::body_limit;
-                return;
-            }
-            if(len_ > 0)
-            {
-                f_ |= flagHasBody;
-                state_ = state::body0;
-            }
-            else
-            {
-                state_ = state::complete;
-            }
+            // Content-Length > 0
+            md.payload = payload::size;
+            md.payload_size = md.content_length.value;
+            return;
         }
-        else if(f_ & flagChunked)
-        {
-            f_ |= flagHasBody;
-            state_ = state::chunk_header0;
-        }
-        else
-        {
-            len_ = 0;
-            len0_ = 0;
-            state_ = state::complete;
-        }
+        // Content-Length: 0
+        md.payload = payload::none;
+        md.payload_size = 0;
+        return;
+    }
+    if(md.transfer_encoding.is_chunked)
+    {
+        // chunked
+        md.payload = payload::chunked;
+        md.payload_size = 0;
+        return;
+    }
+
+    // eof needed
+    md.payload = payload::to_eof;
+    md.payload_size = 0;
+}
+
+/*  References:
+
+    6.3.  Persistence
+    https://datatracker.ietf.org/doc/html/rfc7230#section-6.3
+*/
+bool
+header::
+keep_alive() const noexcept
+{
+    if(md.payload == payload::error)
+        return false;
+    if( version ==
+        http_proto::version::http_1_1)
+    {
+        if(md.connection.close)
+            return false;
     }
     else
     {
-        BOOST_ASSERT(kind ==
-            detail::kind::response);
-
-        // RFC 7230 section 3.3
-        // https://tools.ietf.org/html/rfc7230#section-3.3
-
-        if( //(f_ & flagSkipBody) ||          // e.g. response to a HEAD request
-            res.status_int /  100 == 1 ||   // 1xx e.g. Continue
-            res.status_int == 204 ||        // No Content
-            res.status_int == 304)          // Not Modified
-        {
-            // message semantics indicate no payload
-            // present regardless of header contents
-            //state_ = state::complete;
-        }
-        else if(f_ & flagContentLength)
-        {
-            if(len_ > 0)
-            {
-                f_ |= flagHasBody;
-                state_ = state::body0;
-
-                if(body_limit_.has_value() &&
-                   len_ > body_limit_)
-                {
-                    ec = error::body_limit;
-                    return;
-                }
-            }
-            else
-            {
-                state_ = state::complete;
-            }
-        }
-        else if(f_ & flagChunked)
-        {
-            //f_ |= flagHasBody;
-            pay.kind = payload::chunked;
-        }
-        else
-        {
-            //f_ |= flagHasBody;
-            //f_ |= flagNeedEOF;
-            pay.kind = payload::to_eof;
-        }
+        if(! md.connection.keep_alive)
+            return false;
     }
-#endif
+    // can't use to_eof in requests
+    BOOST_ASSERT(
+        kind != detail::kind::request ||
+        md.payload != payload::to_eof);
+    if(md.payload == payload::to_eof)
+        return false;
+    return true;
 }
 
 //------------------------------------------------

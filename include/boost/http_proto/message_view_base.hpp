@@ -52,31 +52,35 @@ public:
     //
     //--------------------------------------------
 
-    /** Return metadata about the payload
+    /** Return the type of payload of this message
     */
     auto
     payload() const noexcept ->
-        http_proto::payload const&
+        http_proto::payload
     {
-        return ph_->pay;
+        return ph_->md.payload;
     }
 
-    /** Return metadata about the Content-Length field
+    /** Return the payload size
+
+        When @ref payload returns @ref payload::size,
+        this function returns the number of octets
+        in the actual message payload.
     */
-    auto
-    connection() const noexcept ->
-        http_proto::connection const&
+    std::uint64_t
+    payload_size() const noexcept
     {
-        return ph_->con;
+        BOOST_ASSERT(
+            payload() == payload::size);
+        return ph_->md.payload_size;
     }
 
-    /** Return metadata about the Transfer-Encoding field
+    /** Return true if semantics indicate connection persistence
     */
-    auto
-    transfer_encoding() const noexcept ->
-        http_proto::transfer_encoding const&
+    bool
+    keep_alive() const noexcept
     {
-        return ph_->te;
+        return ph_->keep_alive();
     }
 
     /** Return metadata about the message
@@ -87,8 +91,6 @@ public:
     {
         return ph_->md;
     }
-
-    //--------------------------------------------
 };
 
 } // http_proto

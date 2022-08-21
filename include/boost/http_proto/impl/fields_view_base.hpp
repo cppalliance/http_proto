@@ -128,6 +128,7 @@ class fields_view_base::subrange
 
     friend class fields_view;
     friend class fields_view_base;
+    friend struct detail::header;
 
     subrange(
         detail::header const* ph,
@@ -171,16 +172,14 @@ class fields_view_base::subrange::
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
+    std::size_t n_ = std::size_t(-1);
 
     friend class fields_view_base::subrange;
 
+    BOOST_HTTP_PROTO_DECL
     iterator(
         detail::header const* ph,
-        std::size_t i) noexcept
-        : ph_(ph)
-        , i_(i)
-    {
-    }
+        std::size_t i) noexcept;
 
 public:
     using value_type = std::string;

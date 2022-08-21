@@ -150,6 +150,8 @@ set_impl(
         static_cast<off_t>(ms.size());
     h_.req.target_len =
         static_cast<off_t>(t.size());
+
+    h_.on_start_line();
 }
 
 } // http_proto
