@@ -21,7 +21,9 @@ namespace http_proto {
 
 request::
 request() noexcept
-    : message_base(
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
         detail::kind::request)
 {
 }
@@ -29,7 +31,9 @@ request() noexcept
 request::
 request(
     request&& other) noexcept
-    : message_base(
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
         detail::kind::request)
 {
     swap(other);
@@ -38,14 +42,18 @@ request(
 request::
 request(
     request const& other)
-    : message_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(*other.ph_)
 {
 }
 
 request::
 request(
     request_view const& other)
-    : message_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(*other.ph_)
 {
 }
 

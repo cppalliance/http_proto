@@ -20,7 +20,9 @@ namespace http_proto {
 
 response::
 response() noexcept
-    : message_base(
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
         detail::kind::response)
 {
 }
@@ -36,14 +38,18 @@ response(
 response::
 response(
     response const& other)
-    : message_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(*other.ph_)
 {
 }
 
 response::
 response(
     response_view const& other)
-    : message_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(*other.ph_)
 {
 }
 

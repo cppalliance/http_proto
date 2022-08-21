@@ -24,12 +24,19 @@ namespace http_proto {
 */
 class BOOST_SYMBOL_VISIBLE
     message_view_base
-    : public fields_view_base
+    : public virtual fields_view_base
 {
-    friend class request;
     friend class request_view;
-    friend class response;
     friend class response_view;
+    friend class message_base;
+
+    message_view_base() noexcept
+        // VFALCO This ctor-init has to be
+        // here even though it isn't called,
+        // so nullptr doesn't matter.
+        : fields_view_base(nullptr)
+    {
+    }
 
     explicit
     message_view_base(

@@ -19,7 +19,9 @@ namespace http_proto {
 
 fields::
 fields() noexcept
-    : fields_base(
+    : fields_view_base(
+        &this->fields_base::h_)
+    , fields_base(
         detail::kind::fields)
 {
 }
@@ -27,7 +29,9 @@ fields() noexcept
 fields::
 fields(
     fields&& other) noexcept
-    : fields_base(other.h_.kind)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , fields_base(other.h_.kind)
 {
     swap(other);
 }
@@ -35,14 +39,18 @@ fields(
 fields::
 fields(
     fields const& other)
-    : fields_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , fields_base(*other.ph_)
 {
 }
 
 fields::
 fields(
     fields_view const& other)
-    : fields_base(*other.ph_)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , fields_base(*other.ph_)
 {
 }
 

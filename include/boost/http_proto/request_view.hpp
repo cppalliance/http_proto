@@ -28,7 +28,7 @@ class BOOST_SYMBOL_VISIBLE
     explicit
     request_view(
         detail::header const* ph) noexcept
-        : message_view_base(ph)
+        : fields_view_base(ph)
     {
         BOOST_ASSERT(ph_->kind ==
             detail::kind::request);
@@ -38,7 +38,7 @@ public:
     /** Constructor
     */
     request_view() noexcept
-        : message_view_base(
+        : fields_view_base(
             detail::header::get_default(
                 detail::kind::request))
     {

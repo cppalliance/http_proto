@@ -26,7 +26,7 @@ namespace http_proto {
 */
 class BOOST_SYMBOL_VISIBLE
     fields_base
-    : public fields_view_base
+    : public virtual fields_view_base
 {
     detail::header h_;
 
