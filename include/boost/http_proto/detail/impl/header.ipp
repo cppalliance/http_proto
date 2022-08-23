@@ -79,6 +79,12 @@ get_default(detail::kind k) noexcept
 }
 
 header::
+header(empty v) noexcept
+    : kind(v.param)
+{
+}
+
+header::
 header(detail::kind k) noexcept
     : header(*get_default(k))
 {

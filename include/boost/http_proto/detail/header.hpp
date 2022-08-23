@@ -36,6 +36,11 @@ enum kind : unsigned char
     response, 
 };
 
+struct empty
+{
+    kind param;
+};
+
 struct header
 {
     // this field lookup table is
@@ -128,48 +133,49 @@ private:
     constexpr header(response_tag) noexcept;
 
 public:
+    // in fields_base.hpp
+    static header& get(
+        fields_base& f) noexcept;
+
+    explicit
+    header(empty) noexcept;
+
     BOOST_HTTP_PROTO_DECL
     static
     header const*
     get_default(detail::kind k) noexcept;
 
-    static
-    header&
-    get(fields_base& f) noexcept;
+    BOOST_HTTP_PROTO_DECL
+    header(detail::kind) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    header(detail::kind k) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void swap(header& h) noexcept;
+    void swap(header&) noexcept;
 
     table tab() const noexcept;
     bool is_default() const noexcept;
-    std::size_t find(field id) const noexcept;
-    std::size_t find(string_view name) const noexcept;
-    void copy_table(void* dest, std::size_t n) const noexcept;
-    void copy_table(void* dest) const noexcept;
-    void assign_to(header& dest) const noexcept;
+    std::size_t find(field) const noexcept;
+    std::size_t find(string_view) const noexcept;
+    void copy_table(void*, std::size_t) const noexcept;
+    void copy_table(void*) const noexcept;
+    void assign_to(header&) const noexcept;
 
     // called when things change
     void on_start_line();
-    void on_insert(field id, string_view v);
-    void on_insert_clen(string_view v);
-    void on_insert_con(string_view v);
+    void on_insert(field, string_view);
+    void on_insert_clen(string_view);
+    void on_insert_con(string_view);
     void on_insert_te();
-    void on_insert_up(string_view v);
-    void on_erase(field id);
+    void on_insert_up(string_view);
+    void on_erase(field);
     void on_erase_clen();
     void on_erase_con();
     void on_erase_te();
     void on_erase_up();
-    void on_erase_all(field id);
-
+    void on_erase_all(field);
     void update_payload() noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    bool
-    keep_alive() const noexcept;
+    bool keep_alive() const noexcept;
 };
 
 //------------------------------------------------

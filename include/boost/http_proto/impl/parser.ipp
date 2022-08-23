@@ -28,7 +28,7 @@ parser(
     config const& cfg,
     std::size_t buffer_bytes)
     : cfg_(cfg)
-    , h_(k)
+    , h_(detail::empty{k})
     , committed_(0)
     , state_(state::empty)
     , got_eof_(false)
@@ -123,11 +123,16 @@ reset()
             committed_ -= h_.size;
             h_.size = 0;
         }
+        else
+        {
+            committed_ = 0;
+        }
     }
 
     // reset the header but
     // preserve the capacity
-    detail::header h(h_.kind);
+    detail::header h(
+        detail::empty{h_.kind});
     h.assign_to(h_);
 
     m_ = message{};
