@@ -101,7 +101,7 @@ struct list_rule_t<Rule>::
     //  first       => [ element / ( "," *( OWS "," ) [ OWS element ] ) ]
 
         if(it == end)
-            return grammar::error::range_end;
+            return grammar::error::end_of_range;
         {
             // element
             auto it0 = it;
@@ -112,7 +112,7 @@ struct list_rule_t<Rule>::
         }
         // ","
         if(*it != ',')
-            return grammar::error::range_end;
+            return grammar::error::end_of_range;
         ++it;
         // *( OWS "," )
         detail::ows_comma.parse(it, end);
@@ -125,7 +125,7 @@ struct list_rule_t<Rule>::
         if(rv)
             return std::move(*rv);
         it = it1;
-        return grammar::error::range_end;
+        return grammar::error::end_of_range;
     }
 };
 
@@ -155,14 +155,14 @@ struct list_rule_t<Rule>::
 
         // ""
         if(it == end)
-            return grammar::error::range_end;
+            return grammar::error::end_of_range;
 
         // 1*( OWS "," )
         {
             auto it0 = it;
             detail::ows_comma.parse(it, end);
             if(it == it0)
-                return grammar::error::range_end;
+                return grammar::error::end_of_range;
         }
         auto it1 = it;
         // OWS
@@ -172,7 +172,7 @@ struct list_rule_t<Rule>::
         if(rv)
             return std::move(*rv);
         it = it1;
-        return grammar::error::range_end;
+        return grammar::error::end_of_range;
     }
 };
 

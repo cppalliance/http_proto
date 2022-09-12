@@ -207,7 +207,7 @@ parse(
         // end of fields
         ++it;
         BOOST_HTTP_PROTO_RETURN_EC(
-            grammar::error::range_end);
+            grammar::error::end_of_range);
     }
 
     value_type v;

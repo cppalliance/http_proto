@@ -959,7 +959,7 @@ parse_field(
     if(rv.has_error())
     {
         ec = rv.error();
-        if(ec == grammar::error::range_end)
+        if(ec == grammar::error::end_of_range)
         {
             // final CRLF
             ec.clear();
