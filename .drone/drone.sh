@@ -35,12 +35,6 @@ common_install () {
 
   . ./ci/common_install.sh
 
-  # Customizations
-  pwd
-  pushd $BOOST_ROOT/libs
-  git clone https://github.com/CPPAlliance/url -b develop
-  popd
-  pwd
 }
 
 if [ "$DRONE_JOB_BUILDTYPE" == "boost" ]; then
