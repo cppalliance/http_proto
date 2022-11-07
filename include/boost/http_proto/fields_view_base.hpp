@@ -78,7 +78,7 @@ public:
     #endif
     };
 
-    using const_reference = reference;
+    typedef reference const_reference;
     /**@}*/
  
     /** A type which can represent a field as a value

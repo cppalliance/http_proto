@@ -7,20 +7,17 @@
 # Official repository: https://github.com/CPPAlliance/http_proto
 #
 
-project url/doc ;
+project http_proto/doc ;
 
 import boostbook ;
 import os ;
 import ../../../tools/docca/docca.jam ;
 
-path-constant broot : ../../../ ;
-
-path-constant out : . ;
-
 docca.reference reference.qbk
     :
         xsl/custom-overrides.xsl
         [ glob-tree-ex ../include/boost/http_proto : *.hpp *.ipp : detail impl ]
+        #../../url/include/boost/url/error_types.hpp
     :
         <doxygen:param>PROJECT_NAME=HTTP_PROTO
         <doxygen:param>PROJECT_BRIEF="HTTP Protocol Library"
@@ -67,18 +64,9 @@ docca.reference reference.qbk
 # Produce the Boost.Book XML from the QuickBook
 #
 
-install stylesheets
-    :
-        $(broot)/doc/src/boostbook.css
-    :
-        <location>$(out)/html
-    ;
-
-explicit stylesheets ;
-
 install images
     :
-        [ glob images/*.png ]
+        [ glob images/*.png images/*.svg ]
     :
         <location>html/http_proto/images
     ;
@@ -96,16 +84,6 @@ xml http_proto_doc
 
 explicit http_proto_doc ;
 
-install treeimages
-    :
-        [ glob $(broot)/doc/src/images/*.png ]
-        images/doc-logo.png
-    :
-        <location>$(out)/html/images
-    ;
-
-explicit treeimages ;
-
 #-------------------------------------------------------------------------------
 #
 # HTML documentation for $(BOOST_ROOT)/doc/html
@@ -116,25 +94,21 @@ boostbook http_proto
     :
         http_proto_doc
     :
-        <xsl:param>boost.root=../../../..
-        <xsl:param>nav.layout=none
         <xsl:param>boost.image.src=images/doc-logo.png
         <xsl:param>boost.image.alt="Boost.HTTP-Proto Logo"
         <xsl:param>boost.image.w=1050
         <xsl:param>boost.image.h=80
         <xsl:param>boost.graphics.root=images/
-        <xsl:param>html.stylesheet=boostbook.css
+        <xsl:param>boost.root=../../../..
+        <xsl:param>nav.layout=none
         <xsl:param>chapter.autolabel=1
         <xsl:param>chunk.section.depth=8                # Depth to which sections should be chunked
         <xsl:param>chunk.first.sections=1               # Chunk the first top-level section?
-        <xsl:param>toc.max.depth=8                      # How many levels should be created for each TOC?
         <xsl:param>toc.section.depth=8                  # How deep should recursive sections appear in the TOC?
-        #<xsl:param>generate.toc=""
+        <xsl:param>toc.max.depth=8                      # How many levels should be created for each TOC?
         <xsl:param>generate.toc="chapter toc,title section nop reference nop part toc"
         <include>../../../tools/boostbook/dtd
     :
-        <dependency>stylesheets
-        <dependency>treeimages
         <dependency>images
     ;
 

@@ -26,6 +26,8 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class context;
+class request_parser;
+class response_parser;
 enum class version : char;
 #endif
 
@@ -39,6 +41,9 @@ enum class version : char;
 class BOOST_SYMBOL_VISIBLE
     parser
 {
+    friend class request_parser;
+    friend class response_parser;
+
 public:
     // applies to all messages
     struct config
@@ -60,10 +65,7 @@ public:
         std::uint64_t max_body_size = 1024 * 1024;
     };
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-protected:
-#endif
-
+private:
     enum class state
     {
         empty,

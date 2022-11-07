@@ -23,6 +23,8 @@ namespace http_proto {
     Iterators obtained from @ref fields
     containers are not invalidated when
     the underlying container is modified.
+
+    @note HTTP field names are case-insensitive.
 */
 class BOOST_SYMBOL_VISIBLE
     fields_base
@@ -83,20 +85,35 @@ public:
 
     //--------------------------------------------
 
-    /** Append the field with the given name and value.
+    /** Append a header
 
-        The name and value must contain only valid characters
-        as specified in the HTTP protocol. The value should
-        not include a trailing CRLF. If a matching header with
-        the same name exists, it is not replaced. Instead, an
-        additional field with the same name is appended.
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed. Names are not case-sensitive.
+        <br>
+        No iterators are invalidated.
 
-        @note HTTP field names are case-insensitive.
+        @par Example
+        @code
+        request req;
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        req.append( field::user_agent, "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `to_string( id ).size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @param id The field name constant,
+        which may not be @ref field::unknown.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
     void
     append(
@@ -112,20 +129,34 @@ public:
             h_.count);
     }
 
-    /** Append the field with the given field enum and value.
+    /** Append a header
 
-        The value must contain only valid characters as
-        specified in the HTTP protocol. The value should
-        not include a trailing CRLF. If a matching header with
-        the same name exists, it is not replaced. Instead, an
-        additional header with the same name is appended.
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed. Names are not case-sensitive.
+        <br>
+        No iterators are invalidated.
 
-        @note HTTP field names are case-insensitive.
+        @par Example
+        @code
+        request req;
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        req.append( "User-Agent", "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `name.size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @param name The header name.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
     void
     append(
@@ -140,14 +171,44 @@ public:
             h_.count);
     }
 
-    /** Insert a field
+    /** Insert a header
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        If a matching header with the same name
+        exists, it is not replaced. Instead, an
+        additional header with the same name is
+        inserted. Names are not case-sensitive.
+        <br>
+        All iterators that are equal to `before`
+        or come after are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.insert( req.begin(), field::user_agent, "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `to_string( id ).size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @return An iterator to the inserted
+        element.
+
+        @param before Position to insert before.
+
+        @param id The field name constant,
+        which may not be @ref field::unknown.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
-    void
+    iterator
     insert(
         iterator before,
         field id,
@@ -160,16 +221,46 @@ public:
             to_string(id),
             value,
             before.i_);
+        return before;
     }
 
-    /** Insert a field
+    /** Insert a header
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        If a matching header with the same name
+        exists, it is not replaced. Instead, an
+        additional header with the same name is
+        inserted. Names are not case-sensitive.
+        <br>
+        All iterators that are equal to `before`
+        or come after are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.insert( req.begin(), "User-Agent", "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `name.size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @return An iterator to the inserted
+        element.
+
+        @param before Position to insert before.
+
+        @param name The header name.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
-    void
+    iterator
     insert(
         iterator before,
         string_view name,
@@ -181,21 +272,58 @@ public:
             name,
             value,
             before.i_);
+        return before;
     }
 
     //--------------------------------------------
 
-    /** Erase an element
+    /** Erase headers
+
+        This function removes the header pointed
+        to by `it`.
+        <br>
+        All iterators that are equal to `it`
+        or come after are invalidated.
+
+        @par Complexity
+        Linear in `name.size() + value.size()`.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @return An iterator to the inserted
+        element.
+
+        @param it An iterator to the element
+        to erase.
     */
-    void
+    iterator
     erase(iterator it) noexcept
     {
         erase_impl(it.i_, it->id);
+        return it;
     }
 
-    /** Erase all matching fields
+    /** Erase headers
 
-        @return The number of fields erased
+        This removes all headers whose name
+        constant is equal to `id`.
+        <br>
+        If any headers are erased, then all
+        iterators equal to or that come after
+        the first erased element are invalidated.
+        Otherwise, no iterators are invalidated.
+
+        @par Complexity
+        Linear in `this->string().size()`.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @return The number of headers erased.
+
+        @param id The field name constant,
+        which may not be @ref field::unknown.
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
@@ -203,7 +331,23 @@ public:
 
     /** Erase all matching fields
 
+        This removes all headers with a matching
+        name, using a case-insensitive comparison.
+        <br>
+        If any headers are erased, then all
+        iterators equal to or that come after
+        the first erased element are invalidated.
+        Otherwise, no iterators are invalidated.
+
+        @par Complexity
+        Linear in `this->string().size()`.
+
+        @par Exception Safety
+        Throws nothing.
+
         @return The number of fields erased
+
+        @param name The header name.
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
@@ -211,7 +355,25 @@ public:
 
     //--------------------------------------------
 
-    /** Set the value of a field
+    /** Set a header value
+
+        This sets the value of the header
+        at `it`. The name is not changed.
+        <br>
+        No iterators are invalidated.
+
+        @par Complexity
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @param it An iterator to the header.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -219,12 +381,27 @@ public:
         iterator it,
         string_view value);
 
-    /** Set the value of a field
+    /** Set a header value
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        This function sets the value of the
+        header with the specified field id.
+        Other headers with the same name
+        are removed first.
+
+        @par Postconditions
+        @code
+        this->count( id ) == 1 && this->at( id ) == value
+        @endcode
+
+        @par Complexity
+        
+        @param id The field constant of the
+        header to set.
+
+        @param value A value, which
+        @li Must be syntactically valid for the header,
+        @li Must be semantically valid for the message, and
+        @li May not contain leading or trailing whitespace.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -232,7 +409,19 @@ public:
         field id,
         string_view value);
 
-    /** Set the value of a field
+    /** Set a header value
+
+        This function sets the value of the
+        header with the specified name. Other
+        headers with the same name are removed
+        first.
+
+        @par Postconditions
+        @code
+        this->count( name ) == 1 && this->at( name ) == value
+        @endcode
+
+        @param name The field name.
 
         @param value The corresponding value, which
         @li must be syntactically valid for the field,

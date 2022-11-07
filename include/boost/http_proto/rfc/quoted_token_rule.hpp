@@ -88,9 +88,9 @@ public:
 
     token           = 1*tchar
     quoted-string   = DQUOTE *( qdtext / quoted-pair ) DQUOTE
-    qdtext          = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+    qdtext          = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
     obs-text        = %x80-FF
-    quoted-pair     = "\" ( HTAB / SP / VCHAR / obs-text )
+    quoted-pair     = "\"" ( HTAB / SP / VCHAR / obs-text )
 
     @endcode
 

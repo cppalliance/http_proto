@@ -11,12 +11,22 @@
 #define BOOST_HTTP_PROTO_STRING_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/url/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
 
-using urls::string_view;
+/** The type of string_view used by the library
+
+    String views are used to pass character
+    buffers into or out of functions. Ownership
+    of the underlying character buffer is not
+    transferred; the caller is responsible for
+    ensuring that the lifetime of character
+    buffer extends until it is no longer
+    referenced.
+*/
+typedef boost::core::string_view string_view;
 
 } // http_proto
 } // boost

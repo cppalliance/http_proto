@@ -45,8 +45,6 @@
 [def __SemiRegular__            [@https://en.cppreference.com/w/cpp/concepts/semiregular ['SemiRegular]]]
 [def __Swappable__              [@https://en.cppreference.com/w/cpp/named_req/Swappable ['Swappable]]]
 
-#[def __url_view__               [link url.ref.boost__urls__url_view `url_view`]]
-
 [/ Dingbats ]
 
 [def __good__ [role green \u2714]]
@@ -54,7 +52,8 @@
 
 [/-----------------------------------------------------------------------------]
 
-[include 1.0.intro.qbk]
+[include 1.0.overview.qbk]
+[include 2.0.message.qbk]
 
 [section:ref Reference]
 [xinclude quickref.xml]
