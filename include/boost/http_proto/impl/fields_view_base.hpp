@@ -42,7 +42,7 @@ public:
         fields_view_base::value_type;
     using reference =
         fields_view_base::reference;
-    using pointer = void const*;
+    using pointer = reference;
     using difference_type =
         std::ptrdiff_t;
     using iterator_category =
@@ -76,7 +76,7 @@ public:
     reference const
     operator*() const noexcept;
 
-    reference const
+    pointer const
     operator->() const noexcept
     {
         return *(*this);
@@ -299,29 +299,21 @@ end() const noexcept ->
 }
 
 inline
-string_view const
+auto
 fields_view_base::
-operator[](
-    field id) const noexcept
+rbegin() const noexcept ->
+    reverse_iterator
 {
-    BOOST_ASSERT(
-        id != field::unknown);
-    auto it = find(id);
-    if( it != end())
-        return it->value;
-    return {};
+    return reverse_iterator(end());
 }
 
 inline
-string_view const
+auto
 fields_view_base::
-operator[](
-    string_view name) const noexcept
+rend() const noexcept ->
+    reverse_iterator
 {
-    auto it = find(name);
-    if( it != end())
-        return it->value;
-    return {};
+    return reverse_iterator(begin());
 }
 
 } // http_proto

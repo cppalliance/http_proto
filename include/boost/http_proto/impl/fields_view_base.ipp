@@ -185,57 +185,9 @@ count(string_view name) const noexcept
     std::size_t n = 0;
     for(auto v : *this)
         if(grammar::ci_is_equal(
-            v.name, name))
+                v.name, name))
             ++n;
     return n;
-}
-
-string_view
-fields_view_base::
-at(field id) const
-{
-    auto it = find(id);
-    if(it != end())
-        return it->value;
-    detail::throw_invalid_argument(
-        "not found",
-        BOOST_CURRENT_LOCATION);
-}
-
-string_view
-fields_view_base::
-at(string_view name) const
-{
-    auto it = find(name);
-    if(it != end())
-        return it->value;
-    detail::throw_invalid_argument(
-        "not found",
-        BOOST_CURRENT_LOCATION);
-}
-
-string_view
-fields_view_base::
-value_or(
-    field id,
-    string_view v) const noexcept
-{
-    auto it = find(id);
-    if(it != end())
-        return it->value;
-    return v;
-}
-
-string_view
-fields_view_base::
-value_or(
-    string_view name,
-    string_view v) const noexcept
-{
-    auto it = find(name);
-    if(it != end())
-        return it->value;
-    return v;
 }
 
 auto
@@ -264,7 +216,7 @@ find(string_view name) const noexcept ->
     while(it != last)
     {
         if(grammar::ci_is_equal(
-            it->name, name))
+                it->name, name))
             break;
         ++it;
     }
@@ -298,12 +250,49 @@ find(
     auto const last = end();
     while(from != last)
     {
-        if( grammar::ci_is_equal(
-            name, from->name))
+        if(grammar::ci_is_equal(
+                name, from->name))
             break;
         ++from;
     }
     return from;
+}
+
+auto
+fields_view_base::
+find_last(
+    iterator it,
+    field id) const noexcept ->
+        iterator
+{
+    auto const it0 = begin();
+    for(;;)
+    {
+        if(it == it0)
+            return end();
+        --it;
+        if(it->id == id)
+            return it;
+    }
+}
+
+auto
+fields_view_base::
+find_last(
+    iterator it,
+    string_view name) const noexcept ->
+        iterator
+{
+    auto const it0 = begin();
+    for(;;)
+    {
+        if(it == it0)
+            return end();
+        --it;
+        if(grammar::ci_is_equal(
+                it->name, name))
+            return it;
+    }
 }
 
 auto

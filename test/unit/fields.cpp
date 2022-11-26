@@ -33,8 +33,8 @@ struct fields_test
         fields f1 = make_fields(after);
         fields f(f0);
         (*pf)(f);
-        BOOST_TEST_EQ(f.string(),
-            f1.string());
+        BOOST_TEST_EQ(f.buffer(),
+            f1.buffer());
     }
 
     //--------------------------------------------
@@ -60,10 +60,10 @@ struct fields_test
         {
             fields f;
             BOOST_TEST_EQ(
-                f.string(), "\r\n");
+                f.buffer(), "\r\n");
             BOOST_TEST_EQ(
-                f.string().data(),
-                fields().string().data());
+                f.buffer().data(),
+                fields().buffer().data());
         }
 
         // fields(fields&&)
@@ -80,8 +80,8 @@ struct fields_test
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
         }
 
@@ -93,8 +93,8 @@ struct fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
             {
                 fields f1;
@@ -102,8 +102,8 @@ struct fields_test
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
         }
 
@@ -115,9 +115,9 @@ struct fields_test
                     fields_view>(f1));
 
                 BOOST_TEST_EQ(
-                    f2.string(), cs1);
+                    f2.buffer(), cs1);
                 BOOST_TEST_NE(
-                    f2.string().data(),
+                    f2.buffer().data(),
                     cs1.data());
                 test_fields(f2, cs1);
             }
@@ -127,10 +127,10 @@ struct fields_test
                 fields_view fv;
                 fields f(fv);
                 BOOST_TEST_EQ(
-                    f.string(), "\r\n");
+                    f.buffer(), "\r\n");
                 BOOST_TEST_EQ(
-                    f.string().data(),
-                    fv.string().data());
+                    f.buffer().data(),
+                    fv.buffer().data());
             }
         }
 
@@ -157,8 +157,8 @@ struct fields_test
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
         }
 
@@ -171,8 +171,8 @@ struct fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
             {
                 fields f1 = make_fields(cs1);
@@ -185,8 +185,8 @@ struct fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
             {
                 fields f1;
@@ -195,8 +195,8 @@ struct fields_test
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
         }
 
@@ -211,8 +211,8 @@ struct fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
             {
                 fields f1 = make_fields(cs1);
@@ -226,8 +226,8 @@ struct fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
             {
                 fields_view f1;
@@ -236,8 +236,8 @@ struct fields_test
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
-                    f1.string().data(),
-                    f2.string().data());
+                    f1.buffer().data(),
+                    f2.buffer().data());
             }
 
             // existing capacity
@@ -250,8 +250,8 @@ struct fields_test
                     fields_view>(f1);
                 test_fields(f2, cs1);
                 BOOST_TEST(
-                    f1.string().data() !=
-                    f2.string().data());
+                    f1.buffer().data() !=
+                    f2.buffer().data());
             }
         }
     }
@@ -269,7 +269,7 @@ struct fields_test
         // fields_view_base::string()
         {
             fields f1 = make_fields(cs);
-            BOOST_TEST_EQ(f1.string(), cs);
+            BOOST_TEST_EQ(f1.buffer(), cs);
         }
 
         // fields_base::capacity_in_bytes()

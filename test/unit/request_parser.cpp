@@ -254,7 +254,7 @@ public:
         BOOST_TEST(rv.version() ==
             version::http_1_1);
 
-        BOOST_TEST(rv.string() == s);
+        BOOST_TEST(rv.buffer() == s);
         BOOST_TEST(rv.size() == 7);
         BOOST_TEST(
             rv.exists(field::connection));
@@ -269,22 +269,6 @@ public:
         BOOST_TEST(
             rv.count("connection") == 1);
         BOOST_TEST(rv.count("a") == 2);
-        BOOST_TEST_NO_THROW(
-            rv.at(field::user_agent) == "x");
-        BOOST_TEST_NO_THROW(
-            rv.at("a") == "1");
-        BOOST_TEST_THROWS(rv.at(field::age),
-            std::exception);
-        BOOST_TEST_THROWS(rv.at("d"),
-            std::exception);
-        BOOST_TEST(
-            rv.value_or("a", "x") == "1");
-        BOOST_TEST(
-            rv.value_or("d", "x") == "x");
-        BOOST_TEST(rv.value_or(
-            field::age, "x") == "x");
-        BOOST_TEST(rv.value_or(
-            field::user_agent, {}) == "x");
         BOOST_TEST(rv.find(
             field::connection)->id ==
                 field::connection);

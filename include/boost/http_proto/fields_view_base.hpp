@@ -14,6 +14,7 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
+#include <iterator>
 #include <memory>
 #include <string>
 
@@ -121,6 +122,16 @@ public:
     using const_iterator = iterator;
     /**@}*/
 
+    /** A bidirectional reverse iterator to HTTP fields
+    */
+    /**@{*/
+    using reverse_iterator =
+        std::reverse_iterator<iterator>;
+
+    using const_reverse_iterator =
+        std::reverse_iterator<const_iterator>;
+    /**@}*/
+
     /** A forward range of matching fields
 
         Objects of this type are returned by
@@ -134,7 +145,7 @@ public:
 
     //--------------------------------------------
     //
-    // Iterators
+    // Observers
     //
     //--------------------------------------------
 
@@ -148,26 +159,22 @@ public:
     iterator
     end() const noexcept;
 
-    /** Return the value of a field, or the empty string
+    /** Return a reverse iterator to the beginning
     */
-    string_view const
-    operator[](field id) const noexcept;
+    reverse_iterator
+    rbegin() const noexcept;
 
-    /** Return the value of a field, or the empty string
+    /** Return a reverse iterator to the end
     */
-    string_view const
-    operator[](string_view name) const noexcept;
+    reverse_iterator
+    rend() const noexcept;
 
-    //--------------------------------------------
-    //
-    // Observers
-    //
-    //--------------------------------------------
+    //---
 
     /** Return a string representing the serialized data
     */
     string_view
-    string() const noexcept
+    buffer() const noexcept
     {
         return string_view(
             ph_->cbuf, ph_->size);
@@ -205,40 +212,13 @@ public:
     std::size_t
     count(string_view name) const noexcept;
 
-    /** Return the value of the first matching field if it exists, otherwise throw
+    /** Returns an iterator to the matching element if it exists
     */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    at(field id) const;
-
-    /** Return the value of the first matching field if it exists, otherwise throw
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    at(string_view name) const;
-
-    /** Return the value of the first matching field, otherwise return the given string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value_or(
-        field id,
-        string_view v) const noexcept;
-
-    /** Return the value of the first matching field, otherwise returns the given string
-    */
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    value_or(
-        string_view name,
-        string_view v) const noexcept;
-
-    /// Returns an iterator to the first matching field, otherwise returns end()
     BOOST_HTTP_PROTO_DECL
     iterator
     find(field id) const noexcept;
 
-    /** Returns an iterator to the first matching field, otherwise returns end()
+    /** Returns an iterator to the matching element if it exists
 
         If `name` refers to a known field, it is faster
         to call @ref find with a field id instead of a
@@ -248,7 +228,7 @@ public:
     iterator
     find(string_view name) const noexcept;
 
-    /** Search [from, end), from==end is valid
+    /** Returns an iterator to the matching element if it exists
     */
     BOOST_HTTP_PROTO_DECL
     iterator
@@ -256,13 +236,31 @@ public:
         iterator from,
         field id) const noexcept;
 
-    /** Search for name, starting at from
+    /** Returns an iterator to the matching element if it exists
     */
     BOOST_HTTP_PROTO_DECL
     iterator
     find(
         iterator from, 
         string_view name) const noexcept;
+
+    /** Returns an iterator to the matching element if it exists
+    */
+    BOOST_HTTP_PROTO_DECL
+    iterator
+    find_last(
+        iterator before,
+        field id) const noexcept;
+
+    /** Returns an iterator to the matching element if it exists
+    */
+    BOOST_HTTP_PROTO_DECL
+    iterator
+    find_last(
+        iterator before, 
+        string_view name) const noexcept;
+
+    //---
 
     /** Return a forward range containing values for all matching fields
     */

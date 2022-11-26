@@ -113,7 +113,7 @@ set_impl(
     http_proto::version v)
 {
     detail::copied_strings cs(
-        this->string());
+        this->buffer());
     ms = cs.maybe_copy(ms);
     t = cs.maybe_copy(t);
 

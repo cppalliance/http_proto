@@ -36,8 +36,8 @@ struct fields_base_test
                 make_fields(after);
             fields f(f0);
             (*pf)(f);
-            BOOST_TEST_EQ(f.string(),
-                f1.string());
+            BOOST_TEST_EQ(f.buffer(),
+                f1.buffer());
             test_fields(f, after);
         }
 
@@ -49,8 +49,8 @@ struct fields_base_test
                 make_request(after);
             request f(f0);
             (*pf)(f);
-            BOOST_TEST_EQ(f.string(),
-                f1.string());
+            BOOST_TEST_EQ(f.buffer(),
+                f1.buffer());
             test_fields(f, after);
         }
 
@@ -62,8 +62,8 @@ struct fields_base_test
                 make_response(after);
             response f(f0);
             (*pf)(f);
-            BOOST_TEST_EQ(f.string(),
-                f1.string());
+            BOOST_TEST_EQ(f.buffer(),
+                f1.buffer());
             test_fields(f, after);
         }
     }

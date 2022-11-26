@@ -764,7 +764,7 @@ struct metadata_test
         {
             request req = make_request_(s);
             f(req);
-            BOOST_TEST(req.string() == s1);
+            BOOST_TEST(req.buffer() == s1);
             fields fld = make_fields(s);
             (void)fld;
         };
@@ -824,7 +824,7 @@ struct metadata_test
             fields fld = make_fields(s);
             f(fld);
             BOOST_TEST(
-                fld.string() == s1);
+                fld.buffer() == s1);
         };
 
         check(
@@ -1027,7 +1027,7 @@ struct metadata_test
         {
             request m = make_request_(s0);
             m.set_keep_alive(keep_alive);
-            BOOST_TEST_EQ(m.string(), s1);
+            BOOST_TEST_EQ(m.buffer(), s1);
             BOOST_TEST_EQ(
                 m.keep_alive(), keep_alive);
         };

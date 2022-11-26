@@ -2,6 +2,7 @@
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="boost::http_proto::detail::header">
+    <DisplayString Condition="prefix==0">[{count}]</DisplayString>
     <DisplayString>{cbuf,[prefix-2]s} [{count}]</DisplayString>
     <Expand>
       <CustomListItems>
@@ -17,6 +18,13 @@
         </Loop>
       </CustomListItems>
     </Expand>
+  </Type>
+
+  <Type Name="boost::http_proto::fields_view_base">
+    <DisplayString>{ *ph_ }</DisplayString>
+      <Expand>
+          <ExpandedItem>*ph_</ExpandedItem>
+      </Expand>
   </Type>
 
   <Type Name="boost::http_proto::fields">
