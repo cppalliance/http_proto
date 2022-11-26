@@ -11,6 +11,7 @@
 #include <boost/http_proto/metadata.hpp>
 
 #include <boost/http_proto/request.hpp>
+#include <boost/http_proto/response.hpp>
 
 #include "test_helpers.hpp"
 
@@ -1019,6 +1020,18 @@ struct metadata_test
                 res_.keep_alive(), keep_alive);
         };
 
+        auto const set = [](
+            string_view s0,
+            bool keep_alive,
+            string_view s1)
+        {
+            request m = make_request_(s0);
+            m.set_keep_alive(keep_alive);
+            BOOST_TEST_EQ(m.string(), s1);
+            BOOST_TEST_EQ(
+                m.keep_alive(), keep_alive);
+        };
+
         // HTTP/1.0
 
         res("HTTP/1.0 200 OK\r\n"
@@ -1026,6 +1039,7 @@ struct metadata_test
             [](fields_base&){},
             false);
 
+        // no Content-Length, requires EOF
         res("HTTP/1.0 200 OK\r\n"
             "Connection: keep-alive\r\n"
             "\r\n",
@@ -1085,6 +1099,108 @@ struct metadata_test
             "\r\n",
             [](fields_base&){},
             false);
+
+        //
+        // set_keep_alive
+        //
+
+        // http/1.0
+
+        set("GET / HTTP/1.0\r\n"
+            "\r\n",
+            false,
+            "GET / HTTP/1.0\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.0\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.0\r\n"
+            "Connection: keep-alive\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.0\r\n"
+            "Connection: keep-alive\r\n"
+            "\r\n",
+            false,
+            "GET / HTTP/1.0\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.0\r\n"
+            "Connection: keep-alive\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.0\r\n"
+            "Connection: keep-alive\r\n"
+            "\r\n");
+
+        // http/1.1
+
+        set("GET / HTTP/1.1\r\n"
+            "\r\n",
+            false,
+            "GET / HTTP/1.1\r\n"
+            "Connection: close\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.1\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.1\r\n"
+            "\r\n",
+            false,
+            "GET / HTTP/1.1\r\n"
+            "Connection: close\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.1\r\n"
+            "Connection: close\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "\r\n");
+
+        // erase_token
+
+        set("GET / HTTP/1.1\r\n"
+            "Connection: close, upgrade\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "Connection: upgrade\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.1\r\n"
+            "Connection: upgrade, close\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "Connection: upgrade\r\n"
+            "\r\n");
+
+        set("GET / HTTP/1.1\r\n"
+            "Connection: upgrade, close, keep_alive\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "Connection: upgrade, keep_alive\r\n"
+            "\r\n");
+
+        // multiple fields
+
+        set("GET / HTTP/1.1\r\n"
+            "Connection: upgrade\r\n"
+            "Connection: close\r\n"
+            "Connection: keep_alive\r\n"
+            "\r\n",
+            true,
+            "GET / HTTP/1.1\r\n"
+            "Connection: upgrade\r\n"
+            "Connection: keep_alive\r\n"
+            "\r\n");
     }
 
     void

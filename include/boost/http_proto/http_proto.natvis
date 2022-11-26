@@ -2,7 +2,7 @@
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="boost::http_proto::detail::header">
-    <DisplayString>{cbuf,[prefix]s} [{count}]</DisplayString>
+    <DisplayString>{cbuf,[prefix-2]s} [{count}]</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="i" InitialValue="0"/>

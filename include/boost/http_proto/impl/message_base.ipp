@@ -43,6 +43,144 @@ set_content_length(
         detail::number_string(n));
 }
 
+void
+message_base::
+set_chunked(bool value)
+{
+    if(value)
+    {
+        // set chunked
+        if(! h_.md.transfer_encoding.is_chunked )
+        {
+            append(
+                field::transfer_encoding,
+                "chunked");
+            return;
+        }
+    }
+    else
+    {
+        // clear chunked
+        // VFALCO ?
+    }
+}
+
+void
+message_base::
+set_keep_alive(bool value)
+{
+    if(ph_->md.connection.ec.failed())
+    {
+        // throw? return false?
+        return;
+    }
+
+    if(ph_->md.connection.count == 0)
+    {
+        // no Connection field
+        switch(ph_->version)
+        {
+        default:
+        case version::http_1_1:
+            if(! value)
+                set(field::connection, "close");
+            break;
+
+        case version::http_1_0:
+            if(value)
+                set(field::connection, "keep-alive");
+            break;
+        }
+        return;
+    }
+
+    // one or more Connection fields
+    auto it = begin();
+    auto it0 = it;
+    auto const erase_token =
+        [&](string_view token)
+        {
+            while(it != end())
+            {
+                if(it->id != field::connection)
+                {
+                    ++it;
+                    continue;
+                }
+                auto rv = grammar::parse(
+                    it->value,
+                    list_rule(token_rule, 1));
+                BOOST_ASSERT(! rv.has_error());
+                BOOST_ASSERT(! rv->empty());
+                auto itv = rv->begin();
+                if(urls::grammar::ci_is_equal(
+                    *itv, token))
+                {
+                    if(rv->size() == 1)
+                    {
+                        // only one token
+                        it = erase(it);
+                    }
+                    else
+                    {
+                        // first token matches
+                        ++itv;
+                        set(it,
+                            it->value.substr(
+                                (*itv).data() -
+                                it->value.data()));
+                        ++it;
+                    }
+                    continue;
+                }
+                // search remaining tokens
+                std::string s = *itv++;
+                while(itv != rv->end())
+                {
+                    if(! urls::grammar::ci_is_equal(
+                        *itv, token))
+                        s += ", " + std::string(*itv);
+                    ++itv;
+                }
+                set(it, s);
+                ++it;
+            }
+        };
+    if(value)
+    {
+        if(ph_->md.connection.close)
+            erase_token("close");
+    }
+    else
+    {
+        if(ph_->md.connection.keep_alive)
+            erase_token("keep-alive");
+    }
+    switch(ph_->version)
+    {
+    default:
+    case version::http_1_1:
+        if(! value)
+        {
+            // add one "close" token if needed
+            if(! ph_->md.connection.close)
+                append(field::connection, "close");
+        }
+        break;
+
+    case version::http_1_0:
+        if(value)
+        {
+            // add one "keep-alive" token if needed
+            if(! ph_->md.connection.keep_alive)
+                append(field::connection, "keep-alive");
+        }
+        break;
+    }
+}
+
+//------------------------------------------------
+
 char*
 message_base::
 set_prefix_impl(
@@ -104,28 +242,6 @@ set_prefix_impl(
     h_.prefix = static_cast<
         off_t>(n);
     return h_.buf;
-}
-
-void
-message_base::
-set_chunked_impl(bool value)
-{
-    if(value)
-    {
-        // set chunked
-        if(! h_.md.transfer_encoding.is_chunked )
-        {
-            append(
-                field::transfer_encoding,
-                "chunked");
-            return;
-        }
-    }
-    else
-    {
-        // clear chunked
-
-    }
 }
 
 } // http_proto

@@ -68,19 +68,24 @@ public:
 
     /** Set whether the payload is chunked.
     */
+    BOOST_HTTP_PROTO_DECL
     void
-    set_chunked(bool value)
-    {
-        set_chunked_impl(value);
-    }
+    set_chunked(bool value);
+
+    /** Set whether the connection should stay open.
+
+        Even when keep-alive is set to true, the
+        semantics of the other header fields may
+        require the connection to be closed. For
+        example when there is no content length
+        specified in a response.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_keep_alive(bool value);
 
 private:
     char* set_prefix_impl(std::size_t);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_chunked_impl(
-        bool value);
 };
 
 } // http_proto
