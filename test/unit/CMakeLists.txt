@@ -48,6 +48,7 @@ set(PFILES
     serializer.cpp
     source.cpp
     status.cpp
+    string_body.cpp
     string_view.cpp
     version.cpp
     codec/codecs.cpp

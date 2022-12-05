@@ -73,6 +73,17 @@ public:
         response const& res);
 
     template<
+        class Body
+#ifndef BOOST_HTTP_PROTO_DOCS
+        , class = typename
+            std::enable_if<std::is_base_of<
+                source, Body>::value>::type
+#endif
+    >
+    void
+    set_body(Body&& body);
+
+    template<
         class Body,
         class... Args>
     friend

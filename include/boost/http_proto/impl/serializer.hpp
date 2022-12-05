@@ -17,6 +17,16 @@
 namespace boost {
 namespace http_proto {
 
+template<class Body, class>
+void
+serializer::
+set_body(Body&& body)
+{
+    set_body_impl<typename
+        std::decay<Body>::type>(
+            std::forward<Body>(body));
+}
+
 template<
     class Source,
     class... Args>

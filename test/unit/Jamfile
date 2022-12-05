@@ -49,6 +49,7 @@ local SOURCES =
     serializer.cpp
     source.cpp
     status.cpp
+    string_body.cpp
     string_view.cpp
     test_helpers.cpp
     version.cpp

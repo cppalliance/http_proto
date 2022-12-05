@@ -36,17 +36,21 @@ namespace http_proto {
 
     ----------------------------------------------
 
-    Design Notes
+    Attach body to the serializer:
 
-    serializing a file
-        read into a buffer
+        1. As a ConstBufferSequence
+        2. As a ConstBufferSequence with ownership transfer
+            This is the same as 1 if we take ownership of
+            the sequence (which can, e.g. hold shared_ptr)
+        3. As a incremental Source
+            needs to be given a buffer
+        4. As an incremental buffered Source
+            comes with its own buffer
 
-    zlib inflate on serialize
-        process input and produce output
-
-    chunk prefix
-        000 [ ; <ext> ] CRLF
-        <data> CRLF
+    sr.set_body( string_body( s ) );
+    sr.set_body( string_body( std::move(s) ) );
+    sr.set_body( file_body( fi ) );
+    sr.set_body( json_body( jv ) );
 */
 
 //------------------------------------------------
