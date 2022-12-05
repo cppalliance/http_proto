@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffer.hpp>
-#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <string>
 #include <utility>
@@ -21,51 +20,37 @@ namespace boost {
 namespace http_proto {
 
 class string_body
-    // : public source
 {
     std::string s_;
+    const_buffer cb_;
 
 public:
-    explicit
-    string_body(
-        string_view s)
-        : s_(s)
-    {
-    }
+    using iterator = const_buffer const*;
 
-    explicit
     string_body(
-        std::string&& s) noexcept
+        string_body&&) = default;
+    string_body(
+        string_body const&) = delete;
+
+    string_body(
+        std::string s) noexcept
         : s_(std::move(s))
+        , cb_(s_.data(), s_.size())
     {
     }
 
-    string_body(string_body&&) = default;
-    string_body(string_body const&) = delete;
+    iterator
+    begin() const noexcept
+    {
+        return &cb_;
+    }
 
-    string_view
-    next();
+    iterator
+    end() const noexcept
+    {
+        return (&cb_) + 1;
+    }
 };
-
-/*
-
-class BufferedBody
-{
-public:
-    void
-    
-};
-
-class StreamingBody
-{
-public:
-    result<std::size_t>
-    write(
-        void* dest,
-        std::size_t size);
-};
-
-*/
 
 } // http_proto
 } // boost

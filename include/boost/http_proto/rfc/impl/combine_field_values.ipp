@@ -22,7 +22,7 @@ combine_field_values(
 {
     string_view result;
     bool acquired = false;
-    for(auto const& s : vr)
+    for(auto s : vr)
     {
         if(s.empty())
             continue;

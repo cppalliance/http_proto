@@ -45,7 +45,7 @@ It is designed to work without exceptions if desired.
 Boost.Http.Proto has been tested with the following compilers:
 
 * clang: 3.8, 4, 5, 6, 7, 8, 9, 10, 11, 12
-* gcc: 4.8, 4.9, 5, 6, 7, 8, 9, 10, 11
+* gcc: 5, 6, 7, 8, 9, 10, 11, 12
 * msvc: 14.0, 14.1, 14.2, 14.3
 
 ### Quality Assurance

@@ -226,6 +226,20 @@ struct fields_view_base_test
             BOOST_TEST(f.find_last(it, field::set_cookie)->value == "b");
             BOOST_TEST(f.find_last(it, field::range) == f.end());
         }
+
+        // value_or(field, string_view)
+        // value_or(string_view, string_view)
+        {
+            BOOST_TEST(f.value_or(
+                field::set_cookie, "") == "a");
+            BOOST_TEST(f.value_or(
+                field::set_cookie2, "Q") == "Q");
+
+            BOOST_TEST(f.value_or(
+                "set-cookie", "") == "a");
+            BOOST_TEST(f.value_or(
+                "set-cookie2", "Q") == "Q");
+        }
     }
 
     void

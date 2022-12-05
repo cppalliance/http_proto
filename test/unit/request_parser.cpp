@@ -162,10 +162,6 @@ public:
             std::memcpy(
                 b.data(), s.data() + i, n - i);
             p.commit(n, ec);
-            if(! BOOST_TEST(! ec))
-            {
-                ec = ec;
-            }
             if(ec.failed())
                 continue;
             //BOOST_TEST(p.is_done());

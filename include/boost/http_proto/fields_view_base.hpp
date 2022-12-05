@@ -125,11 +125,13 @@ public:
     /** A bidirectional reverse iterator to HTTP fields
     */
     /**@{*/
-    using reverse_iterator =
-        std::reverse_iterator<iterator>;
+#ifdef BOOST_HTTP_PROTO_DOCS
+    using reverse_iterator = __see_below__;
+#else
+    class reverse_iterator;
+#endif
 
-    using const_reverse_iterator =
-        std::reverse_iterator<const_iterator>;
+    using const_reverse_iterator = reverse_iterator;
     /**@}*/
 
     /** A forward range of matching fields
@@ -259,6 +261,22 @@ public:
     find_last(
         iterator before, 
         string_view name) const noexcept;
+
+    /** Return the value of a field
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    value_or(
+        field id,
+        string_view s) const noexcept;
+
+    /** Return the value of a field
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    value_or(
+        string_view name,
+        string_view s) const noexcept;
 
     //---
 

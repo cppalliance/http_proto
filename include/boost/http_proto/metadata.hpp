@@ -88,12 +88,10 @@ struct metadata
         */
         bool upgrade = false;
 
-    #ifndef HTTP_PROTO_DOCS
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
         connection_t() = default;
-    #endif
 
-    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
         constexpr
         connection_t(
             error_code ec_,
@@ -131,12 +129,10 @@ struct metadata
         */
         std::uint64_t value = 0;
 
-    #ifndef HTTP_PROTO_DOCS
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
         content_length_t() = default;
-    #endif
 
-    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
         constexpr
         content_length_t(
             error_code ec_,
@@ -170,12 +166,10 @@ struct metadata
         */
         bool is_chunked = false;
 
-    #ifndef HTTP_PROTO_DOCS
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
         transfer_encoding_t() = default;
-    #endif
 
-    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
         constexpr
         transfer_encoding_t(
             error_code ec_,
@@ -207,12 +201,10 @@ struct metadata
         */
         bool websocket = false;
 
-    #ifndef HTTP_PROTO_DOCS
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
         upgrade_t() = default;
-    #endif
 
-    #if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
         constexpr
         upgrade_t(
             error_code ec_,

@@ -127,53 +127,6 @@ public:
 
 //------------------------------------------------
 
-class const_buffers
-{
-    const_buffer const* p_ = nullptr;
-    std::size_t n_ = 0;
-
-public:
-    using value_type = const_buffer;
-
-    using iterator = value_type const*;
-
-    const_buffers() = default;
-
-    const_buffers(
-        const_buffers const&) = default;
-
-    const_buffers& operator=(
-        const_buffers const&) = default;
-
-    const_buffers(
-        value_type const* p,
-        std::size_t n) noexcept
-        : p_(p)
-        , n_(n)
-    {
-    }
-
-    std::size_t
-    size() const noexcept
-    {
-        return n_;
-    }
-
-    iterator
-    begin() const noexcept
-    {
-        return p_;
-    }
-
-    iterator
-    end() const noexcept
-    {
-        return p_ + n_;
-    }
-};
-
-//------------------------------------------------
-
 class mutable_buffers
 {
     mutable_buffer const* p_ = nullptr;

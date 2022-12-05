@@ -120,7 +120,7 @@ make_request_(
             h.cbuf + h.req.method_len + 1,
             h.req.target_len),
         h.version);
-    for(auto const& v : fields_range(s))
+    for(auto v : fields_range(s))
         req.append(v.name, v.value);
     test_fields(req, s);
     return req;
@@ -144,7 +144,7 @@ make_response_(
             h.cbuf + 13,
             h.prefix - 15),
         h.version);
-    for(auto const& v : fields_range(s))
+    for(auto v : fields_range(s))
         res.append(v.name, v.value);
     test_fields(res, s);
     return res;

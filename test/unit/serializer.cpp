@@ -55,6 +55,30 @@ namespace http_proto {
 
 //------------------------------------------------
 
+struct source_
+{
+    struct params
+    {
+        /** The number of bytes fetched
+        */
+        std::size_t amount = 0;
+
+        /** True if there is more data
+        */
+        bool more = false;
+    };
+
+    virtual ~source_() = 0;
+
+    /** Return the next buffer of data.
+    */
+    virtual
+    result<params>
+    fetch(
+        void* dest,
+        std::size_t size) = 0;
+};
+
 class serializer_test
 {
 public:

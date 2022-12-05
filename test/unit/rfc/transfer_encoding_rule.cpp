@@ -10,10 +10,45 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 
+#include <boost/static_assert.hpp>
+#include <type_traits>
+
 #include "test_helpers.hpp"
 
 namespace boost {
 namespace http_proto {
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_assignable<
+        result<transfer_coding>>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_assignable<
+        grammar::range<transfer_coding::param>>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_assignable<
+        transfer_coding::param>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_assignable<
+        quoted_token_view>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_constructible<
+        result<transfer_coding>>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_constructible<
+        grammar::range<transfer_coding::param>>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_constructible<
+        transfer_coding::param>::value);
+
+BOOST_STATIC_ASSERT(
+    std::is_nothrow_copy_constructible<
+        quoted_token_view>::value);
 
 struct transfer_encoding_rule_test
 {

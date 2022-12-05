@@ -15,6 +15,7 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
+#include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <utility>
 
@@ -39,8 +40,30 @@ iterator::
 operator*() const noexcept ->
     reference
 {
+    BOOST_ASSERT(i_ < ph_->count);
     auto const& e =
         ph_->tab()[i_];
+    auto const* p =
+        ph_->cbuf + ph_->prefix;
+    return {
+        e.id,
+        string_view(
+            p + e.np, e.nn),
+        string_view(
+            p + e.vp, e.vn) };
+}
+
+//------------------------------------------------
+
+auto
+fields_view_base::
+reverse_iterator::
+operator*() const noexcept ->
+    reference
+{
+    BOOST_ASSERT(i_ > 0);
+    auto const& e =
+        ph_->tab()[i_-1];
     auto const* p =
         ph_->cbuf + ph_->prefix;
     return {
@@ -174,7 +197,7 @@ fields_view_base::
 count(field id) const noexcept
 {
     std::size_t n = 0;
-    for(auto const& v : *this)
+    for(auto v : *this)
         if(v.id == id)
             ++n;
     return n;
@@ -296,6 +319,32 @@ find_last(
             return it;
     }
 }
+
+string_view
+fields_view_base::
+value_or(
+    field id,
+    string_view s) const noexcept
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    return s;
+}
+
+string_view
+fields_view_base::
+value_or(
+    string_view name,
+    string_view s) const noexcept
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    return s;
+}
+
+//------------------------------------------------
 
 auto
 fields_view_base::

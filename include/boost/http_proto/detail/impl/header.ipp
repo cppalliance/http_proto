@@ -24,6 +24,7 @@
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/unsigned_rule.hpp>
 #include <boost/assert.hpp>
+#include <boost/assert/source_location.hpp>
 #include <string>
 #include <utility>
 
@@ -272,6 +273,7 @@ swap(header& h) noexcept
     std::swap(md, h.md);
     switch(kind)
     {
+    default:
     case detail::kind::fields:
         break;
     case detail::kind::request:
@@ -325,6 +327,9 @@ on_insert(field id, string_view v)
         return on_insert_te();
     case field::upgrade:
         return on_insert_up(v);
+
+    default:
+        break;
     }
 }
 
@@ -346,8 +351,8 @@ on_insert_clen(string_view v)
     if(! rv)
     {
         // parse failure
-        BOOST_HTTP_PROTO_SET_EC(
-            md.content_length.ec,
+        md.content_length.ec =
+            BOOST_HTTP_PROTO_ERR(
             error::bad_content_length);
         md.content_length.value = 0;
         update_payload();
@@ -367,9 +372,9 @@ on_insert_clen(string_view v)
         return;
     }
     // bad: different values
-    BOOST_HTTP_PROTO_SET_EC(
-        md.content_length.ec,
-        error::multiple_content_length);
+    md.content_length.ec =
+        BOOST_HTTP_PROTO_ERR(
+            error::multiple_content_length);
     md.content_length.value = 0;
     update_payload();
 }
@@ -386,13 +391,13 @@ on_insert_con(string_view v)
         v, list_rule(token_rule, 1));
     if(! rv)
     {
-        BOOST_HTTP_PROTO_SET_EC(
-            md.connection.ec,
-            error::bad_connection);
+        md.connection.ec =
+            BOOST_HTTP_PROTO_ERR(
+                error::bad_connection);
         return;
     }
     md.connection.ec = {};
-    for(auto const& t : *rv)
+    for(auto t : *rv)
     {
         if(grammar::ci_is_equal(
                 t, "close"))
@@ -418,7 +423,7 @@ on_insert_te()
         md.transfer_encoding.count;
     md.transfer_encoding = {};
     md.transfer_encoding.count = n;
-    for(auto const& s :
+    for(auto s :
         fields_view_base::subrange(
             this, find(field::transfer_encoding)))
     {
@@ -427,16 +432,16 @@ on_insert_te()
         if(! rv)
         {
             // parse error
-            BOOST_HTTP_PROTO_SET_EC(
-                md.transfer_encoding.ec,
-                error::bad_transfer_encoding);
+            md.transfer_encoding.ec =
+                BOOST_HTTP_PROTO_ERR(
+                    error::bad_transfer_encoding);
             md.transfer_encoding.codings = 0;
             md.transfer_encoding.is_chunked = false;
             update_payload();
             return;
         }
         md.transfer_encoding.codings += rv->size();
-        for(auto const& t : *rv)
+        for(auto t : *rv)
         {
             if(! md.transfer_encoding.is_chunked)
             {
@@ -447,18 +452,18 @@ on_insert_te()
             if(t.id == transfer_coding::chunked)
             {
                 // chunked appears twice
-                BOOST_HTTP_PROTO_SET_EC(
-                    md.transfer_encoding.ec,
-                    error::bad_transfer_encoding);
+                md.transfer_encoding.ec =
+                    BOOST_HTTP_PROTO_ERR(
+                        error::bad_transfer_encoding);
                 md.transfer_encoding.codings = 0;
                 md.transfer_encoding.is_chunked = false;
                 update_payload();
                 return;
             }
             // chunked must be last
-            BOOST_HTTP_PROTO_SET_EC(
-                md.transfer_encoding.ec,
-                error::bad_transfer_encoding);
+            md.transfer_encoding.ec =
+                BOOST_HTTP_PROTO_ERR(
+                    error::bad_transfer_encoding);
             md.transfer_encoding.codings = 0;
             md.transfer_encoding.is_chunked = false;
             update_payload();
@@ -479,9 +484,9 @@ on_insert_up(string_view v)
     if( version !=
         http_proto::version::http_1_1)
     {
-        BOOST_HTTP_PROTO_SET_EC(
-            md.upgrade.ec,
-            error::bad_upgrade);
+        md.upgrade.ec =
+            BOOST_HTTP_PROTO_ERR(
+                error::bad_upgrade);
         md.upgrade.websocket = false;
         return;
     }
@@ -489,15 +494,15 @@ on_insert_up(string_view v)
         v, upgrade_rule);
     if(! rv)
     {
-        BOOST_HTTP_PROTO_SET_EC(
-            md.upgrade.ec,
-            error::bad_upgrade);
+        md.upgrade.ec =
+            BOOST_HTTP_PROTO_ERR(
+                error::bad_upgrade);
         md.upgrade.websocket = false;
         return;
     }
     if(! md.upgrade.websocket)
     {
-        for(auto const& t : *rv)
+        for(auto t : *rv)
         {
             if( grammar::ci_is_equal(
                     t.name, "websocket") &&
@@ -529,6 +534,9 @@ on_erase(field id)
         return on_erase_te();
     case field::upgrade:
         return on_erase_up();
+
+    default:
+        break;
     }
 }
 
@@ -666,6 +674,9 @@ on_erase_all(
     case field::upgrade:
         md.upgrade = {};
         return;
+
+    default:
+        break;
     }
 }
 

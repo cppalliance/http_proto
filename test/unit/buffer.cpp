@@ -15,6 +15,28 @@
 namespace boost {
 namespace http_proto {
 
+/*
+
+struct ConstBuffer
+{
+
+};
+
+struct ConstBuffers
+{
+    // MoveConstructible
+    ConstBuffers(ConstBuffers&&) = default;
+    ConstBuffers(ConstBuffers const&) = default;
+
+    buffer_type
+    begin() const noexcept;
+
+    buffer_type
+    end() const noexcept;
+};
+
+*/
+
 class buffer_test
 {
 public:

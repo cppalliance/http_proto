@@ -18,63 +18,24 @@
 namespace boost {
 namespace http_proto {
 
-/** A source of buffers containing data
+/** A source of body data
 */
 struct source
 {
+    struct amount
+    {
+        std::size_t bytes = 0;
+        bool more = false;
+    };
+
     virtual
     ~source() = 0;
 
     virtual
-    bool
-    more() const noexcept = 0;
-
-    virtual
-    void
-    prepare(
-        const_buffers& cb,
-        error_code& ec) = 0;
-
-    virtual
-    void
-    consume(std::size_t n) noexcept = 0;
-};
-
-//------------------------------------------------
-
-class string_view_source
-    : public source
-{
-    const_buffer cb_;
-
-public:
-    explicit
-    string_view_source(
-        string_view s) noexcept
-        : cb_(s.data(), s.size())
-    {
-    }
-
-    bool
-    more() const noexcept override
-    {
-        return cb_.size() > 0;
-    }
-
-    void
-    prepare(
-        const_buffers& cb,
-        error_code& ec) override
-    {
-        ec = {};
-        cb = { &cb_, 1 };
-    }
-
-    void
-    consume(std::size_t n) noexcept override
-    {
-        cb_ += n;
-    }
+    result<amount>
+    read(
+        void* dest,
+        std::size_t size) = 0;
 };
 
 } // http_proto

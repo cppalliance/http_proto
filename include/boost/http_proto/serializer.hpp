@@ -14,6 +14,7 @@
 #include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/circular_buffer.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <cstdint>
@@ -27,6 +28,8 @@ class request;
 class response;
 class request_view;
 class response_view;
+
+class message_view_base;
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -39,6 +42,8 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
+    class buffers;
+
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL
@@ -49,90 +54,69 @@ public:
     serializer(
         std::size_t buffer_size);
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset() noexcept;
+    bool
+    is_complete() const noexcept
+    {
+        return st_ == state::done;
+    }
 
     BOOST_HTTP_PROTO_DECL
     void
-    set_header(
-        request_view const& req);
+    reset(
+        message_view_base const& m) noexcept;
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_header(request const& req);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_header(
-        response_view const& res);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    set_header(
-        response const& res);
-
-    template<
-        class Body
-#ifndef BOOST_HTTP_PROTO_DOCS
-        , class = typename
-            std::enable_if<std::is_base_of<
-                source, Body>::value>::type
-#endif
-    >
+    template<class Body>
     void
     set_body(Body&& body);
 
-    template<
-        class Body,
-        class... Args>
-    friend
-    Body&
-    set_body(
-        serializer& sr,
-        Args&&... args);
-
-    BOOST_HTTP_PROTO_DECL
-    bool
-    is_complete() const noexcept;
+    //--------------------------------------------
 
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<const_buffers>;
+        result<buffers>;
 
     BOOST_HTTP_PROTO_DECL
     void
     consume(std::size_t n) noexcept;
 
 private:
-    void set_header_impl(detail::header const& h);
-    void set_header_impl(detail::header const* ph);
+    enum class state
+    {
+        init,
+        ok,
+        done
+    };
 
-    template<class Body, class... Args>
-    Body& set_body_impl(Args&&...);
+    template<class Body>
+    void
+    set_body_impl(
+        Body&& body,
+        std::true_type);
+
+    template<class Body>
+    void
+    set_body_impl(
+        Body&& body,
+        std::false_type);
+
+    void init_impl();
 
     detail::workspace ws_;
+
     detail::header const* h_ = nullptr;
-    detail::header h_copy_;
     source* src_ = nullptr;
-    const_buffer bs_[8];
+    const_buffer hbuf_;
+    detail::circular_buffer buf_;
+    state st_ = state::init;
+    bool more_ = false;
+
+    const_buffer* cb_ = nullptr;
+    std::size_t cbn_ = 0;
+    std::size_t cbi_ = 0;
 };
 
 //------------------------------------------------
-
-template<
-    class Body,
-    class... Args>
-Body&
-set_body(
-    serializer& sr,
-    Args&&... args);
-
-void
-set_body(
-    serializer& sr,
-    string_view s);
 
 } // http_proto
 } // boost

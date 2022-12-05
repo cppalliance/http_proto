@@ -116,6 +116,110 @@ public:
 };
 
 //------------------------------------------------
+
+class fields_view_base::reverse_iterator
+{
+    detail::header const* ph_ = nullptr;
+    std::size_t i_ = 0;
+
+    friend class fields_base;
+    friend class fields_view_base;
+
+    reverse_iterator(
+        detail::header const* ph,
+        std::size_t i) noexcept
+        : ph_(ph)
+        , i_(i)
+    {
+    }
+
+public:
+    using value_type =
+        fields_view_base::value_type;
+    using reference =
+        fields_view_base::reference;
+    using pointer = reference;
+    using difference_type =
+        std::ptrdiff_t;
+    using iterator_category =
+        std::bidirectional_iterator_tag;
+
+    reverse_iterator() = default;
+    reverse_iterator(reverse_iterator const&) = default;
+    reverse_iterator& operator=(
+        reverse_iterator const&) = default;
+
+    explicit
+    reverse_iterator(
+        iterator it) noexcept
+        : ph_(it.ph_)
+        , i_(it.i_)
+    {
+    }
+
+    bool
+    operator==(
+        reverse_iterator const& other) const noexcept
+    {
+        // If this assert goes off, it means you
+        // are trying to compare iterators from
+        // different containers, which is undefined!
+        BOOST_ASSERT(ph_ == other.ph_);
+
+        return i_ == other.i_;
+    }
+
+    bool
+    operator!=(
+        reverse_iterator const& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
+    BOOST_HTTP_PROTO_DECL
+    reference
+    operator*() const noexcept;
+
+    pointer
+    operator->() const noexcept
+    {
+        return *(*this);
+    }
+
+    reverse_iterator&
+    operator++() noexcept
+    {
+        BOOST_ASSERT(i_ > 0);
+        --i_;
+        return *this;
+    }
+
+    reverse_iterator
+    operator++(int) noexcept
+    {
+        auto temp = *this;
+        ++(*this);
+        return temp;
+    }
+
+    reverse_iterator&
+    operator--() noexcept
+    {
+        BOOST_ASSERT(i_ < ph_->count);
+        ++i_;
+        return *this;
+    }
+
+    reverse_iterator
+    operator--(int) noexcept
+    {
+        auto temp = *this;
+        --(*this);
+        return temp;
+    }
+};
+
+//------------------------------------------------
 //
 // subrange
 //
@@ -140,6 +244,7 @@ class fields_view_base::subrange
 
 public:
     class iterator;
+    //class reverse_iterator;
     using const_iterator = iterator;
     using value_type = std::string;
     using reference = string_view;

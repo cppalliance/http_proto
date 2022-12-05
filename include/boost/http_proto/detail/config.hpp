@@ -40,6 +40,12 @@ namespace http_proto {
 # endif
 #endif
 
+#if ! defined(HTTP_PROTO_DOCS) && ( \
+    defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || \
+    defined(BOOST_MSVC) )
+# define BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
+#endif
+
 using off_t = ::uint16_t; // private
 
 // maximum size of http header,
@@ -52,15 +58,16 @@ static constexpr auto max_off_t =
 
 // Add source location to error codes
 #ifdef BOOST_HTTP_PROTO_NO_SOURCE_LOCATION
+# define BOOST_HTTP_PROTO_ERR(ev) (::boost::system::error_code(ev))
 # define BOOST_HTTP_PROTO_RETURN_EC(ev) return (ev)
-# define BOOST_HTTP_PROTO_SET_EC(ec, ev) (ec) = (ev)
 #else
+# define BOOST_HTTP_PROTO_ERR(ev) ( \
+    ::boost::system::error_code( (ev), [] { \
+    static constexpr auto loc((BOOST_CURRENT_LOCATION)); \
+    return &loc; }()))
 # define BOOST_HTTP_PROTO_RETURN_EC(ev) \
-    static constexpr auto loc ## __LINE__(BOOST_CURRENT_LOCATION); \
+    static constexpr auto loc ## __LINE__((BOOST_CURRENT_LOCATION)); \
     return ::boost::system::error_code((ev), &loc ## __LINE__)
-# define BOOST_HTTP_PROTO_SET_EC(ec, ev) \
-    static constexpr auto loc ## __LINE__(BOOST_CURRENT_LOCATION); \
-    ec.assign(ev, &loc ## __LINE__);
 #endif
 
 } // http_proto

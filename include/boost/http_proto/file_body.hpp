@@ -7,51 +7,49 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_FILE_SOURCE_HPP
-#define BOOST_HTTP_PROTO_FILE_SOURCE_HPP
+#ifndef BOOST_HTTP_PROTO_FILE_BODY_HPP
+#define BOOST_HTTP_PROTO_FILE_BODY_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/source.hpp>
 #include <cstdint>
 
 namespace boost {
 namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
-    file_source
+    file_body
+    : public source
 {
     file f_;
-    //std::uint64_t pos_;
     std::uint64_t n_;
 
 public:
-    BOOST_HTTP_PROTO_DECL
-    file_source(
-        file_source&&) noexcept;
+    file_body() = delete;
+    file_body(
+        file_body const&) = delete;
 
     BOOST_HTTP_PROTO_DECL
-    ~file_source();
+    file_body(
+        file_body&&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    ~file_body();
 
     BOOST_HTTP_PROTO_DECL
     explicit
-    file_source(
+    file_body(
         file&& f,
-        std::uint64_t offset = 0,
         std::uint64_t size =
             std::uint64_t(-1)) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    bool
-    more() const noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    std::size_t
-    write(
+    result<amount>
+    read(
         void* dest,
-        std::size_t size,
-        error_code& ec);
+        std::size_t size);
 };
 
 } // http_proto

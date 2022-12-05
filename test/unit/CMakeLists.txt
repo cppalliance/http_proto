@@ -18,8 +18,6 @@ set(PFILES
     CMakeLists.txt
     Jamfile
     buffer.cpp
-    buffered_source.cpp
-    circular_buffer.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -30,6 +28,7 @@ set(PFILES
     fields_view_base.cpp
     file.cpp
     file_base.cpp
+    file_body.cpp
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp

@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_WORKSPACE_HPP
 #define BOOST_HTTP_PROTO_DETAIL_WORKSPACE_HPP
 
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
 #include <cstdlib>
 #include <new>
@@ -27,148 +28,176 @@ class workspace
         any* next = nullptr;
 
         virtual ~any() = 0;
-        virtual void* move(
-            void* dest) noexcept = 0;
     };
 
     template<class T>
     struct alignas(alignof(::max_align_t))
-        any_T : any
+        any_t : any
     {
-        T t;
+        T t_;
 
-        any_T() = delete;
-        any_T(any_T&&) = default;
+        any_t() = delete;
+        any_t(any_t&&) = default;
 
-        template<class... Args>
         explicit
-        any_T(
-            int,
-            Args&&... args)
-            : t(std::forward<
-                Args>(args)...)
+        any_t(
+            T&& t)
+            : t_(std::move(t))
         {
         }
 
-        void*
-        move(void* head) noexcept
+        explicit
+        any_t(
+            T const& t)
+            : t_(t)
         {
-            return ::new(reinterpret_cast<
-                void*>(reinterpret_cast<
-                    std::uintptr_t>(head) -
-                        sizeof(*this))) any_T(
-                std::move(*this));
         }
     };
 
-    char* buf_ = nullptr;
-    any* head_ = nullptr;
-    std::size_t cap_ = 0;
+    template<class T>
+    struct alignas(alignof(::max_align_t))
+        any_n : any
+    {
+        std::size_t n_ = 0;
+
+        any_n() = default;
+
+        ~any_n()
+        {
+            for(std::size_t i = n_;
+                    i-- > 0;)
+                data()[i].~T();
+        }
+
+        any_n(
+            std::size_t n,
+            T const& t)
+            : any_n()
+        {
+            while(n_ < n)
+            {
+                new(&data()[n_]) T(t);
+                ++n_;
+            }
+        }
+
+        T*
+        data() noexcept
+        {
+            return
+                reinterpret_cast<T*>(
+                    this + 1);
+        }
+    };
+
+    unsigned char* begin_ = nullptr;
+    unsigned char* end_ = nullptr;
+    unsigned char* head_ = nullptr;
 
 public:
+    workspace() = default;
+
     ~workspace()
     {
         clear();
+        delete[] begin_;
     }
 
-    workspace() = default;
-
+    explicit
     workspace(
         std::size_t n)
+        : begin_(new unsigned char[n])
+        , end_(begin_ + n)
+        , head_(end_)
     {
-        reserve(n);
+    }
+
+    void*
+    data() noexcept
+    {
+        return begin_;
+    }
+
+    std::size_t
+    size() const noexcept
+    {
+        return head_ - begin_;
     }
 
     void
     clear()
     {
-        while(head_)
+        auto const end =
+            reinterpret_cast<
+                any const*>(end_);
+        auto p =
+            reinterpret_cast<
+                any const*>(head_);
+        while(p != end)
         {
-            auto next = head_->next;
-            head_->~any();
-            head_ = next;
+            auto next = p->next;
+            p->~any();
+            p = next;
         }
+        head_ = end_;
     }
 
-    void
-    reserve(
-        std::size_t n)
+    template<class T>
+    T&
+    push(T&& t)
     {
-        if(cap_ >= n)
-            return;
-        // VFALCO growth policy
-        // align down for ::max_align_t
-        auto cap = n;
-        auto buf = new char[cap];
-        if(buf_)
-        {
-            // move everything to new buf
-            auto head = head_;
-            void* top = reinterpret_cast<
-                void*>(reinterpret_cast<
-                    std::uintptr_t>(
-                        buf) + cap);
-            while(head)
-            {
-                auto next = head->next;
-                top = head->move(top);
-                head = next;
-            }
-            head_ = reinterpret_cast<
-                any*>(top);
-            delete[] buf_;
-        }
-        buf_ = buf;
-        cap_ = cap;
+        using U = any_t<T>;
+        auto p = ::new(bump_down(
+            sizeof(U), alignof(U))) U(
+                std::forward<T>(t));
+        p->next = reinterpret_cast<
+            any*>(head_);
+        head_ = reinterpret_cast<
+            unsigned char*>(p);
+        return p->t_;
     }
 
-    template<class T, class... Args>
-    friend
-    T& push(workspace&, Args&&...);
-
-    void
-    pop()
+    template<class T>
+    T*
+    push_array(
+        std::size_t n,
+        T const& t)
     {
-        BOOST_ASSERT(head_);
-        auto next = head_->next;
-        head_->~any();
-        head_ = next;
+        using U = any_n<T>;
+        auto p = ::new(bump_down(
+            sizeof(U) + n * sizeof(T),
+                alignof(::max_align_t))) U(n, t);
+        p->next = reinterpret_cast<
+            any*>(head_);
+        head_ = reinterpret_cast<
+            unsigned char*>(p);
+        return p->data();
     }
 
 private:
+    // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html
     void*
-    addr_for(std::size_t n)
+    bump_down(
+        std::size_t size,
+        std::size_t align)
     {
-        if(head_)
-            return reinterpret_cast<void*>(
-                reinterpret_cast<
-                std::uintptr_t>(head_) - n);
-        return reinterpret_cast<void*>(
-            reinterpret_cast<
-            std::uintptr_t>(buf_) + cap_ - n);
+        BOOST_ASSERT(align > 0);
+        BOOST_ASSERT(
+            (align & (align - 1)) == 0);
+
+        auto ip0 = reinterpret_cast<
+            std::uintptr_t>(begin_);
+        auto ip = reinterpret_cast<
+            std::uintptr_t>(head_);
+        if(size > ip - ip0)
+            detail::throw_bad_alloc();
+        ip -= size;
+        ip &= ~(align - 1);
+        if(ip < ip0)
+            detail::throw_bad_alloc();
+        return reinterpret_cast<void*>(ip);
     }
 };
-
-template<class T, class... Args>
-T&
-push(workspace& ws, Args&&... args)
-{
-    using U = workspace::any_T<T>;
-    auto p = ::new(ws.addr_for(
-        sizeof(U))) U(0, std::forward<
-            Args>(args)...);
-    p->next = ws.head_;
-    ws.head_ = p;
-    return p->t;
-}
-
-template<class T, class... Args>
-T*
-push_array(
-    workspace& ws, std::size_t n)
-{
-    return nullptr;
-}
 
 } // detail
 } // http_proto

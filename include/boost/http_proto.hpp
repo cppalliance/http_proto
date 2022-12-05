@@ -11,8 +11,6 @@
 #define BOOST_HTTP_PROTO_HPP
 
 #include <boost/http_proto/buffer.hpp>
-#include <boost/http_proto/buffered_source.hpp>
-#include <boost/http_proto/circular_buffer.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/error_types.hpp>
@@ -23,9 +21,9 @@
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/file.hpp>
 #include <boost/http_proto/file_base.hpp>
+#include <boost/http_proto/file_body.hpp>
 #include <boost/http_proto/file_posix.hpp>
 #include <boost/http_proto/file_win32.hpp>
-#include <boost/http_proto/file_source.hpp>
 #include <boost/http_proto/file_stdio.hpp>
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/message_view_base.hpp>
@@ -40,6 +38,7 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/status.hpp>
+#include <boost/http_proto/string_body.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/version.hpp>
 
