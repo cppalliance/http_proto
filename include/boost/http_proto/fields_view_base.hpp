@@ -66,9 +66,9 @@ public:
     /**@{*/
     struct reference
     {
-        field id;
-        string_view name;
-        string_view value;
+        field const id;
+        string_view const name;
+        string_view const value;
 
     #ifndef BOOST_HTTP_PROTO_DOCS
         reference const*

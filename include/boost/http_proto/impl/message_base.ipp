@@ -94,9 +94,12 @@ set_keep_alive(bool value)
         return;
     }
 
+    // VFALCO TODO iterate in reverse order,
+    // and cache the last iterator to use
+    // for appending
+
     // one or more Connection fields
     auto it = begin();
-    auto it0 = it;
     auto const erase_token =
         [&](string_view token)
         {

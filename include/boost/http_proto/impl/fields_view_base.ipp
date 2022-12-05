@@ -37,7 +37,7 @@ auto
 fields_view_base::
 iterator::
 operator*() const noexcept ->
-    reference const
+    reference
 {
     auto const& e =
         ph_->tab()[i_];
@@ -79,6 +79,8 @@ iterator(
         break;
     case field::upgrade:
         n_ = ph_->md.upgrade.count;
+        break;
+    default:
         break;
     }
 }

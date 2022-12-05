@@ -73,10 +73,10 @@ public:
     }
 
     BOOST_HTTP_PROTO_DECL
-    reference const
+    reference
     operator*() const noexcept;
 
-    pointer const
+    pointer
     operator->() const noexcept
     {
         return *(*this);
