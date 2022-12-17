@@ -12,7 +12,10 @@ import testing ;
 project
     : requirements
       $(c11-requires)
+      <library>/boost/filesystem//boost_filesystem/<warnings>off
+      <library>/boost/http_proto//boost_http_proto
       <source>../../../url/extra/test_main.cpp
+      <source>./test_helpers.cpp
       <include>.
       <include>../../../url/extra
     ;
@@ -68,9 +71,5 @@ local SOURCES =
 
 for local f in $(SOURCES)
 {
-    run $(f)
-        ./test_helpers.cpp
-        /boost/http_proto//boost_http_proto
-        /boost/filesystem//boost_filesystem
-        ;
+    run $(f) : : : ;
 }
