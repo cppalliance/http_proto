@@ -114,9 +114,9 @@ public:
         {
             auto const req = p.get();
             BOOST_TEST(req.method() == m);
-            BOOST_TEST(req.method_str() ==
+            BOOST_TEST(req.method_text() ==
                 to_string(m));
-            BOOST_TEST(req.target() == t);
+            BOOST_TEST(req.target_text() == t);
             BOOST_TEST(req.version() == v);
         };
 
@@ -245,8 +245,8 @@ public:
         BOOST_TEST(
             rv.method() == method::get);
         BOOST_TEST(
-            rv.method_str() == "GET");
-        BOOST_TEST(rv.target() == "/");
+            rv.method_text() == "GET");
+        BOOST_TEST(rv.target_text() == "/");
         BOOST_TEST(rv.version() ==
             version::http_1_1);
 

@@ -87,7 +87,7 @@ public:
         If the method returned is equal to
         @ref method::unknown, the method may
         be obtained as a string instead, by
-        calling @ref method_str.
+        calling @ref method_text.
     */
     http_proto::method
     method() const noexcept
@@ -98,7 +98,7 @@ public:
     /** Return the method as a string
     */
     string_view
-    method_str() const noexcept
+    method_text() const noexcept
     {
         return string_view(
             ph_->cbuf,
@@ -175,7 +175,7 @@ public:
     {
         set_impl(
             ph_->req.method,
-            method_str(),
+            method_text(),
             s,
             version());
     }
@@ -188,7 +188,7 @@ public:
     {
         set_impl(
             ph_->req.method,
-            method_str(),
+            method_text(),
             target(),
             v);
     }

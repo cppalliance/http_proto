@@ -31,8 +31,8 @@ public:
         request_view rv = make_request(cs);
         request req(rv);
         BOOST_TEST(req.method() == method::post);
-        BOOST_TEST(req.method_str() == "POST");
-        BOOST_TEST(req.target() == "/x");
+        BOOST_TEST(req.method_text() == "POST");
+        BOOST_TEST(req.target_string() == "/x");
         BOOST_TEST(req.version() == version::http_1_0);
         BOOST_TEST(req.string().data() != cs.data());
         BOOST_TEST(req.string() == cs);
@@ -61,9 +61,9 @@ public:
             BOOST_TEST(
                 req.method() == method::get);
             BOOST_TEST(
-                req.method_str() == "GET");
+                req.method_text() == "GET");
             BOOST_TEST(
-                req.target() == "/");
+                req.target_string() == "/");
             BOOST_TEST(
                 req.version() == version::http_1_1);
         }
@@ -80,7 +80,7 @@ public:
                 BOOST_TEST(
                     r2.method() == method::get);
                 BOOST_TEST(
-                    r2.method_str() == "GET");
+                    r2.method_text() == "GET");
                 BOOST_TEST(
                     r2.version() == version::http_1_1);
             }
@@ -96,7 +96,7 @@ public:
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
-                    r2.method_str() == "POST");
+                    r2.method_text() == "POST");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -117,7 +117,7 @@ public:
                 BOOST_TEST(
                     r2.method() == method::get);
                 BOOST_TEST(
-                    r2.method_str() == "GET");
+                    r2.method_text() == "GET");
                 BOOST_TEST(
                     r2.version() == version::http_1_1);
             }
@@ -135,7 +135,7 @@ public:
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
-                    r2.method_str() == "POST");
+                    r2.method_text() == "POST");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -156,7 +156,7 @@ public:
                 BOOST_TEST(
                     r1.method() == method::post);
                 BOOST_TEST(
-                    r1.method_str() == "POST");
+                    r1.method_text() == "POST");
                 BOOST_TEST(
                     r1.version() == version::http_1_0);
             }
@@ -173,7 +173,7 @@ public:
                 BOOST_TEST(
                     r1.method() == method::get);
                 BOOST_TEST(
-                    r1.method_str() == "GET");
+                    r1.method_text() == "GET");
                 BOOST_TEST(
                     r1.version() == version::http_1_1);
             }
@@ -192,9 +192,9 @@ public:
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
-                    r2.method_str() == "POST");
+                    r2.method_text() == "POST");
                 BOOST_TEST(
-                    r2.target() == "/x");
+                    r2.target_string() == "/x");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -209,9 +209,9 @@ public:
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
-                    r2.method_str() == "POST");
+                    r2.method_text() == "POST");
                 BOOST_TEST(
-                    r2.target() == "/x");
+                    r2.target_string() == "/x");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -231,7 +231,7 @@ public:
                 BOOST_TEST(
                     r2.method() == method::get);
                 BOOST_TEST(
-                    r2.method_str() == "GET");
+                    r2.method_text() == "GET");
                 BOOST_TEST(
                     r2.version() == version::http_1_1);
             }
@@ -271,9 +271,9 @@ public:
                 BOOST_TEST(
                     req.method() == method::get);
                 BOOST_TEST(
-                    req.method_str() == "GET");
+                    req.method_text() == "GET");
                 BOOST_TEST(
-                    req.target() == "/");
+                    req.target_string() == "/");
                 BOOST_TEST(
                     req.version() == version::http_1_1);
                 BOOST_TEST(req.string() ==
@@ -289,7 +289,7 @@ public:
                 BOOST_TEST(
                     req.method() == method::delete_);
                 BOOST_TEST(
-                    req.method_str() == "DELETE");
+                    req.method_text() == "DELETE");
                 BOOST_TEST(req.string() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
@@ -302,7 +302,7 @@ public:
                 BOOST_TEST(
                     req.method() == method::delete_);
                 BOOST_TEST(
-                    req.method_str() == "DELETE");
+                    req.method_text() == "DELETE");
                 BOOST_TEST(req.string() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
@@ -318,7 +318,7 @@ public:
                 BOOST_TEST(
                     req.method() == method::delete_);
                 BOOST_TEST(
-                    req.method_str() == "DELETE");
+                    req.method_text() == "DELETE");
                 BOOST_TEST(req.string() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
@@ -331,7 +331,7 @@ public:
                 BOOST_TEST(
                     req.method() == method::delete_);
                 BOOST_TEST(
-                    req.method_str() == "DELETE");
+                    req.method_text() == "DELETE");
                 BOOST_TEST(req.string() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
@@ -346,7 +346,7 @@ public:
                 BOOST_TEST(
                     req.method() == method::unknown);
                 BOOST_TEST(
-                    req.method_str() == "BOOST");
+                    req.method_text() == "BOOST");
                 BOOST_TEST(req.string() ==
                     "BOOST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
@@ -360,7 +360,7 @@ public:
                 request req;
                 req.set_target("/index.htm");
                 BOOST_TEST(
-                    req.target() == "/index.htm");
+                    req.target_string() == "/index.htm");
                 BOOST_TEST(req.string() ==
                     "GET /index.htm HTTP/1.1\r\n\r\n");
             }
