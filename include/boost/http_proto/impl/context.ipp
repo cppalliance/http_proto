@@ -20,7 +20,6 @@ namespace http_proto {
 
 namespace detail {
 codecs& install_codecs_service(context& ctx);
-mime_types& install_mime_types_service(context& ctx);
 } // detail
 
 struct context::data
@@ -35,12 +34,6 @@ struct context::data
 //------------------------------------------------
 
 context::
-service::
-~service() = default;
-
-//------------------------------------------------
-
-context::
 ~context()
 {
 }
@@ -50,7 +43,6 @@ context() noexcept
     : p_(new data)
 {
     codecs_ = &detail::install_codecs_service(*this);
-    mime_types_ = &detail::install_mime_types_service(*this);
 }
 
 //------------------------------------------------
@@ -78,8 +70,10 @@ make_service_impl(
         p_->services.emplace(
             id, std::move(sp));
     if(! result.second)
-        detail::throw_out_of_range(
-            BOOST_CURRENT_LOCATION);
+    {
+        // already exists
+        detail::throw_out_of_range();
+    }
     return *result.first->second;
 }
 

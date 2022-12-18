@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/service/service.hpp>
 #include <boost/http_proto/detail/type_index.hpp>
 #include <memory>
 
@@ -20,7 +21,6 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class codecs;
-class mime_types;
 #endif
 
 class context
@@ -28,15 +28,8 @@ class context
     struct data;
 
     http_proto::codecs* codecs_;
-    http_proto::mime_types* mime_types_;
 
 public:
-    struct service
-    {
-        BOOST_HTTP_PROTO_DECL
-        virtual ~service() = 0;
-    };
-
     context(context const&) = delete;
     context& operator=(
         context const&) = delete;
@@ -53,40 +46,93 @@ public:
         return *codecs_;
     }
 
-    http_proto::mime_types&
-    mime_types() noexcept
-    {
-        return *mime_types_;
-    }
-
     //--------------------------------------------
 
     /** Create a service.
 
         The service must not already exist.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @throw std::invalid_argument `find_service<T> != nullptr`
+
+        @return A reference to the new service.
+
+        @tparam T The service type.
+
+        @param args Arguments forwarded to the
+        service constructor.
     */
     template<
         class T,
         class... Args>
-    friend
     T&
     make_service(
-        context& ctx,
         Args&&... args);
 
-    template<class T>
-    friend
-    T*
-    find_service(
-        context& ctx) noexcept;
+    /** Return an existing service
 
-    /** Return service T or throw an exception.
+        The function returns `nullptr` if the
+        service does not exist.
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @return A pointer to the service,
+        or `nullptr`.
+
+        @tparam T The service type.
     */
     template<class T>
-    friend
+    T*
+    find_service() const noexcept;
+
+    /** Return true if a service exists
+
+        @par Effects
+        @code
+        return this->find_service<T>() != nullptr;
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @return `true` if the service exists.
+
+        @tparam T The service type.
+    */
+    template<class T>
+    bool
+    has_service() const noexcept;
+
+    /** Return a reference to an existing service
+
+        The service must exist, or else an
+        exception is thrown.
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @throw std::invalid_argument `find_service<T> == nullptr`.
+
+        @return A reference to the service.
+
+        @tparam T The service type.
+    */
+    template<class T>
     T&
-    get_service(
-        context& ctx);
+    get_service() const;
 
 private:
     BOOST_HTTP_PROTO_DECL
@@ -102,16 +148,6 @@ private:
 
     std::unique_ptr<data> p_;
 };
-
-#if 0
-template<class T>
-bool
-has_service(
-    context& ctx) noexcept
-{
-    return find_service<T>(ctx) != nullptr;
-}
-#endif
 
 } // http_proto
 } // boost

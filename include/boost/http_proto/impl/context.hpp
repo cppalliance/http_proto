@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_CONTEXT_HPP
 
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/type_traits/detected_or.hpp>
+#include <boost/mp11/utility.hpp>
 #include <utility>
 
 namespace boost {
@@ -25,7 +25,7 @@ using get_key_impl =
 
 template<class T>
 using get_key_type =
-    boost::detected_or<T, get_key_impl, T>;
+    mp11::mp_eval_or<T, get_key_impl, T>;
 
 } // detail
 
@@ -33,46 +33,54 @@ using get_key_type =
 
 template<class T, class... Args>
 T&
+context::
 make_service(
-    context& ctx,
     Args&&... args)
 {
     auto const ti = detail::get_type_index<
         detail::get_key_type<T>>();
-    auto const ps =
-        ctx.find_service_impl(ti);
+    auto const ps = find_service_impl(ti);
     if(ps)
-        detail::throw_out_of_range(
-            BOOST_CURRENT_LOCATION);
+        detail::throw_invalid_argument(
+            "service exists");
     return static_cast<T&>(
-        ctx.make_service_impl(ti,
-            std::unique_ptr<context::service>(
-                new T(ctx, std::forward<
+        make_service_impl(ti,
+            std::unique_ptr<service>(
+                new T(*this, std::forward<
                     Args>(args)...))));
 }
 
 template<class T>
 T*
-find_service(context& ctx) noexcept
+context::
+find_service() const noexcept
 {
     auto const ti = detail::get_type_index<
         detail::get_key_type<T>>();
-    auto const ps =
-        ctx.find_service_impl(ti);
+    auto const ps = find_service_impl(ti);
     if(! ps)
         return nullptr;
-    return static_cast<T*>(ps);
+    return dynamic_cast<T*>(ps);
+}
+
+template<class T>
+bool
+context::
+has_service() const noexcept
+{
+    return find_service<T>() != nullptr;
 }
 
 template<class T>
 T&
-get_service(context& ctx)
+context::
+get_service() const
 {
     auto ps = find_service<T>();
     if(! ps)
-        detail::throw_out_of_range(
-            BOOST_CURRENT_LOCATION);
-    return static_cast<T&>(*ps);
+        detail::throw_invalid_argument(
+            "service not found");
+    return *ps;
 }
 
 } // http_proto

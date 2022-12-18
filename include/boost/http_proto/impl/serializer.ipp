@@ -18,25 +18,27 @@ namespace boost {
 namespace http_proto {
 
 //------------------------------------------------
-
 /*
-    chunked-body   = *chunk
-                    last-chunk
-                    trailer-part
-                    CRLF
 
-    chunk          = chunk-size [ chunk-ext ] CRLF
-                    chunk-data CRLF
-    chunk-size     = 1*HEXDIG
-    last-chunk     = 1*("0") [ chunk-ext ] CRLF
+write algorithm:
 
-    chunk-data     = 1*OCTET ; a sequence of chunk-size octets
+    get buffers from serializer
+        - can fail with ec
+        - can perform blocking I/O
 
-    2^64-1 = 20 digits
+    write buffers to socket
+        - consume the written amount
 
-
+serializer supply algorithm
+    - supply a const buffer sequence for everything
+        serializer sr;
+        sr.set_body( cb );
+    - supply a const buffer sequence iteratively
+        serializer sr;
+        sr.set_body_some( cb );
+    - write into serializer-provided buffers iteratively
+        sr.set_body( source( ... ) );
 */
-
 //------------------------------------------------
 
 serializer::

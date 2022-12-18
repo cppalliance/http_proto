@@ -27,7 +27,7 @@ namespace http_proto {
 namespace detail {
 
 class deflate_decoder_service_impl
-    : public context::service
+    : public service
     , public decoder_type
 {
 public:
@@ -90,7 +90,7 @@ public:
 //------------------------------------------------
 
 class deflate_encoder_service_impl
-    : public context::service
+    : public service
     , public encoder_type
 {
 public:
@@ -143,8 +143,8 @@ void
 install_deflate_decoder(
     context& ctx)
 {
-    make_service<
-        detail::deflate_decoder_service_impl>(ctx);
+    ctx.make_service<
+        detail::deflate_decoder_service_impl>();
 }
 
 } // http_proto

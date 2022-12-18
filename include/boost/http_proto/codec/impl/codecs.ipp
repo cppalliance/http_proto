@@ -28,7 +28,7 @@ namespace detail {
 
 class codecs_impl
     : public codecs
-    , public context::service
+    , public service
 {
     boost::container::map<
         std::string,
@@ -105,7 +105,7 @@ codecs&
 install_codecs_service(
     context& ctx)
 {
-    return make_service<codecs_impl>(ctx);
+    return ctx.make_service<codecs_impl>();
 }
 
 } // detail

@@ -48,13 +48,16 @@
 #include <boost/http_proto/codec/deflate_service.hpp>
 #include <boost/http_proto/codec/encoder.hpp>
 
-#include <boost/http_proto/mime/mime_types.hpp>
-
 #include <boost/http_proto/rfc/combine_field_values.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
+#include <boost/http_proto/rfc/parameter.hpp>
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
+#include <boost/http_proto/rfc/quoted_token_view.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
+
+#include <boost/http_proto/service/mime_types_service.hpp>
+#include <boost/http_proto/service/service.hpp>
 
 #endif

@@ -54,14 +54,17 @@ set(PFILES
     codec/decoder.cpp
     codec/deflate_service.cpp
     codec/encoder.cpp
-    mime/mime_types.cpp
     #rfc/chunk_ext_rule.cpp
     rfc/combine_field_values.cpp
     rfc/list_rule.cpp
+    rfc/parameter.cpp
     rfc/quoted_token_rule.cpp
+    rfc/quoted_token_view.cpp
     rfc/token_rule.cpp
     rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
+    service/mime_types_service.cpp
+    service/service.cpp
     )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})

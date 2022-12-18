@@ -7,26 +7,39 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_MIME_MIME_TYPES_HPP
-#define BOOST_HTTP_PROTO_MIME_MIME_TYPES_HPP
+#ifndef BOOST_HTTP_PROTO_SERVICE_SERVICE_HPP
+#define BOOST_HTTP_PROTO_SERVICE_SERVICE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
 
-class BOOST_SYMBOL_VISIBLE
-    mime_types
-{
-public:
-    BOOST_HTTP_PROTO_DECL
-    virtual ~mime_types() noexcept;
+#ifndef BOOST_HTTP_PROTO_DOCS
+class services;
+#endif
 
+/** Base class for all context services
+*/
+struct BOOST_SYMBOL_VISIBLE
+    service
+{
+    BOOST_HTTP_PROTO_DECL
     virtual
-    string_view
-    content_type(
-        string_view s) const noexcept = 0;
+    ~service() = 0;
+
+#if 0
+protected:
+    /** Called to perform two-phase initialization
+    */
+    BOOST_HTTP_PROTO_DECL
+    virtual
+    void
+    start() = 0;
+#endif
+
+private:
+    friend class services;
 };
 
 } // http_proto

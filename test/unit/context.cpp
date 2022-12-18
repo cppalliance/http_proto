@@ -19,7 +19,7 @@ namespace boost {
 namespace http_proto {
 
 class test_service
-    : public context::service
+    : public service
 {
 public:
     struct test_decoder_type
@@ -59,8 +59,8 @@ public:
     testDecoders()
     {
         context ctx;
-        auto& ts = make_service<
-            test_service>(ctx);
+        auto& ts =
+            ctx.make_service<test_service>();
         BOOST_TEST(ctx.codecs().find_decoder("test-decoder") == &ts.td);
     }
 

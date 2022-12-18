@@ -60,14 +60,16 @@ in a translation unit of the program.
 #include <boost/http_proto/codec/impl/deflate_service.ipp>
 #include <boost/http_proto/codec/impl/encoder.ipp>
 
-#include <boost/http_proto/mime/impl/mime_types.ipp>
-
 #include <boost/http_proto/rfc/impl/combine_field_values.ipp>
+#include <boost/http_proto/rfc/impl/parameter.ipp>
 #include <boost/http_proto/rfc/impl/quoted_token_rule.ipp>
 #include <boost/http_proto/rfc/impl/transfer_encoding_rule.ipp>
 #include <boost/http_proto/rfc/impl/upgrade_rule.ipp>
 
 #include <boost/http_proto/rfc/detail/impl/rules.ipp>
+
+#include <boost/http_proto/service/impl/mime_types_service.ipp>
+#include <boost/http_proto/service/impl/service.ipp>
 
 // VFALCO These are tucked away here temporarily
 #if 0

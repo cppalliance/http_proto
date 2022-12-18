@@ -12,64 +12,11 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error_types.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/rfc/quoted_token_view.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
 namespace http_proto {
-
-class quoted_token_view
-{
-    string_view s_;
-    std::size_t n_ = 0;
-
-    friend struct quoted_token_rule_t;
-
-    // unquoted
-    explicit
-    quoted_token_view(
-        string_view s) noexcept
-        : s_(s)
-        , n_(s.size())
-    {
-    }
-
-    // maybe quoted
-    quoted_token_view(
-        string_view s,
-        std::size_t n) noexcept
-        : s_(s)
-        , n_(n)
-    {
-        BOOST_ASSERT(s.size() >= 2);
-        BOOST_ASSERT(s.front() == '\"');
-        BOOST_ASSERT(s.back() == '\"');
-        BOOST_ASSERT(n_ <= s_.size() - 2);
-    }
-
-public:
-    quoted_token_view() = default;
-
-    quoted_token_view(
-        quoted_token_view const&) noexcept = default;
-
-    quoted_token_view& operator=(
-        quoted_token_view const&) noexcept = default;
-
-    bool
-    has_escapes() const noexcept
-    {
-        return n_ != s_.size();
-    }
-
-    string_view
-    raw_value() const noexcept
-    {
-        return s_;
-    }
-};
-
-//------------------------------------------------
 
 /** Rule matching quoted-token
 
@@ -91,12 +38,14 @@ public:
     qdtext          = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
     obs-text        = %x80-FF
     quoted-pair     = "\"" ( HTAB / SP / VCHAR / obs-text )
-
     @endcode
 
     @par Specification
     @li <a href="https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6"
         >3.2.6.  Field Value Components (rfc7230)</a>
+
+    @see
+        @ref quoted_token_view
 */
 #ifdef BOOST_HTTP_PROTO_DOCS
 constexpr __implementation_defined__ quoted_token_rule;
