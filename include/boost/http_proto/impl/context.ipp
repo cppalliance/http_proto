@@ -50,7 +50,7 @@ context() noexcept
 auto
 context::
 find_service_impl(
-    detail::type_index id) noexcept ->
+    detail::type_index id) const noexcept ->
         service*
 {
     auto it = p_->services.find(id);

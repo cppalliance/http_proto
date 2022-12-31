@@ -138,7 +138,7 @@ private:
     BOOST_HTTP_PROTO_DECL
     service*
     find_service_impl(
-        detail::type_index ti) noexcept;
+        detail::type_index ti) const noexcept;
 
     BOOST_HTTP_PROTO_DECL
     service&
