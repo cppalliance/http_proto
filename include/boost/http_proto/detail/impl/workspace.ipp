@@ -20,6 +20,25 @@ workspace::
 any::
 ~any() = default;
 
+void
+workspace::
+clear() noexcept
+{
+    auto const end =
+        reinterpret_cast<
+            any const*>(end_);
+    auto p =
+        reinterpret_cast<
+            any const*>(head_);
+    while(p != end)
+    {
+        auto next = p->next;
+        p->~any();
+        p = next;
+    }
+    head_ = end_;
+}
+
 } // detail
 } // http_proto
 } // boost

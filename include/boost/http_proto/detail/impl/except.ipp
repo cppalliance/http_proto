@@ -37,6 +37,16 @@ throw_length_error(
 }
 
 void
+throw_logic_error(
+    source_location const& loc)
+{
+    throw_exception(
+        std::logic_error(
+            "logic error"),
+        loc);
+}
+
+void
 throw_invalid_argument(
     char const* what,
     source_location const& loc)

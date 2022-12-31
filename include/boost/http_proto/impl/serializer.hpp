@@ -18,14 +18,15 @@
 namespace boost {
 namespace http_proto {
 
-class serializer::buffers
+class serializer::
+    output_buffers
 {
     std::size_t n_ = 0;
     const_buffer const* p_ = nullptr;
 
     friend class serializer;
 
-    buffers(
+    output_buffers(
         const_buffer const* p,
         std::size_t n) noexcept
         : n_(n)
@@ -42,11 +43,11 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    buffers() = default;
-    buffers(
-        buffers const&) = default;
-    buffers& operator=(
-        buffers const&) = default;
+    output_buffers() = default;
+    output_buffers(
+        output_buffers const&) = default;
+    output_buffers& operator=(
+        output_buffers const&) = default;
 
     iterator
     begin() const noexcept
@@ -66,49 +67,60 @@ public:
 template<class Body>
 void
 serializer::
-set_body(Body&& body)
+reset(
+    message_view_base const& m,
+    Body&& body)
 {
-    // can't set body twice
-    BOOST_ASSERT(! src_);
-    BOOST_ASSERT(cbn_ == 0);
-
-    set_body_impl(
+    ws_.clear();
+    using T = typename
+        std::remove_reference<Body>::type;
+    reset_impl(
+        m,
         std::forward<Body>(body),
-        std::is_base_of<
-            source, Body>{});
+        std::integral_constant<
+            bool,
+            std::is_convertible<
+                T const*,
+                source const*>::value>{});
 }
 
-template<class Body>
+template<class Source>
 void
 serializer::
-set_body_impl(
-    Body&& body,
+reset_impl(
+    message_view_base const& m,
+    Source&& source,
     std::true_type)
 {
-    src_ = &ws_.push(
-        std::forward<Body>(body));
+    src_ = std::addressof(
+        ws_.push(std::forward<
+            Source>(source)));
+    cbn_ = 3;
     cb_ = ws_.push_array(
-        3, const_buffer{});
+        cbn_, const_buffer{});
+    reset_impl(m);
 }
 
-template<
-    class Buffers>
+template<class Buffers>
 void
 serializer::
-set_body_impl(
-    Buffers&& bs0,
+reset_impl(
+    message_view_base const& m,
+    Buffers&& buffers,
     std::false_type)
 {
-    auto n = std::distance(
-        bs0.begin(), bs0.end());
     auto& bs = ws_.push(
-        std::move(bs0));
+        std::forward<Buffers>(
+            buffers));
+    auto n = std::distance(
+        bs.begin(), bs.end());
     cb_ = ws_.push_array(
         1 + n, const_buffer{});
     cbn_ = 0;
-    cbi_ = 0;
     for(const_buffer b : bs)
         cb_[++cbn_] = b;
+    src_ = nullptr;
+    reset_impl(m);
 }
 
 } // http_proto

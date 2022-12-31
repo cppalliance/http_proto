@@ -42,8 +42,10 @@ get_error_cat() noexcept
         {
             switch(static_cast<error>(ev))
             {
+            case error::expect_100_continue: return "expect continue";
             case error::end_of_message: return "end of message";
             case error::end_of_stream: return "end of stream";
+
             case error::bad_connection: return "bad Connection";
             case error::bad_content_length: return "bad Content-Length";
             case error::bad_expect: return "bad Expect";

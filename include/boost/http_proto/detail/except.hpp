@@ -29,6 +29,9 @@ BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_length_error(
     char const* what = "too large",
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
+BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_logic_error(
+    source_location const& loc = BOOST_CURRENT_LOCATION);
+
 BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_out_of_range(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 

@@ -28,7 +28,11 @@ enum class error
     // Partial success
     //
 
-    /** A complete message has been parsed
+    /** Serialization paused for Expect
+    */
+    ,expect_100_continue
+
+    /** The message is complete
     */
     ,end_of_message
 

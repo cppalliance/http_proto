@@ -124,24 +124,6 @@ public:
         return head_ - begin_;
     }
 
-    void
-    clear()
-    {
-        auto const end =
-            reinterpret_cast<
-                any const*>(end_);
-        auto p =
-            reinterpret_cast<
-                any const*>(head_);
-        while(p != end)
-        {
-            auto next = p->next;
-            p->~any();
-            p = next;
-        }
-        head_ = end_;
-    }
-
     template<class T>
     T&
     push(T&& t)
@@ -173,6 +155,10 @@ public:
             unsigned char*>(p);
         return p->data();
     }
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
 
 private:
     // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html

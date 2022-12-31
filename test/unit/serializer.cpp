@@ -10,11 +10,11 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
 
-#include <boost/http_proto/context.hpp>
-#include <boost/http_proto/field.hpp>
-#include <boost/http_proto/request.hpp>
+#include <boost/http_proto/response.hpp>
 
 #include "test_suite.hpp"
+
+#include <string>
 
 namespace boost {
 namespace http_proto {
@@ -55,36 +55,49 @@ namespace http_proto {
 
 //------------------------------------------------
 
-struct source_
+struct serializer_test
 {
-    struct params
+    static
+    std::string
+    read_some(serializer& sr)
     {
-        /** The number of bytes fetched
-        */
-        std::size_t amount = 0;
+        std::string s;
+        auto cbs = sr.prepare().value();
+        for(auto const& cb : cbs)
+            s.append(
+                reinterpret_cast<
+                    char const*>(cb.data()),
+                cb.size());
+        sr.consume(s.size());
+        return s;
+    }
 
-        /** True if there is more data
-        */
-        bool more = false;
-    };
+    static
+    std::string
+    read(serializer& sr)
+    {
+        std::string s;
+        while(! sr.is_done())
+            s += read_some(sr);
+        return s;
+    }
 
-    virtual ~source_() = 0;
+    void
+    testOutput()
+    {
+        response res;
 
-    /** Return the next buffer of data.
-    */
-    virtual
-    result<params>
-    fetch(
-        void* dest,
-        std::size_t size) = 0;
-};
+        {
+            serializer sr(1024);
+            sr.reset(res);
+            auto s = read(sr);
+        }
+    }
 
-class serializer_test
-{
-public:
     void
     run()
     {
+        testOutput();
     }
 };
 

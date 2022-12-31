@@ -19,25 +19,29 @@ namespace http_proto {
 
 //------------------------------------------------
 /*
+    chunked-body   = *chunk
+                     last-chunk
+                     trailer-part
+                     CRLF
 
-write algorithm:
+    chunk          = chunk-size [ chunk-ext ] CRLF
+                     chunk-data CRLF
+    last-chunk     = 1*("0") [ chunk-ext ] CRLF
+    trailer-part   = *( header-field CRLF )
 
-    get buffers from serializer
-        - can fail with ec
-        - can perform blocking I/O
+    chunk-size     = 1*HEXDIG
+    chunk-ext      = *( ";" chunk-ext-name [ "=" chunk-ext-val ] 
+    chunk-data     = 1*OCTET ; a sequence of chunk-size octets
 
-    write buffers to socket
-        - consume the written amount
+    chunk-ext-name = token
+    chunk-ext-val  = token / quoted-string
 
-serializer supply algorithm
-    - supply a const buffer sequence for everything
-        serializer sr;
-        sr.set_body( cb );
-    - supply a const buffer sequence iteratively
-        serializer sr;
-        sr.set_body_some( cb );
-    - write into serializer-provided buffers iteratively
-        sr.set_body( source( ... ) );
+    2^64-1 = 16 hex digits
+
+    xxxxxxxxxxxxxxxx\r\n        18
+    {data}\r\n                   2
+    0\r\n
+    {trailer}\r\n
 */
 //------------------------------------------------
 
@@ -53,49 +57,39 @@ serializer(
 {
 }
 
-void
-serializer::
-reset(
-    message_view_base const& m) noexcept
-{
-    ws_.clear();
-    h_ = m.ph_;
-    src_ = nullptr;
-    st_ = state::init;
-
-    cb_ = nullptr;
-    cbn_ = 0;
-    cbi_ = 0;
-}
-
 //------------------------------------------------
 
 auto
 serializer::
 prepare() ->
-    result<buffers>
+    result<output_buffers>
 {
-    if(st_ == state::init)
-        init_impl();
+    // Precondition violation
+    if(is_done_)
+        detail::throw_logic_error();
 
-    //if(! expect:100 continue)
+    std::size_t n = 0;
+
+    if(hbuf_.size() > 0)
+    {
+        // header
+        cb_[n++] = hbuf_;
+        if( (! src_ && n == cbn_) ||
+            is_expect_continue_)
+        {
+            return output_buffers(cb_, n);
+        }
+    }
+    else if(is_expect_continue_)
+    {
+        is_expect_continue_ = false;
+        BOOST_HTTP_PROTO_RETURN_EC(
+            error::expect_100_continue);
+    }
 
     if(src_)
     {
         // source body
-        auto cb0 = cb_;
-        const_buffer* p;
-        if(hbuf_.size() > 0)
-        {
-            *cb0 = hbuf_;
-            p = cb0 + 1;
-        }
-        else
-        {
-            ++cb0;
-            p = cb0;
-        }
-        ++p;
         auto dest = buf_.prepare();
         auto rv = src_->read(
             dest.first.data(),
@@ -115,21 +109,16 @@ prepare() ->
         }
         more_ = rv->more;
         auto src = buf_.data();
-        *p++ = src.first;
+        cb_[n++] = src.first;
         if(src.second.size() > 0)
-            *p++ = src.second;
-        return buffers(cb0, p - cb0);
+            cb_[n++] = src.first;
+        return output_buffers(cb_, n);
     }
 
     // buffers body
     if(hbuf_.size() > 0)
-    {
-        BOOST_ASSERT(cbi_ == 0);
-        cb_[0] = hbuf_;
-        return buffers(cb_, 1 + cbn_);
-    }
-    return buffers(
-        &cb_[1 + cbi_], cbn_ - cbi_);
+        return output_buffers(cb_, 1 + cbn_);
+    return output_buffers(cb_ + 1, cbn_);
 }
 
 void
@@ -137,13 +126,12 @@ serializer::
 consume(
     std::size_t n) noexcept
 {
-    BOOST_ASSERT(
-        st_ == state::ok);
+    auto p = cb_;
 
     // header
     if(hbuf_.size() > 0)
     {
-        if(n <= hbuf_.size())
+        if(n < hbuf_.size())
         {
             hbuf_ += n;
             return;
@@ -151,6 +139,7 @@ consume(
 
         n -= hbuf_.size();
         hbuf_ = {};
+        ++p;
     }
 
     if(src_)
@@ -161,40 +150,81 @@ consume(
         if( buf_.empty() &&
             ! more_)
         {
-            st_ = state::done;
+            is_done_ = true;
         }
+        return;
     }
-    else
-    {
-        // buffers body
-        while(n > 0)
-        {
-            // n was out of range
-            BOOST_ASSERT(cbi_ != cbn_);
-            auto i = cbi_ + 1;
-            if(n < cb_[i].size())
-            {
-                cb_[i] += n;
-                return;
-            }
 
-            n -= cb_[i].size();
-            ++cbi_;
+    auto p0 = p;
+    while(n > 0)
+    {
+        if(n < p->size())
+        {
+            std::size_t const i =
+                cb_ + cbn_ - p;
+            *p += n;
+            std::memmove(
+                p0,
+                p,
+                i * sizeof(*p));
+            cbn_ -= i;
+            return;
         }
-        st_ = state::done;
+
+        n -= p->size();
+        ++n;
+        ++p;
     }
+    is_done_ = true;
+}
+
+auto
+serializer::
+data() noexcept ->
+    input_buffers
+{
+    return {};
+}
+
+void
+serializer::
+commit(
+    std::size_t bytes,
+    bool end)
+{
+    (void)bytes;
+    (void)end;
+}
+
+void
+serializer::
+reset(
+    message_view_base const& m)
+{
+    ws_.clear();
+    cbn_ = 1;
+    cb_ = ws_.push_array(
+        cbn_, const_buffer{});
+    src_ = nullptr;
+    reset_impl(m);
 }
 
 //------------------------------------------------
 
 void
 serializer::
-init_impl()
+reset_impl(
+    message_view_base const& m)
 {
-    BOOST_ASSERT(st_ == state::init);
+    // throw if there are
+    // any metadata errors?
+    //
+    // m.ph_->md.maybe_throw();
 
-    // header
-    hbuf_ = { h_->buf, h_->size };
+    hbuf_ = { m.ph_->cbuf, m.ph_->size };
+    is_done_ = false;
+    is_expect_continue_ =
+        m.ph_->md.expect.is_100_continue;
 
     if(src_)
     {
@@ -203,10 +233,7 @@ init_impl()
     }
     else
     {
-        // buffers body
     }
-
-    st_ = state::ok;
 }
 
 } // http_proto

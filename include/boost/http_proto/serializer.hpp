@@ -42,78 +42,117 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
-    class buffers;
+    class output_buffers;
+    using input_buffers =
+        mutable_buffers_pair;
 
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL
     ~serializer();
 
+    /** Constructor
+    */
     BOOST_HTTP_PROTO_DECL
     explicit
     serializer(
         std::size_t buffer_size);
 
-    bool
-    is_complete() const noexcept
-    {
-        return st_ == state::done;
-    }
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset(
-        message_view_base const& m) noexcept;
-
-    template<class Body>
-    void
-    set_body(Body&& body);
-
     //--------------------------------------------
 
+    /** Return true if serialization is complete.
+    */
+    bool
+    is_done() const noexcept
+    {
+        return is_done_;
+    }
+
+    /** Return the output area.
+
+        This function will serialize some or
+        all of the content and return the
+        corresponding output buffers.
+
+        @par Preconditions
+        @code
+        this->is_done() == false
+        @endcode
+    */
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<buffers>;
+        result<output_buffers>;
 
+    /** Consume bytes from the output area.
+    */
     BOOST_HTTP_PROTO_DECL
     void
     consume(std::size_t n) noexcept;
 
-private:
-    enum class state
-    {
-        init,
-        ok,
-        done
-    };
+    /** Return the input area.
+    */
+    BOOST_HTTP_PROTO_DECL
+    input_buffers
+    data() noexcept;
 
+    /** Commit bytes to the input area.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    commit(
+        std::size_t bytes,
+        bool end);
+
+    //--------------------------------------------
+
+    /** Reset the serializer for a new message
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset(
+        message_view_base const& m);
+
+    /** Reset the serializer for a new message
+
+        The message will not contain a body.
+    */
     template<class Body>
     void
-    set_body_impl(
-        Body&& body,
+    reset(
+        message_view_base const& m,
+        Body&& body);
+
+private:
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset_impl(
+        message_view_base const& m);
+
+    template<class Source>
+    void
+    reset_impl(
+        message_view_base const& m,
+        Source&& source,
         std::true_type);
 
-    template<class Body>
+    template<class Buffers>
     void
-    set_body_impl(
-        Body&& body,
+    reset_impl(
+        message_view_base const& m,
+        Buffers&& buffers,
         std::false_type);
 
-    void init_impl();
-
     detail::workspace ws_;
-
-    detail::header const* h_ = nullptr;
-    source* src_ = nullptr;
     const_buffer hbuf_;
-    detail::circular_buffer buf_;
-    state st_ = state::init;
-    bool more_ = false;
-
     const_buffer* cb_ = nullptr;
     std::size_t cbn_ = 0;
-    std::size_t cbi_ = 0;
+    bool is_done_;
+    bool is_expect_continue_;
+
+    source* src_ = nullptr;
+    detail::circular_buffer buf_;
+    bool more_ = false;
 };
 
 //------------------------------------------------
