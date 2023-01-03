@@ -221,6 +221,14 @@ public:
         set_impl(string_to_method(m), m, t, v);
     }
 
+    /** Set the Expect header
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_expect_100_continue(bool b);
+
+    //--------------------------------------------
+
     /** Swap this with another instance
     */
     void

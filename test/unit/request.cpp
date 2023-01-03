@@ -17,9 +17,8 @@
 namespace boost {
 namespace http_proto {
 
-class request_test
+struct request_test
 {
-public:
 #if 0
     void
     testHelpers()
@@ -405,6 +404,16 @@ public:
 #endif
 
     void
+    testExpect()
+    {
+        request req;
+        req.set_expect_100_continue(true);
+        BOOST_TEST(req.metadata().expect.is_100_continue == true);
+        req.set_expect_100_continue(false);
+        BOOST_TEST(req.metadata().expect.is_100_continue == false);
+    }
+
+    void
     run()
     {
 #if 0
@@ -413,6 +422,7 @@ public:
         testObservers();
         testModifiers();
 #endif
+        testExpect();
     }
 };
 

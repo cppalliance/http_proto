@@ -46,6 +46,9 @@ enum class error
     /// Invalid Content-Length field value or values
     ,bad_content_length
 
+    /// Invalid Expect header
+    ,bad_expect
+
     /// Syntax error in field-name
     ,bad_field_name
 

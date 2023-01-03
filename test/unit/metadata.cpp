@@ -38,7 +38,7 @@ struct metadata_test
             field id,
             std::size_t n)
         {
-            request req_ = make_request_(s);
+            request req_ = make_request(s);
             auto const r = req_.find_all(id);
             BOOST_TEST_EQ(std::distance(
                 r.begin(), r.end()), n);
@@ -142,7 +142,7 @@ struct metadata_test
             metadata::connection_t con)
         {
             {
-                request req_ = make_request_(s);
+                request req_ = make_request(s);
                 f(req_);
                 auto const t =
                     req_.metadata().connection;
@@ -280,7 +280,7 @@ struct metadata_test
             void(*f)(message_base&),
             metadata::content_length_t clen)
         {
-            request req = make_request_(s);
+            request req = make_request(s);
             f(req);
             auto const t =
                 req.metadata().content_length;
@@ -417,7 +417,7 @@ struct metadata_test
             void(*f)(message_base&),
             metadata::transfer_encoding_t te)
         {
-            request req = make_request_(s);
+            request req = make_request(s);
             f(req);
             auto const t =
                 req.metadata().transfer_encoding;
@@ -611,7 +611,7 @@ struct metadata_test
             void(*f)(message_base&),
             metadata::upgrade_t te)
         {
-            request req = make_request_(s);
+            request req = make_request(s);
             f(req);
             auto const t =
                 req.metadata().upgrade;
@@ -762,7 +762,7 @@ struct metadata_test
             void(*f)(message_base&),
             string_view s1)
         {
-            request req = make_request_(s);
+            request req = make_request(s);
             f(req);
             BOOST_TEST(req.buffer() == s1);
             fields fld = make_fields(s);
@@ -874,7 +874,7 @@ struct metadata_test
             payload v,
             std::uint64_t n = 0)
         {
-            request req_ = make_request_(s);
+            request req_ = make_request(s);
             f(req_);
             BOOST_TEST_EQ(req_.payload(), v);
             if(req_.payload() == payload::size)
@@ -887,7 +887,7 @@ struct metadata_test
             payload pay,
             std::uint64_t n = 0)
         {
-            response res_ = make_response_(s);
+            response res_ = make_response(s);
             f(res_);
             BOOST_TEST_EQ(res_.payload(), pay);
             if(res_.payload() == payload::size)
@@ -1014,7 +1014,7 @@ struct metadata_test
             void(*f)(fields_base&),
             bool keep_alive)
         {
-            response res_ = make_response_(s);
+            response res_ = make_response(s);
             f(res_);
             BOOST_TEST_EQ(
                 res_.keep_alive(), keep_alive);
@@ -1025,7 +1025,7 @@ struct metadata_test
             bool keep_alive,
             string_view s1)
         {
-            request m = make_request_(s0);
+            request m = make_request(s0);
             m.set_keep_alive(keep_alive);
             BOOST_TEST_EQ(m.buffer(), s1);
             BOOST_TEST_EQ(

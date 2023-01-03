@@ -51,6 +51,7 @@ public:
 
         check(n, error::bad_connection);
         check(n, error::bad_content_length);
+        check(n, error::bad_expect);
         check(n, error::bad_field_name);
         check(n, error::bad_field_value);
         check(n, error::bad_line_ending);

@@ -362,6 +362,29 @@ raw_erase(
         off_t>(h_.size - n);
 }
 
+// erase n fields matching id
+// without updating metadata
+void
+fields_base::
+raw_erase_n(
+    field id,
+    std::size_t n) noexcept
+{
+    // iterate in reverse
+    auto e = &h_.tab()[h_.count];
+    auto const e0 = &h_.tab()[0];
+    while(n > 0)
+    {
+        BOOST_ASSERT(e != e0);
+        ++e; // decrement
+        if(e->id == id)
+        {
+            raw_erase(e0 - e);
+            --n;
+        }
+    }
+}
+
 // erase fields matching i0
 // name, without updating metadata.
 std::size_t

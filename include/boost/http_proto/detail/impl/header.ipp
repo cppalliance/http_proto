@@ -155,6 +155,71 @@ buffer_needed(
 
 //------------------------------------------------
 
+/*  References:
+
+    6.3.  Persistence
+    https://datatracker.ietf.org/doc/html/rfc7230#section-6.3
+*/
+bool
+header::
+keep_alive() const noexcept
+{
+    if(md.payload == payload::error)
+        return false;
+    if( version ==
+        http_proto::version::http_1_1)
+    {
+        if(md.connection.close)
+            return false;
+    }
+    else
+    {
+        if(! md.connection.keep_alive)
+            return false;
+    }
+    // can't use to_eof in requests
+    BOOST_ASSERT(
+        kind != detail::kind::request ||
+        md.payload != payload::to_eof);
+    if(md.payload == payload::to_eof)
+        return false;
+    return true;
+}
+
+void
+header::
+swap(header& h) noexcept
+{
+    std::swap(cbuf, h.cbuf);
+    std::swap(buf, h.buf);
+    std::swap(cap, h.cap);
+    std::swap(size, h.size);
+    std::swap(count, h.count);
+    std::swap(prefix, h.prefix);
+    std::swap(version, h.version);
+    std::swap(md, h.md);
+    switch(kind)
+    {
+    default:
+    case detail::kind::fields:
+        break;
+    case detail::kind::request:
+        std::swap(
+            req.method_len, h.req.method_len);
+        std::swap(
+            req.target_len, h.req.target_len);
+        std::swap(req.method, h.req.method);
+        break;
+    case detail::kind::response:
+        std::swap(
+            res.status_int, h.res.status_int);
+        std::swap(res.status, h.res.status);
+        break;
+    }
+}
+
+//------------------------------------------------
+
 auto
 header::
 tab() const noexcept ->
@@ -259,38 +324,6 @@ assign_to(
     dest.cap = cap_;
 }
 
-void
-header::
-swap(header& h) noexcept
-{
-    std::swap(cbuf, h.cbuf);
-    std::swap(buf, h.buf);
-    std::swap(cap, h.cap);
-    std::swap(size, h.size);
-    std::swap(count, h.count);
-    std::swap(prefix, h.prefix);
-    std::swap(version, h.version);
-    std::swap(md, h.md);
-    switch(kind)
-    {
-    default:
-    case detail::kind::fields:
-        break;
-    case detail::kind::request:
-        std::swap(
-            req.method_len, h.req.method_len);
-        std::swap(
-            req.target_len, h.req.target_len);
-        std::swap(req.method, h.req.method);
-        break;
-    case detail::kind::response:
-        std::swap(
-            res.status_int, h.res.status_int);
-        std::swap(res.status, h.res.status);
-        break;
-    }
-}
-
 //------------------------------------------------
 //
 // Metadata
@@ -310,33 +343,70 @@ on_start_line()
     }
 }
 
+//------------------------------------------------
+
 // called after a field is inserted
 void
 header::
-on_insert(field id, string_view v)
+on_insert(
+    field id,
+    string_view v)
 {
     if(kind == detail::kind::fields)
         return;
     switch(id)
     {
-    case field::connection:
-        return on_insert_con(v);
     case field::content_length:
-        return on_insert_clen(v);
+        return on_insert_content_length(v);
+    case field::connection:
+        return on_insert_connection(v);
+    case field::expect:
+        return on_insert_expect(v);
     case field::transfer_encoding:
-        return on_insert_te();
+        return on_insert_transfer_encoding();
     case field::upgrade:
-        return on_insert_up(v);
-
+        return on_insert_upgrade(v);
     default:
         break;
     }
 }
 
-// called when Content-Length is inserted
 void
 header::
-on_insert_clen(string_view v)
+on_insert_connection(
+    string_view v)
+{
+    ++md.connection.count;
+    if(md.connection.ec.failed())
+        return;
+    auto rv = grammar::parse(
+        v, list_rule(token_rule, 1));
+    if(! rv)
+    {
+        md.connection.ec =
+            BOOST_HTTP_PROTO_ERR(
+                error::bad_connection);
+        return;
+    }
+    md.connection.ec = {};
+    for(auto t : *rv)
+    {
+        if(grammar::ci_is_equal(
+                t, "close"))
+            md.connection.close = true;
+        else if(grammar::ci_is_equal(
+                t, "keep-alive"))
+            md.connection.keep_alive = true;
+        else if(grammar::ci_is_equal(
+                t, "upgrade"))
+            md.connection.upgrade = true;
+    }
+}
+
+void
+header::
+on_insert_content_length(
+    string_view v)
 {
     static
     constexpr
@@ -379,42 +449,34 @@ on_insert_clen(string_view v)
     update_payload();
 }
 
-// called when Connection is inserted
 void
 header::
-on_insert_con(string_view v)
+on_insert_expect(
+    string_view v)
 {
-    ++md.connection.count;
-    if(md.connection.ec.failed())
+    ++md.expect.count;
+    if(kind != detail::kind::request)
         return;
-    auto rv = grammar::parse(
-        v, list_rule(token_rule, 1));
-    if(! rv)
+    if(md.expect.ec.failed())
+        return;
+    // VFALCO Should we allow duplicate
+    // Expect fields that have 100-continue?
+    if( md.expect.count > 1 ||
+        ! grammar::ci_is_equal(v,
+            "100-continue"))
     {
-        md.connection.ec =
+        md.expect.ec =
             BOOST_HTTP_PROTO_ERR(
-                error::bad_connection);
+                error::bad_expect);
+        md.expect.is_100_continue = false;
         return;
     }
-    md.connection.ec = {};
-    for(auto t : *rv)
-    {
-        if(grammar::ci_is_equal(
-                t, "close"))
-            md.connection.close = true;
-        else if(grammar::ci_is_equal(
-                t, "keep-alive"))
-            md.connection.keep_alive = true;
-        else if(grammar::ci_is_equal(
-                t, "upgrade"))
-            md.connection.upgrade = true;
-    }
+    md.expect.is_100_continue = true;
 }
 
-// called when Transfer-Encoding is inserted
 void
 header::
-on_insert_te()
+on_insert_transfer_encoding()
 {
     ++md.transfer_encoding.count;
     if(md.transfer_encoding.ec.failed())
@@ -473,10 +535,10 @@ on_insert_te()
     update_payload();
 }
 
-// called when Upgrade is inserted
 void
 header::
-on_insert_up(string_view v)
+on_insert_upgrade(
+    string_view v)
 {
     ++md.upgrade.count;
     if(md.upgrade.ec.failed())
@@ -527,23 +589,44 @@ on_erase(field id)
     switch(id)
     {
     case field::connection:
-        return on_erase_con();
+        return on_erase_connection();
     case field::content_length:
-        return on_erase_clen();
+        return on_erase_content_length();
+    case field::expect:
+        return on_erase_expect();
     case field::transfer_encoding:
-        return on_erase_te();
+        return on_erase_transfer_encoding();
     case field::upgrade:
-        return on_erase_up();
-
+        return on_erase_upgrade();
     default:
         break;
     }
 }
 
-// called when Content-Length is erased
 void
 header::
-on_erase_clen()
+on_erase_connection()
+{
+    BOOST_ASSERT(
+        md.connection.count > 0);
+    // reset and re-insert
+    auto n = md.connection.count - 1;
+    auto const p = cbuf + prefix;
+    auto const* e = &tab()[0];
+    md.connection = {};
+    while(n > 0)
+    {
+        if(e->id == field::connection)
+            on_insert_connection(string_view(
+                p + e->vp, e->vn));
+        --n;
+        --e;
+    }
+}
+
+void
+header::
+on_erase_content_length()
 {
     BOOST_ASSERT(
         md.content_length.count > 0);
@@ -568,60 +651,74 @@ on_erase_clen()
     while(n > 0)
     {
         if(e->id == field::content_length)
-            on_insert_clen(string_view(
-                p + e->vp, e->vn));
+            on_insert_content_length(
+                string_view(p + e->vp, e->vn));
         --n;
         --e;
     }
     update_payload();
 }
 
-// called when Connection is erased
 void
 header::
-on_erase_con()
+on_erase_expect()
 {
     BOOST_ASSERT(
-        md.connection.count > 0);
+        md.expect.count > 0);
+    --md.expect.count;
+    if(kind != detail::kind::request)
+        return;
+    if(md.expect.count == 0)
+    {
+        // no Expect
+        md.expect = {};
+        return;
+    }
+    // VFALCO This should be uncommented
+    // if we want to allow multiple Expect
+    // fields with the value 100-continue
+    /*
+    if(! md.expect.ec.failed())
+        return;
+    */
     // reset and re-insert
-    auto n = md.connection.count - 1;
+    auto n = md.expect.count;
     auto const p = cbuf + prefix;
     auto const* e = &tab()[0];
-    md.connection = {};
+    md.expect = {};
     while(n > 0)
     {
-        if(e->id == field::connection)
-            on_insert_con(string_view(
-                p + e->vp, e->vn));
+        if(e->id == field::expect)
+            on_insert_expect(
+                string_view(p + e->vp, e->vn));
         --n;
         --e;
     }
 }
 
-// called when Transfer-Encoding is erased
 void
 header::
-on_erase_te()
+on_erase_transfer_encoding()
 {
     BOOST_ASSERT(
         md.transfer_encoding.count > 0);
     --md.transfer_encoding.count;
     if(md.transfer_encoding.count == 0)
     {
-        // no more Transfer-Encoding
+        // no Transfer-Encoding
         md.transfer_encoding = {};
         update_payload();
         return;
     }
     // re-insert everything
     --md.transfer_encoding.count;
-    on_insert_te();
+    on_insert_transfer_encoding();
 }
 
 // called when Upgrade is erased
 void
 header::
-on_erase_up()
+on_erase_upgrade()
 {
     BOOST_ASSERT(
         md.upgrade.count > 0);
@@ -640,12 +737,14 @@ on_erase_up()
     while(n > 0)
     {
         if(e->id == field::upgrade)
-            on_insert_up(string_view(
+            on_insert_upgrade(string_view(
                 p + e->vp, e->vn));
         --n;
         --e;
     }
 }
+
+//------------------------------------------------
 
 // called when all fields with id are removed
 void
@@ -663,6 +762,11 @@ on_erase_all(
 
     case field::content_length:
         md.content_length = {};
+        update_payload();
+        return;
+
+    case field::expect:
+        md.expect = {};
         update_payload();
         return;
 
@@ -821,37 +925,6 @@ do_response:
     md.payload_size = 0;
 }
 
-/*  References:
-
-    6.3.  Persistence
-    https://datatracker.ietf.org/doc/html/rfc7230#section-6.3
-*/
-bool
-header::
-keep_alive() const noexcept
-{
-    if(md.payload == payload::error)
-        return false;
-    if( version ==
-        http_proto::version::http_1_1)
-    {
-        if(md.connection.close)
-            return false;
-    }
-    else
-    {
-        if(! md.connection.keep_alive)
-            return false;
-    }
-    // can't use to_eof in requests
-    BOOST_ASSERT(
-        kind != detail::kind::request ||
-        md.payload != payload::to_eof);
-    if(md.payload == payload::to_eof)
-        return false;
-    return true;
-}
-
 //------------------------------------------------
 
 static
@@ -935,6 +1008,8 @@ parse_status_line(
     h.update_payload();
     return h.prefix;
 }
+
+//------------------------------------------------
 
 result<std::size_t>
 parse_start_line(

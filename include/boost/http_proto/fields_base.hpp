@@ -456,6 +456,7 @@ private:
         std::size_t i) const noexcept;
 
     void raw_erase(std::size_t) noexcept;
+    void raw_erase_n(field, std::size_t) noexcept;
     std::size_t raw_erase_all(std::size_t) noexcept;
     void raw_set(std::size_t, string_view);
 

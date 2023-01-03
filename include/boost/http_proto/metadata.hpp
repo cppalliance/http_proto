@@ -109,6 +109,8 @@ struct metadata
     #endif
     };
 
+    //--------------------------------------------
+
     /** Metadata for the Content-Length field
     */
     struct content_length_t
@@ -145,6 +147,43 @@ struct metadata
         }
     #endif
     };
+
+    //--------------------------------------------
+
+    /** Metadata for the Expect field
+    */
+    struct expect_t
+    {
+        /** Error status of Expect
+        */
+        error_code ec;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** True if Expect is 100-continue
+        */
+        bool is_100_continue = false;
+
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
+        constexpr
+        expect_t() = default;
+
+        constexpr
+        expect_t(
+            error_code ec_,
+            std::size_t count_,
+            bool is_100_continue_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , is_100_continue(is_100_continue_)
+        {
+        }
+    #endif
+    };
+
+    //--------------------------------------------
 
     /** Metadata for the Transfer-Encoding field
     */
@@ -185,6 +224,8 @@ struct metadata
     #endif
     };
 
+    //--------------------------------------------
+
     /** Metadata for Upgrade field
     */
     struct upgrade_t
@@ -218,8 +259,6 @@ struct metadata
     #endif
     };
 
-    constexpr metadata() = default;
-
     //--------------------------------------------
 
     /** True if payload is manually specified
@@ -238,10 +277,35 @@ struct metadata
     */
     std::uint64_t payload_size = 0;
 
-    upgrade_t upgrade;
+    //--------------------------------------------
+
+    // header metadata
+
+    /** Metadata for the Connection field.
+    */
     connection_t connection;
+
+    /** Metadata for the Content-Length field.
+    */
     content_length_t content_length;
+
+    /** Metadata for the Expect field.
+    */
+    expect_t expect;
+
+    /** Metadata for the Transfer-Encoding field.
+    */
     transfer_encoding_t transfer_encoding;
+
+    /** Metadata for the Upgrade field.
+    */
+    upgrade_t upgrade;
+
+    //--------------------------------------------
+
+    /** Constructor
+    */
+    constexpr metadata() = default;
 };
 
 } // http_proto

@@ -149,6 +149,9 @@ public:
     header(detail::kind) noexcept;
 
     BOOST_HTTP_PROTO_DECL
+    bool keep_alive() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
     void swap(header&) noexcept;
 
     table tab() const noexcept;
@@ -159,23 +162,29 @@ public:
     void copy_table(void*) const noexcept;
     void assign_to(header&) const noexcept;
 
-    // called when things change
-    void on_start_line();
-    void on_insert(field, string_view);
-    void on_insert_clen(string_view);
-    void on_insert_con(string_view);
-    void on_insert_te();
-    void on_insert_up(string_view);
-    void on_erase(field);
-    void on_erase_clen();
-    void on_erase_con();
-    void on_erase_te();
-    void on_erase_up();
-    void on_erase_all(field);
-    void update_payload() noexcept;
+    //
+    // events
+    //
 
-    BOOST_HTTP_PROTO_DECL
-    bool keep_alive() const noexcept;
+    void on_start_line();
+
+    void on_insert(field, string_view);
+    void on_insert_connection(string_view);
+    void on_insert_content_length(string_view);
+    void on_insert_expect(string_view);
+    void on_insert_transfer_encoding();
+    void on_insert_upgrade(string_view);
+
+    void on_erase(field);
+    void on_erase_connection();
+    void on_erase_content_length();
+    void on_erase_expect();
+    void on_erase_transfer_encoding();
+    void on_erase_upgrade();
+
+    void on_erase_all(field);
+
+    void update_payload() noexcept;
 };
 
 //------------------------------------------------

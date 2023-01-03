@@ -17,6 +17,7 @@
           <Exec>i++</Exec>
         </Loop>
       </CustomListItems>
+      <Item Name="[metadata]">this->md</Item>
     </Expand>
   </Type>
 

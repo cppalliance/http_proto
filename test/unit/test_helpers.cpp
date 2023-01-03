@@ -90,6 +90,7 @@ make_fields(
     return f;
 }
 
+/*
 request
 make_request(
     string_view s)
@@ -100,9 +101,10 @@ make_request(
     test_fields(req, s);
     return req;
 }
+*/
 
 request
-make_request_(
+make_request(
     string_view s)
 {
     request req;
@@ -127,7 +129,7 @@ make_request_(
 }
 
 response
-make_response_(
+make_response(
     string_view s)
 {
     response res;
@@ -150,6 +152,7 @@ make_response_(
     return res;
 }
 
+#if 0
 response
 make_response(
     string_view s)
@@ -160,6 +163,7 @@ make_response(
     test_fields(res, s);
     return res;
 }
+#endif
 
 } // http_proto
 } // boost

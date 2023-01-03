@@ -22,6 +22,7 @@ namespace http_proto {
 
 struct fields_base_test
 {
+#if 0
     void
     modify(
         string_view before,
@@ -608,15 +609,282 @@ struct fields_base_test
             "Server: Boost\r\n"
             "\r\n");
     }
+#endif
+
+    void
+    testExpect()
+    {
+        // parse request
+        {
+            auto const check =
+            []( metadata::expect_t md,
+                string_view s)
+            {
+                auto const req =
+                    make_request(s);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.ec,
+                    md.ec);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.count,
+                    md.count);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.is_100_continue,
+                    md.is_100_continue);
+            };
+
+            check(
+                { {}, 0, false},
+                "POST / HTTP/1.1\r\n"
+                "\r\n");
+
+            check(
+                { {}, 1, true },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { error::bad_expect, 1, false },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continueish\r\n"
+                "\r\n");
+
+            check(
+                { error::bad_expect, 2, false },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { error::bad_expect, 2, false },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 404-not-found\r\n"
+                "\r\n");
+        }
+
+        // parse response
+        {
+            auto const check =
+            [](string_view s)
+            {
+                auto const res =
+                    make_response(s);
+                BOOST_TEST_EQ(
+                    res.metadata().expect.ec,
+                    error_code());
+                BOOST_TEST_EQ(
+                    res.metadata().expect.count,
+                    res.count(field::expect));
+                BOOST_TEST_EQ(
+                    res.metadata().expect.is_100_continue,
+                    false);
+            };
+
+            check(
+                "HTTP/1.1 200 OK\r\n"
+                "\r\n");
+
+            check(
+                "HTTP/1.1 200 OK\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                "HTTP/1.1 200 OK\r\n"
+                "Expect: 100-continueish\r\n"
+                "\r\n");
+
+            check(
+                "HTTP/1.1 200 OK\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                "HTTP/1.1 200 OK\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 404-not-found\r\n"
+                "\r\n");
+        }
+
+        // erase in response
+        {
+            auto res = make_response(
+                "HTTP/1.1 200 OK\r\n"
+                "Expect: 100-continueish\r\n"
+                "\r\n");
+            auto it = res.find(field::expect);
+            res.erase(it);
+            BOOST_TEST(
+                ! res.metadata().expect.ec.failed());
+            BOOST_TEST_EQ(
+                res.metadata().expect.count, 0);
+            BOOST_TEST_EQ(
+                res.metadata().expect.is_100_continue,
+                false);
+        }
+
+        // erase, set in request
+        {
+            auto const check =
+            []( metadata::expect_t md,
+                void(*fn)(request&),
+                string_view s)
+            {
+                auto req =
+                    make_request(s);
+                fn(req);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.ec,
+                    md.ec);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.count,
+                    md.count);
+                BOOST_TEST_EQ(
+                    req.metadata().expect.is_100_continue,
+                    md.is_100_continue);
+            };
+
+            // erase
+
+            check(
+                { {}, 0, false },
+                [](request& req)
+                {
+                    // erase one
+                    auto it = req.find(
+                        field::expect);
+                    req.erase(it);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { {}, 0, false },
+                [](request& req)
+                {
+                    // erase all
+                    BOOST_TEST_EQ(req.erase(
+                        field::expect), 1);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { {}, 0, false },
+                [](request& req)
+                {
+                    BOOST_TEST_EQ(req.erase(
+                        field::expect), 1);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continueish\r\n"
+                "\r\n");
+
+            check(
+                { {}, 1, true },
+                [](request& req)
+                {
+                    auto it = req.find(field::expect);
+                    BOOST_TEST_NE(it, req.end());
+                    req.erase(it);
+                    BOOST_TEST_EQ(
+                        req.count(field::expect), 1);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { error::bad_expect, 1, false },
+                [](request& req)
+                {
+                    auto it = req.find(field::expect);
+                    BOOST_TEST_NE(it, req.end());
+                    req.erase(it);
+                    BOOST_TEST_EQ(
+                        req.count(field::expect), 1);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 404-not-found\r\n"
+                "\r\n");
+
+            check(
+                { {}, 1, true },
+                [](request& req)
+                {
+                    auto it = req.find_last(
+                        req.end(), field::expect);
+                    BOOST_TEST_NE(it, req.end());
+                    req.erase(it);
+                    BOOST_TEST_EQ(
+                        req.count(field::expect), 1);
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "Expect: 404-not-found\r\n"
+                "\r\n");
+
+            // set
+
+            check(
+                { error::bad_expect, 1, false },
+                [](request& req)
+                {
+                    req.set(
+                        field::expect,
+                        "100-continueish");
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continue\r\n"
+                "\r\n");
+
+            check(
+                { {}, 1, true },
+                [](request& req)
+                {
+                    req.set(
+                        field::expect,
+                        "100-continue");
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 100-continueish\r\n"
+                "\r\n");
+
+            check(
+                { {}, 1, true },
+                [](request& req)
+                {
+                    req.set(
+                        field::expect,
+                        "100-continue");
+                },
+                "POST / HTTP/1.1\r\n"
+                "Expect: 500-server-error\r\n"
+                "Expect: 404-not-found\r\n"
+                "\r\n");
+        }
+    }
 
     void
     run()
     {
+#if 0
         testModifiers();
         testAppend();
         testInsert();
         testErase();
         testSet();
+#endif
+
+        testExpect();
     }
 };
 

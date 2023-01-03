@@ -101,6 +101,68 @@ clear() noexcept
         "/",
         http_proto::version::http_1_1);
 }
+//------------------------------------------------
+
+void
+request::
+set_expect_100_continue(bool b)
+{
+    if(h_.md.expect.count == 0)
+    {
+        BOOST_ASSERT(
+            ! h_.md.expect.ec.failed());
+        BOOST_ASSERT(
+            ! h_.md.expect.is_100_continue);
+        if(b)
+            return append(
+                field::expect,
+                "100-continue");
+        return;
+    }
+
+    if(h_.md.expect.count == 1)
+    {
+        if(b)
+        {
+            if(! h_.md.expect.ec.failed())
+            {
+                BOOST_ASSERT(
+                    h_.md.expect.is_100_continue);
+                return;
+            }
+            BOOST_ASSERT(
+                ! h_.md.expect.is_100_continue);
+            auto it = find(field::expect);
+            BOOST_ASSERT(it != end());
+            erase(it);
+            return;
+        }
+
+        auto it = find(field::expect);
+        BOOST_ASSERT(it != end());
+        erase(it);
+        return;
+    }
+
+    if(b)
+    {
+        if(! h_.md.expect.ec.failed())
+        {
+            // remove all but one
+            raw_erase_n(
+                field::expect,
+                h_.md.expect.count - 1);
+            return;
+        }
+
+        erase(field::expect);
+        return append(
+            field::expect,
+            "100-continue");
+    }
+
+    erase(field::expect);
+}
 
 //------------------------------------------------
 
