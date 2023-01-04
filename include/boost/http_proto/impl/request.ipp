@@ -68,39 +68,6 @@ operator=(
     return *this;
 }
 
-request&
-request::
-operator=(
-    request const& other)
-{
-    copy_impl(*other.ph_);
-    return *this;
-}
-
-request&
-request::
-operator=(
-    request_view const& other)
-{
-    copy_impl(*other.ph_);
-    return *this;
-}
-
-//------------------------------------------------
-
-void
-request::
-clear() noexcept
-{
-    if(h_.buf == nullptr)
-        return;
-    clear_impl();
-    set_impl(
-        http_proto::method::get,
-        "GET",
-        "/",
-        http_proto::version::http_1_1);
-}
 //------------------------------------------------
 
 void

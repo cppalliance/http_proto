@@ -64,24 +64,6 @@ operator=(
     return *this;
 }
 
-fields&
-fields::
-operator=(
-    fields const& f) noexcept
-{
-    copy_impl(*f.ph_);
-    return *this;
-}
-
-fields&
-fields::
-operator=(
-    fields_view const& f)
-{
-    copy_impl(*f.ph_);
-    return *this;
-}
-
 } // http_proto
 } // boost
 

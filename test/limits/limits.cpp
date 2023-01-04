@@ -43,10 +43,32 @@ public:
     {
         // reserve
         {
-            fields f;
-            BOOST_TEST_THROWS(
-                f.reserve(max_off_t + 1),
-                std::length_error);
+            {
+                fields f;
+                BOOST_TEST_NO_THROW(
+                    f.reserve_bytes(0));
+            }
+            {
+                fields f;
+                BOOST_TEST_NO_THROW(
+                    f.reserve_bytes(max_off_t));
+            }
+            {
+                fields f;
+                BOOST_TEST_NO_THROW(
+                    f.reserve_bytes(max_off_t + 1));
+            }
+            {
+                fields f;
+                BOOST_TEST_NO_THROW(f.reserve_bytes(
+                    fields::max_capacity_in_bytes()));
+            }
+            {
+                fields f;
+                BOOST_TEST_THROWS(f.reserve_bytes(
+                    fields::max_capacity_in_bytes() + 1),
+                    std::length_error);
+            }
         }
 
         // append

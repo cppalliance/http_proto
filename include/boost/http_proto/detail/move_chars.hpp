@@ -57,11 +57,14 @@ void
 move_chars_impl(
     std::ptrdiff_t d,
     string_view const& buf,
-    string_view& s,
-    Sn&... sn) noexcept
+    string_view* s,
+    Sn&&... sn) noexcept
 {
-    if(is_overlapping(buf, s))
-        s = {s.data() + d, s.size()};
+    if( s != nullptr &&
+        is_overlapping(buf, *s))
+    {
+        *s = { s->data() + d, s->size() };
+    }
     move_chars_impl(d, buf, sn...);
 }
 
@@ -71,9 +74,8 @@ move_chars(
     char* dest,
     char const* src,
     std::size_t n,
-    Args&... args) noexcept
+    Args&&... args) noexcept
 {
-    string_view buf(src, n);
     move_chars_impl(
         dest - src,
         string_view(src, n),

@@ -58,17 +58,23 @@ public:
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     response&
     operator=(
-        response const& other);
+        response const& other)
+    {
+        copy_impl(*other.ph_);
+        return *this;
+    }
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     response&
     operator=(
-        response_view const& other);
+        response_view const& other)
+    {
+        copy_impl(*other.ph_);
+        return *this;
+    }
 
     /** Constructor
     */
@@ -134,12 +140,6 @@ public:
     // Modifiers
     //
     //--------------------------------------------
-
-    /** Clear the contents, but not the capacity
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
 
     /** Set the version, status code of the response
 

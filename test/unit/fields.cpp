@@ -244,7 +244,7 @@ struct fields_test
             {
                 fields f1 = make_fields(cs1);
                 fields f2;
-                f2.reserve(
+                f2.reserve_bytes(
                     2 * cs1.size() + 128);
                 f2 = static_cast<
                     fields_view>(f1);
@@ -281,13 +281,13 @@ struct fields_test
             }
             {
                 fields f;
-                f.reserve(100);
+                f.reserve_bytes(100);
                 BOOST_TEST_GE(
                     f.capacity_in_bytes(), 100U);
             }
             {
                 fields f;
-                f.reserve(100);
+                f.reserve_bytes(100);
                 f.shrink_to_fit();
                 BOOST_TEST_GT(
                     f.capacity_in_bytes(), 0U);

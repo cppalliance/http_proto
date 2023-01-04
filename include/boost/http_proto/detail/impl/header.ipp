@@ -25,12 +25,49 @@
 #include <boost/url/grammar/unsigned_rule.hpp>
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
+#include <boost/static_assert.hpp>
 #include <string>
 #include <utility>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
+
+//------------------------------------------------
+
+auto
+header::
+entry::
+operator+(
+    std::size_t dv) const noexcept ->
+        entry
+{
+    return {
+        static_cast<
+            off_t>(np + dv),
+        nn,
+        static_cast<
+            off_t>(vp + dv),
+        vn,
+        id };
+}
+
+auto
+header::
+entry::
+operator-(
+    std::size_t dv) const noexcept ->
+        entry
+{
+    return {
+        static_cast<
+            off_t>(np - dv),
+        nn,
+        static_cast<
+            off_t>(vp - dv),
+        vn,
+        id };
+}
 
 //------------------------------------------------
 
@@ -68,6 +105,8 @@ header(response_tag) noexcept
 {
 }
 
+//------------------------------------------------
+
 header const*
 header::
 get_default(detail::kind k) noexcept
@@ -89,101 +128,6 @@ header::
 header(detail::kind k) noexcept
     : header(*get_default(k))
 {
-}
-
-//------------------------------------------------
-
-inline
-auto
-header::
-entry::
-operator+(
-    std::size_t dv) const noexcept ->
-        entry
-{
-    return {
-        static_cast<
-            off_t>(np + dv),
-        nn,
-        static_cast<
-            off_t>(vp + dv),
-        vn,
-        id };
-}
-
-inline
-auto
-header::
-entry::
-operator-(
-    std::size_t dv) const noexcept ->
-        entry
-{
-    return {
-        static_cast<
-            off_t>(np - dv),
-        nn,
-        static_cast<
-            off_t>(vp - dv),
-        vn,
-        id };
-}
-
-//------------------------------------------------
-
-// return total bytes needed
-// to store message of `size`
-// bytes and `count` fields.
-inline
-std::size_t
-buffer_needed(
-    std::size_t size,
-    std::size_t count) noexcept
-{
-    // make sure `size` is big enough
-    // to hold the largest default buffer:
-    // "HTTP/1.1 200 OK\r\n\r\n"
-    if( size < 19)
-        size = 19;
-    static constexpr auto A =
-        alignof(header::entry);
-    return A * (
-        (size + A - 1) / A) +
-            (count * sizeof(
-                header::entry));
-}
-
-//------------------------------------------------
-
-/*  References:
-
-    6.3.  Persistence
-    https://datatracker.ietf.org/doc/html/rfc7230#section-6.3
-*/
-bool
-header::
-keep_alive() const noexcept
-{
-    if(md.payload == payload::error)
-        return false;
-    if( version ==
-        http_proto::version::http_1_1)
-    {
-        if(md.connection.close)
-            return false;
-    }
-    else
-    {
-        if(! md.connection.keep_alive)
-            return false;
-    }
-    // can't use to_eof in requests
-    BOOST_ASSERT(
-        kind != detail::kind::request ||
-        md.payload != payload::to_eof);
-    if(md.payload == payload::to_eof)
-        return false;
-    return true;
 }
 
 void
@@ -218,7 +162,61 @@ swap(header& h) noexcept
     }
 }
 
+/*  References:
+
+    6.3.  Persistence
+    https://datatracker.ietf.org/doc/html/rfc7230#section-6.3
+*/
+bool
+header::
+keep_alive() const noexcept
+{
+    if(md.payload == payload::error)
+        return false;
+    if( version ==
+        http_proto::version::http_1_1)
+    {
+        if(md.connection.close)
+            return false;
+    }
+    else
+    {
+        if(! md.connection.keep_alive)
+            return false;
+    }
+    // can't use to_eof in requests
+    BOOST_ASSERT(
+        kind != detail::kind::request ||
+        md.payload != payload::to_eof);
+    if(md.payload == payload::to_eof)
+        return false;
+    return true;
+}
+
 //------------------------------------------------
+
+// return total bytes needed
+// to store message of `size`
+// bytes and `count` fields.
+std::size_t
+header::
+bytes_needed(
+    std::size_t size,
+    std::size_t count) noexcept
+{
+    // make sure `size` is big enough
+    // to hold the largest default buffer:
+    // "HTTP/1.1 200 OK\r\n\r\n"
+    if( size < 19)
+        size = 19;
+    static constexpr auto A =
+        alignof(header::entry);
+    // round up to alignof(A)
+    return A * (
+        (size + A - 1) / A) +
+            (count * sizeof(
+                header::entry));
+}
 
 auto
 header::
@@ -230,18 +228,21 @@ tab() const noexcept ->
     return table(buf + cap);
 }
 
-// return true if s is a default string
+auto
+header::
+tab_() const noexcept ->
+    entry*
+{
+    return reinterpret_cast<
+        entry*>(buf + cap);
+}
+
+// return true if header cbuf is a default
 bool
 header::
 is_default() const noexcept
 {
-    return
-        (cbuf == get_default(
-            detail::kind::fields)->cbuf) ||
-        (cbuf == get_default(
-            detail::kind::request)->cbuf) ||
-        (cbuf == get_default(
-            detail::kind::response)->cbuf);
+    return buf == nullptr;
 }
 
 std::size_t
@@ -330,6 +331,54 @@ assign_to(
 //
 //------------------------------------------------
 
+bool
+header::
+is_special(
+    field id) const noexcept
+{
+    if(kind == detail::kind::fields)
+        return false;
+    switch(id)
+    {
+    case field::connection:
+    case field::content_length:
+    case field::expect:
+    case field::transfer_encoding:
+    case field::upgrade:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+std::size_t
+header::
+maybe_count(
+    field id) const noexcept
+{
+    if(kind == detail::kind::fields)
+        return std::size_t(-1);
+    switch(id)
+    {
+    case field::connection:
+        return md.connection.count;
+    case field::content_length:
+        return md.content_length.count;
+    case field::expect:
+        return md.expect.count;
+    case field::transfer_encoding:
+        return md.transfer_encoding.count;
+    case field::upgrade:
+        return md.upgrade.count;
+    default:
+        break;
+    }
+    return std::size_t(-1);
+}
+
+//------------------------------------------------
+
 // called when the start-line changes
 void
 header::
@@ -342,8 +391,6 @@ on_start_line()
         update_payload();
     }
 }
-
-//------------------------------------------------
 
 // called after a field is inserted
 void
@@ -370,6 +417,32 @@ on_insert(
         break;
     }
 }
+
+// called when one field is erased
+void
+header::
+on_erase(field id)
+{
+    if(kind == detail::kind::fields)
+        return;
+    switch(id)
+    {
+    case field::connection:
+        return on_erase_connection();
+    case field::content_length:
+        return on_erase_content_length();
+    case field::expect:
+        return on_erase_expect();
+    case field::transfer_encoding:
+        return on_erase_transfer_encoding();
+    case field::upgrade:
+        return on_erase_upgrade();
+    default:
+        break;
+    }
+}
+
+//------------------------------------------------
 
 void
 header::
@@ -578,30 +651,6 @@ on_insert_upgrade(
 }
 
 //------------------------------------------------
-
-// called when one field is erased
-void
-header::
-on_erase(field id)
-{
-    if(kind == detail::kind::fields)
-        return;
-    switch(id)
-    {
-    case field::connection:
-        return on_erase_connection();
-    case field::content_length:
-        return on_erase_content_length();
-    case field::expect:
-        return on_erase_expect();
-    case field::transfer_encoding:
-        return on_erase_transfer_encoding();
-    case field::upgrade:
-        return on_erase_upgrade();
-    default:
-        break;
-    }
-}
 
 void
 header::

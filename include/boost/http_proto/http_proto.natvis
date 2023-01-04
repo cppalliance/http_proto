@@ -17,67 +17,22 @@
           <Exec>i++</Exec>
         </Loop>
       </CustomListItems>
-      <Item Name="[metadata]">this->md</Item>
+      <Synthetic Name="[fields]" Condition="this->kind == detail::kind::fields">
+        <DisplayString></DisplayString>
+        <Expand><ExpandedItem>this,!</ExpandedItem></Expand>
+      </Synthetic>
+      <Synthetic Name="[request]" Condition="this->kind == detail::kind::request">
+        <DisplayString>{this->req}</DisplayString>
+        <Expand><ExpandedItem>this,!</ExpandedItem></Expand>
+      </Synthetic>
+      <Synthetic Name="[response]" Condition="this->kind == detail::kind::response">
+        <DisplayString>{this->res}</DisplayString>
+        <Expand><ExpandedItem>this,!</ExpandedItem></Expand>
+      </Synthetic>
     </Expand>
   </Type>
 
   <Type Name="boost::http_proto::fields_view_base">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::fields">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::message_base">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::request">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::response">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::fields_view">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::message_view_base">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::request_view">
-    <DisplayString>{ *ph_ }</DisplayString>
-      <Expand>
-          <ExpandedItem>*ph_</ExpandedItem>
-      </Expand>
-  </Type>
-
-  <Type Name="boost::http_proto::response_view">
     <DisplayString>{ *ph_ }</DisplayString>
       <Expand>
           <ExpandedItem>*ph_</ExpandedItem>

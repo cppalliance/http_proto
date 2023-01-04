@@ -277,7 +277,6 @@ class fields_view_base::subrange::
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
-    std::size_t n_ = std::size_t(-1);
 
     friend class fields_view_base::subrange;
 
@@ -285,6 +284,11 @@ class fields_view_base::subrange::
     iterator(
         detail::header const* ph,
         std::size_t i) noexcept;
+
+    // end
+    BOOST_HTTP_PROTO_DECL
+    iterator(
+        detail::header const* ph) noexcept;
 
 public:
     using value_type = std::string;
@@ -367,7 +371,7 @@ subrange::
 end() const noexcept ->
     iterator
 {
-    return {ph_, ph_->count};
+    return {ph_};
 }
 
 //------------------------------------------------

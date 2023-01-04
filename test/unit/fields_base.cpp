@@ -10,8 +10,10 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_base.hpp>
 
+#include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/response.hpp>
+#include <boost/static_assert.hpp>
 
 #include "test_helpers.hpp"
 
@@ -20,128 +22,286 @@
 namespace boost {
 namespace http_proto {
 
+// check for overflow
+BOOST_STATIC_ASSERT(
+    fields_base::max_capacity_in_bytes() >= max_off_t);
+
 struct fields_base_test
 {
-#if 0
+    static
     void
-    modify(
-        string_view before,
-        void (*pf)(fields_base&),
-        string_view after)
+    check(
+        string_view s0,
+        void(*fn)(fields_base&),
+        string_view s1)
     {
         // fields
         {
-            fields f0 =
-                make_fields(before);
-            fields f1 =
-                make_fields(after);
-            fields f(f0);
-            (*pf)(f);
-            BOOST_TEST_EQ(f.buffer(),
-                f1.buffer());
-            test_fields(f, after);
+            fields f = make_fields(s0);
+            fn(f);
+            BOOST_TEST_EQ(f.buffer(), s1);
+            test_fields(f, s1);
         }
 
         // request
         {
-            request f0 =
-                make_request(before);
-            request f1 =
-                make_request(after);
-            request f(f0);
-            (*pf)(f);
-            BOOST_TEST_EQ(f.buffer(),
-                f1.buffer());
-            test_fields(f, after);
+            auto const m = std::string() +
+                "GET / HTTP/1.1\r\n" +
+                std::string(s0);
+            auto const m1 = std::string() +
+                "GET / HTTP/1.1\r\n" +
+                std::string(s1);
+            request req = make_request(m);
+            fn(req);
+            BOOST_TEST_EQ(req.buffer(), m1);
+            test_fields(req, s1);
         }
 
         // response
         {
-            response f0 =
-                make_response(before);
-            response f1 =
-                make_response(after);
-            response f(f0);
-            (*pf)(f);
-            BOOST_TEST_EQ(f.buffer(),
-                f1.buffer());
-            test_fields(f, after);
+            auto const m = std::string() +
+                "HTTP/1.1 200 OK\r\n" +
+                std::string(s0);
+            auto const m1 = std::string() +
+                "HTTP/1.1 200 OK\r\n" +
+                std::string(s1);
+            response res = make_response(m);
+            fn(res);
+            BOOST_TEST_EQ(res.buffer(), m1);
+            test_fields(res, s1);
         }
     }
 
     void
-    testModifiers()
+    testCapacity()
     {
-        string_view const cs =
-            "Connection: close\r\n"
-            "Set-Cookie: 0\r\n"
-            "User-Agent: boost\r\n"
-            "Set-Cookie: 1\r\n"
-            "\r\n";
-
         // clear()
         {
+            // default fields
             {
                 fields f;
-                BOOST_TEST_EQ(
-                    f.capacity_in_bytes(), 0U);
                 f.clear();
-                test_fields(f, "\r\n");
                 BOOST_TEST_EQ(
-                    f.capacity_in_bytes(), 0U);
+                    f.buffer(),
+                    "\r\n");
+                BOOST_TEST_EQ(
+                    f.capacity_in_bytes(), 0);
             }
+
+            // default request
             {
-                fields f = make_fields(cs);
-                BOOST_TEST_GT(
-                    f.capacity_in_bytes(), 0U);
+                request req;
+                req.clear();
+                BOOST_TEST_EQ(
+                    req.buffer(),
+                    "GET / HTTP/1.1\r\n\r\n");
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), 0);
+            }
+
+            // default response
+            {
+                response res;
+                res.clear();
+                BOOST_TEST_EQ(
+                    res.buffer(),
+                    "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST_EQ(
+                    res.capacity_in_bytes(), 0);
+            }
+
+            {
+                fields f = make_fields(
+                    "digest: ffce\r\n"
+                    "type: 3\r\n"
+                    "\r\n");
+                auto const n =
+                    f.capacity_in_bytes();
+                BOOST_TEST_GT(n, 0);
                 f.clear();
-                test_fields(f, "\r\n");
-                BOOST_TEST_GT(
-                    f.capacity_in_bytes(), 0U);
+                BOOST_TEST_EQ(
+                    f.buffer(),
+                    "\r\n");
+                BOOST_TEST_EQ(
+                    f.capacity_in_bytes(), n);
+            }
+
+            {
+                request req = make_request(
+                    "POST / HTTP/1.1\r\n"
+                    "User-Agent: test\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n");
+                auto const n =
+                    req.capacity_in_bytes();
+                BOOST_TEST_GT(n, 0);
+                req.clear();
+                BOOST_TEST_EQ(
+                    req.buffer(),
+                    "GET / HTTP/1.1\r\n\r\n");
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), n);
+            }
+
+            {
+                response res = make_response(
+                    "HTTP/1.1 404 Not Found\r\n"
+                    "User-Agent: test\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n");
+                auto const n =
+                    res.capacity_in_bytes();
+                BOOST_TEST_GT(n, 0);
+                res.clear();
+                BOOST_TEST_EQ(
+                    res.buffer(),
+                    "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST_EQ(
+                    res.capacity_in_bytes(), n);
             }
         }
 
-        // reserve(std::size_t)
+        // reserve_bytes(std::size_t)
         {
+            // default request
             {
-                fields f;
+                request req;
                 BOOST_TEST_EQ(
-                    f.capacity_in_bytes(), 0U);
-                f.reserve(100);
-                BOOST_TEST_GE(
-                    f.capacity_in_bytes(), 100U);
-                test_fields(f, "\r\n");
+                    req.capacity_in_bytes(), 0);
+
+                // first allocation
+                req.reserve_bytes(100);
+                auto const n =
+                    req.capacity_in_bytes();
+                BOOST_TEST_GE(n, 100);
+                BOOST_TEST_EQ(req.buffer(),
+                    "GET / HTTP/1.1\r\n\r\n");
+
+                // no reallocation
+                req.reserve_bytes(n);
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), n);
+
+                // no reallocation
+                req.reserve_bytes(n / 2);
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), n);
+
+                // reallocation
+                req.reserve_bytes(n + 1);
+                BOOST_TEST_GT(
+                    req.capacity_in_bytes(), n);
+                BOOST_TEST_EQ(req.buffer(),
+                    "GET / HTTP/1.1\r\n\r\n");
             }
+
+            // response
             {
-                fields f = make_fields(cs);
-                auto const cap =
-                    f.capacity_in_bytes();
-                BOOST_TEST_GT(cap, 0U);
-                f.reserve(cap / 2);
+                string_view const cs =
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n";
+                auto res = make_response(cs);
+                auto n = res.capacity_in_bytes();
+                BOOST_TEST_GT(n, 0);
+
+                // no reallocation
+                res.reserve_bytes(n);
                 BOOST_TEST_EQ(
-                    f.capacity_in_bytes(), cap);
-                f.reserve(2 * cap);
-                BOOST_TEST_GE(
-                    f.capacity_in_bytes(), 2 * cap);
-                test_fields(f, cs);
+                    res.capacity_in_bytes(), n);
+                BOOST_TEST_EQ(res.buffer(), cs);
             }
         }
 
         // shrink_to_fit()
         {
-            fields f;
-            f.reserve(200);
-            f.shrink_to_fit();
-            auto const n =
-                f.capacity_in_bytes();
-            BOOST_TEST_LT(n, 200);
-            f.shrink_to_fit();
-            BOOST_TEST_EQ(
-                f.capacity_in_bytes(), n);
-        }
+            // default fields
+            {
+                fields f;
+                f.shrink_to_fit();
+                BOOST_TEST_EQ(
+                    f.buffer(),
+                    "\r\n");
+                BOOST_TEST_EQ(
+                    f.capacity_in_bytes(), 0);
+            }
 
-        // swap()
-        {
+            // default request
+            {
+                request req;
+                req.shrink_to_fit();
+                BOOST_TEST_EQ(
+                    req.buffer(),
+                    "GET / HTTP/1.1\r\n\r\n");
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), 0);
+            }
+
+            // default response
+            {
+                response res;
+                res.shrink_to_fit();
+                BOOST_TEST_EQ(
+                    res.buffer(),
+                    "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST_EQ(
+                    res.capacity_in_bytes(), 0);
+            }
+
+            {
+                string_view const cs = 
+                    "digest: ffce\r\n"
+                    "type: 3\r\n"
+                    "\r\n";
+                fields f = make_fields(cs);
+                f.reserve_bytes(
+                    f.capacity_in_bytes() * 2);
+                auto const n =
+                    f.capacity_in_bytes();
+                f.shrink_to_fit();
+                BOOST_TEST_LT(
+                    f.capacity_in_bytes(), n);
+                BOOST_TEST_EQ(f.buffer(), cs);
+            }
+
+            {
+                string_view const cs =
+                    "POST / HTTP/1.1\r\n"
+                    "User-Agent: test\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n";
+                request req = make_request(cs);
+                req.reserve_bytes(
+                    req.capacity_in_bytes() * 2);
+                auto const n =
+                    req.capacity_in_bytes();
+                req.shrink_to_fit();
+                BOOST_TEST_LT(
+                    req.capacity_in_bytes(), n);
+                BOOST_TEST_EQ(req.buffer(), cs);
+            }
+
+            {
+                string_view const cs =
+                    "HTTP/1.1 404 Not Found\r\n"
+                    "User-Agent: test\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n";
+                response res = make_response(cs);
+                res.reserve_bytes(
+                    res.capacity_in_bytes() * 2);
+                auto const n =
+                    res.capacity_in_bytes();
+                res.shrink_to_fit();
+                BOOST_TEST_LT(
+                    res.capacity_in_bytes(), n);
+                BOOST_TEST_EQ(res.buffer(), cs);
+            }
         }
     }
 
@@ -150,7 +310,7 @@ struct fields_base_test
     {
         // append(field, string_view)
 
-        modify(
+        check(
             "\r\n",
             [](fields_base& f)
             {
@@ -159,7 +319,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Cookie: x\r\n"
             "\r\n",
             [](fields_base& f)
@@ -172,7 +332,7 @@ struct fields_base_test
 
         // append(string_view, string_view)
 
-        modify(
+        check(
             "\r\n",
             [](fields_base& f)
             {
@@ -181,7 +341,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Cookie: x\r\n"
             "\r\n",
             [](fields_base& f)
@@ -190,6 +350,17 @@ struct fields_base_test
             },
             "Cookie: x\r\n"
             "Server: y\r\n"
+            "\r\n");
+
+        // empty value should not
+        // have a prepended space
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.append("X", "");
+            },
+            "X:\r\n"
             "\r\n");
     }
 
@@ -198,7 +369,7 @@ struct fields_base_test
     {
         // insert(iterator, field, string_view)
 
-        modify(
+        check(
             "T: 1\r\n"
             "\r\n",
             [](fields_base& f)
@@ -210,7 +381,7 @@ struct fields_base_test
             "T: 1\r\n"
             "\r\n");
 
-        modify(
+        check(
             "T: 1\r\n"
             "U: 2\r\n"
             "\r\n",
@@ -226,7 +397,7 @@ struct fields_base_test
 
         // insert(iterator, string_view, string_view)
 
-        modify(
+        check(
             "T: 1\r\n"
             "\r\n",
             [](fields_base& f)
@@ -238,7 +409,7 @@ struct fields_base_test
             "T: 1\r\n"
             "\r\n");
 
-        modify(
+        check(
             "T: 1\r\n"
             "U: 2\r\n"
             "\r\n",
@@ -253,7 +424,8 @@ struct fields_base_test
             "\r\n");
 
         // self-intersect
-        modify(
+
+        check(
             "Connection: close\r\n"
             "Set-Cookie: 0\r\n"
             "User-Agent: boost\r\n"
@@ -273,8 +445,7 @@ struct fields_base_test
             "Set-Cookie: 1\r\n"
             "\r\n");
 
-        // self-intersect
-        modify(
+        check(
             "Connection: close\r\n"
             "Set-Cookie: 0\r\n"
             "User-Agent: boost\r\n"
@@ -283,7 +454,7 @@ struct fields_base_test
             [](fields_base& f)
             {
                 // reserve
-                f.reserve(f.capacity_in_bytes() * 2);
+                f.reserve_bytes(f.capacity_in_bytes() * 2);
                 f.insert(
                     f.begin(),
                     f.find(field::user_agent)->value,
@@ -301,187 +472,188 @@ struct fields_base_test
     testErase()
     {
         // erase(iterator)
-        {
-            modify(
-                "Server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    f.erase(f.find("Server"));
-                },
-                "\r\n");
 
-            modify(
-                "Cookie: x\r\n"
-                "Server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    f.erase(f.find("Server"));
-                },
-                "Cookie: x\r\n"
-                "\r\n");
-        }
+        check(
+            "Server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.erase(f.find("Server"));
+            },
+            "\r\n");
 
+        check(
+            "Cookie: x\r\n"
+            "Server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.erase(f.find("Server"));
+            },
+            "Cookie: x\r\n"
+            "\r\n");
+
+        //
         // erase(field)
-        {
-            // no match
-            modify(
-                "Server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase(field::connection), 0U);
-                },
-                "Server: y\r\n"
-                "\r\n");
+        //
 
-            // one match
-            modify(
-                "Server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase(field::server), 1);
-                },
-                "\r\n");
+        // no match
+        check(
+            "Server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase(field::connection), 0U);
+            },
+            "Server: y\r\n"
+            "\r\n");
 
-            // different capitalization
-            modify(
-                "server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase(field::server), 1);
-                },
-                "\r\n");
+        // one match
+        check(
+            "Server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase(field::server), 1);
+            },
+            "\r\n");
 
-            // three matches, different capitalization
-            modify(
-                "Server: x\r\n"
-                "server: y\r\n"
-                "SERVER: z\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase(field::server), 3);
-                },
-                "\r\n");
+        // different capitalization
+        check(
+            "server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase(field::server), 1);
+            },
+            "\r\n");
 
-            // three matches, three unmatched
-            modify(
-                "T: 1\r\n"
-                "Server: x\r\n"
-                "U: 2\r\n"
-                "Server: y\r\n"
-                "Server: z\r\n"
-                "V: 3\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase(field::server), 3);
-                },
-                "T: 1\r\n"
-                "U: 2\r\n"
-                "V: 3\r\n"
-                "\r\n");
-        }
+        // three matches, different capitalization
+        check(
+            "Server: x\r\n"
+            "server: y\r\n"
+            "SERVER: z\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase(field::server), 3);
+            },
+            "\r\n");
 
+        // three matches, three unmatched
+        check(
+            "T: 1\r\n"
+            "Server: x\r\n"
+            "U: 2\r\n"
+            "Server: y\r\n"
+            "Server: z\r\n"
+            "V: 3\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase(field::server), 3);
+            },
+            "T: 1\r\n"
+            "U: 2\r\n"
+            "V: 3\r\n"
+            "\r\n");
+
+        //
         // erase(string_view)
-        {
-            // one match, different case
-            modify(
-                "Server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("server"), 1);
-                },
-                "\r\n");
+        //
 
-            // one match, different case
-            modify(
-                "server: y\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("Server"), 1);
-                },
-                "\r\n");
+        // one match, different case
+        check(
+            "Server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("server"), 1);
+            },
+            "\r\n");
 
-            // three matches
-            modify(
-                "T: 1\r\n"
-                "Server: x\r\n"
-                "U: 2\r\n"
-                "Server: y\r\n"
-                "Server: z\r\n"
-                "V: 3\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("Server"), 3);
-                },
-                "T: 1\r\n"
-                "U: 2\r\n"
-                "V: 3\r\n"
-                "\r\n");
+        // one match, different case
+        check(
+            "server: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("Server"), 1);
+            },
+            "\r\n");
 
-            // three matches, unknown id
-            modify(
-                "T: 1\r\n"
-                "Server: Boost\r\n"
-                "T: 2\r\n"
-                "Connection: close\r\n"
-                "T: 3\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("T"), 3);
-                },
-                "Server: Boost\r\n"
-                "Connection: close\r\n"
-                "\r\n");
+        // three matches
+        check(
+            "T: 1\r\n"
+            "Server: x\r\n"
+            "U: 2\r\n"
+            "Server: y\r\n"
+            "Server: z\r\n"
+            "V: 3\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("Server"), 3);
+            },
+            "T: 1\r\n"
+            "U: 2\r\n"
+            "V: 3\r\n"
+            "\r\n");
 
-            // no matches
-            modify(
-                "Connection: keep-alive\r\n"
-                "Server: Boost\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("Accept"), 0U);
-                },
-                "Connection: keep-alive\r\n"
-                "Server: Boost\r\n"
-                "\r\n");
+        // three matches, unknown id
+        check(
+            "T: 1\r\n"
+            "Server: Boost\r\n"
+            "T: 2\r\n"
+            "Connection: close\r\n"
+            "T: 3\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("T"), 3);
+            },
+            "Server: Boost\r\n"
+            "Connection: close\r\n"
+            "\r\n");
 
-            // unknown field name
-            modify(
-                "Connection: keep-alive\r\n"
-                "X: 1\r\n"
-                "Server: Boost\r\n"
-                "X: 2\r\n"
-                "\r\n",
-                [](fields_base& f)
-                {
-                    BOOST_TEST_EQ(
-                        f.erase("X"), 2);
-                },
-                "Connection: keep-alive\r\n"
-                "Server: Boost\r\n"
-                "\r\n");
-        }
+        // no matches
+        check(
+            "Connection: keep-alive\r\n"
+            "Server: Boost\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("Accept"), 0U);
+            },
+            "Connection: keep-alive\r\n"
+            "Server: Boost\r\n"
+            "\r\n");
+
+        // unknown field name
+        check(
+            "Connection: keep-alive\r\n"
+            "X: 1\r\n"
+            "Server: Boost\r\n"
+            "X: 2\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_EQ(
+                    f.erase("X"), 2);
+            },
+            "Connection: keep-alive\r\n"
+            "Server: Boost\r\n"
+            "\r\n");
     }
 
     void
@@ -489,7 +661,7 @@ struct fields_base_test
     {
         // set(iterator, string_view)
 
-        modify(
+        check(
             "T: 1\r\n"
             "\r\n",
             [](fields_base& f)
@@ -499,9 +671,29 @@ struct fields_base_test
             "T: 2\r\n"
             "\r\n");
 
+        check(
+            "T: abc\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.set(f.find("T"), "2");
+            },
+            "T: 2\r\n"
+            "\r\n");
+
+        check(
+            "T: 1\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.set(f.find("T"), "abcdefghijklmnopqrstuvwxyz");
+            },
+            "T: abcdefghijklmnopqrstuvwxyz\r\n"
+            "\r\n");
+
         // set(field, string_view)
 
-        modify(
+        check(
             "\r\n",
             [](fields_base& f)
             {
@@ -510,7 +702,7 @@ struct fields_base_test
             "Server: x\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Server: x\r\n"
             "\r\n",
             [](fields_base& f)
@@ -520,7 +712,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "T: 1\r\n"
             "Server: x\r\n"
             "T: 2\r\n"
@@ -534,7 +726,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Server: x1\r\n"
             "Server: x2\r\n"
             "Server: x3\r\n"
@@ -550,7 +742,7 @@ struct fields_base_test
 
         // set(string_view, string_view)
 
-        modify(
+        check(
             "\r\n",
             [](fields_base& f)
             {
@@ -559,7 +751,7 @@ struct fields_base_test
             "Server: x\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Server: x\r\n"
             "\r\n",
             [](fields_base& f)
@@ -569,7 +761,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "T: 1\r\n"
             "Server: xx\r\n"
             "T: 2\r\n"
@@ -583,7 +775,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Server: x1\r\n"
             "Server: x2\r\n"
             "Server: x3\r\n"
@@ -597,7 +789,7 @@ struct fields_base_test
             "Server: y\r\n"
             "\r\n");
 
-        modify(
+        check(
             "Connection: keep-alive\r\n"
             "Server: Boost\r\n"
             "\r\n",
@@ -609,7 +801,6 @@ struct fields_base_test
             "Server: Boost\r\n"
             "\r\n");
     }
-#endif
 
     void
     testExpect()
@@ -876,14 +1067,11 @@ struct fields_base_test
     void
     run()
     {
-#if 0
-        testModifiers();
+        testCapacity();
         testAppend();
         testInsert();
         testErase();
         testSet();
-#endif
-
         testExpect();
     }
 };

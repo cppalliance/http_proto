@@ -85,27 +85,17 @@ iterator(
     : ph_(ph)
     , i_(i)
 {
-    if(i_ >= ph_->count)
-        return;
-    auto const* e = &ph_->tab()[i_];
-    auto const id = e->id;
-    switch(id)
-    {
-    case field::connection:
-        n_ = ph_->md.connection.count;
-        break;
-    case field::content_length:
-        n_ = ph_->md.content_length.count;
-        break;
-    case field::transfer_encoding:
-        n_ = ph_->md.transfer_encoding.count;
-        break;
-    case field::upgrade:
-        n_ = ph_->md.upgrade.count;
-        break;
-    default:
-        break;
-    }
+    BOOST_ASSERT(i <= ph_->count);
+}
+
+fields_view_base::
+subrange::
+iterator::
+iterator(
+    detail::header const* ph) noexcept
+    : ph_(ph)
+    , i_(ph->count)
+{
 }
 
 auto
@@ -131,12 +121,6 @@ operator++() noexcept ->
     iterator&
 {
     BOOST_ASSERT(i_ < ph_->count);
-    BOOST_ASSERT(n_ > 0);
-    if(--n_ == 0)
-    {
-        i_ = ph_->count;
-        return *this;
-    }
     auto const* e = &ph_->tab()[i_];
     auto const id = e->id;
     if(id != field::unknown)

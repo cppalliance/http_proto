@@ -42,8 +42,11 @@ read() noexcept
         v_.name = s_.substr(
             0, p0);
         auto p1 = s_.find_first_of('\r');
-        v_.value = s_.substr(
-            p0 + 2, p1 - (p0 + 2));
+        if(p1 > p0 + 1)
+            v_.value = s_.substr(
+                p0 + 2, p1 - (p0 + 2));
+        else
+            v_.value = {};
     }
     else
     {

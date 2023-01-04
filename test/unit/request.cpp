@@ -19,7 +19,6 @@ namespace http_proto {
 
 struct request_test
 {
-#if 0
     void
     testHelpers()
     {
@@ -27,19 +26,28 @@ struct request_test
             "POST /x HTTP/1.0\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
-        request_view rv = make_request(cs);
-        request req(rv);
+        request req = make_request(cs);
         BOOST_TEST(req.method() == method::post);
         BOOST_TEST(req.method_text() == "POST");
-        BOOST_TEST(req.target_string() == "/x");
+        BOOST_TEST(req.target() == "/x");
         BOOST_TEST(req.version() == version::http_1_0);
-        BOOST_TEST(req.string().data() != cs.data());
-        BOOST_TEST(req.string() == cs);
+        BOOST_TEST(req.buffer().data() != cs.data());
+        BOOST_TEST(req.buffer() == cs);
     }
 
     void
     testSpecial()
     {
+        auto const check =
+        []( request& req,
+            std::size_t count,
+            string_view s)
+        {
+            req = make_request(s);
+            BOOST_TEST(
+                req.size() == count);
+        };
+
         string_view const cs =
             "POST /x HTTP/1.0\r\n"
             "Content-Length: 42\r\n"
@@ -62,7 +70,7 @@ struct request_test
             BOOST_TEST(
                 req.method_text() == "GET");
             BOOST_TEST(
-                req.target_string() == "/");
+                req.target() == "/");
             BOOST_TEST(
                 req.version() == version::http_1_1);
         }
@@ -90,8 +98,8 @@ struct request_test
                 check(r1, 2, cs);
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.string().data() !=
-                        r1.string().data());
+                    r2.buffer().data() !=
+                        r1.buffer().data());
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
@@ -129,8 +137,8 @@ struct request_test
                     "\r\n");
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.string().data() !=
-                        r1.string().data());
+                    r2.buffer().data() !=
+                        r1.buffer().data());
                 BOOST_TEST(
                     r2.method() == method::post);
                 BOOST_TEST(
@@ -150,8 +158,8 @@ struct request_test
                 check(r1, 2, cs);
                 check(r2, 2, cs);
                 BOOST_TEST(
-                    r2.string().data() !=
-                        r1.string().data());
+                    r2.buffer().data() !=
+                        r1.buffer().data());
                 BOOST_TEST(
                     r1.method() == method::post);
                 BOOST_TEST(
@@ -167,8 +175,8 @@ struct request_test
                     "GET / HTTP/1.1\r\n"
                     "\r\n");
                 BOOST_TEST(
-                    r1.string().data() ==
-                        r2.string().data());
+                    r1.buffer().data() !=
+                        r2.buffer().data());
                 BOOST_TEST(
                     r1.method() == method::get);
                 BOOST_TEST(
@@ -193,7 +201,7 @@ struct request_test
                 BOOST_TEST(
                     r2.method_text() == "POST");
                 BOOST_TEST(
-                    r2.target_string() == "/x");
+                    r2.target() == "/x");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -210,7 +218,7 @@ struct request_test
                 BOOST_TEST(
                     r2.method_text() == "POST");
                 BOOST_TEST(
-                    r2.target_string() == "/x");
+                    r2.target() == "/x");
                 BOOST_TEST(
                     r2.version() == version::http_1_0);
             }
@@ -225,8 +233,8 @@ struct request_test
                     "GET / HTTP/1.1\r\n"
                     "\r\n");
                 BOOST_TEST(
-                    r1.string().data() ==
-                    r2.string().data());
+                    r1.buffer().data() !=
+                    r2.buffer().data());
                 BOOST_TEST(
                     r2.method() == method::get);
                 BOOST_TEST(
@@ -252,7 +260,7 @@ struct request_test
                 BOOST_TEST(req.capacity_in_bytes() == 0);
                 req.clear();
                 BOOST_TEST(req.capacity_in_bytes() == 0);
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "GET / HTTP/1.1\r\n\r\n");
             }
             {
@@ -272,10 +280,10 @@ struct request_test
                 BOOST_TEST(
                     req.method_text() == "GET");
                 BOOST_TEST(
-                    req.target_string() == "/");
+                    req.target() == "/");
                 BOOST_TEST(
                     req.version() == version::http_1_1);
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "GET / HTTP/1.1\r\n\r\n");
             }
         }
@@ -289,7 +297,7 @@ struct request_test
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_text() == "DELETE");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
@@ -302,7 +310,7 @@ struct request_test
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_text() == "DELETE");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -318,7 +326,7 @@ struct request_test
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_text() == "DELETE");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
@@ -331,7 +339,7 @@ struct request_test
                     req.method() == method::delete_);
                 BOOST_TEST(
                     req.method_text() == "DELETE");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "DELETE /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -346,7 +354,7 @@ struct request_test
                     req.method() == method::unknown);
                 BOOST_TEST(
                     req.method_text() == "BOOST");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "BOOST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -359,8 +367,8 @@ struct request_test
                 request req;
                 req.set_target("/index.htm");
                 BOOST_TEST(
-                    req.target_string() == "/index.htm");
-                BOOST_TEST(req.string() ==
+                    req.target() == "/index.htm");
+                BOOST_TEST(req.buffer() ==
                     "GET /index.htm HTTP/1.1\r\n\r\n");
             }
             {
@@ -369,7 +377,7 @@ struct request_test
                     "User-Agent: boost\r\n"
                     "\r\n");
                 req.set_target("/index.htm");
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "POST /index.htm HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -383,7 +391,7 @@ struct request_test
                 req.set_version(version::http_1_0);
                 BOOST_TEST(
                     req.version() == version::http_1_0);
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "GET / HTTP/1.0\r\n\r\n");
             }
             {
@@ -394,14 +402,13 @@ struct request_test
                 req.set_version(version::http_1_0);
                 BOOST_TEST(
                     req.version() == version::http_1_0);
-                BOOST_TEST(req.string() ==
+                BOOST_TEST(req.buffer() ==
                     "POST /x HTTP/1.0\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
             }
         }
     }
-#endif
 
     void
     testExpect()
@@ -416,12 +423,10 @@ struct request_test
     void
     run()
     {
-#if 0
         testHelpers();
         testSpecial();
         testObservers();
         testModifiers();
-#endif
         testExpect();
     }
 };

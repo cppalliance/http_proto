@@ -32,6 +32,12 @@ class BOOST_SYMBOL_VISIBLE
 {
     detail::header h_;
 
+    class op_t;
+    using entry =
+        detail::header::entry;
+    using table =
+        detail::header::table;
+
     friend class fields;
     friend class request;
     friend class response;
@@ -53,9 +59,24 @@ public:
 
     //--------------------------------------------
     //
-    // Observers
+    // Capacity
     //
     //--------------------------------------------
+
+    /** Returns the largest permissible capacity in bytes
+    */
+    static
+    constexpr
+    std::size_t
+    max_capacity_in_bytes() noexcept
+    {
+        using T = detail::header::entry;
+        return alignof(T) *
+            (((max_off_t - 2 + sizeof(T) * (
+                    max_off_t / 4)) +
+                alignof(T) - 1) /
+            alignof(T));
+    }
 
     /** Returns the total number of bytes allocated by the container
     */
@@ -65,17 +86,17 @@ public:
         return h_.cap;
     }
 
-    //--------------------------------------------
-    //
-    // Modifiers
-    //
-    //--------------------------------------------
-
-    /** Reserve additional storage
+    /** Clear the contents, but not the capacity
     */
     BOOST_HTTP_PROTO_DECL
     void
-    reserve(std::size_t n);
+    clear() noexcept;
+
+    /** Reserve a minimum capacity
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reserve_bytes(std::size_t n);
 
     /** Remove excess capacity
     */
@@ -83,6 +104,10 @@ public:
     void
     shrink_to_fit() noexcept;
 
+    //--------------------------------------------
+    //
+    // Modifiers
+    //
     //--------------------------------------------
 
     /** Append a header
@@ -439,37 +464,8 @@ public:
 private:
     BOOST_HTTP_PROTO_DECL
     void
-    clear_impl() noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    copy_impl(detail::header const&);
-
-    std::size_t
-    offset(
-        detail::header::table ft,
-        std::size_t i) const noexcept;
-
-    std::size_t
-    length(
-        detail::header::table ft,
-        std::size_t i) const noexcept;
-
-    void raw_erase(std::size_t) noexcept;
-    void raw_erase_n(field, std::size_t) noexcept;
-    std::size_t raw_erase_all(std::size_t) noexcept;
-    void raw_set(std::size_t, string_view);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    erase_impl(
-        std::size_t i,
-        field id) noexcept;
-
-    std::size_t
-    erase_all_impl(
-        std::size_t i0,
-        field id) noexcept;
+    copy_impl(
+        detail::header const&);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -477,10 +473,31 @@ private:
         field id,
         string_view name,
         string_view value,
-        std::size_t before,
-        bool update = true);
-    void raw_insert(field, string_view,
-        string_view, std::size_t);
+        std::size_t before);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    erase_impl(
+        std::size_t i,
+        field id) noexcept;
+
+    void raw_erase(
+        std::size_t) noexcept;
+
+    std::size_t
+    erase_all_impl(
+        std::size_t i0,
+        field id) noexcept;
+
+    std::size_t
+    offset(
+        std::size_t i) const noexcept;
+
+    std::size_t
+    length(
+        std::size_t i) const noexcept;
+
+    void raw_erase_n(field, std::size_t) noexcept;
 };
 
 //------------------------------------------------

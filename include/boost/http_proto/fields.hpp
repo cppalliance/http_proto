@@ -63,15 +63,21 @@ public:
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     fields&
-    operator=(fields const& f) noexcept;
+    operator=(fields const& f) noexcept
+    {
+        copy_impl(*f.ph_);
+        return *this;
+    }
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     fields&
-    operator=(fields_view const& f);
+    operator=(fields_view const& f)
+    {
+        copy_impl(*f.ph_);
+        return *this;
+    }
 
     /** Conversion
     */
@@ -85,14 +91,6 @@ public:
     // Modifiers
     //
     //--------------------------------------------
-
-    /** Clear the contents, but not the capacity
-    */
-    void
-    clear() noexcept
-    {
-        clear_impl();
-    }
 
     /** Swap this with another instance
     */

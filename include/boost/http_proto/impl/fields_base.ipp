@@ -23,6 +23,201 @@
 namespace boost {
 namespace http_proto {
 
+class fields_base::
+    op_t
+{
+    fields_base& self_;
+    string_view* s0_;
+    string_view* s1_;
+    char* buf_ = nullptr;
+    char const* cbuf_ = nullptr;
+    std::size_t cap_ = 0;
+
+public:
+    explicit
+    op_t(
+        fields_base& self,
+        string_view* s0 = nullptr,
+        string_view* s1 = nullptr) noexcept
+        : self_(self)
+        , s0_(s0)
+        , s1_(s1)
+    {
+    }
+
+    ~op_t()
+    {
+        if(buf_)
+            delete[] buf_;
+    }
+
+    char const*
+    buf() const noexcept
+    {
+        return buf_;
+    }
+
+    char const*
+    cbuf() const noexcept
+    {
+        return cbuf_;
+    }
+
+    char*
+    end() const noexcept
+    {
+        return buf_ + cap_;
+    }
+
+    table
+    tab() const noexcept
+    {
+        return table(end());
+    }
+
+    static
+    std::size_t
+    growth(
+        std::size_t n0,
+        std::size_t m) noexcept;
+
+    bool
+    reserve(std::size_t bytes);
+
+    bool
+    grow(
+        std::size_t extra_char,
+        std::size_t extra_field);
+
+    void
+    copy_prefix(
+        std::size_t n,
+        std::size_t i) noexcept;
+
+    void
+    move_chars(
+        char* dest,
+        char const* src,
+        std::size_t n) const noexcept;
+};
+
+/*  Growth functions for containers
+
+    N1 = g( N0,  M );
+
+    g  = growth function
+    M  = minimum capacity
+    N0 = old size
+    N1 = new size
+*/
+std::size_t
+fields_base::
+op_t::
+growth(
+    std::size_t n0,
+    std::size_t m) noexcept
+{
+    auto const E = alignof(entry);
+    auto const m1 =
+        E * ((m + E - 1) / E);
+    BOOST_ASSERT(m1 >= m);
+    if(n0 == 0)
+    {
+        // exact
+        return m1;
+    }
+    if(m1 > n0)
+        return m1;
+    return n0;
+}
+
+bool
+fields_base::
+op_t::
+reserve(
+    std::size_t bytes)
+{
+    if(bytes > max_capacity_in_bytes())
+    {
+        // max capacity exceeded
+        detail::throw_length_error();
+    }
+    auto n = growth(
+        self_.h_.cap, bytes);
+    if(n <= self_.h_.cap)
+        return false;
+    auto buf = new char[n];
+    buf_ = self_.h_.buf;
+    cbuf_ = self_.h_.cbuf;
+    cap_ = self_.h_.cap;
+    self_.h_.buf = buf;
+    self_.h_.cbuf = buf;
+    self_.h_.cap = n;
+    return true;
+}
+
+bool
+fields_base::
+op_t::
+grow(
+    std::size_t extra_char,
+    std::size_t extra_field)
+{
+    // extra_field is naturally limited
+    // by max_off_t, since each field
+    // is at least 4 bytes
+    BOOST_ASSERT(
+        extra_field <= max_off_t &&
+        extra_field <= static_cast<
+            std::size_t>(
+                max_off_t - self_.h_.count));
+    if( extra_char > max_off_t ||
+        extra_char > static_cast<std::size_t>(
+            max_off_t - self_.h_.size))
+        detail::throw_length_error();
+    auto n1 = growth(
+        self_.h_.cap, 
+        detail::header::bytes_needed(
+            self_.h_.size + extra_char,
+            self_.h_.count + extra_field));
+    return reserve(n1);
+}
+
+void
+fields_base::
+op_t::
+copy_prefix(
+    std::size_t n,
+    std::size_t i) noexcept
+{
+    // copy first n chars
+    std::memcpy(
+        self_.h_.buf,
+        cbuf_,
+        n);
+    // copy first i entries
+    if(i > 0)
+        std::memcpy(
+            self_.h_.tab_() - i,
+            reinterpret_cast<entry*>(
+                buf_ + cap_) - i,
+            i * sizeof(entry));
+}
+
+void
+fields_base::
+op_t::
+move_chars(
+    char* dest,
+    char const* src,
+    std::size_t n) const noexcept
+{
+    detail::move_chars(
+        dest, src, n, s0_, s1_);
+}
+
+//------------------------------------------------
+
 fields_base::
 fields_base(
     detail::kind k) noexcept
@@ -36,26 +231,26 @@ fields_base::
 fields_base(
     detail::header const& h)
     : fields_view_base(&h_)
-    , h_(h)
+    , h_(h.kind)
 {
-    if(h_.is_default())
+    if(h.is_default())
     {
-        BOOST_ASSERT(h_.cap == 0);
-        BOOST_ASSERT(h_.buf == nullptr);
+        BOOST_ASSERT(h.cap == 0);
+        BOOST_ASSERT(h.buf == nullptr);
+        h_ = h;
         return;
     }
 
     // allocate and copy the buffer
-    auto n = detail::buffer_needed(
-        h.size, h.count);
-    BOOST_ASSERT(n < max_off_t);
-    h_.buf = new char[n];
+    op_t op(*this);
+    op.grow(h.size, h.count);
+    h.assign_to(h_);
     std::memcpy(
         h_.buf, h.cbuf, h.size);
-    h.copy_table(h_.buf + n);
-    h_.cbuf = h_.buf;
-    h_.cap = n;
+    h.copy_table(h_.buf + h_.cap);
 }
+
+//------------------------------------------------
 
 fields_base::
 ~fields_base()
@@ -66,51 +261,52 @@ fields_base::
 
 //------------------------------------------------
 //
-// Modifiers
+// Capacity
 //
 //------------------------------------------------
 
 void
 fields_base::
-reserve(std::size_t n)
+clear() noexcept
 {
-    if(n > max_off_t)
-        detail::throw_length_error(
-            " n > max off_t",
-            BOOST_CURRENT_LOCATION);
-    n = detail::buffer_needed(
-        n, h_.count);
-    if(n <= h_.cap)
+    if(! h_.buf)
         return;
-    // VFALCO What about alignment?
-    auto buf = new char[n];
-    if(h_.cap > 0)
-    {
+    using H =
+        detail::header;
+    auto const& h =
+        *H::get_default(
+            h_.kind);
+    h.assign_to(h_);
+    std::memcpy(
+        h_.buf,
+        h.cbuf,
+        h_.size);
+}
+
+void
+fields_base::
+reserve_bytes(
+    std::size_t n)
+{
+    op_t op(*this);
+    if(! op.reserve(n))
+        return;
+    std::memcpy(
+        h_.buf, op.cbuf(), h_.size);
+    auto const nt =
+        sizeof(entry) * h_.count;
+    if(nt > 0)
         std::memcpy(
-            buf,
-            h_.cbuf,
-            h_.size);
-        h_.copy_table(buf + n);
-        delete[] h_.buf;
-    }
-    else
-    {
-        // default buffer
-        std::memcpy(
-            buf,
-            h_.cbuf,
-            h_.size);
-    }
-    h_.cbuf = buf;
-    h_.buf = buf;
-    h_.cap = n;
+            h_.buf + h_.cap - nt,
+            op.end() - nt,
+            nt);
 }
 
 void
 fields_base::
 shrink_to_fit() noexcept
 {
-    if(detail::buffer_needed(
+    if(detail::header::bytes_needed(
         h_.size, h_.count) >=
             h_.cap)
         return;
@@ -118,6 +314,10 @@ shrink_to_fit() noexcept
     tmp.h_.swap(h_);
 }
 
+//------------------------------------------------
+//
+// Modifiers
+//
 //------------------------------------------------
 
 std::size_t
@@ -127,10 +327,55 @@ erase(
 {
     BOOST_ASSERT(
         id != field::unknown);
-    auto const i = h_.find(id);
-    if(i != h_.count)
-        return erase_all_impl(i, id);
-    return 0;
+#if 1
+    auto const end_ = end();
+    auto it = find_last(end_, id);
+    if(it == end_)
+        return 0;
+    std::size_t n = 1;
+    auto const begin_ = begin();
+    raw_erase(it.i_);
+    while(it != begin_)
+    {
+        --it;
+        if(it->id == id)
+        {
+            raw_erase(it.i_);
+            ++n;
+        }
+    }
+    h_.on_erase_all(id);
+    return n;
+#else
+    std::size_t n = 0;
+    auto it0 = find(id);
+    auto const end_ = end();
+    if(it0 != end_)
+    {
+        auto it1 = it0;
+        std::size_t total = 0;
+        std::size_t size = 0;
+        // [it0, it1) run of id
+        for(;;)
+        {
+            size += length(it1.i_);
+            ++it1;
+            if(it1 == end_)
+                goto finish;
+            if(it1->id != id)
+                break;
+        }
+        std::memmove(
+            h_.buf + offset(it0.i_),
+            h_.buf + offset(it1.i_),
+            h_.size - offset(it2.i_));
+
+    finish:
+        h_.size -= size;
+        h_.count -= n;
+    }
+    return n;
+#endif
 }
 
 std::size_t
@@ -138,53 +383,154 @@ fields_base::
 erase(
     string_view name) noexcept
 {
-    auto const i0 = h_.find(name);
-    if(i0 == h_.count)
+    auto it0 = find(name);
+    auto const end_ = end();
+    if(it0 == end_)
         return 0;
-    auto const id = h_.tab()[i0].id;
+    auto it = end_;
+    std::size_t n = 1;
+    auto const id = it0->id;
     if(id == field::unknown)
-        return raw_erase_all(i0);
-    return erase_all_impl(i0, id);
+    {
+        // fix self-intersection
+        name = it0->name;
+
+        for(;;)
+        {
+            --it;
+            if(it == it0)
+                break;
+            if(grammar::ci_is_equal(
+                it->name, name))
+            {
+                raw_erase(it.i_);
+                ++n;
+            }
+        }
+        raw_erase(it.i_);
+    }
+    else
+    {
+        for(;;)
+        {
+            --it;
+            if(it == it0)
+                break;
+            if(it->id == id)
+            {
+                raw_erase(it.i_);
+                ++n;
+            }
+        }
+        raw_erase(it.i_);
+        h_.on_erase_all(id);
+    }
+    return n;
 }
 
 //------------------------------------------------
 
-// set the existing field to
-// value, updating metadata.
 void
 fields_base::
 set(
     iterator it,
     string_view value)
 {
-    // VFALCO copied_strings?
-    detail::copied_strings cs(
-        string_view(h_.cbuf, h_.size));
-    value = cs.maybe_copy(value);
-
     auto const i = it.i_;
-    auto const ft = h_.tab();
-    auto const id = ft[i].id;
+    auto const& e0 = h_.tab()[i];
+    auto const pos0 = offset(i);
+    auto const pos1 = offset(i + 1 );
+    std::ptrdiff_t dn =
+        value.size() -
+        it->value.size();
+    if( value.empty() &&
+        ! it->value.empty())
+        --dn; // remove SP
+    else if(
+        it->value.empty() &&
+        ! value.empty())
+        ++dn; // add SP
+
+    op_t op(*this, &value);
+    if( dn > 0 &&
+        op.grow(value.size() -
+            it->value.size(), 0))
     {
-        // provide strong guarantee
-        auto const n0 =
-            h_.size - length(ft, i);
-        auto const n = ft[i].nn + 2 +
-            value.size() + 2;
-        // VFALCO missing overflow check
-        reserve(n0 + n);
+        // reallocated
+        auto dest = h_.buf +
+            pos0 + e0.nn + 1;
+        std::memcpy(
+            h_.buf,
+            op.buf(),
+            dest - h_.buf);
+        if(! value.empty())
+        {
+            *dest++ = ' ';
+            value.copy(
+                dest,
+                value.size());
+            dest += value.size();
+        }
+        *dest++ = '\r';
+        *dest++ = '\n';
+        std::memcpy(
+            h_.buf + pos1 + dn,
+            op.buf() + pos1,
+            h_.size - pos1);
+        std::memcpy(
+            h_.buf + h_.cap -
+                sizeof(entry) * h_.count,
+            &op.tab()[h_.count - 1],
+            sizeof(entry) * h_.count);
     }
-    // VFALCO simple algorithm
-    // but costs one extra memmove
-    if(id != field::unknown)
+    else
     {
-        erase_impl(i, id);
-        // VFALCO This loses the original
-        // capitalization of the field name
-        insert_impl(id, to_string(id), value, i);
-        return;
+        // copy the value first
+        auto dest = h_.buf + pos0 +
+            it->name.size() + 1;
+        if(! value.empty())
+        {
+            *dest++ = ' ';
+            value.copy(
+                dest,
+                value.size());
+            dest += value.size();
+        }
+        op.move_chars(
+            h_.buf + pos1 + dn,
+            h_.buf + pos1,
+            h_.size - pos1);
+        *dest++ = '\r';
+        *dest++ = '\n';
     }
-    raw_set(i, value);
+    {
+        // update tab
+        auto ft = h_.tab();
+        for(std::size_t j = h_.count - 1;
+                j > i; --j)
+            ft[j] = ft[j] + dn;
+        auto& e = ft[i];
+        e.vp = e.np + e.nn +
+            1 + ! value.empty();
+        e.vn = static_cast<
+            off_t>(value.size());
+        h_.size = static_cast<
+            off_t>(h_.size + dn);
+    }
+    auto const id = it->id;
+    if(h_.is_special(id))
+    {
+        // replace first char of name
+        // with null to hide metadata
+        char saved = h_.buf[pos0];
+        auto& e = h_.tab()[i];
+        e.id = field::unknown;
+        h_.buf[pos0] = '\0';
+        h_.on_erase(id);
+        h_.buf[pos0] = saved;
+        e.id = id;
+        h_.on_insert(id, it->value);
+    }
 }
 
 // erase existing fields with id
@@ -205,12 +551,12 @@ set(
         {
             // provide strong guarantee
             auto const n0 =
-                h_.size - length(ft, i0);
+                h_.size - length(i0);
             auto const n =
                 ft[i0].nn + 2 +
                     value.size() + 2;
             // VFALCO missing overflow check
-            reserve(n0 + n);
+            reserve_bytes(n0 + n);
         }
         erase_all_impl(i0, id);
     }
@@ -235,12 +581,12 @@ set(
         {
             // provide strong guarantee
             auto const n0 =
-                h_.size - length(ft, i0);
+                h_.size - length(i0);
             auto const n =
                 ft[i0].nn + 2 +
                     value.size() + 2;
             // VFALCO missing overflow check
-            reserve(n0 + n);
+            reserve_bytes(n0 + n);
         }
         // VFALCO simple algorithm but
         // costs one extra memmove
@@ -257,24 +603,6 @@ set(
 //
 //------------------------------------------------
 
-void
-fields_base::
-clear_impl() noexcept
-{
-    if(! h_.buf)
-        return;
-    using H =
-        detail::header;
-    auto const& h =
-        *H::get_default(
-            h_.kind);
-    h.assign_to(h_);
-    std::memcpy(
-        h_.buf,
-        h.cbuf,
-        h_.size);
-}
-
 // copy start line and fields
 void
 fields_base::
@@ -285,8 +613,8 @@ copy_impl(
         h.kind == ph_->kind);
     if(! h.is_default())
     {
-        auto n =
-            detail::buffer_needed(
+        auto const n =
+            detail::header::bytes_needed(
                 h.size, h.count);
         if(n <= h_.cap)
         {
@@ -305,399 +633,101 @@ copy_impl(
     tmp.h_.swap(h_);
 }
 
-//------------------------------------------------
-
-// return i-th field absolute offset
-std::size_t
-fields_base::
-offset(
-    detail::header::table ft,
-    std::size_t i) const noexcept
-{
-    if(i < h_.count)
-        return h_.prefix + ft[i].np;
-    // make final CRLF the last "field"
-    BOOST_ASSERT(i == h_.count);
-    return h_.size - 2;
-}
-
-// return i-th field absolute length
-std::size_t
-fields_base::
-length(
-    detail::header::table ft,
-    std::size_t i) const noexcept
-{
-    return
-        offset(ft, i + 1) -
-        offset(ft, i);
-}
-
-//------------------------------------------------
-//
-// raw implementation
-//
-//------------------------------------------------
-
-// erase i, without updating metadata
-void
-fields_base::
-raw_erase(
-    std::size_t i) noexcept
-{
-    BOOST_ASSERT(i < h_.count);
-    BOOST_ASSERT(h_.buf != nullptr);
-    auto ft = h_.tab();
-    auto const p0 = offset(ft, i);
-    auto const p1 = offset(ft, i + 1);
-    std::memmove(
-        h_.buf + p0,
-        h_.buf + p1,
-        h_.size - p1);
-    auto const n = p1 - p0;
-    --h_.count;
-    for(;i < h_.count; ++i)
-        ft[i] = ft[i + 1] - n;
-    h_.size = static_cast<
-        off_t>(h_.size - n);
-}
-
-// erase n fields matching id
-// without updating metadata
-void
-fields_base::
-raw_erase_n(
-    field id,
-    std::size_t n) noexcept
-{
-    // iterate in reverse
-    auto e = &h_.tab()[h_.count];
-    auto const e0 = &h_.tab()[0];
-    while(n > 0)
-    {
-        BOOST_ASSERT(e != e0);
-        ++e; // decrement
-        if(e->id == id)
-        {
-            raw_erase(e0 - e);
-            --n;
-        }
-    }
-}
-
-// erase fields matching i0
-// name, without updating metadata.
-std::size_t
-fields_base::
-raw_erase_all(
-    std::size_t i0) noexcept
-{
-    std::size_t n = 1;
-    auto const* e = &h_.tab()[i0];
-    auto const p = h_.buf + h_.prefix;
-    auto const name = string_view(
-        p + e->np, e->nn);
-    // backwards to reduce memmoves
-    std::size_t i = h_.count - 1;
-    e = &h_.tab()[i];
-    while(i != i0)
-    {
-        if(grammar::ci_is_equal(
-            string_view(
-                p + e->np, e->nn),
-            name))
-        {
-            raw_erase(i);
-            ++n;
-        }
-        --i;
-        ++e;
-    }
-    raw_erase(i0);
-    return n;
-}
-
-// unconditionally set i-th field,
-// without updating metadata.
-void
-fields_base::
-raw_set(
-    std::size_t i,
-    string_view value)
-{
-    auto ft0 = h_.tab();
-    auto const nn = ft0[i].nn;
-    // total size minus old field
-    auto const n0 =
-        h_.size - length(ft0, i);
-    // size of new field
-    auto const n1 = nn + 2 +
-        value.size() + 2;
-    if(n0 + n1 > max_off_t)
-        detail::throw_length_error(
-            "too large",
-            BOOST_CURRENT_LOCATION);
-    auto const n =
-        detail::buffer_needed(
-            n0 + n1, h_.count);
-    if(h_.cap >= n)
-    {
-        BOOST_ASSERT(h_.buf != nullptr);
-        detail::copied_strings cs(
-            string_view(h_.cbuf, h_.size));
-        value = cs.maybe_copy(value);
-        auto const pos =
-            offset(ft0, i + 1);
-        std::memmove(
-            h_.buf + h_.prefix + n1,
-            h_.buf + pos,
-            h_.size - pos);
-        char* dest = h_.buf +
-            offset(ft0, i) + nn + 2;
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        auto const dn =
-            length(ft0, i) - n1;
-        // adjust table
-        for(std::size_t j = h_.count - 1;
-                j > i; --j)
-            ft0[j] = ft0[j] - dn;
-        // update table entry
-        auto& e = ft0[i];
-        e.vp = e.np + e.nn + 2;
-        e.vn = static_cast<
-            off_t>(value.size());
-        h_.size = static_cast<
-            off_t>(n0 + n1);
-        return;
-    }
-
-    // grow
-    BOOST_ASSERT(h_.cap > 0);
-    BOOST_ASSERT(h_.buf != nullptr);
-    auto buf = new char[n];
-    // copy existing fields
-    // and write new field
-    auto pos = offset(ft0, i);
-    char* dest = buf;
-    std::memcpy(
-        dest,
-        h_.buf,
-        pos + nn + 2);
-    dest += pos + nn + 2;
-    value.copy(dest, value.size());
-    dest += value.size();
-    *dest++ = '\r';
-    *dest++ = '\n';
-    pos = offset(ft0, i + 1);
-    std::memcpy(
-        dest,
-        h_.buf + pos,
-        h_.size - pos);
-
-    // write table
-    h_.copy_table(buf + n, i + 1);
-    detail::header::table ft(buf + n);
-    auto const dn = n1 -
-        length(ft0, i);
-    for(auto j = i + 1;
-        j < h_.count; ++j)
-        ft[j] = ft0[j] + dn;
-    auto& e = ft[i];
-    e.vp = e.np + e.nn + 2;
-    e.vn = static_cast<
-        off_t>(value.size());
-    h_.size = static_cast<
-        off_t>(n0 + n1);
-
-    delete[] h_.buf;
-    h_.buf = buf;
-    h_.cbuf = buf;
-    h_.cap = n;
-}
-
-//------------------------------------------------
-
 void
 fields_base::
 insert_impl(
     field id,
     string_view name,
     string_view value,
-    std::size_t before,
-    bool update)
+    std::size_t before)
 {
-    BOOST_ASSERT(before <= h_.count);
-    auto const n0 =
-        name.size() + 2 +
-        value.size() + 2;
-    auto const n1 = h_.size + n0;
-    if(n1 > max_off_t)
-        detail::throw_length_error();
+    auto const tab0 = h_.tab_();
+    auto const pos = offset(before);
     auto const n =
-        detail::buffer_needed(
-            n1, h_.count + 1);
-    if(h_.cap >= n)
-    {
-        // no reallocation
-        BOOST_ASSERT(h_.buf != nullptr);
-        detail::header::table ft(
-            h_.buf + h_.cap);
-        auto pos = offset(ft, before);
-        char* dest = h_.buf + pos;
-        detail::move_chars(
-            dest + n0,
-            dest,
-            h_.size - pos,
-            name,
-            value);
-        name.copy(dest, name.size());
-        dest += name.size();
-        *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        for(std::size_t i = h_.count;
-            i > before; --i)
-            ft[i] = ft[i-1] + n0;
-        pos -= h_.prefix;
-        auto& e = ft[before];
-        e.np = static_cast<
-            off_t>(pos);
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<off_t>(
-            pos + name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
-        e.id = id;
-        h_.size = static_cast<
-            off_t>(h_.size + n0);
-        ++h_.count;
-    }
-    else if(h_.cap > 0)
-    {
-        // grow
-        BOOST_ASSERT(h_.buf != nullptr);
-        auto buf = new char[n];
+        name.size() +       // name
+        1 +                 // ':'
+        ! value.empty() +   // [SP]
+        value.size() +      // value
+        2;                  // CRLF
 
-        // copy existing fields
-        // and write new field
-        auto const ft0 = h_.tab();
-        auto pos = offset(ft0, before);
-        char* dest = buf;
+    op_t op(*this, &name, &value);
+    if(op.grow(n, 1))
+    {
+        // reallocated
+        if(pos > 0)
+            std::memcpy(
+                h_.buf,
+                op.cbuf(),
+                pos);
+        if(before > 0)
+            std::memcpy(
+                h_.tab_() - before,
+                tab0 - before,
+                before * sizeof(entry));
         std::memcpy(
-            dest,
-            h_.buf,
-            pos);
-        dest += pos;
-        name.copy(dest, name.size());
-        dest += name.size();
-        *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
-        *dest++ = '\r';
-        *dest++ = '\n';
-        std::memcpy(
-            dest,
-            h_.buf + pos,
+            h_.buf + pos + n,
+            op.cbuf() + pos,
             h_.size - pos);
-
-        // write table
-        h_.copy_table(buf + n, before);
-        detail::header::table ft(buf + n);
-        for(auto i = before;
-            i < h_.count; ++i)
-            ft[i + 1] = ft0[i] + n0;
-
-        auto& e = ft[before];
-        pos -= h_.prefix;
-        e.np = static_cast<
-            off_t>(pos);
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<off_t>(
-            pos + name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
-        e.id = id;
-
-        delete[] h_.buf;
-        h_.buf = buf;
-        h_.cbuf = buf;
-        h_.cap = n;
-        h_.size = static_cast<
-            off_t>(n1);
-        h_.count += 1;
     }
     else
     {
-        // new allocation
-        BOOST_ASSERT(h_.buf == nullptr);
-        BOOST_ASSERT(before == 0);
-        BOOST_ASSERT(h_.count == 0);
+        op.move_chars(
+            h_.buf + pos + n,
+            h_.buf + pos,
+            h_.size - pos);
+    }
 
-        // default string
-        BOOST_ASSERT(h_.is_default());
-        string_view s(h_.cbuf, h_.size);
-
-        h_.buf = new char[n];
-        h_.cbuf = h_.buf;
-        h_.cap = n;
-        h_.prefix = static_cast<
-            off_t>(s.size() - 2);
-        h_.size = static_cast<
-            off_t>(n1);
-        h_.count = 1;
-
-        // start line
-        char* dest = h_.buf;
-        s.copy(dest, h_.prefix);
-        dest += h_.prefix;
-
-        // write field
+    // serialize
+    {
+        auto dest = h_.buf + pos;
         name.copy(dest, name.size());
         dest += name.size();
         *dest++ = ':';
-        *dest++ = ' ';
-        value.copy(dest, value.size());
-        dest += value.size();
+        if(! value.empty())
+        {
+            *dest++ = ' ';
+            value.copy(
+                dest, value.size());
+            dest += value.size();
+        }
         *dest++ = '\r';
-        *dest++ = '\n';
-        *dest++ = '\r';
-        *dest++ = '\n';
-        // write table
-        auto& e = h_.tab()[before];
-        e.id = id;
-        e.np = 0;
-        e.nn = static_cast<
-            off_t>(name.size());
-        e.vp = static_cast<
-            off_t>(name.size() + 2);
-        e.vn = static_cast<
-            off_t>(value.size());
+        *dest = '\n';
     }
 
-    if( update &&
-            id != field::unknown)
-        h_.on_insert(id, value);
-}
+    // update table
+    auto const tab = h_.tab_();
+    {
+        auto i = h_.count - before;
+        if(i > 0)
+        {
+            auto p0 = tab0 - h_.count;
+            auto p = tab - h_.count - 1;
+            do
+            {
+                *p++ = *p0++ + n;
+            }
+            while(--i);
+        }
+    }
+    auto& e = tab[0 - before - 1];
+    e.np = static_cast<off_t>(
+        pos - h_.prefix);
+    e.nn = static_cast<
+        off_t>(name.size());
+    e.vp = static_cast<off_t>(
+        pos - h_.prefix +
+            name.size() + 1 +
+            ! value.empty());
+    e.vn = static_cast<
+        off_t>(value.size());
+    e.id = id;
 
-// insert without updating metadata
-void
-fields_base::
-raw_insert(
-    field id,
-    string_view name,
-    string_view value,
-    std::size_t before)
-{
-    insert_impl(id, name, value, before, false);
+    // update container
+    h_.count++;
+    h_.size = static_cast<
+        off_t>(h_.size + n);
+    if( id != field::unknown)
+        h_.on_insert(id, value);
 }
 
 // erase i and update metadata
@@ -711,6 +741,32 @@ erase_impl(
     if(id != field::unknown)
         h_.on_erase(id);
 }
+
+//------------------------------------------------
+
+void
+fields_base::
+raw_erase(
+    std::size_t i) noexcept
+{
+    BOOST_ASSERT(i < h_.count);
+    BOOST_ASSERT(h_.buf != nullptr);
+    auto const p0 = offset(i);
+    auto const p1 = offset(i + 1);
+    std::memmove(
+        h_.buf + p0,
+        h_.buf + p1,
+        h_.size - p1);
+    auto const n = p1 - p0;
+    --h_.count;
+    auto ft = h_.tab();
+    for(;i < h_.count; ++i)
+        ft[i] = ft[i + 1] - n;
+    h_.size = static_cast<
+        off_t>(h_.size - n);
+}
+
+//------------------------------------------------
 
 // erase all fields with id
 // and update metadata
@@ -739,6 +795,58 @@ erase_all_impl(
     raw_erase(i0);
     h_.on_erase_all(id);
     return n;
+}
+
+// return i-th field absolute offset
+std::size_t
+fields_base::
+offset(
+    std::size_t i) const noexcept
+{
+    if(i == 0)
+        return h_.prefix;
+    if(i < h_.count)
+        return h_.prefix +
+            h_.tab_()[0-(i + 1)].np;
+    // make final CRLF the last "field"
+    //BOOST_ASSERT(i == h_.count);
+    return h_.size - 2;
+}
+
+// return i-th field absolute length
+std::size_t
+fields_base::
+length(
+    std::size_t i) const noexcept
+{
+    return
+        offset(i + 1) -
+        offset(i);
+}
+
+//------------------------------------------------
+
+// erase n fields matching id
+// without updating metadata
+void
+fields_base::
+raw_erase_n(
+    field id,
+    std::size_t n) noexcept
+{
+    // iterate in reverse
+    auto e = &h_.tab()[h_.count];
+    auto const e0 = &h_.tab()[0];
+    while(n > 0)
+    {
+        BOOST_ASSERT(e != e0);
+        ++e; // decrement
+        if(e->id == id)
+        {
+            raw_erase(e0 - e);
+            --n;
+        }
+    }
 }
 
 } // http_proto

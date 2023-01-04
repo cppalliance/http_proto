@@ -64,24 +64,6 @@ operator=(
     return *this;
 }
 
-response&
-response::
-operator=(
-    response const& other)
-{
-    copy_impl(*other.ph_);
-    return *this;
-}
-
-response&
-response::
-operator=(
-    response_view const& other)
-{
-    copy_impl(*other.ph_);
-    return *this;
-}
-
 response::
 response(
     http_proto::status sc,
@@ -91,22 +73,6 @@ response(
     if( sc != h_.res.status ||
         v != h_.version)
         set_start_line(sc, v);
-}
-
-//------------------------------------------------
-
-void
-response::
-clear() noexcept
-{
-    if(h_.buf == nullptr)
-    {
-        // default buffer
-        return;
-    }
-    clear_impl();
-    set_start_line(
-        http_proto::status::ok);
 }
 
 //------------------------------------------------

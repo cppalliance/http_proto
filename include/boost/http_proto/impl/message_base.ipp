@@ -201,7 +201,7 @@ set_prefix_impl(
             detail::throw_length_error(
                 "too large",
                 BOOST_CURRENT_LOCATION);
-        auto n0 = detail::buffer_needed(
+        auto n0 = detail::header::bytes_needed(
             n + h_.size - h_.prefix,
             h_.count);
         auto buf = new char[n0];

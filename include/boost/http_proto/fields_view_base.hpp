@@ -151,6 +151,16 @@ public:
     //
     //--------------------------------------------
 
+    /** Returns the largest possible serialized message
+    */
+    static
+    constexpr
+    std::size_t
+    max_size() noexcept
+    {
+        return max_off_t;
+    }
+
     /** Return an iterator to the beginning
     */
     iterator

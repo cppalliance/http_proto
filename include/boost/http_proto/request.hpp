@@ -57,16 +57,22 @@ public:
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     request&
-    operator=(request const& other);
+    operator=(request const& other)
+    {
+        copy_impl(*other.ph_);
+        return *this;
+    }
 
     /** Assignment
     */
-    BOOST_HTTP_PROTO_DECL
     request&
     operator=(
-        request_view const& other);
+        request_view const& other)
+    {
+        copy_impl(*other.ph_);
+        return *this;
+    }
 
     /** Return a read-only view to the request
     */
@@ -129,12 +135,6 @@ public:
     // Modifiers
     //
     //--------------------------------------------
-
-    /** Clear the contents, but not the capacity
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
 
     /** Set the method of the request to the enum
     */
