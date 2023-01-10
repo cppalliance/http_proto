@@ -12,11 +12,105 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/config/workaround.hpp>
+#include <boost/type_traits/make_void.hpp>
 #include <cstdlib>
 #include <type_traits>
 
 namespace boost {
 namespace http_proto {
+
+//------------------------------------------------
+
+/** Determine if T is a possibly-const buffer.
+*/
+#if BOOST_HTTP_PROTO_DOCS
+template<bool isConst, class T>
+struct is_buffer
+    : std::integral_constant<bool, ...>{};
+#else
+
+template<
+    bool isConst, class T,
+    class = void>
+struct is_buffer : std::false_type {};
+
+template<
+    bool isConst, class T>
+struct is_buffer<
+    isConst, T, boost::void_t<decltype(
+        std::declval<std::size_t&>() =
+            std::declval<T const&>().size()
+    ),
+    typename std::enable_if<
+        std::is_same<
+            void*, decltype(
+                std::declval<T const&>().data())
+            >::value || (
+        std::is_same<
+            void const*, decltype(
+                std::declval<T const&>().data())
+            >::value && isConst)
+        >::type
+    >> : std::is_copy_constructible<T>
+{
+};
+
+#endif
+
+/** Determine if T is a const buffer.
+*/
+template<class T>
+using is_const_buffer = is_buffer<true, T>;
+
+/** Determine if T is a mutable buffer.
+*/
+template<class T>
+using is_mutable_buffer = is_buffer<false, T>;
+
+//------------------------------------------------
+
+/** Determine if T is a buffer sequence.
+*/
+#if BOOST_HTTP_PROTO_DOCS
+template<bool isConst, class T>
+struct is_buffers
+    : std::integral_constant<bool, ...>{};
+#else
+
+template<
+    bool isConst, class T,
+    class = void>
+struct is_buffers : std::false_type {};
+
+template<
+    bool isConst, class T>
+struct is_buffers<
+    isConst, T, boost::void_t<
+        typename std::enable_if<
+            is_buffer<
+                isConst, decltype(
+                *std::declval<T const&>().begin())
+                    >::value &&
+            is_buffer<
+                isConst, decltype(
+                *std::declval<T const&>().end())
+                    >::value
+            >::type
+    >> : std::is_move_constructible<T>
+{
+};
+
+/** Determine if T is a const buffers.
+*/
+template<class T>
+using is_const_buffers = is_buffers<true, T>;
+
+/** Determine if T is a mutable buffers.
+*/
+template<class T>
+using is_mutable_buffers = is_buffers<false, T>;
+
+#endif
 
 //------------------------------------------------
 
@@ -38,6 +132,17 @@ public:
         : p_(data)
         , n_(size)
     {
+    }
+
+    template<class MutableBuffer>
+    mutable_buffer(
+        MutableBuffer const& b) noexcept
+        : p_(b.data())
+        , n_(b.size())
+    {
+        static_assert(
+            is_mutable_buffer<MutableBuffer>::value,
+            "MutableBuffer requirements not met");
     }
 
     void*
@@ -96,6 +201,17 @@ public:
         : p_(other.data())
         , n_(other.size())
     {
+    }
+
+    template<class ConstBuffer>
+    const_buffer(
+        ConstBuffer const& b) noexcept
+        : p_(b.data())
+        , n_(b.size())
+    {
+        static_assert(
+            is_const_buffer<ConstBuffer>::value,
+            "ConstBuffer requirements not met");
     }
 
     void const*
@@ -206,7 +322,7 @@ public:
 
     buffers_pair(
         value_type b0,
-        value_type b1)
+        value_type b1) noexcept
         : b_{b0, b1}
     {
     }
