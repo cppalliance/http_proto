@@ -37,24 +37,24 @@ empty() const noexcept
 auto
 circular_buffer::
 data() const noexcept ->
-    buffers
+    const_buffers_pair
 {
     if(in_pos_ + in_len_ <= cap_)
         return {
-            mutable_buffer{
+            const_buffer{
                 base_ + in_pos_, in_len_ },
-            mutable_buffer{ base_, 0} };
+            const_buffer{ base_, 0} };
     return {
-        mutable_buffer{
+        const_buffer{
             base_ + in_pos_, cap_ - in_pos_},
-        mutable_buffer{
+        const_buffer{
             base_, in_len_- (cap_ - in_pos_)}};
 }
 
 auto
 circular_buffer::
 prepare() noexcept ->
-    buffers
+    mutable_buffers_pair
 {
     auto const n = cap_ - in_len_;
     auto const out_pos =

@@ -34,8 +34,7 @@ struct source
     virtual
     result<amount>
     read(
-        void* dest,
-        std::size_t size) = 0;
+        mutable_buffers_pair dest) = 0;
 };
 
 } // http_proto

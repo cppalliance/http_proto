@@ -71,17 +71,27 @@ reset(
     message_view_base const& m,
     Body&& body)
 {
-    ws_.clear();
     using T = typename
-        std::remove_reference<Body>::type;
+        std::decay<Body>::type;
+
+    // If you get an error here it means
+    // that your body type is not derived
+    // from source and is not a buffer
+    // sequence.
+    BOOST_STATIC_ASSERT(
+        is_const_buffers<T>::value ||
+        std::is_convertible<
+            T*, source*>::value);
+
+    ws_.clear();
     reset_impl(
         m,
         std::forward<Body>(body),
         std::integral_constant<
             bool,
             std::is_convertible<
-                T const*,
-                source const*>::value>{});
+                T*, source const*
+                    >::value>{});
 }
 
 template<class Source>
@@ -109,9 +119,12 @@ reset_impl(
     Buffers&& buffers,
     std::false_type)
 {
-    auto& bs = ws_.push(
+    auto bs0 = make_buffers(
         std::forward<Buffers>(
             buffers));
+    auto& bs = ws_.push(
+        std::forward<decltype(
+            bs0)>(bs0));
     auto n = std::distance(
         bs.begin(), bs.end());
     cb_ = ws_.push_array(

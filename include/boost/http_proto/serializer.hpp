@@ -107,6 +107,8 @@ public:
     //--------------------------------------------
 
     /** Reset the serializer for a new message
+
+        The message will not contain a body.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -114,8 +116,6 @@ public:
         message_view_base const& m);
 
     /** Reset the serializer for a new message
-
-        The message will not contain a body.
     */
     template<class Body>
     void

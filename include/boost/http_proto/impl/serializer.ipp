@@ -91,27 +91,15 @@ prepare() ->
     {
         // source body
         auto dest = buf_.prepare();
-        auto rv = src_->read(
-            dest.first.data(),
-            dest.first.size());
+        auto rv = src_->read(buf_.prepare());
         if(rv.has_error())
             return rv.error();
         buf_.commit(rv->bytes);
-        if( rv->more &&
-            dest.second.size() > 0)
-        {
-            rv = src_->read(
-                dest.second.data(),
-                dest.second.size());
-            if(rv.has_error())
-                return rv.error();
-            buf_.commit(rv->bytes);
-        }
         more_ = rv->more;
-        auto src = buf_.data();
-        cb_[n++] = src.first;
-        if(src.second.size() > 0)
-            cb_[n++] = src.first;
+        auto it = buf_.data().begin();
+        cb_[n++] = *it++;
+        if(it != buf_.data().end())
+            cb_[n++] = *it;
         return output_buffers(cb_, n);
     }
 

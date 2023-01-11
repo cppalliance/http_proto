@@ -82,6 +82,45 @@ struct serializer_test
         return s;
     }
 
+    template<class T>
+    static
+    T const&
+    make_const(T&& t) noexcept
+    {
+        return t;
+    }
+
+    void
+    testSyntax()
+    {
+        struct test_body : source
+        {
+            result<amount>
+            read(
+                mutable_buffers_pair) override
+            {
+                return {};
+            }
+        };
+
+        serializer sr(1024);
+        response res;
+
+        sr.reset(res);
+        sr.reset(res, const_buffer{});
+        sr.reset(res, mutable_buffer{});
+        sr.reset(res, const_buffers_1{});
+        sr.reset(res, mutable_buffers_1{});
+        sr.reset(res, test_body{});
+        sr.reset(res, make_const(const_buffer{}));
+        sr.reset(res, make_const(mutable_buffer{}));
+        sr.reset(res, make_const(const_buffers_1{}));
+        sr.reset(res, make_const(mutable_buffers_1{}));
+        sr.reset(res, make_const(test_body{}));
+
+
+    }
+
     void
     testOutput()
     {
@@ -97,6 +136,7 @@ struct serializer_test
     void
     run()
     {
+        testSyntax();
         testOutput();
     }
 };

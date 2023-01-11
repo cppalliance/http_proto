@@ -35,32 +35,29 @@ file_body(
 auto
 file_body::
 read(
-    void* dest,
-    std::size_t size) ->
+    mutable_buffers_pair dest) ->
         result<amount>
 {
     amount rv;
-    if(n_ > 0)
+    for(auto const& mb : dest)
     {
+        if(n_ == 0)
+            break;
         std::size_t n;
-        if( n_ >= size)
-            n = size;
+        if( n_ >= mb.size())
+            n = mb.size();
         else
             n = n_;
         error_code ec;
         n = f_.read(
-            dest, n, ec);
+            mb.data(), n, ec);
+        // VFALCO Partial success?
         if(ec.failed())
             return ec;
+        rv.bytes += n;
         n_ -= n;
-
-        rv.bytes = n;
-        rv.more = n_ > 0;
-        return rv;
     }
-
-    rv.bytes = 0;
-    rv.more = false;
+    rv.more = n_ > 0;
     return rv;
 }
 

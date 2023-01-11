@@ -24,12 +24,6 @@ class circular_buffer
     std::size_t in_len_ = 0;
 
 public:
-    struct buffers
-    {
-        mutable_buffer first;
-        mutable_buffer second;
-    };
-
     circular_buffer() = default;
     circular_buffer(
         circular_buffer const&) = default;
@@ -41,8 +35,8 @@ public:
         std::size_t capacity) noexcept;
 
     bool empty() const noexcept;
-    buffers data() const noexcept;
-    buffers prepare() noexcept;
+    const_buffers_pair data() const noexcept;
+    mutable_buffers_pair prepare() noexcept;
     void commit(std::size_t n) noexcept;
     void consume(std::size_t n) noexcept;
 };

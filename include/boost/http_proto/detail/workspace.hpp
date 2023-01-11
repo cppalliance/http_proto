@@ -125,10 +125,13 @@ public:
     }
 
     template<class T>
-    T&
-    push(T&& t)
+    auto
+    push(T&& t) ->
+        typename std::decay<T>::type&
     {
-        using U = any_t<T>;
+
+        using U = any_t<typename
+            std::decay<T>::type>;
         auto p = ::new(bump_down(
             sizeof(U), alignof(U))) U(
                 std::forward<T>(t));

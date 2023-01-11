@@ -48,8 +48,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     result<amount>
     read(
-        void* dest,
-        std::size_t size);
+        mutable_buffers_pair dest);
 };
 
 } // http_proto
