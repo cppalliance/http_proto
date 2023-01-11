@@ -46,37 +46,56 @@ struct asio_const_buffers
     asio_const_buffer const* end() const noexcept;
 };
 
+template<class T>
+using make_buffers_type =
+    decltype(make_buffers(std::declval<T>()));
+
 BOOST_STATIC_ASSERT(  is_const_buffer    <const_buffer>::value);
 BOOST_STATIC_ASSERT(  is_const_buffer    <mutable_buffer>::value);
 BOOST_STATIC_ASSERT(  is_const_buffer    <asio_const_buffer>::value);
 BOOST_STATIC_ASSERT(! is_const_buffer    <not_a_buffer>::value);
+
 BOOST_STATIC_ASSERT(! is_mutable_buffer  <const_buffer>::value);
 BOOST_STATIC_ASSERT(  is_mutable_buffer  <mutable_buffer>::value);
 BOOST_STATIC_ASSERT(  is_mutable_buffer  <asio_mutable_buffer>::value);
 BOOST_STATIC_ASSERT(! is_mutable_buffer  <not_a_buffer>::value);
 
+BOOST_STATIC_ASSERT(  is_const_buffers   <const_buffer>::value);
+BOOST_STATIC_ASSERT(  is_const_buffers   <mutable_buffer>::value);
 BOOST_STATIC_ASSERT(  is_const_buffers   <asio_const_buffers>::value);
 BOOST_STATIC_ASSERT(  is_const_buffers   <asio_mutable_buffers>::value);
+
+BOOST_STATIC_ASSERT(  is_mutable_buffers <mutable_buffer>::value);
 BOOST_STATIC_ASSERT(  is_mutable_buffers <asio_mutable_buffers>::value);
 BOOST_STATIC_ASSERT(! is_mutable_buffers <asio_const_buffers>::value);
 
-BOOST_STATIC_ASSERT(  is_const_buffers   <mutable_buffers_pair>::value);
-BOOST_STATIC_ASSERT(  is_mutable_buffers <mutable_buffers_pair>::value);
 BOOST_STATIC_ASSERT(  is_const_buffers   <const_buffers_pair>::value);
+BOOST_STATIC_ASSERT(  is_const_buffers   <mutable_buffers_pair>::value);
 BOOST_STATIC_ASSERT(! is_mutable_buffers <const_buffers_pair>::value);
+BOOST_STATIC_ASSERT(  is_mutable_buffers <mutable_buffers_pair>::value);
 
-class buffer_test
+BOOST_STATIC_ASSERT(  is_const_buffers   <make_buffers_type<const_buffer>>::value);
+BOOST_STATIC_ASSERT(  is_const_buffers   <make_buffers_type<mutable_buffer>>::value);
+BOOST_STATIC_ASSERT(! is_mutable_buffers <make_buffers_type<const_buffer>>::value);
+BOOST_STATIC_ASSERT(  is_mutable_buffers <make_buffers_type<mutable_buffer>>::value);
+
+BOOST_STATIC_ASSERT(std::is_same<const_buffers_1&&, make_buffers_type<const_buffers_1>>::value);
+BOOST_STATIC_ASSERT(std::is_same<mutable_buffers_1&&, make_buffers_type<mutable_buffers_1>>::value);
+BOOST_STATIC_ASSERT(std::is_same<const_buffers_1 const&&, make_buffers_type<const_buffers_1 const>>::value);
+BOOST_STATIC_ASSERT(std::is_same<mutable_buffers_1 const&&, make_buffers_type<mutable_buffers_1 const>>::value);
+
+BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, const_buffer>::value);
+BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, mutable_buffer>::value);
+BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_const_buffer>::value);
+BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_mutable_buffer>::value);
+BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, mutable_buffer>::value);
+BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, asio_mutable_buffer>::value);
+
+struct buffer_test
 {
-public:
-    void run()
+    void
+    run()
     {
-        const_buffer(const_buffer{});
-        const_buffer(mutable_buffer{});
-        const_buffer(asio_const_buffer{});
-        const_buffer(asio_mutable_buffer{});
-
-        mutable_buffer(mutable_buffer{});
-        mutable_buffer(asio_mutable_buffer{});
     }
 };
 

@@ -15,6 +15,7 @@
 #include <boost/type_traits/make_void.hpp>
 #include <cstdlib>
 #include <type_traits>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -80,7 +81,10 @@ struct is_buffers
 template<
     bool isConst, class T,
     class = void>
-struct is_buffers : std::false_type {};
+struct is_buffers
+    : is_buffer<isConst, T>
+{
+};
 
 template<
     bool isConst, class T>
@@ -242,6 +246,147 @@ public:
         return *this;
     }
 };
+
+//------------------------------------------------
+
+/** A ConstBuffer of length 1
+*/
+class const_buffers_1
+{
+    const_buffer cb_;
+
+public:
+    using value_type =
+        const_buffer;
+
+    using const_iterator =
+        const_buffer const*;
+
+    const_buffers_1() = default;
+
+    explicit
+    const_buffers_1(
+        const_buffer cb) noexcept
+        : cb_(cb)
+    {
+    }
+
+    const_buffers_1&
+    operator=(const_buffers_1 const&) = default;
+
+    const_iterator
+    begin() const noexcept
+    {
+        return &cb_;
+    }
+
+    const_iterator
+    end() const noexcept
+    {
+        return &cb_ + 1;
+    }
+};
+
+//------------------------------------------------
+
+/** A MutableBuffer of length 1
+*/
+class mutable_buffers_1
+{
+    mutable_buffer mb_;
+
+public:
+    using value_type =
+        mutable_buffer;
+
+    using const_iterator =
+        mutable_buffer const*;
+
+    mutable_buffers_1() = default;
+
+    explicit
+    mutable_buffers_1(
+        mutable_buffer mb) noexcept
+        : mb_(mb)
+    {
+    }
+
+    mutable_buffers_1&
+    operator=(
+        mutable_buffers_1 const&) = default;
+
+    const_iterator
+    begin() const noexcept
+    {
+        return &mb_;
+    }
+
+    const_iterator
+    end() const noexcept
+    {
+        return &mb_ + 1;
+    }
+};
+
+//------------------------------------------------
+
+template<
+    class ConstBuffer
+#ifndef BOOST_HTTP_PROTO_DOCS
+    ,class = typename std::enable_if<
+        is_const_buffer<
+            ConstBuffer>::value &&
+        ! is_mutable_buffer<
+            ConstBuffer>::value
+                >::type
+#endif
+>
+auto
+make_buffers(
+    ConstBuffer const& b) ->
+        const_buffers_1
+{
+    return const_buffers_1(
+        const_buffer(b));
+}
+
+template<
+    class MutableBuffer
+#ifndef BOOST_HTTP_PROTO_DOCS
+    ,class = typename std::enable_if<
+        is_mutable_buffer<
+            MutableBuffer>::value
+                >::type
+#endif
+>
+auto
+make_buffers(
+    MutableBuffer const& b) ->
+        mutable_buffers_1
+{
+    return mutable_buffers_1(
+        mutable_buffer(b));
+}
+
+template<
+    class Buffers
+#ifndef BOOST_HTTP_PROTO_DOCS
+    ,class = typename std::enable_if<
+        ! is_const_buffer<
+            Buffers>::value &&
+        is_const_buffers<
+            Buffers>::value
+                >::type
+#endif
+>
+auto
+make_buffers(
+    Buffers&& b) ->
+        Buffers&&
+{
+    return std::forward<
+        Buffers>(b);
+}
 
 //------------------------------------------------
 
