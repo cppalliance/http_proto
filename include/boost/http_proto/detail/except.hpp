@@ -22,6 +22,9 @@ BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_bad_alloc(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
 BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_invalid_argument(
+    source_location const& loc = BOOST_CURRENT_LOCATION);
+
+BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_invalid_argument(
     char const* what,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 

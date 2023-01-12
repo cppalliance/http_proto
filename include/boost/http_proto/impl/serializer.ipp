@@ -58,7 +58,13 @@ serializer(
 }
 
 //------------------------------------------------
+/*
+    Rendering pipeline:
 
+    buffers with source data ->
+    encoding transformation ->
+    chunking
+*/
 auto
 serializer::
 prepare() ->
@@ -68,45 +74,60 @@ prepare() ->
     if(is_done_)
         detail::throw_logic_error();
 
-    std::size_t n = 0;
-
-    if(hbuf_.size() > 0)
-    {
-        // header
-        cb_[n++] = hbuf_;
-        if( (! src_ && n == cbn_) ||
-            is_expect_continue_)
-        {
-            return output_buffers(cb_, n);
-        }
-    }
-    else if(is_expect_continue_)
-    {
-        is_expect_continue_ = false;
-        BOOST_HTTP_PROTO_RETURN_EC(
-            error::expect_100_continue);
-    }
-
     if(src_)
     {
         // source body
+        std::size_t n = 0;
+        if(hbuf_.size() > 0)
+        {
+            pp_[n++] = hbuf_;
+            if(is_expect_continue_)
+                return output_buffers(pp_, n);
+        }
+        else if(is_expect_continue_)
+        {
+            is_expect_continue_ = false;
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::expect_100_continue);
+        }
         auto dest = buf_.prepare();
         auto rv = src_->read(buf_.prepare());
+        // VFALCO partial success?
         if(rv.has_error())
             return rv.error();
         buf_.commit(rv->bytes);
         more_ = rv->more;
-        auto it = buf_.data().begin();
-        cb_[n++] = *it++;
-        if(it != buf_.data().end())
-            cb_[n++] = *it;
-        return output_buffers(cb_, n);
+        for(const_buffer b : buf_.data())
+            pp_[n++] = b;
+        return output_buffers(pp_, n);
     }
-
-    // buffers body
-    if(hbuf_.size() > 0)
-        return output_buffers(cb_, 1 + cbn_);
-    return output_buffers(cb_ + 1, cbn_);
+    else if(bp_)
+    {
+        // buffers body
+        std::size_t n = 0;
+        if(hbuf_.size() > 0)
+        {
+            pp_[n++] = hbuf_;
+            if(is_expect_continue_)
+                return output_buffers(pp_, n);
+        }
+        else if(is_expect_continue_)
+        {
+            is_expect_continue_ = false;
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::expect_100_continue);
+        }
+        for(std::size_t i = 0; i < bn_; ++i)
+            pp_[n++] = bp_[i];
+        return output_buffers(pp_, n);
+    }
+    else
+    {
+        // empty body
+        BOOST_ASSERT(hbuf_.size() > 0);
+        pp_[0] = hbuf_;
+        return output_buffers(pp_, 1);
+    }
 }
 
 void
@@ -114,56 +135,74 @@ serializer::
 consume(
     std::size_t n) noexcept
 {
-    auto p = cb_;
-
-    // header
-    if(hbuf_.size() > 0)
+    if(src_)
     {
+        // source body
+        if(hbuf_.size() > 0)
+        {
+            if(n < hbuf_.size())
+            {
+                hbuf_ += n;
+                return;
+            }
+            n -= hbuf_.size();
+            hbuf_ = {};
+        }
+        buf_.consume(n);
+        if( buf_.empty() &&
+                ! more_)
+            is_done_ = true;
+        return;
+    }
+    else if(bp_)
+    {
+        // buffers body
         if(n < hbuf_.size())
         {
             hbuf_ += n;
             return;
         }
-
         n -= hbuf_.size();
         hbuf_ = {};
-        ++p;
-    }
-
-    if(src_)
-    {
-        // source body
-        buf_.consume(n);
-
-        if( buf_.empty() &&
-            ! more_)
+        while(n > 0)
         {
-            is_done_ = true;
+            if(n < bp_->size())
+            {
+                *bp_ += n;
+                return;
+            }
+            n -= bp_->size();
+            ++bp_;
+            --bn_;
+            if(bn_ == 0)
+                break;
         }
+
+        // Precondition violation
+        if(n > 0)
+            detail::throw_invalid_argument();
+
+        is_done_ = true;
         return;
     }
-
-    auto p0 = p;
-    while(n > 0)
+    else
     {
-        if(n < p->size())
+        // empty body
+        BOOST_ASSERT(hbuf_.size() > 0);
+        if(n < hbuf_.size())
         {
-            std::size_t const i =
-                cb_ + cbn_ - p;
-            *p += n;
-            std::memmove(
-                p0,
-                p,
-                i * sizeof(*p));
-            cbn_ -= i;
+            hbuf_ += n;
+            return;
+        }
+        if(n == hbuf_.size())
+        {
+            is_done_ = true;
             return;
         }
 
-        n -= p->size();
-        ++n;
-        ++p;
+        // Precondition violation
+        detail::throw_invalid_argument();
     }
-    is_done_ = true;
 }
 
 auto
@@ -189,11 +228,10 @@ serializer::
 reset(
     message_view_base const& m)
 {
+    // no body
     ws_.clear();
-    cbn_ = 1;
-    cb_ = ws_.push_array(
-        cbn_, const_buffer{});
     src_ = nullptr;
+    bp_ = nullptr;
     reset_impl(m);
 }
 
@@ -209,6 +247,7 @@ reset_impl(
     //
     // m.ph_->md.maybe_throw();
 
+    // headers
     hbuf_ = { m.ph_->cbuf, m.ph_->size };
     is_done_ = false;
     is_expect_continue_ =
@@ -217,10 +256,26 @@ reset_impl(
     if(src_)
     {
         // source body
+        pn_ = 3;
+        pp_ = ws_.push_array(
+            pn_, const_buffer{});
         buf_ = { ws_.data(), ws_.size() };
+    }
+    else if(bp_)
+    {
+        // buffers body
+        pn_ = 1 + bn_;
+        pp_ = ws_.push_array(
+            pn_, const_buffer{});
     }
     else
     {
+        // empty body
+        pp_ = &hbuf_;
+        pn_ = 1;
+
+        // VFALCO What do we do with
+        // Expect: 100-continue?
     }
 }
 

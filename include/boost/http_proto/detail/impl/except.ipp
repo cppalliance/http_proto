@@ -28,6 +28,25 @@ throw_bad_alloc(
 }
 
 void
+throw_invalid_argument(
+    source_location const& loc)
+{
+    throw_exception(
+        std::invalid_argument(
+            "invalid argument"),
+        loc);
+}
+
+void
+throw_invalid_argument(
+    char const* what,
+    source_location const& loc)
+{
+    throw_exception(
+        std::invalid_argument(what), loc);
+}
+
+void
 throw_length_error(
     char const* what,
     source_location const& loc)
@@ -44,15 +63,6 @@ throw_logic_error(
         std::logic_error(
             "logic error"),
         loc);
-}
-
-void
-throw_invalid_argument(
-    char const* what,
-    source_location const& loc)
-{
-    throw_exception(
-        std::invalid_argument(what), loc);
 }
 
 void

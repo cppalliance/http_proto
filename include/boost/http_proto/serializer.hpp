@@ -109,6 +109,10 @@ public:
     /** Reset the serializer for a new message
 
         The message will not contain a body.
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -116,6 +120,11 @@ public:
         message_view_base const& m);
 
     /** Reset the serializer for a new message
+
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
     */
     template<class Body>
     void
@@ -144,13 +153,24 @@ private:
         std::false_type);
 
     detail::workspace ws_;
+
+    // headers
     const_buffer hbuf_;
-    const_buffer* cb_ = nullptr;
-    std::size_t cbn_ = 0;
+
+    // source body
+    source* src_ = nullptr;
+
+    // buffers body
+    const_buffer* bp_ = nullptr;
+    std::size_t bn_ = 0;
+
+    // prepare buffers
+    const_buffer* pp_ = nullptr;
+    std::size_t pn_ = 0;
+
     bool is_done_;
     bool is_expect_continue_;
 
-    source* src_ = nullptr;
     detail::circular_buffer buf_;
     bool more_ = false;
 };

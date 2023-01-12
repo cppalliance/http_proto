@@ -102,12 +102,10 @@ reset_impl(
     Source&& source,
     std::true_type)
 {
+    bp_ = nullptr;
     src_ = std::addressof(
         ws_.push(std::forward<
             Source>(source)));
-    cbn_ = 3;
-    cb_ = ws_.push_array(
-        cbn_, const_buffer{});
     reset_impl(m);
 }
 
@@ -119,20 +117,17 @@ reset_impl(
     Buffers&& buffers,
     std::false_type)
 {
-    auto bs0 = make_buffers(
-        std::forward<Buffers>(
-            buffers));
+    src_ = nullptr;
     auto& bs = ws_.push(
-        std::forward<decltype(
-            bs0)>(bs0));
+        make_buffers(std::forward<
+            Buffers>(buffers)));
     auto n = std::distance(
         bs.begin(), bs.end());
-    cb_ = ws_.push_array(
-        1 + n, const_buffer{});
-    cbn_ = 0;
+    bp_ = ws_.push_array(
+        n, const_buffer{});
+    bn_ = 0;
     for(const_buffer b : bs)
-        cb_[++cbn_] = b;
-    src_ = nullptr;
+        bp_[bn_++] = b;
     reset_impl(m);
 }
 
