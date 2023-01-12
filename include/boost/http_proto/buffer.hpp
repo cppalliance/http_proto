@@ -14,6 +14,7 @@
 #include <boost/config/workaround.hpp>
 #include <boost/type_traits/make_void.hpp>
 #include <cstdlib>
+#include <cstring>
 #include <type_traits>
 #include <utility>
 
@@ -138,15 +139,19 @@ public:
     {
     }
 
-    template<class MutableBuffer>
+    template<
+        class MutableBuffer
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename std::enable_if<
+            is_mutable_buffer<MutableBuffer
+                >::value>::type
+#endif
+    >
     mutable_buffer(
         MutableBuffer const& b) noexcept
         : p_(b.data())
         , n_(b.size())
     {
-        static_assert(
-            is_mutable_buffer<MutableBuffer>::value,
-            "MutableBuffer requirements not met");
     }
 
     void*
@@ -176,6 +181,40 @@ public:
         n_ -= n;
         return *this;
     }
+
+    friend
+    mutable_buffer
+    operator+(
+        mutable_buffer const& b,
+        std::size_t n) noexcept
+    {
+        if(n < b.size())
+            return {
+                static_cast<char*>(
+                    b.data()) + n,
+                b.size() - n };
+        return {
+            static_cast<char*>(
+                b.data()) + b.size(),
+            0 };
+    }
+
+    friend
+    mutable_buffer
+    operator+(
+        std::size_t n,
+        mutable_buffer const& b) noexcept
+    {
+        if(n < b.size())
+            return {
+                static_cast<char*>(
+                    b.data()) + n,
+                b.size() - n };
+        return {
+            static_cast<char*>(
+                b.data()) + b.size(),
+            0 };
+    }
 };
 
 //------------------------------------------------
@@ -200,22 +239,19 @@ public:
     {
     }
 
-    const_buffer(
-        mutable_buffer const& other) noexcept
-        : p_(other.data())
-        , n_(other.size())
-    {
-    }
-
-    template<class ConstBuffer>
+    template<
+        class ConstBuffer
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename std::enable_if<
+            is_const_buffer<ConstBuffer
+                >::value>::type
+#endif
+    >
     const_buffer(
         ConstBuffer const& b) noexcept
         : p_(b.data())
         , n_(b.size())
     {
-        static_assert(
-            is_const_buffer<ConstBuffer>::value,
-            "ConstBuffer requirements not met");
     }
 
     void const*
@@ -245,45 +281,39 @@ public:
         n_ -= n;
         return *this;
     }
-};
 
-//------------------------------------------------
-
-/** A ConstBuffer of length 1
-*/
-class const_buffers_1
-{
-    const_buffer cb_;
-
-public:
-    using value_type =
-        const_buffer;
-
-    using const_iterator =
-        const_buffer const*;
-
-    const_buffers_1() = default;
-
-    explicit
-    const_buffers_1(
-        const_buffer cb) noexcept
-        : cb_(cb)
+    friend
+    const_buffer
+    operator+(
+        const_buffer const& b,
+        std::size_t n) noexcept
     {
+        if(n < b.size())
+            return {
+                static_cast<char const*>(
+                    b.data()) + n,
+                b.size() - n };
+        return {
+            static_cast<char const*>(
+                b.data()) + b.size(),
+            0 };
     }
 
-    const_buffers_1&
-    operator=(const_buffers_1 const&) = default;
-
-    const_iterator
-    begin() const noexcept
+    friend
+    const_buffer
+    operator+(
+        std::size_t n,
+        const_buffer const& b) noexcept
     {
-        return &cb_;
-    }
-
-    const_iterator
-    end() const noexcept
-    {
-        return &cb_ + 1;
+        if(n < b.size())
+            return {
+                static_cast<char const*>(
+                    b.data()) + n,
+                b.size() - n };
+        return {
+            static_cast<char const*>(
+                b.data()) + b.size(),
+            0 };
     }
 };
 
@@ -325,6 +355,44 @@ public:
     end() const noexcept
     {
         return &mb_ + 1;
+    }
+};
+
+/** A ConstBuffer of length 1
+*/
+class const_buffers_1
+{
+    const_buffer cb_;
+
+public:
+    using value_type =
+        const_buffer;
+
+    using const_iterator =
+        const_buffer const*;
+
+    const_buffers_1() = default;
+
+    explicit
+    const_buffers_1(
+        const_buffer cb) noexcept
+        : cb_(cb)
+    {
+    }
+
+    const_buffers_1&
+    operator=(const_buffers_1 const&) = default;
+
+    const_iterator
+    begin() const noexcept
+    {
+        return &cb_;
+    }
+
+    const_iterator
+    end() const noexcept
+    {
+        return &cb_ + 1;
     }
 };
 
@@ -505,6 +573,105 @@ using mutable_buffers_pair =
 */
 using const_buffers_pair =
     buffers_pair<true>;
+
+//------------------------------------------------
+
+/** Return the total octets in a buffer sequence
+*/
+template<
+    class ConstBuffers
+#ifndef BOOST_HTTP_PROTO_DOCS
+    , class = typename std::enable_if<
+        is_const_buffers<ConstBuffers>::value
+    >::type
+#endif
+>
+std::size_t
+buffer_size(
+    ConstBuffers const& buffers) noexcept
+{
+    std::size_t n = 0;
+    for(const_buffer b
+            : make_buffers(buffers))
+        n += b.size();
+    return n;
+}
+
+//------------------------------------------------
+
+/** Copy buffer contents
+*/
+template<
+    class MutableBuffers,
+    class ConstBuffers>
+std::size_t
+buffer_copy(
+    MutableBuffers const& to,
+    ConstBuffers const& from,
+    std::size_t at_most =
+        std::size_t(-1)) noexcept
+{
+    // If you get a compile error here it
+    // means that one or both of your types
+    // do not meet the requirements.
+    static_assert(
+        is_mutable_buffers<MutableBuffers>::value &&
+        is_const_buffers<ConstBuffers>::value,
+        "Type requirements not met");
+
+    std::size_t total = 0;
+    std::size_t pos0 = 0;
+    std::size_t pos1 = 1;
+    auto const& bs0 = (make_buffers)(from);
+    auto const& bs1 = (make_buffers)(to);
+    auto const end0 = bs0.end();
+    auto const end1 = bs1.end();
+    auto it0 = bs0.begin();
+    auto it1 = bs1.begin();
+    while(
+        total < at_most &&
+        it0 != end0 &&
+        it1 != end1)
+    {
+        const_buffer b0 =
+            const_buffer(*it0) + pos0;
+        mutable_buffer b1 =
+            mutable_buffer(*it1) + pos1;
+        std::size_t amount =
+        [&]
+        {
+            std::size_t n = b0.size();
+            if( n > b1.size())
+                n = b1.size();
+            if( n > at_most - total)
+                n = at_most - total;
+            std::memcpy(
+                b1.data(),
+                b0.data(),
+                n);
+            return n;
+        }();
+        if(amount == b1.size())
+        {
+            ++it1;
+            pos1 = 0;
+        }
+        else
+        {
+            pos1 += amount;
+        }
+        if(amount == b0.size())
+        {
+            ++it0;
+            pos0 = 0;
+        }
+        else
+        {
+            pos0 += amount;
+        }
+    }
+    return total;
+}
 
 //------------------------------------------------
 

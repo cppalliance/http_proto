@@ -27,6 +27,7 @@ class workspace
     {
         any* next = nullptr;
 
+        BOOST_HTTP_PROTO_DECL
         virtual ~any() = 0;
     };
 

@@ -90,8 +90,8 @@ prepare() ->
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::expect_100_continue);
         }
-        auto dest = buf_.prepare();
-        auto rv = src_->read(buf_.prepare());
+        auto rv = src_->read(buf_.prepare(
+            buf_.capacity() - buf_.size()));
         // VFALCO partial success?
         if(rv.has_error())
             return rv.error();

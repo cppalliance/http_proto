@@ -119,7 +119,7 @@ reset_impl(
 {
     src_ = nullptr;
     auto& bs = ws_.push(
-        make_buffers(std::forward<
+        (make_buffers)(std::forward<
             Buffers>(buffers)));
     auto n = std::distance(
         bs.begin(), bs.end());

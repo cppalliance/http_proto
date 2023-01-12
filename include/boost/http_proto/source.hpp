@@ -28,6 +28,7 @@ struct source
         bool more = false;
     };
 
+    BOOST_HTTP_PROTO_DECL
     virtual
     ~source() = 0;
 

@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_CIRCULAR_BUFFER_IPP
 
 #include <boost/http_proto/detail/circular_buffer.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -34,6 +35,20 @@ empty() const noexcept
     return in_len_ == 0;
 }
 
+std::size_t
+circular_buffer::
+size() const noexcept
+{
+    return in_len_;
+}
+
+std::size_t
+circular_buffer::
+capacity() const noexcept
+{
+    return cap_;
+}
+
 auto
 circular_buffer::
 data() const noexcept ->
@@ -53,31 +68,37 @@ data() const noexcept ->
 
 auto
 circular_buffer::
-prepare() noexcept ->
+prepare(std::size_t n) ->
     mutable_buffers_pair
 {
-    auto const n = cap_ - in_len_;
-    auto const out_pos =
-        (in_pos_ + in_len_) % cap_;
-    if(out_pos + n <= cap_)
+    // Precondition violation
+    if(n > cap_ - in_len_)
+        detail::throw_length_error();
+    out_size_ = n;
+    auto const pos = (
+        in_pos_ + in_len_) % cap_;
+    if(pos + n <= cap_)
         return {
             mutable_buffer{
-                base_ + out_pos, n},
-            mutable_buffer{base_,
-                n - (cap_ - out_pos)} };
+                base_ + pos, n},
+            mutable_buffer{base_, 0}};
     return {
         mutable_buffer{
-            base_ + out_pos, cap_ - out_pos},
+            base_ + pos, cap_ - pos},
         mutable_buffer{
-            base_, n - (cap_ - out_pos)}};
+            base_, n - (cap_ - pos)}};
 }
 
 void
 circular_buffer::
-commit(std::size_t n) noexcept
+commit(std::size_t n)
 {
-    BOOST_ASSERT(n <= cap_ - in_len_);
+    // Precondition violation
+    if(n > out_size_)
+        detail::throw_length_error();
+
     in_len_ += n;
+    out_size_ = 0;
 }
 
 void

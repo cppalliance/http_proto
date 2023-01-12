@@ -22,6 +22,7 @@ class circular_buffer
     std::size_t cap_ = 0;
     std::size_t in_pos_ = 0;
     std::size_t in_len_ = 0;
+    std::size_t out_size_ = 0;
 
 public:
     circular_buffer() = default;
@@ -35,9 +36,11 @@ public:
         std::size_t capacity) noexcept;
 
     bool empty() const noexcept;
+    std::size_t size() const noexcept;
+    std::size_t capacity() const noexcept;
     const_buffers_pair data() const noexcept;
-    mutable_buffers_pair prepare() noexcept;
-    void commit(std::size_t n) noexcept;
+    mutable_buffers_pair prepare(std::size_t n);
+    void commit(std::size_t n);
     void consume(std::size_t n) noexcept;
 };
 

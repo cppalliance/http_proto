@@ -48,6 +48,15 @@ throw_invalid_argument(
 
 void
 throw_length_error(
+    source_location const& loc)
+{
+    throw_exception(
+        std::length_error(
+            "length error"), loc);
+}
+
+void
+throw_length_error(
     char const* what,
     source_location const& loc)
 {

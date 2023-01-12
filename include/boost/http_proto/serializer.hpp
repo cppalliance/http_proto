@@ -172,6 +172,7 @@ private:
     bool is_expect_continue_;
 
     detail::circular_buffer buf_;
+    detail::circular_buffer buf2_;
     bool more_ = false;
 };
 
