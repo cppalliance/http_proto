@@ -41,6 +41,7 @@ public:
     const_buffers_pair data() const noexcept;
     mutable_buffers_pair prepare(std::size_t n);
     void commit(std::size_t n);
+    void uncommit(std::size_t n);
     void consume(std::size_t n) noexcept;
 };
 

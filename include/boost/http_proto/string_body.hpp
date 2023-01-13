@@ -28,9 +28,15 @@ public:
     using const_iterator = const_buffer const*;
 
     string_body(
-        string_body&&) = default;
+        string_body&& other) noexcept
+        : s_(std::move(other.s_))
+        , cb_(s_.data(), s_.size())
+    {
+        other.cb_ = {};
+    }
+
     string_body(
-        string_body const&) = delete;
+        string_body const& other) = delete;
 
     string_body(
         std::string s) noexcept
@@ -48,7 +54,7 @@ public:
     const_iterator
     end() const noexcept
     {
-        return (&cb_) + 1;
+        return &cb_ + 1;
     }
 };
 

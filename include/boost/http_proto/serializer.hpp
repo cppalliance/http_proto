@@ -15,6 +15,7 @@
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/circular_buffer.hpp>
+#include <boost/http_proto/detail/consuming_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <cstdint>
@@ -54,6 +55,11 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
+    serializer();
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
     explicit
     serializer(
         std::size_t buffer_size);
@@ -88,7 +94,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    consume(std::size_t n) noexcept;
+    consume(std::size_t n);
 
     /** Return the input area.
     */
@@ -114,10 +120,12 @@ public:
         @ref is_done returns `true` results in
         undefined behavior.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     reset(
-        message_view_base const& m);
+        message_view_base const& m)
+    {
+        reset_empty_impl(m);
+    }
 
     /** Reset the serializer for a new message
 
@@ -133,47 +141,77 @@ public:
         Body&& body);
 
 private:
+    void do_reserve(source&, std::size_t);
+
     BOOST_HTTP_PROTO_DECL
     void
-    reset_impl(
-        message_view_base const& m);
+    reset_source_impl(
+        message_view_base const&,
+        source*);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset_buffers_impl(
+        message_view_base const&,
+        const_buffer*,
+        std::size_t);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset_empty_impl(
+        message_view_base const&);
 
     template<class Source>
-    void
+    auto
     reset_impl(
-        message_view_base const& m,
-        Source&& source,
-        std::true_type);
+        message_view_base const&,
+        Source&&,
+        std::true_type) ->
+            typename std::decay<
+                Source>::type;
 
     template<class Buffers>
     void
     reset_impl(
-        message_view_base const& m,
-        Buffers&& buffers,
+        message_view_base const&,
+        Buffers&&,
         std::false_type);
 
+    enum class style
+    {
+        empty,
+        buffers,
+        source
+    };
+
+    static
+    constexpr
+    std::size_t
+    chunked_overhead_ =
+        16 +        // size
+        2 +         // CRLF
+        2 +         // CRLF
+        1 +         // "0"
+        2 +         // CRLF
+        2;          // CRLF
+
+    class reserve;
+
     detail::workspace ws_;
+    const_buffer*   hp_;  // header
+    const_buffer*   pp_;
+    std::size_t     pn_;
+    source*         src_;
 
-    // headers
-    const_buffer hbuf_;
+    detail::circular_buffer dat1_;
+    detail::circular_buffer dat2_;
 
-    // source body
-    source* src_ = nullptr;
-
-    // buffers body
-    const_buffer* bp_ = nullptr;
-    std::size_t bn_ = 0;
-
-    // prepare buffers
-    const_buffer* pp_ = nullptr;
-    std::size_t pn_ = 0;
-
+    style st_;
+    bool more_;
     bool is_done_;
+    bool is_chunked_;
     bool is_expect_continue_;
-
-    detail::circular_buffer buf_;
-    detail::circular_buffer buf2_;
-    bool more_ = false;
+    bool is_reserving_ = false;
 };
 
 //------------------------------------------------

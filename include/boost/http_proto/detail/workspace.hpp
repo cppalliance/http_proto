@@ -125,6 +125,14 @@ public:
         return head_ - begin_;
     }
 
+    BOOST_HTTP_PROTO_DECL
+    void
+    clear() noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void*
+    reserve(std::size_t n);
+
     template<class T>
     auto
     push(T&& t) ->
@@ -159,10 +167,6 @@ public:
             unsigned char*>(p);
         return p->data();
     }
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    clear() noexcept;
 
 private:
     // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html

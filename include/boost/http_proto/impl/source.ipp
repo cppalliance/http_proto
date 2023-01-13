@@ -16,7 +16,19 @@ namespace boost {
 namespace http_proto {
 
 source::
+reserve_fn::
+~reserve_fn() = default;
+
+source::
 ~source() = default;
+
+void
+source::
+maybe_reserve(
+    std::size_t,
+    reserve_fn const&)
+{
+}
 
 } // http_proto
 } // boost

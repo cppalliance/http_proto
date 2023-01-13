@@ -103,6 +103,19 @@ commit(std::size_t n)
 
 void
 circular_buffer::
+uncommit(
+    std::size_t n)
+{
+    // Precondition violation
+    if( n > in_len_ ||
+        out_size_ > 0)
+        detail::throw_length_error();
+
+    in_len_ -= n;
+}
+
+void
+circular_buffer::
 consume(std::size_t n) noexcept
 {
     if(n < in_len_)

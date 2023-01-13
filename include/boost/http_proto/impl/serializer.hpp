@@ -90,23 +90,25 @@ reset(
         std::integral_constant<
             bool,
             std::is_convertible<
-                T*, source const*
+                T*, source*
                     >::value>{});
 }
 
 template<class Source>
-void
+auto
 serializer::
 reset_impl(
     message_view_base const& m,
     Source&& source,
-    std::true_type)
+    std::true_type) ->
+        typename std::decay<Source>::type
 {
-    bp_ = nullptr;
-    src_ = std::addressof(
-        ws_.push(std::forward<
-            Source>(source)));
-    reset_impl(m);
+    auto& rv = ws_.push(
+        std::forward<
+            Source>(source));
+    reset_source_impl(
+        m, std::addressof(rv));
+    return rv;
 }
 
 template<class Buffers>
@@ -117,18 +119,21 @@ reset_impl(
     Buffers&& buffers,
     std::false_type)
 {
-    src_ = nullptr;
     auto& bs = ws_.push(
         (make_buffers)(std::forward<
             Buffers>(buffers)));
-    auto n = std::distance(
-        bs.begin(), bs.end());
-    bp_ = ws_.push_array(
-        n, const_buffer{});
-    bn_ = 0;
+    std::size_t const pn =
+        1 +
+        1 + // chunk header
+        std::distance(
+            bs.begin(), bs.end()) +
+        1; // final chunk
+    auto const pp = ws_.push_array(
+        pn, const_buffer{});
+    auto p = pp + 2;
     for(const_buffer b : bs)
-        bp_[bn_++] = b;
-    reset_impl(m);
+        *p++ = b;
+    reset_buffers_impl(m, pp, pn);
 }
 
 } // http_proto

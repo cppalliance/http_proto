@@ -20,8 +20,44 @@ namespace http_proto {
 
 /** A source of body data
 */
-struct source
+struct BOOST_SYMBOL_VISIBLE
+    source
 {
+    /** A function to reserve a buffer
+
+        This function object may be called
+        up to one time to reserve intermediate
+        storage.
+    */
+    struct BOOST_SYMBOL_VISIBLE
+        reserve_fn
+    {
+        /** Return a buffer of at least n bytes.
+
+            This function reserves space for
+            a buffer of at least `n` bytes in
+            size. If there is insufficient space
+            available, an exception is thrown.
+            Undefined behavior results if this
+            function is invoked more than once.
+
+            @par Exceptions
+            Calls to allocate may throw.
+
+            @param n The size of the buffer.
+        */
+        BOOST_HTTP_PROTO_DECL
+        virtual
+        void*
+        operator()(
+            std::size_t n) const = 0;
+
+    protected:
+        virtual ~reserve_fn() = 0;
+    };
+
+    /** The results of reading from the source.
+    */
     struct results
     {
         error_code ec;
@@ -29,10 +65,49 @@ struct source
         bool more = false;
     };
 
+    /** Destructor
+    */
     BOOST_HTTP_PROTO_DECL
     virtual
     ~source() = 0;
 
+    /** Called to allow the source to reserve memory.
+
+        This function is invoked once before
+        serialization begins to give the source
+        an opportunity to reserve temporary
+        storage. The default implementation
+        does nothing.
+        <br>
+        The `reserve` function object only
+        remains valid until `maybe_reserve`
+        returns.
+
+        @param limit The maximum number of bytes
+        which may be reserved.
+
+        @param reserve A function object to
+        invoke up to one time in order to
+        obtain a buffer.
+    */
+    BOOST_HTTP_PROTO_DECL
+    virtual
+    void
+    maybe_reserve(
+        std::size_t limit,
+        reserve_fn const& reserve);
+
+    /** Called when more data is required
+
+        This function is invoked when more data
+        is required. The subclass should place
+        zero or more bytes into the buffers
+        referenced by `dest`, and return a
+        `results` value with the members set
+        appropriately.
+        <br>
+        Partial success is possible.
+    */
     virtual
     results
     read(

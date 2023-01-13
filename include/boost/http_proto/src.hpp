@@ -26,6 +26,7 @@ in a translation unit of the program.
 //#include <boost/http_proto.hpp>
 
 #include <boost/http_proto/detail/impl/circular_buffer.ipp>
+#include <boost/http_proto/detail/impl/consuming_buffers.ipp>
 #include <boost/http_proto/detail/impl/except.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>
 #include <boost/http_proto/detail/impl/workspace.ipp>

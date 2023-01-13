@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_BUFFER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/assert.hpp>
 #include <boost/config/workaround.hpp>
 #include <boost/type_traits/make_void.hpp>
 #include <cstdlib>
@@ -536,14 +537,30 @@ public:
     buffers_pair(
         value_type b0,
         value_type b1) noexcept
-        : b_{b0, b1}
     {
+        if(b0.size() > 0)
+        {
+            b_[0] = b0;
+            b_[1] = b1;
+        }
+        else
+        {
+            b_[0] = b1;
+        }
+    }
+
+    const_buffer
+    operator[](
+        std::size_t i) const noexcept
+    {
+        BOOST_ASSERT(i < 2);
+        return b_[i];
     }
 
     const_iterator
     begin() const noexcept
     {
-        return &b_[0];
+        return b_;
     }
 
     const_iterator
@@ -553,7 +570,7 @@ public:
             return &b_[2];
         if(b_[0].size() > 0)
             return &b_[1];
-        return begin();
+        return b_;
     }
 
 private:
@@ -621,7 +638,7 @@ buffer_copy(
 
     std::size_t total = 0;
     std::size_t pos0 = 0;
-    std::size_t pos1 = 1;
+    std::size_t pos1 = 0;
     auto const& bs0 = (make_buffers)(from);
     auto const& bs1 = (make_buffers)(to);
     auto const end0 = bs0.end();
@@ -651,6 +668,7 @@ buffer_copy(
                 n);
             return n;
         }();
+        total += amount;
         if(amount == b1.size())
         {
             ++it1;
