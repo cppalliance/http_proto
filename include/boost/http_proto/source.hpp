@@ -22,8 +22,9 @@ namespace http_proto {
 */
 struct source
 {
-    struct amount
+    struct results
     {
+        error_code ec;
         std::size_t bytes = 0;
         bool more = false;
     };
@@ -33,7 +34,7 @@ struct source
     ~source() = 0;
 
     virtual
-    result<amount>
+    results
     read(
         mutable_buffers_pair dest) = 0;
 };

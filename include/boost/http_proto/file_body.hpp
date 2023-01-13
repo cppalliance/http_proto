@@ -46,7 +46,7 @@ public:
             std::uint64_t(-1)) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    result<amount>
+    results
     read(
         mutable_buffers_pair dest);
 };

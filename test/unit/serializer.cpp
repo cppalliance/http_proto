@@ -95,7 +95,7 @@ struct serializer_test
     {
         struct test_body : source
         {
-            result<amount>
+            results
             read(
                 mutable_buffers_pair) override
             {

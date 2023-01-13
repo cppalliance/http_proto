@@ -25,7 +25,7 @@ class string_body
     const_buffer cb_;
 
 public:
-    using iterator = const_buffer const*;
+    using const_iterator = const_buffer const*;
 
     string_body(
         string_body&&) = default;
@@ -39,13 +39,13 @@ public:
     {
     }
 
-    iterator
+    const_iterator
     begin() const noexcept
     {
         return &cb_;
     }
 
-    iterator
+    const_iterator
     end() const noexcept
     {
         return (&cb_) + 1;

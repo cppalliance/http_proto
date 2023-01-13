@@ -92,11 +92,10 @@ prepare() ->
         }
         auto rv = src_->read(buf_.prepare(
             buf_.capacity() - buf_.size()));
-        // VFALCO partial success?
-        if(rv.has_error())
-            return rv.error();
-        buf_.commit(rv->bytes);
-        more_ = rv->more;
+        buf_.commit(rv.bytes);
+        if(rv.ec.failed())
+            return rv.ec;
+        more_ = rv.more;
         for(const_buffer b : buf_.data())
             pp_[n++] = b;
         return output_buffers(pp_, n);

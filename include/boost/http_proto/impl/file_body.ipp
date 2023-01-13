@@ -36,9 +36,9 @@ auto
 file_body::
 read(
     mutable_buffers_pair dest) ->
-        result<amount>
+        results
 {
-    amount rv;
+    results rv;
     for(auto const& mb : dest)
     {
         if(n_ == 0)
@@ -48,16 +48,14 @@ read(
             n = mb.size();
         else
             n = n_;
-        error_code ec;
         n = f_.read(
-            mb.data(), n, ec);
-        // VFALCO Partial success?
-        if(ec.failed())
-            return ec;
+            mb.data(), n, rv.ec);
         rv.bytes += n;
         n_ -= n;
+        rv.more = n_ > 0;
+        if(rv.ec.failed())
+            return rv;
     }
-    rv.more = n_ > 0;
     return rv;
 }
 
