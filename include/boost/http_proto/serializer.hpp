@@ -29,8 +29,13 @@ class request;
 class response;
 class request_view;
 class response_view;
-
 class message_view_base;
+struct brotli_decoder_t;
+struct brotli_encoder_t;
+struct deflate_decoder_t;
+struct deflate_encoder_t;
+struct gzip_decoder_t;
+struct gzip_encoder_t;
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -43,7 +48,7 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
-    class output_buffers;
+    class output;
     using input_buffers =
         mutable_buffers_pair;
 
@@ -63,6 +68,14 @@ public:
     explicit
     serializer(
         std::size_t buffer_size);
+
+    /** Constructor
+    */
+    template<class P0, class... Pn>
+    serializer(
+        std::size_t buffer_size,
+        P0&& p0,
+        Pn&&... pn);
 
     //--------------------------------------------
 
@@ -88,7 +101,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<output_buffers>;
+        result<output>;
 
     /** Consume bytes from the output area.
     */
@@ -134,14 +147,79 @@ public:
         @ref is_done returns `true` results in
         undefined behavior.
     */
-    template<class Body>
+    template<
+        class Source
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename
+            std::enable_if<
+                is_source<Source
+                    >::value>::type
+#endif
+    >
+    auto
+    reset(
+        message_view_base const& m,
+        Source&& body) ->
+            typename std::decay<
+                Source>::type&;
+
+    /** Reset the serializer for a new message
+
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
+
+        @par Constraints
+        @code
+        is_const_buffers< ConstBuffers >::value == true
+        @endcode
+    */
+    template<
+        class ConstBuffers
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename
+            std::enable_if<
+                is_const_buffers<
+                    ConstBuffers>::value
+                        >::type
+#endif
+    >
     void
     reset(
         message_view_base const& m,
-        Body&& body);
+        ConstBuffers&& body);    
 
 private:
-    void do_reserve(source&, std::size_t);
+    void apply_params() noexcept;
+
+    template<
+        class P0,
+        class... Pn>
+    void
+    apply_params(
+        P0&&, Pn&&...);
+
+    template<class Param>
+    void
+    apply_param(
+        Param const&) = delete;
+
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(brotli_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(brotli_encoder_t const&);
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(deflate_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(deflate_encoder_t const&);
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(gzip_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void
+        apply_param(gzip_encoder_t const&);
+
+    void do_reserve(
+        source&, std::size_t);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -160,22 +238,6 @@ private:
     void
     reset_empty_impl(
         message_view_base const&);
-
-    template<class Source>
-    auto
-    reset_impl(
-        message_view_base const&,
-        Source&&,
-        std::true_type) ->
-            typename std::decay<
-                Source>::type;
-
-    template<class Buffers>
-    void
-    reset_impl(
-        message_view_base const&,
-        Buffers&&,
-        std::false_type);
 
     enum class style
     {

@@ -19,90 +19,6 @@ namespace boost {
 namespace http_proto {
 
 //------------------------------------------------
-/*
-
-serializer sr;
-sr.reset( headers, std::move( body ) );
-//---
-while( ! sr.done() )
-{
-  auto buffers = sr.prepare().value();
-  std::size_t n = sock.write_some( buffers );
-  sr.consume( n );
-}
-
-*/
-//------------------------------------------------
-/*
-
-serializer sr;
-...
-while( ! sr.is_done() )
-{
-  auto rv = sr.prepare();
-  if( rv.has_error() )
-  {
-    if(rv.error() != error::need_data )
-        rv.value();
-
-    std::size_t bytes_transferred = get_next_body_buffers( sr.data() )
-    sr.commit( bytes_transferred )
-    continue;
-  }
-
-  asio::write( sock, *rv );
-}
-
-*/
-//------------------------------------------------
-/*
-
-serializer sr;
-...
-while( ! sr.is_done() )
-{
-    // get_next_buffers blocks
-    //
-    sr.set_data( get_next_buffers() );
-
-    auto rv = sr.prepare();
-    if(rv.has_error())
-    {
-        if(rv.error() != error::need_data)
-            rv.value(); // throw
-        continue;
-    }
-
-    auto n = asio::write( *rv );
-    sr.consume( n );
-}
-
-*/
-//------------------------------------------------
-/*
-
-source body
-    source*
-    circular_buffer
-
-    * read from source into buffer 1
-    * write 0 chunk size to buffer 2
-    * apply codec with results in buffer 2
-        - leave room for trailing CRLF
-    * overwrite chunk size with correct value
-    * append CRLF
-
-buffer body
-    const_buffer[]
-
-    * write 0 chunk size to buffer 2
-    * apply codec with results in buffer 2
-        - leave room for trailing CRLF
-    * overwrite chunk size with correct value
-    * append CRLF
-
-*/
-//------------------------------------------------
 
 void
 consume_buffers(
@@ -219,7 +135,7 @@ serializer(
 auto
 serializer::
 prepare() ->
-    result<output_buffers>
+    result<output>
 {
     // Precondition violation
     if(is_done_)
@@ -230,7 +146,7 @@ prepare() ->
     {
         BOOST_ASSERT(hp_ != nullptr);
         if(hp_->size() > 0)
-            return output_buffers(hp_, 1);
+            return output(hp_, 1);
         is_expect_continue_ = false;
         hp_ = nullptr;
         BOOST_HTTP_PROTO_RETURN_EC(
@@ -295,16 +211,16 @@ prepare() ->
             ++n;
         for(const_buffer b : dat1_.data())
             pp_[n++] = b;
-        return output_buffers(pp_, n);
+        return output(pp_, n);
     }
     else if(st_ == style::buffers)
     {
-        return output_buffers(pp_, pn_);
+        return output(pp_, pn_);
     }
     //else if(st_ == style::empty)
     {
         BOOST_ASSERT(st_ == style::empty);
-        return output_buffers(pp_, pn_);
+        return output(pp_, pn_);
     }
 }
 
@@ -390,6 +306,50 @@ commit(
 {
     (void)bytes;
     (void)end;
+}
+
+//------------------------------------------------
+
+void
+serializer::
+apply_param(
+    brotli_decoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    brotli_encoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    deflate_decoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    deflate_encoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    gzip_decoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    gzip_encoder_t const&)
+{
 }
 
 //------------------------------------------------

@@ -10,6 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
 
+#include <boost/http_proto/gzip.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -124,6 +125,11 @@ struct serializer_test
         sr.reset(res, make_const(const_buffers_1{}));
         sr.reset(res, make_const(mutable_buffers_1{}));
         sr.reset(res, make_const(test_source{}));
+
+        serializer(65536);
+        serializer(65536, gzip_decoder);
+        serializer(65536, gzip_encoder);
+        serializer(65536, gzip_decoder, gzip_encoder);
     }
 
     //--------------------------------------------
@@ -293,7 +299,7 @@ struct serializer_test
                 "\r\n");
             sr.reset(req, test_source{});
             std::string s;
-            result<serializer::output_buffers> rv;
+            result<serializer::output> rv;
             for(;;)
             {
                 rv = sr.prepare();
@@ -334,7 +340,7 @@ struct serializer_test
                 "\r\n");
             sr.reset(req);
             std::string s;
-            result<serializer::output_buffers> rv;
+            result<serializer::output> rv;
             for(;;)
             {
                 rv = sr.prepare();

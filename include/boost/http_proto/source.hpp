@@ -114,6 +114,22 @@ struct BOOST_SYMBOL_VISIBLE
         mutable_buffers_pair dest) = 0;
 };
 
+/** Metafunction which determines if T is a source
+
+    @see
+        @ref source.
+*/
+#ifdef BOOST_HTTP_PROTO_DOCS
+template<class T>
+using is_source = __see_below__;
+#else
+template<class T>
+using is_source =
+    std::is_convertible<
+        typename std::decay<T>::type*,
+        source*>;
+#endif
+
 } // http_proto
 } // boost
 

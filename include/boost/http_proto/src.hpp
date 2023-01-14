@@ -56,11 +56,6 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/status.ipp>
 #include <boost/http_proto/impl/version.ipp>
 
-#include <boost/http_proto/codec/impl/codecs.ipp>
-#include <boost/http_proto/codec/impl/decoder.ipp>
-#include <boost/http_proto/codec/impl/deflate_service.ipp>
-#include <boost/http_proto/codec/impl/encoder.ipp>
-
 #include <boost/http_proto/rfc/impl/combine_field_values.ipp>
 #include <boost/http_proto/rfc/impl/parameter.ipp>
 #include <boost/http_proto/rfc/impl/quoted_token_rule.ipp>

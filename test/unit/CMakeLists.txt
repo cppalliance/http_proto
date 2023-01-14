@@ -50,10 +50,6 @@ set(PFILES
     string_body.cpp
     string_view.cpp
     version.cpp
-    codec/codecs.cpp
-    codec/decoder.cpp
-    codec/deflate_service.cpp
-    codec/encoder.cpp
     #rfc/chunk_ext_rule.cpp
     rfc/combine_field_values.cpp
     rfc/list_rule.cpp

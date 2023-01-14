@@ -42,6 +42,7 @@
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__is_source">is_source</link></member>
         </simplelist>
       </entry>
      
@@ -77,6 +78,15 @@
           <member><link linkend="http_proto.ref.boost__http_proto__status">status</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__status_class">status_class</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__version">version</link></member>
+        </simplelist>
+        <bridgehead renderas="sect3">Codecs</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__brotli_decoder">brotli_decoder</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__brotli_encoder">brotli_encoder</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__deflate_decoder">deflate_decoder</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__deflate_encoder">deflate_encoder</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__gzip_decoder">gzip_decoder</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__gzip_encoder">gzip_encoder</link></member>
         </simplelist>
       </entry>
       <entry valign="top">

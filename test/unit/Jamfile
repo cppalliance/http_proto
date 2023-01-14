@@ -55,10 +55,6 @@ local SOURCES =
     string_view.cpp
     test_helpers.cpp
     version.cpp
-    codec/codecs.cpp
-    codec/decoder.cpp
-    codec/deflate_service.cpp
-    codec/encoder.cpp
     rfc/combine_field_values.cpp
     rfc/list_rule.cpp
     rfc/parameter.cpp

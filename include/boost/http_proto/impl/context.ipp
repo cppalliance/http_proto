@@ -18,10 +18,6 @@
 namespace boost {
 namespace http_proto {
 
-namespace detail {
-codecs& install_codecs_service(context& ctx);
-} // detail
-
 struct context::data
 {
     // Installed services
@@ -42,7 +38,6 @@ context::
 context() noexcept
     : p_(new data)
 {
-    codecs_ = &detail::install_codecs_service(*this);
 }
 
 //------------------------------------------------

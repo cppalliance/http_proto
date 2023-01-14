@@ -19,14 +19,14 @@ namespace boost {
 namespace http_proto {
 
 class serializer::
-    output_buffers
+    output
 {
     std::size_t n_ = 0;
     const_buffer const* p_ = nullptr;
 
     friend class serializer;
 
-    output_buffers(
+    output(
         const_buffer const* p,
         std::size_t n) noexcept
         : n_(n)
@@ -43,11 +43,11 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    output_buffers() = default;
-    output_buffers(
-        output_buffers const&) = default;
-    output_buffers& operator=(
-        output_buffers const&) = default;
+    output() = default;
+    output(
+        output const&) = default;
+    output& operator=(
+        output const&) = default;
 
     iterator
     begin() const noexcept
@@ -64,45 +64,61 @@ public:
 
 //------------------------------------------------
 
-template<class Body>
+template<
+    class P0,
+    class... Pn>
+serializer::
+serializer(
+    std::size_t buffer_size,
+    P0&& p0,
+    Pn&&... pn)
+    : serializer(buffer_size)
+{
+    apply_params(
+        std::forward<P0>(p0),
+        std::forward<Pn>(pn)...);
+}
+
+//------------------------------------------------
+
+inline
 void
+serializer::
+apply_params() noexcept
+{
+}
+
+template<
+    class P0,
+    class... Pn>
+void
+serializer::
+apply_params(
+    P0&& p0,
+    Pn&&... pn)
+{
+    // If you get an error here it means
+    // you passed an unknown parameter type.
+    apply_param(std::forward<P0>(p0));
+
+    apply_params(
+        std::forward<Pn>(pn)...);
+}
+
+//------------------------------------------------
+
+template<
+    class Source,
+    class>
+auto
 serializer::
 reset(
     message_view_base const& m,
-    Body&& body)
+    Source&& source) ->
+        typename std::decay<
+            Source>::type&
 {
-    using T = typename
-        std::decay<Body>::type;
-
-    // If you get an error here it means
-    // that your body type is not derived
-    // from source and is not a buffer
-    // sequence.
-    BOOST_STATIC_ASSERT(
-        is_const_buffers<T>::value ||
-        std::is_convertible<
-            T*, source*>::value);
-
     ws_.clear();
-    reset_impl(
-        m,
-        std::forward<Body>(body),
-        std::integral_constant<
-            bool,
-            std::is_convertible<
-                T*, source*
-                    >::value>{});
-}
-
-template<class Source>
-auto
-serializer::
-reset_impl(
-    message_view_base const& m,
-    Source&& source,
-    std::true_type) ->
-        typename std::decay<Source>::type
-{
     auto& rv = ws_.push(
         std::forward<
             Source>(source));
@@ -111,17 +127,19 @@ reset_impl(
     return rv;
 }
 
-template<class Buffers>
+template<
+    class ConstBuffers,
+    class>
 void
 serializer::
-reset_impl(
+reset(
     message_view_base const& m,
-    Buffers&& buffers,
-    std::false_type)
+    ConstBuffers&& body)   
 {
+    ws_.clear();
     auto& bs = ws_.push(
         (make_buffers)(std::forward<
-            Buffers>(buffers)));
+            ConstBuffers>(body)));
     std::size_t const pn =
         1 +
         1 + // chunk header
