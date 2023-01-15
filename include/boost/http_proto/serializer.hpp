@@ -36,6 +36,9 @@ struct deflate_decoder_t;
 struct deflate_encoder_t;
 struct gzip_decoder_t;
 struct gzip_encoder_t;
+namespace detail {
+struct codec;
+} // detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -294,6 +297,13 @@ private:
         stream
     };
 
+    enum
+    {
+        br_codec = 0,
+        deflate_codec = 1,
+        gzip_codec = 2
+    };
+
     static
     constexpr
     std::size_t
@@ -315,6 +325,9 @@ private:
 
     detail::circular_buffer dat1_;
     detail::circular_buffer dat2_;
+
+    detail::codec* dec_[3]{};
+    detail::codec* enc_[3]{};
 
     style st_;
     bool more_;

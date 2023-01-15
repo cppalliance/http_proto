@@ -67,4 +67,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
 target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra)
-target_link_libraries(boost_http_proto_tests PRIVATE Boost::http_proto Boost::filesystem)
+target_link_libraries(
+    boost_http_proto_tests PRIVATE
+    Boost::http_proto
+    Boost::filesystem
+    ZLIB::ZLIB)

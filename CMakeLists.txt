@@ -35,6 +35,9 @@ if(BOOST_HTTP_PROTO_IS_ROOT)
     unset(CMAKE_FOLDER)
 endif()
 
+find_package(ZLIB REQUIRED)
+#target_link_libraries(main PRIVATE ZLIB::ZLIB)
+
 function(boost_http_proto_setup_properties target)
     target_compile_features(${target} PUBLIC cxx_constexpr)
     target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_NO_LIB=1)
@@ -63,6 +66,7 @@ function(boost_http_proto_setup_properties target)
             Boost::url
             Boost::utility
             Boost::winapi
+            ZLIB::ZLIB
     )
 endfunction()
 

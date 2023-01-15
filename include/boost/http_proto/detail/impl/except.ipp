@@ -83,6 +83,15 @@ throw_out_of_range(
 }
 
 void
+throw_runtime_error(
+    char const* what,
+    source_location const& loc)
+{
+    throw_exception(
+        std::runtime_error(what), loc);
+}
+
+void
 throw_system_error(
     error_code const& ec,
     source_location const& loc)

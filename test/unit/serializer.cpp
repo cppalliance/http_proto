@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include <zlib.h>
+
 namespace boost {
 namespace http_proto {
 

@@ -26,8 +26,10 @@ in a translation unit of the program.
 //#include <boost/http_proto.hpp>
 
 #include <boost/http_proto/detail/impl/circular_buffer.ipp>
+#include <boost/http_proto/detail/impl/codec.ipp>
 #include <boost/http_proto/detail/impl/consuming_buffers.ipp>
 #include <boost/http_proto/detail/impl/except.ipp>
+#include <boost/http_proto/detail/impl/gzip_codec.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>
 #include <boost/http_proto/detail/impl/workspace.ipp>
 
@@ -66,12 +68,5 @@ in a translation unit of the program.
 
 #include <boost/http_proto/service/impl/mime_types_service.ipp>
 #include <boost/http_proto/service/impl/service.ipp>
-
-// VFALCO These are tucked away here temporarily
-#if 0
-#include <boost/beast/zlib/detail/deflate_stream.ipp>
-#include <boost/beast/zlib/detail/inflate_stream.ipp>
-#include <boost/beast/zlib/impl/error.ipp>
-#endif
 
 #endif

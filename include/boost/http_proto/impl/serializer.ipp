@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/detail/gzip_codec.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
 
@@ -335,6 +336,8 @@ serializer::
 apply_param(
     gzip_decoder_t const&)
 {
+    dec_[gzip_codec] = &ws_.push(
+        detail::gzip_decoder());
 }
 
 void
@@ -342,6 +345,8 @@ serializer::
 apply_param(
     gzip_encoder_t const&)
 {
+    enc_[gzip_codec] = &ws_.push(
+        detail::gzip_encoder());
 }
 
 //------------------------------------------------

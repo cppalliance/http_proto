@@ -41,6 +41,10 @@ BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_logic_error(
 BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_out_of_range(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
+BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_runtime_error(
+    char const* what,
+    source_location const& loc = BOOST_CURRENT_LOCATION);
+
 BOOST_HTTP_PROTO_DECL void BOOST_NORETURN throw_system_error(
     error_code const& ec,
     source_location const& loc = BOOST_CURRENT_LOCATION);
