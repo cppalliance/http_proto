@@ -7,7 +7,7 @@
     Official repository: https://github.com/CPPAlliance/url
 ]
 
-[library Boost.HTTP-Proto
+[library Boost.HTTP.Proto
     [id http_proto]
     [quickbook 1.6]
     [copyright 2021 Vinnie Falco]
@@ -54,6 +54,7 @@
 
 [include 1.0.overview.qbk]
 [include 2.0.message.qbk]
+[include 3.0.concepts.qbk]
 
 [section:ref Reference]
 [xinclude quickref.xml]

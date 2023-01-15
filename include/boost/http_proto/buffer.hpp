@@ -106,6 +106,8 @@ struct is_buffers<
 {
 };
 
+#endif
+
 /** Determine if T is a const buffers.
 */
 template<class T>
@@ -115,8 +117,6 @@ using is_const_buffers = is_buffers<true, T>;
 */
 template<class T>
 using is_mutable_buffers = is_buffers<false, T>;
-
-#endif
 
 //------------------------------------------------
 

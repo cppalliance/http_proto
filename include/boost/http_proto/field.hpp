@@ -383,7 +383,7 @@ enum class field : unsigned short
 
 //------------------------------------------------
 
-/** Convert a field enum to a string.
+/** Return the header name for a field id.
 
     @param f The field to convert
 */
@@ -391,12 +391,12 @@ BOOST_HTTP_PROTO_DECL
 string_view
 to_string(field f);
 
-/** Attempt to convert a string to a field enum.
+/** Return the field id for  a header name
 
     The string comparison is case-insensitive.
 
-    @return The corresponding field, or @ref field::unknown
-    if no known field matches.
+    @return The corresponding field, or
+        @ref field::unknown if there is no match.
 */
 BOOST_HTTP_PROTO_DECL
 field

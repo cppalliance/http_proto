@@ -52,11 +52,6 @@ public:
     */
     class output;
 
-    /** A MutableBuffers representing the input
-    */
-    using input_buffers =
-        mutable_buffers_pair;
-
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL

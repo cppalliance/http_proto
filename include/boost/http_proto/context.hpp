@@ -19,15 +19,9 @@
 namespace boost {
 namespace http_proto {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-class codecs;
-#endif
-
 class context
 {
     struct data;
-
-    http_proto::codecs* codecs_;
 
 public:
     context(context const&) = delete;
@@ -39,12 +33,6 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     context() noexcept;
-
-    http_proto::codecs&
-    codecs() noexcept
-    {
-        return *codecs_;
-    }
 
     //--------------------------------------------
 

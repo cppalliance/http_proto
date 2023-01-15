@@ -21,7 +21,7 @@ Boost.Http.Proto offers these features:
 
 * Require only C++11
 * Works without exceptions
-* Fast compilation, no templates
+* Fast compilation, few templates
 * Strict compliance with __rfc7230__
 
 [/-----------------------------------------------------------------------------]

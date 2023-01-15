@@ -23,7 +23,11 @@
   <xsl:template mode="convenience-header" match="@file"/>
 
   <xsl:variable name="emphasized-template-parameter-types" select="
-    'Allocator'
+    'ConstBuffer',
+    'ConstBuffers',
+    'MutableBuffer',
+    'MutableBuffers',
+    'Source'
   "/>
 
 </xsl:stylesheet>

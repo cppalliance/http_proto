@@ -30,6 +30,7 @@
           <member><link linkend="http_proto.ref.boost__http_proto__fields_base">fields_base</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__fields_view">fields_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__fields_view_base">fields_view_base</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__file_body">file_body</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__parser">parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request">request</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request_parser">request_parser</link></member>
@@ -39,6 +40,7 @@
           <member><link linkend="http_proto.ref.boost__http_proto__response_view">response_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__source">source</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__string_body">string_body</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
@@ -60,15 +62,22 @@
         <simplelist type="vert" columns="1">
           <member><link linkend="http_proto.ref.boost__http_proto__operator_lt__lt_">operator&lt;&lt;</link></member>
         </simplelist>
+        <bridgehead renderas="sect3">Concepts</bridgehead>
+        <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.concepts.source">Source</link></member>
+        </simplelist>
       </entry>
       <entry valign="top">
         <bridgehead renderas="sect3">Aliases</bridgehead>
         <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__authority_view">authority_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_category">error_category</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_code">error_code</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_condition">error_condition</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__result">result</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__string_view">string_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__system_error">system_error</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__url_view">url_view</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Constants</bridgehead>
         <simplelist type="vert" columns="1">
@@ -117,6 +126,10 @@
         </simplelist>
         <bridgehead renderas="sect3">Concepts</bridgehead>
         <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.concepts.constbuffer">ConstBuffer</link></member>
+          <member><link linkend="http_proto.concepts.constbuffer">ConstBuffers</link></member>
+          <member><link linkend="http_proto.concepts.mutablebuffer">MutableBuffer</link></member>
+          <member><link linkend="http_proto.concepts.mutablebuffer">MutableBuffers</link></member>
         </simplelist>
       </entry>
     </row></tbody>
