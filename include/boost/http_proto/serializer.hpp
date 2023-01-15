@@ -48,7 +48,12 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
+    /** A ConstBuffers representing the output
+    */
     class output;
+
+    /** A MutableBuffers representing the input
+    */
     using input_buffers =
         mutable_buffers_pair;
 
@@ -76,6 +81,135 @@ public:
         std::size_t buffer_size,
         P0&& p0,
         Pn&&... pn);
+
+    //--------------------------------------------
+
+    /** Reset the serializer for a new message
+
+        The message will not contain a body.
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
+    */
+    void
+    reset(
+        message_view_base const& m)
+    {
+        reset_empty_impl(m);
+    }
+
+    /** Reset the serializer for a new message
+
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
+
+        @par Constraints
+        @code
+        is_const_buffers< ConstBuffers >::value == true
+        @endcode
+    */
+    template<
+        class ConstBuffers
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename
+            std::enable_if<
+                is_const_buffers<
+                    ConstBuffers>::value
+                        >::type
+#endif
+    >
+    void
+    reset(
+        message_view_base const& m,
+        ConstBuffers&& body);    
+
+    /** Reset the serializer for a new message
+
+        Changing the contents of the message
+        after calling this function and before
+        @ref is_done returns `true` results in
+        undefined behavior.
+    */
+    template<
+        class Source
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename
+            std::enable_if<
+                is_source<Source
+                    >::value>::type
+#endif
+    >
+    auto
+    reset(
+        message_view_base const& m,
+        Source&& body) ->
+            typename std::decay<
+                Source>::type&;
+
+    //--------------------------------------------
+
+    struct stream
+    {
+        stream() = default;
+        stream(stream const&) = default;
+        stream& operator=
+            (stream const&) = default;
+
+        using buffers_type =
+            mutable_buffers_pair;
+
+        BOOST_HTTP_PROTO_DECL
+        std::size_t
+        capacity() const;
+
+        BOOST_HTTP_PROTO_DECL
+        std::size_t
+        size() const;
+
+        BOOST_HTTP_PROTO_DECL
+        buffers_type
+        prepare(std::size_t n) const;
+
+        BOOST_HTTP_PROTO_DECL
+        void
+        commit(std::size_t n) const;
+
+        BOOST_HTTP_PROTO_DECL
+        void
+        close() const;
+
+    private:
+        friend class serializer;
+
+        explicit
+        stream(
+            serializer& sr) noexcept
+            : sr_(&sr)
+        {
+        }
+
+        serializer* sr_ = nullptr;
+    };
+
+    struct reserve_nothing
+    {
+        void
+        operator()(
+            std::size_t,
+            source::reserve_fn const&) noexcept
+        {
+        }
+    };
+
+    template<
+        class MaybeReserve = reserve_nothing>
+    stream
+    reset_stream(
+        message_view_base const& m,
+        MaybeReserve&& maybe_reserve = {});
 
     //--------------------------------------------
 
@@ -109,87 +243,6 @@ public:
     void
     consume(std::size_t n);
 
-    /** Return the input area.
-    */
-    BOOST_HTTP_PROTO_DECL
-    input_buffers
-    data() noexcept;
-
-    /** Commit bytes to the input area.
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    commit(
-        std::size_t bytes,
-        bool end);
-
-    //--------------------------------------------
-
-    /** Reset the serializer for a new message
-
-        The message will not contain a body.
-        Changing the contents of the message
-        after calling this function and before
-        @ref is_done returns `true` results in
-        undefined behavior.
-    */
-    void
-    reset(
-        message_view_base const& m)
-    {
-        reset_empty_impl(m);
-    }
-
-    /** Reset the serializer for a new message
-
-        Changing the contents of the message
-        after calling this function and before
-        @ref is_done returns `true` results in
-        undefined behavior.
-    */
-    template<
-        class Source
-#ifndef BOOST_HTTP_PROTO_DOCS
-        ,class = typename
-            std::enable_if<
-                is_source<Source
-                    >::value>::type
-#endif
-    >
-    auto
-    reset(
-        message_view_base const& m,
-        Source&& body) ->
-            typename std::decay<
-                Source>::type&;
-
-    /** Reset the serializer for a new message
-
-        Changing the contents of the message
-        after calling this function and before
-        @ref is_done returns `true` results in
-        undefined behavior.
-
-        @par Constraints
-        @code
-        is_const_buffers< ConstBuffers >::value == true
-        @endcode
-    */
-    template<
-        class ConstBuffers
-#ifndef BOOST_HTTP_PROTO_DOCS
-        ,class = typename
-            std::enable_if<
-                is_const_buffers<
-                    ConstBuffers>::value
-                        >::type
-#endif
-    >
-    void
-    reset(
-        message_view_base const& m,
-        ConstBuffers&& body);    
-
 private:
     void apply_params() noexcept;
 
@@ -218,32 +271,32 @@ private:
     BOOST_HTTP_PROTO_DECL void
         apply_param(gzip_encoder_t const&);
 
-    void do_reserve(
-        source&, std::size_t);
+    BOOST_HTTP_PROTO_DECL void
+        do_reserve(source&, std::size_t);
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset_source_impl(
-        message_view_base const&,
-        source*);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset_buffers_impl(
-        message_view_base const&,
-        const_buffer*,
-        std::size_t);
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset_empty_impl(
+    BOOST_HTTP_PROTO_DECL void
+        reset_empty_impl(
         message_view_base const&);
+
+    BOOST_HTTP_PROTO_DECL void
+        reset_buffers_impl(
+        message_view_base const&,
+            const_buffer*, std::size_t);
+
+    BOOST_HTTP_PROTO_DECL void
+        reset_source_impl(
+        message_view_base const&, source*);
+
+    BOOST_HTTP_PROTO_DECL void
+        reset_stream_impl(
+        message_view_base const&, source&);
 
     enum class style
     {
         empty,
         buffers,
-        source
+        source,
+        stream
     };
 
     static

@@ -81,52 +81,6 @@ serializer(
 
 //------------------------------------------------
 
-inline
-void
-serializer::
-apply_params() noexcept
-{
-}
-
-template<
-    class P0,
-    class... Pn>
-void
-serializer::
-apply_params(
-    P0&& p0,
-    Pn&&... pn)
-{
-    // If you get an error here it means
-    // you passed an unknown parameter type.
-    apply_param(std::forward<P0>(p0));
-
-    apply_params(
-        std::forward<Pn>(pn)...);
-}
-
-//------------------------------------------------
-
-template<
-    class Source,
-    class>
-auto
-serializer::
-reset(
-    message_view_base const& m,
-    Source&& source) ->
-        typename std::decay<
-            Source>::type&
-{
-    ws_.clear();
-    auto& rv = ws_.push(
-        std::forward<
-            Source>(source));
-    reset_source_impl(
-        m, std::addressof(rv));
-    return rv;
-}
-
 template<
     class ConstBuffers,
     class>
@@ -152,6 +106,87 @@ reset(
     for(const_buffer b : bs)
         *p++ = b;
     reset_buffers_impl(m, pp, pn);
+}
+
+template<
+    class Source,
+    class>
+auto
+serializer::
+reset(
+    message_view_base const& m,
+    Source&& source) ->
+        typename std::decay<
+            Source>::type&
+{
+    ws_.clear();
+    auto& rv = ws_.push(
+        std::forward<
+            Source>(source));
+    reset_source_impl(
+        m, std::addressof(rv));
+    return rv;
+}
+
+template<class MaybeReserve>
+auto
+serializer::
+reset_stream(
+    message_view_base const& m,
+    MaybeReserve&& maybe_reserve) ->
+        stream
+{
+    // small hack for type-erasing
+    struct Source : source
+    {
+        MaybeReserve&& f;
+
+        void
+        maybe_reserve(
+            std::size_t limit,
+            reserve_fn const& reserve) override
+        {
+            f(limit, reserve);
+        }
+
+        results
+        read(mutable_buffers_pair) override
+        {
+            return {};
+        }
+    };
+    Source src{ std::forward<
+        MaybeReserve>(maybe_reserve) };
+
+    ws_.clear();
+    reset_stream_impl(m, src);
+    return stream{*this};
+}
+
+//------------------------------------------------
+
+inline
+void
+serializer::
+apply_params() noexcept
+{
+}
+
+template<
+    class P0,
+    class... Pn>
+void
+serializer::
+apply_params(
+    P0&& p0,
+    Pn&&... pn)
+{
+    // If you get an error here it means
+    // you passed an unknown parameter type.
+    apply_param(std::forward<P0>(p0));
+
+    apply_params(
+        std::forward<Pn>(pn)...);
 }
 
 } // http_proto

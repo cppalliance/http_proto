@@ -45,6 +45,7 @@ get_error_cat() noexcept
             case error::expect_100_continue: return "expect continue";
             case error::end_of_message: return "end of message";
             case error::end_of_stream: return "end of stream";
+            case error::need_data: return "need data";
 
             case error::bad_connection: return "bad Connection";
             case error::bad_content_length: return "bad Content-Length";

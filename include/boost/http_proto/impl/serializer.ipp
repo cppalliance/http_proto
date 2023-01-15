@@ -125,13 +125,7 @@ serializer(
 }
 
 //------------------------------------------------
-/*
-    Rendering pipeline:
 
-    buffers with source data ->
-    encoding transformation ->
-    chunking
-*/
 auto
 serializer::
 prepare() ->
@@ -151,6 +145,16 @@ prepare() ->
         hp_ = nullptr;
         BOOST_HTTP_PROTO_RETURN_EC(
             error::expect_100_continue);
+    }
+
+    if(st_ == style::empty)
+    {
+        return output(pp_, pn_);
+    }
+
+    if(st_ == style::buffers)
+    {
+        return output(pp_, pn_);
     }
 
     if(st_ == style::source)
@@ -178,6 +182,8 @@ prepare() ->
                 auto rv = src_->read(
                     dat1_.prepare(
                         dat1_.capacity() -
+                            2 - // CRLF
+                            5 - // final chunk
                             dat1_.size()));
                 dat1_.commit(rv.bytes);
                 if(rv.bytes == 0)
@@ -213,15 +219,24 @@ prepare() ->
             pp_[n++] = b;
         return output(pp_, n);
     }
-    else if(st_ == style::buffers)
+
+    if(st_ == style::stream)
     {
-        return output(pp_, pn_);
+        std::size_t n = 0;
+        if(hp_ != nullptr)
+            ++n;
+        if(dat1_.empty() && more_)
+        {
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::need_data);
+        }
+        for(const_buffer b : dat1_.data())
+            pp_[n++] = b;
+        return output(pp_, n);
     }
-    //else if(st_ == style::empty)
-    {
-        BOOST_ASSERT(st_ == style::empty);
-        return output(pp_, pn_);
-    }
+
+    // should never get here
+    detail::throw_logic_error();
 }
 
 void
@@ -264,48 +279,25 @@ consume(
         --pn_;
     }
 
-    if(st_ == style::source)
+    switch(st_)
     {
+    default:
+    case style::empty:
+    case style::buffers:
+        consume_buffers(
+            pp_, pn_, n);
+        if(pn_ == 0)
+            is_done_ = true;
+        return;
+
+    case style::source:
+    case style::stream:
         dat1_.consume(n);
         if( dat1_.empty() &&
                 ! more_)
             is_done_ = true;
         return;
     }
-    else if(st_ == style::buffers)
-    {
-        consume_buffers(pp_, pn_, n);
-        if(pn_ == 0)
-            is_done_ = true;
-        return;
-    }
-    //else if(st_ == style::empty)
-    {
-        BOOST_ASSERT(st_ == style::empty);
-
-        consume_buffers(pp_, pn_, n);
-        if(pn_ == 0)
-            is_done_ = true;
-        return;
-    }
-}
-
-auto
-serializer::
-data() noexcept ->
-    input_buffers
-{
-    return {};
-}
-
-void
-serializer::
-commit(
-    std::size_t bytes,
-    bool end)
-{
-    (void)bytes;
-    (void)end;
 }
 
 //------------------------------------------------
@@ -379,15 +371,14 @@ do_reserve(
 
 void
 serializer::
-reset_source_impl(
-    message_view_base const& m,
-    source* src)
+reset_empty_impl(
+    message_view_base const& m)
 {
     // Precondition violation
-    if(ws_.size() <
-        chunked_overhead_ +
-            128) // reasonable lower limit
+    if(ws_.size() < chunked_overhead_)
         detail::throw_length_error();
+
+    ws_.clear();
 
     is_done_ = false;
     // VFALCO what about the error codes?
@@ -397,22 +388,27 @@ reset_source_impl(
     is_expect_continue_ =
         m.ph_->md.expect.is_100_continue;
     //---
-    st_ = style::source;
-    src_ = src;
-    // VFALCO can this underflow?
-    do_reserve(*src, ws_.size() / 2);
-    pn_ =
-        1 + // header
-        2;  // dat1
+    st_ = style::empty;
     pp_ = ws_.push_array(
-        pn_, const_buffer{});
+        2, const_buffer{});
+    pn_ = 1;
     hp_ = pp_;
     *hp_ = {
         m.ph_->cbuf,
         m.ph_->size };
-    dat1_ = {
-        ws_.data(),
-        ws_.size() };
+    if(is_chunked_)
+    {
+        detail::circular_buffer tmp(
+            ws_.data(), ws_.size());
+        tmp.commit(buffer_copy(
+            tmp.prepare(5),
+            const_buffer(
+                "0\r\n\r\n", 5)));
+        auto data = tmp.data();
+        BOOST_ASSERT(
+            data[1].size() == 0);
+        pp_[pn_++] = data[0];
+    }
 }
 
 void
@@ -482,14 +478,15 @@ reset_buffers_impl(
 
 void
 serializer::
-reset_empty_impl(
-    message_view_base const& m)
+reset_source_impl(
+    message_view_base const& m,
+    source* src)
 {
     // Precondition violation
-    if(ws_.size() < chunked_overhead_)
+    if(ws_.size() <
+        chunked_overhead_ +
+            128) // reasonable lower limit
         detail::throw_length_error();
-
-    ws_.clear();
 
     is_done_ = false;
     // VFALCO what about the error codes?
@@ -499,27 +496,114 @@ reset_empty_impl(
     is_expect_continue_ =
         m.ph_->md.expect.is_100_continue;
     //---
-    st_ = style::empty;
+    st_ = style::source;
+    src_ = src;
+    do_reserve(
+        *src,
+        ws_.size() / 2); // VFALCO can this underflow?
+    pn_ =
+        1 + // header
+        2;  // dat1
     pp_ = ws_.push_array(
-        2, const_buffer{});
-    pn_ = 1;
+        pn_, const_buffer{});
     hp_ = pp_;
     *hp_ = {
         m.ph_->cbuf,
         m.ph_->size };
-    if(is_chunked_)
-    {
-        detail::circular_buffer tmp(
-            ws_.data(), ws_.size());
-        tmp.commit(buffer_copy(
-            tmp.prepare(5),
-            const_buffer(
-                "0\r\n\r\n", 5)));
-        auto data = tmp.data();
-        BOOST_ASSERT(
-            data[1].size() == 0);
-        pp_[pn_++] = data[0];
-    }
+    dat1_ = {
+        ws_.data(),
+        ws_.size() };
+}
+
+//------------------------------------------------
+
+std::size_t
+serializer::
+stream::
+capacity() const
+{
+    auto const n = 
+        chunked_overhead_ +
+            2 + // CRLF
+            5;  // final chunk
+    return sr_->dat1_.capacity() -
+        n - 0;
+}
+
+std::size_t
+serializer::
+stream::
+size() const
+{
+    return sr_->dat1_.size();
+}
+
+auto
+serializer::
+stream::
+prepare(
+    std::size_t n) const ->
+        buffers_type
+{
+    return sr_->dat1_.prepare(n);
+}
+
+void
+serializer::
+stream::
+commit(std::size_t n) const
+{
+    sr_->dat1_.commit(n);
+}
+
+void
+serializer::
+stream::
+close() const
+{
+    // Precondition violation
+    if(! sr_->more_)
+        detail::throw_logic_error();
+    sr_->more_ = false;
+}
+
+void
+serializer::
+reset_stream_impl(
+    message_view_base const& m,
+    source& src)
+{
+    // Precondition violation
+    if(ws_.size() <
+        chunked_overhead_ +
+            128) // reasonable lower limit
+        detail::throw_length_error();
+
+    is_done_ = false;
+    // VFALCO what about the error codes?
+    // m.ph_->md.maybe_throw();
+    is_chunked_ =
+        m.ph_->md.transfer_encoding.is_chunked;
+    is_expect_continue_ =
+        m.ph_->md.expect.is_100_continue;
+    //---
+    st_ = style::stream;
+    do_reserve(
+        src,
+        ws_.size() / 2); // VFALCO can this underflow?
+    pn_ =
+        1 + // header
+        2;  // dat1
+    pp_ = ws_.push_array(
+        pn_, const_buffer{});
+    hp_ = pp_;
+    *hp_ = {
+        m.ph_->cbuf,
+        m.ph_->size };
+    dat1_ = {
+        ws_.data(),
+        ws_.size() };
+    more_ = true;
 }
 
 //------------------------------------------------

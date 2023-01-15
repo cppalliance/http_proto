@@ -49,6 +49,7 @@ public:
         check(n, error::expect_100_continue);
         check(n, error::end_of_message);
         check(n, error::end_of_stream);
+        check(n, error::need_data);
 
         check(n, error::bad_connection);
         check(n, error::bad_content_length);

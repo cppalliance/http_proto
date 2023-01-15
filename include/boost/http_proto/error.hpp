@@ -40,6 +40,11 @@ enum class error
     */
     ,end_of_stream
 
+    /** Additional data is required
+    */
+    ,need_data
+
+    //--------------------------------------------
     //
     // Syntax errors (unrecoverable)
     //
