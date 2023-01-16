@@ -138,7 +138,6 @@ public:
     push(T&& t) ->
         typename std::decay<T>::type&
     {
-
         using U = any_t<typename
             std::decay<T>::type>;
         auto p = ::new(bump_down(
@@ -183,12 +182,24 @@ private:
             std::uintptr_t>(begin_);
         auto ip = reinterpret_cast<
             std::uintptr_t>(head_);
+
+        // If you get an exception here, it
+        // means that a buffer was too small
+        // for your workload. Increase the
+        // buffer size.
         if(size > ip - ip0)
             detail::throw_bad_alloc();
+
         ip -= size;
         ip &= ~(align - 1);
+
+        // If you get an exception here, it
+        // means that a buffer was too small
+        // for your workload. Increase the
+        // buffer size.
         if(ip < ip0)
             detail::throw_bad_alloc();
+
         return reinterpret_cast<void*>(ip);
     }
 };

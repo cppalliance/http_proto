@@ -90,22 +90,17 @@ reset(
     message_view_base const& m,
     ConstBuffers&& body)   
 {
-    ws_.clear();
-    auto& bs = ws_.push(
+    reset_init(m);
+    auto const& bs = ws_.push(
         (make_buffers)(std::forward<
             ConstBuffers>(body)));
-    std::size_t const pn =
-        1 +
-        1 + // chunk header
-        std::distance(
-            bs.begin(), bs.end()) +
-        1; // final chunk
-    auto const pp = ws_.push_array(
-        pn, const_buffer{});
-    auto p = pp + 2;
-    for(const_buffer b : bs)
+    std::size_t n = std::distance(
+        bs.begin(), bs.end());
+    buf_ = make_array(n);
+    auto p = buf_.data();
+    for(const_buffer const b : bs)
         *p++ = b;
-    reset_buffers_impl(m, pp, pn);
+    reset_buffers_impl(m);
 }
 
 template<
@@ -115,17 +110,17 @@ auto
 serializer::
 reset(
     message_view_base const& m,
-    Source&& source) ->
+    Source&& src0) ->
         typename std::decay<
             Source>::type&
 {
-    ws_.clear();
-    auto& rv = ws_.push(
+    reset_init(m);
+    auto& src = ws_.push(
         std::forward<
-            Source>(source));
+            Source>(src0));
     reset_source_impl(
-        m, std::addressof(rv));
-    return rv;
+        m, std::addressof(src));
+    return src;
 }
 
 template<class MaybeReserve>
@@ -158,12 +153,23 @@ reset_stream(
     Source src{ std::forward<
         MaybeReserve>(maybe_reserve) };
 
-    ws_.clear();
     reset_stream_impl(m, src);
     return stream{*this};
 }
 
 //------------------------------------------------
+
+inline
+auto
+serializer::
+make_array(std::size_t n) ->
+    detail::array_of_const_buffers 
+{
+    return {
+        ws_.push_array(
+            n, const_buffer{}),
+        n };
+}
 
 inline
 void

@@ -15,7 +15,7 @@
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/circular_buffer.hpp>
-#include <boost/http_proto/detail/consuming_buffers.hpp>
+#include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <cstdint>
@@ -242,52 +242,28 @@ public:
     consume(std::size_t n);
 
 private:
+    static void copy(
+        const_buffer*,
+        const_buffer const*,
+        std::size_t n) noexcept;
+    auto
+    make_array(std::size_t n) ->
+        detail::array_of_const_buffers;
     void apply_params() noexcept;
-
-    template<
-        class P0,
-        class... Pn>
-    void
-    apply_params(
-        P0&&, Pn&&...);
-
-    template<class Param>
-    void
-    apply_param(
-        Param const&) = delete;
-
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(brotli_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(brotli_encoder_t const&);
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(deflate_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(deflate_encoder_t const&);
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(gzip_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void
-        apply_param(gzip_encoder_t const&);
-
-    BOOST_HTTP_PROTO_DECL void
-        do_reserve(source&, std::size_t);
-
-    BOOST_HTTP_PROTO_DECL void
-        reset_empty_impl(
-        message_view_base const&);
-
-    BOOST_HTTP_PROTO_DECL void
-        reset_buffers_impl(
-        message_view_base const&,
-            const_buffer*, std::size_t);
-
-    BOOST_HTTP_PROTO_DECL void
-        reset_source_impl(
-        message_view_base const&, source*);
-
-    BOOST_HTTP_PROTO_DECL void
-        reset_stream_impl(
-        message_view_base const&, source&);
+    template<class P0, class... Pn> void apply_params(P0&&, Pn&&...);
+    template<class Param> void apply_param(Param const&) = delete;
+    BOOST_HTTP_PROTO_DECL void apply_param(brotli_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void apply_param(brotli_encoder_t const&);
+    BOOST_HTTP_PROTO_DECL void apply_param(deflate_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void apply_param(deflate_encoder_t const&);
+    BOOST_HTTP_PROTO_DECL void apply_param(gzip_decoder_t const&);
+    BOOST_HTTP_PROTO_DECL void apply_param(gzip_encoder_t const&);
+    BOOST_HTTP_PROTO_DECL void do_maybe_reserve(source&, std::size_t);
+    BOOST_HTTP_PROTO_DECL void reset_init(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void reset_empty_impl(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void reset_buffers_impl(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void reset_source_impl(message_view_base const&, source*);
+    BOOST_HTTP_PROTO_DECL void reset_stream_impl(message_view_base const&, source&);
 
     enum class style
     {
@@ -318,16 +294,18 @@ private:
     class reserve;
 
     detail::workspace ws_;
-    const_buffer*   hp_;  // header
-    const_buffer*   pp_;
-    std::size_t     pn_;
-    source*         src_;
-
-    detail::circular_buffer dat1_;
-    detail::circular_buffer dat2_;
-
     detail::codec* dec_[3]{};
     detail::codec* enc_[3]{};
+
+    source* src_;
+    detail::array_of_const_buffers buf_;
+
+    detail::circular_buffer tmp0_;
+    detail::circular_buffer tmp1_;
+    detail::array_of_const_buffers out_;
+
+    const_buffer*   hp_;  // header
+    detail::codec*  cod_;
 
     style st_;
     bool more_;

@@ -44,7 +44,7 @@ void*
 workspace::
 reserve(std::size_t n)
 {
-    // Requested n exceeds available space
+    // Requested size exceeds available space.
     if(n > size())
         detail::throw_length_error();
 

@@ -71,9 +71,10 @@ circular_buffer::
 prepare(std::size_t n) ->
     mutable_buffers_pair
 {
-    // Precondition violation
+    // Buffer is too small for n
     if(n > cap_ - in_len_)
         detail::throw_length_error();
+
     out_size_ = n;
     auto const pos = (
         in_pos_ + in_len_) % cap_;
