@@ -9,6 +9,7 @@
 
 #ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/detail/codec.hpp>
@@ -317,4 +318,5 @@ apply_param(
 } // http_proto
 } // boost
 
+#endif
 #endif

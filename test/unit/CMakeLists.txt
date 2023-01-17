@@ -70,6 +70,7 @@ target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra)
 target_link_libraries(
     boost_http_proto_tests PRIVATE
     Boost::http_proto
-    Boost::filesystem
-    #ZLIB::ZLIB
-    )
+    Boost::filesystem)
+if (ZLIB_FOUND)
+    target_link_libraries(boost_http_proto_tests PRIVATE ZLIB::ZLIB)
+endif()

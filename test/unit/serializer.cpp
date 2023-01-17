@@ -19,6 +19,10 @@
 
 #include <string>
 
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
+#include <zlib.h>
+#endif
+
 namespace boost {
 namespace http_proto {
 
@@ -126,12 +130,13 @@ struct serializer_test
         sr.reset(res, make_const(mutable_buffers_1{}));
         sr.reset(res, make_const(test_source{}));
 
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
         serializer(65536);
-
 #if 0
         serializer(65536, gzip_decoder);
         serializer(65536, gzip_encoder);
         serializer(65536, gzip_decoder, gzip_encoder);
+#endif
 #endif
     }
 

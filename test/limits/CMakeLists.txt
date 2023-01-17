@@ -21,20 +21,19 @@ target_compile_definitions(boost_http_proto_limits PRIVATE
 )
 target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::align
-    Boost::asio
     Boost::assert
     Boost::config
-    Boost::container
     Boost::exception
     Boost::optional
     Boost::system
     Boost::throw_exception
     Boost::url
-    Boost::utility
-    #ZLIB::ZLIB
-    )
+    Boost::utility)
 
 target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
+if (ZLIB_FOUND)
+    target_link_libraries(boost_http_proto_limits INTERFACE ZLIB::ZLIB)
+endif()
 add_test(NAME boost_http_proto_limits COMMAND boost_http_proto_limits)
 
 
