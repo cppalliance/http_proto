@@ -71,4 +71,5 @@ target_link_libraries(
     boost_http_proto_tests PRIVATE
     Boost::http_proto
     Boost::filesystem
-    ZLIB::ZLIB)
+    #ZLIB::ZLIB
+    )

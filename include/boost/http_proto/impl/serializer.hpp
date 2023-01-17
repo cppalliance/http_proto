@@ -98,7 +98,7 @@ reset(
         bs.begin(), bs.end());
     buf_ = make_array(n);
     auto p = buf_.data();
-    for(const_buffer const b : bs)
+    for(const_buffer b : bs)
         *p++ = b;
     reset_buffers_impl(m);
 }

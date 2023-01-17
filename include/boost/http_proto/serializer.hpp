@@ -252,12 +252,17 @@ private:
     void apply_params() noexcept;
     template<class P0, class... Pn> void apply_params(P0&&, Pn&&...);
     template<class Param> void apply_param(Param const&) = delete;
-    BOOST_HTTP_PROTO_DECL void apply_param(brotli_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void apply_param(brotli_encoder_t const&);
-    BOOST_HTTP_PROTO_DECL void apply_param(deflate_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void apply_param(deflate_encoder_t const&);
-    BOOST_HTTP_PROTO_DECL void apply_param(gzip_decoder_t const&);
-    BOOST_HTTP_PROTO_DECL void apply_param(gzip_encoder_t const&);
+
+    // in detail/impl/brotli_codec.ipp
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_decoder_t const&);
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_encoder_t const&);
+
+    // in detail/impl/zlib_codec.ipp
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(deflate_decoder_t const&);
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(deflate_encoder_t const&);
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(gzip_decoder_t const&);
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(gzip_encoder_t const&);
+
     BOOST_HTTP_PROTO_DECL void do_maybe_reserve(source&, std::size_t);
     BOOST_HTTP_PROTO_DECL void reset_init(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void reset_empty_impl(message_view_base const&);

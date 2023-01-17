@@ -35,8 +35,7 @@ if(BOOST_HTTP_PROTO_IS_ROOT)
     unset(CMAKE_FOLDER)
 endif()
 
-find_package(ZLIB REQUIRED)
-#target_link_libraries(main PRIVATE ZLIB::ZLIB)
+#find_package(ZLIB REQUIRED)
 
 function(boost_http_proto_setup_properties target)
     target_compile_features(${target} PUBLIC cxx_constexpr)
@@ -66,7 +65,7 @@ function(boost_http_proto_setup_properties target)
             Boost::url
             Boost::utility
             Boost::winapi
-            ZLIB::ZLIB
+            #ZLIB::ZLIB
     )
 endfunction()
 
@@ -76,7 +75,11 @@ file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS
     include/boost/*.natvis
 )
 
-set(BOOST_HTTP_PROTO_SOURCES src/src.cpp)
+set(BOOST_HTTP_PROTO_SOURCES 
+    src/src.cpp
+    #src/src_brotli.cpp
+    #src/src_zlib.cpp
+    )
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

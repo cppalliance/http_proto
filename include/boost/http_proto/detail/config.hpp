@@ -17,19 +17,26 @@ namespace boost {
 
 namespace http_proto {
 
+//------------------------------------------------
+
 #if defined(BOOST_HTTP_PROTO_DOCS)
 # define BOOST_HTTP_PROTO_DECL
 #else
 # if (defined(BOOST_HTTP_PROTO_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)) && !defined(BOOST_HTTP_PROTO_STATIC_LINK)
-#  if defined(BOOST_HTTP_PROTO_SOURCE)
+#  if defined(BOOST_HTTP_PROTO_SOURCE) | defined(BOOST_HTTP_PROTO_EXT_SOURCE)
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_EXPORT
+#   define BOOST_HTTP_PROTO_EXT_DECL    BOOST_SYMBOL_EXPORT
 #   define BOOST_HTTP_PROTO_BUILD_DLL
 #  else
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_IMPORT
+#   define BOOST_HTTP_PROTO_EXT_DECL    BOOST_SYMBOL_IMPORT
 #  endif
 # endif // shared lib
 # ifndef  BOOST_HTTP_PROTO_DECL
 #  define BOOST_HTTP_PROTO_DECL
+# endif
+# ifndef  BOOST_HTTP_PROTO_EXT_DECL
+#  define BOOST_HTTP_PROTO_EXT_DECL
 # endif
 # if !defined(BOOST_HTTP_PROTO_SOURCE) && !defined(BOOST_ALL_NO_LIB) && !defined(BOOST_HTTP_PROTO_NO_LIB)
 #  define BOOST_LIB_NAME boost_http_proto
@@ -39,6 +46,8 @@ namespace http_proto {
 #  include <boost/config/auto_link.hpp>
 # endif
 #endif
+
+//------------------------------------------------
 
 #if ! defined(HTTP_PROTO_DOCS) && ( \
     defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || \

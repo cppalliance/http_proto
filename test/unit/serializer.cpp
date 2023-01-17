@@ -19,8 +19,6 @@
 
 #include <string>
 
-#include <zlib.h>
-
 namespace boost {
 namespace http_proto {
 
@@ -129,9 +127,12 @@ struct serializer_test
         sr.reset(res, make_const(test_source{}));
 
         serializer(65536);
+
+#if 0
         serializer(65536, gzip_decoder);
         serializer(65536, gzip_encoder);
         serializer(65536, gzip_decoder, gzip_encoder);
+#endif
     }
 
     //--------------------------------------------

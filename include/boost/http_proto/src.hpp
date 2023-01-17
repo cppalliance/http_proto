@@ -21,14 +21,9 @@ in a translation unit of the program.
 #define BOOST_HTTP_PROTO_SOURCE
 #endif
 
-// We include this in case someone is
-// using src.hpp as their main header file
-//#include <boost/http_proto.hpp>
-
 #include <boost/http_proto/detail/impl/circular_buffer.ipp>
 #include <boost/http_proto/detail/impl/codec.ipp>
 #include <boost/http_proto/detail/impl/except.ipp>
-#include <boost/http_proto/detail/impl/gzip_codec.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>
 #include <boost/http_proto/detail/impl/workspace.ipp>
 

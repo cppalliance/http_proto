@@ -22,8 +22,9 @@ project boost/http_proto
     ;
 
 alias http_proto_sources
-   : src.cpp
-   ;
+    :
+    src.cpp
+    ;
 
 explicit http_proto_sources ;
 

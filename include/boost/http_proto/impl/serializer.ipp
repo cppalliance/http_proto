@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/http_proto/detail/gzip_codec.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
 
@@ -218,7 +217,7 @@ prepare() ->
         std::size_t n = 0;
         if(out_.data() == hp_)
             ++n;
-        for(const_buffer b : tmp0_.data())
+        for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
         return output(
@@ -236,7 +235,7 @@ prepare() ->
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
         }
-        for(const_buffer b : tmp0_.data())
+        for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
         return output(
@@ -302,54 +301,6 @@ consume(
             is_done_ = true;
         return;
     }
-}
-
-//------------------------------------------------
-
-void
-serializer::
-apply_param(
-    brotli_decoder_t const&)
-{
-}
-
-void
-serializer::
-apply_param(
-    brotli_encoder_t const&)
-{
-}
-
-void
-serializer::
-apply_param(
-    deflate_decoder_t const&)
-{
-}
-
-void
-serializer::
-apply_param(
-    deflate_encoder_t const&)
-{
-}
-
-void
-serializer::
-apply_param(
-    gzip_decoder_t const&)
-{
-    dec_[gzip_codec] = &ws_.push(
-        detail::gzip_decoder());
-}
-
-void
-serializer::
-apply_param(
-    gzip_encoder_t const&)
-{
-    enc_[gzip_codec] = &ws_.push(
-        detail::gzip_encoder());
 }
 
 //------------------------------------------------

@@ -31,7 +31,8 @@ target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::throw_exception
     Boost::url
     Boost::utility
-    ZLIB::ZLIB)
+    #ZLIB::ZLIB
+    )
 
 target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
 add_test(NAME boost_http_proto_limits COMMAND boost_http_proto_limits)

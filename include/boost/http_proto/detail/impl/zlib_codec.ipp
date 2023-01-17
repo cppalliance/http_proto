@@ -7,20 +7,20 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_GZIP_CODECS_IPP
-#define BOOST_HTTP_PROTO_DETAIL_GZIP_CODECS_IPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
+#define BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
 
-#include <boost/http_proto/detail/gzip_codec.hpp>
-#include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/detail/codec.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <cstring>
+#include <boost/throw_exception.hpp>
 #include "zlib.h"
 
 namespace boost {
 namespace http_proto {
 namespace detail {
 
-enum class gzip_error
+enum class zlib_error
 {
     ok          =  0,
     stream_end  =  1,
@@ -39,7 +39,7 @@ enum class gzip_error
 namespace system {
 template<>
 struct is_error_code_enum<
-    ::boost::http_proto::detail::gzip_error>
+    ::boost::http_proto::detail::zlib_error>
 {
     static bool const value = true;
 };
@@ -50,7 +50,7 @@ namespace detail {
 
 error_code
 make_error_code(
-    gzip_error ev) noexcept
+    zlib_error ev) noexcept
 {
     struct cat_t : error_category
     {
@@ -63,23 +63,23 @@ make_error_code(
         const char*
         name() const noexcept override
         {
-            return "boost.http.proto.gzip_error";
+            return "boost.http.proto.zlib_error";
         }
 
         std::string
         message(int ev) const override
         {
-            switch(static_cast<gzip_error>(ev))
+            switch(static_cast<zlib_error>(ev))
             {
-            case gzip_error::ok: return "Z_OK";
-            case gzip_error::stream_end: return "Z_STREAM_END";
-            case gzip_error::need_dict: return "Z_NEED_DICT";
-            case gzip_error::errno_: return "Z_ERRNO";
-            case gzip_error::stream_err: return "Z_STREAM_ERROR";
-            case gzip_error::data_err: return "Z_DATA_ERROR";
-            case gzip_error::mem_err: return "Z_MEM_ERROR";
-            case gzip_error::buf_err: return "Z_BUF_ERROR";
-            case gzip_error::version_err: return "Z_VERSION_ERROR";
+            case zlib_error::ok: return "Z_OK";
+            case zlib_error::stream_end: return "Z_STREAM_END";
+            case zlib_error::need_dict: return "Z_NEED_DICT";
+            case zlib_error::errno_: return "Z_ERRNO";
+            case zlib_error::stream_err: return "Z_STREAM_ERROR";
+            case zlib_error::data_err: return "Z_DATA_ERROR";
+            case zlib_error::mem_err: return "Z_MEM_ERROR";
+            case zlib_error::buf_err: return "Z_BUF_ERROR";
+            case zlib_error::version_err: return "Z_VERSION_ERROR";
             default:
                 return "unknown";
             }
@@ -92,6 +92,27 @@ make_error_code(
 }
 
 //------------------------------------------------
+
+class gzip_decoder : public codec
+{
+    void* zs_ = nullptr;
+
+public:
+    ~gzip_decoder();
+    gzip_decoder();
+
+    gzip_decoder(
+        gzip_decoder&&) noexcept;
+    gzip_decoder& operator=(
+        gzip_decoder&&) = delete;
+
+    results
+    exchange(
+        void* output,
+        std::size_t output_size,
+        void const* input,
+        std::size_t input_size) override;
+};
 
 gzip_decoder::
 ~gzip_decoder()
@@ -119,9 +140,10 @@ gzip_decoder()
         return;
     }
     delete zs;
-    detail::throw_system_error(
-        error_code(static_cast<
-            gzip_error>(ec)));
+    throw_exception(
+        system_error(error_code(
+            static_cast<zlib_error>(ec))),
+        BOOST_CURRENT_LOCATION);
 }
 
 gzip_decoder::
@@ -153,7 +175,7 @@ exchange(
         Bytef*>(output);
     zs->avail_in = output_size;
     results rv;
-    rv.ec = static_cast<gzip_error>(
+    rv.ec = static_cast<zlib_error>(
         ::inflate(zs, Z_NO_FLUSH));
     rv.input_used =
         input_size - zs->avail_in;
@@ -163,6 +185,27 @@ exchange(
 }
 
 //------------------------------------------------
+
+class gzip_encoder : public codec
+{
+    void* zs_ = nullptr;
+
+public:
+    ~gzip_encoder();
+    gzip_encoder();
+
+    gzip_encoder(
+        gzip_encoder&&) noexcept;
+    gzip_encoder& operator=(
+        gzip_encoder&&) = delete;
+
+    results
+    exchange(
+        void* output,
+        std::size_t output_size,
+        void const* input,
+        std::size_t input_size) override;
+};
 
 gzip_encoder::
 ~gzip_encoder()
@@ -191,9 +234,10 @@ gzip_encoder()
         return;
     }
     delete zs;
-    detail::throw_system_error(
-        error_code(static_cast<
-            gzip_error>(ec)));
+    throw_exception(
+        system_error(error_code(
+            static_cast<zlib_error>(ec))),
+        BOOST_CURRENT_LOCATION);
 }
 
 gzip_encoder::
@@ -225,7 +269,7 @@ exchange(
         Bytef*>(output);
     zs->avail_in = output_size;
     results rv;
-    rv.ec = static_cast<gzip_error>(
+    rv.ec = static_cast<zlib_error>(
         ::deflate(zs, Z_NO_FLUSH));
     rv.input_used =
         input_size - zs->avail_in;
@@ -235,6 +279,41 @@ exchange(
 }
 
 } // detail
+
+//------------------------------------------------
+
+void
+serializer::
+apply_param(
+    deflate_decoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    deflate_encoder_t const&)
+{
+}
+
+void
+serializer::
+apply_param(
+    gzip_decoder_t const&)
+{
+    dec_[gzip_codec] = &ws_.push(
+        detail::gzip_decoder());
+}
+
+void
+serializer::
+apply_param(
+    gzip_encoder_t const&)
+{
+    enc_[gzip_codec] = &ws_.push(
+        detail::gzip_encoder());
+}
+
 } // http_proto
 } // boost
 
