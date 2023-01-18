@@ -86,11 +86,11 @@ template<
     class>
 void
 serializer::
-reset(
+start(
     message_view_base const& m,
     ConstBuffers&& body)   
 {
-    reset_init(m);
+    start_init(m);
     auto const& bs = ws_.push(
         (make_buffers)(std::forward<
             ConstBuffers>(body)));
@@ -100,7 +100,7 @@ reset(
     auto p = buf_.data();
     for(const_buffer b : bs)
         *p++ = b;
-    reset_buffers_impl(m);
+    start_buffers(m);
 }
 
 template<
@@ -108,17 +108,17 @@ template<
     class>
 auto
 serializer::
-reset(
+start(
     message_view_base const& m,
     Source&& src0) ->
         typename std::decay<
             Source>::type&
 {
-    reset_init(m);
+    start_init(m);
     auto& src = ws_.push(
         std::forward<
             Source>(src0));
-    reset_source_impl(
+    start_source(
         m, std::addressof(src));
     return src;
 }
@@ -126,7 +126,7 @@ reset(
 template<class MaybeReserve>
 auto
 serializer::
-reset_stream(
+start_stream(
     message_view_base const& m,
     MaybeReserve&& maybe_reserve) ->
         stream
@@ -153,7 +153,7 @@ reset_stream(
     Source src{ std::forward<
         MaybeReserve>(maybe_reserve) };
 
-    reset_stream_impl(m, src);
+    start_stream(m, src);
     return stream{*this};
 }
 

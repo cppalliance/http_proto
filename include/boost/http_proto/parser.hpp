@@ -13,8 +13,10 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/optional.hpp>
 #include <cstddef>
@@ -25,10 +27,32 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
-class context;
+enum class version : char;
 class request_parser;
 class response_parser;
-enum class version : char;
+struct brotli_decoder_t;
+struct brotli_encoder_t;
+struct deflate_decoder_t;
+struct deflate_encoder_t;
+struct gzip_decoder_t;
+struct gzip_encoder_t;
+namespace detail {
+struct codec;
+}
+#endif
+
+#ifdef BOOST_HTTP_PROTO_DOCS
+
+/** Constant to indicate receiving the headers first
+
+    This value may be passed to the `start`
+    function of a request or response parser.
+*/
+constexpr __implementation_defined__ headers_first;
+
+#else
+struct headers_first_t{};
+constexpr headers_first_t headers_first{};
 #endif
 
 /** A parser for HTTP/1 messages.
@@ -41,16 +65,18 @@ enum class version : char;
 class BOOST_SYMBOL_VISIBLE
     parser
 {
-    friend class request_parser;
-    friend class response_parser;
+    parser(
+        detail::kind k,
+        std::size_t buffer_size);
 
 public:
-    // applies to all messages
-    struct config
+    /** Parser configuration settings
+    */
+    struct config_base
     {
         /** Largest allowed size for the complete header
         */
-        std::size_t max_header_size = 65536;
+        std::size_t max_header_size = 16 * 1024;
 
         /** Largest size for any one field
         */
@@ -62,57 +88,9 @@ public:
 
         /** Largest allowed size for a body
         */
-        std::uint64_t max_body_size = 1024 * 1024;
+        std::uint64_t max_body_size;
     };
 
-private:
-    enum class state
-    {
-        empty,
-        start_line,
-        header_fields,
-        body,
-        complete,
-    };
-
-    // per-message state
-    struct message
-    {
-        std::size_t n_chunk = 0;    // bytes of chunk header
-        std::size_t n_payload = 0;  // bytes of body or chunk
-        std::uint64_t n_remain = 0; // remaining body or chunk
-
-        std::uint64_t
-            payload_seen = 0;       // total body received
-
-        optional<std::uint64_t>
-            content_len;            // value of Content-Length
-
-        bool skip_body : 1;
-        bool got_chunked : 1;
-        bool got_close : 1;
-        bool got_keep_alive : 1;
-        bool got_upgrade : 1;
-        bool need_eof : 1;
-
-        //message() noexcept;
-    };
-
-    config cfg_;
-    detail::header h_;
-
-    std::size_t committed_;
-    state state_;
-    bool got_eof_;
-    message m_;
-    mutable_buffer mb_;
-
-    parser(
-        detail::kind k,
-        config const& cfg,
-        std::size_t buffer_size);
-
-public:
     using mutable_buffers_type =
         mutable_buffers;
 
@@ -175,21 +153,15 @@ public:
 
     //--------------------------------------------
     //
-    // Input
+    // Modifiers
     //
     //--------------------------------------------
 
-    /** Reinitialize the parser for a new stream
+    /** Prepare for a new stream.
     */
     BOOST_HTTP_PROTO_DECL
     void
-    clear() noexcept;
-
-    /** Prepare the parser for the next message.
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    reset();
+    reset() noexcept;
 
     /** Return the input buffer
     */
@@ -212,10 +184,6 @@ public:
     commit_eof(
         error_code& ec);
 
-    //--------------------------------------------
-    //
-    // Modifiers
-    //
     //--------------------------------------------
 
     BOOST_HTTP_PROTO_DECL
@@ -257,7 +225,47 @@ public:
     void
     skip_body();
 
+    /** Return any leftover data
+
+        This is used to forward unconsumed data
+        that could lie past the last message.
+        For example on a CONNECT request there
+        could be additional protocol-dependent
+        data that we want to retrieve.
+    */
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    buffered_data() noexcept;
+
 private:
+    void apply_params() noexcept
+    {
+    }
+
+    template<class P0, class... Pn>
+    void
+    apply_params(P0&& p0, Pn&&... pn)
+    {
+        // If you get an error here it means
+        // you passed an unknown parameter type.
+        apply_param(std::forward<P0>(p0));
+
+        apply_params(std::forward<Pn>(pn)...);
+    }
+
+    BOOST_HTTP_PROTO_DECL void apply_param(config_base const&) noexcept;
+
+    // in detail/impl/brotli_codec.ipp
+    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_decoder_t const&);
+
+    // in detail/impl/zlib_codec.ipp
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
+
+    BOOST_HTTP_PROTO_DECL void apply_start(headers_first_t);
+
+    BOOST_HTTP_PROTO_DECL void start_impl();
+
     void parse(error_code&);
     void parse_start_line(error_code&);
     void parse_fields(error_code&);
@@ -268,6 +276,54 @@ private:
     void do_content_length(string_view, error_code&);
     void do_transfer_encoding(string_view, error_code&);
     void do_upgrade(string_view, error_code&);
+
+    friend class request_parser;
+    friend class response_parser;
+
+    enum class state
+    {
+        empty,
+        start_line,
+        header_fields,
+        body,
+        complete,
+    };
+
+    // per-message state
+    struct message
+    {
+        std::size_t n_chunk = 0;    // bytes of chunk header
+        std::size_t n_payload = 0;  // bytes of body or chunk
+        std::uint64_t n_remain = 0; // remaining body or chunk
+
+        std::uint64_t
+            payload_seen = 0;       // total body received
+
+        optional<std::uint64_t>
+            content_len;            // value of Content-Length
+
+        bool skip_body : 1;
+        bool got_chunked : 1;
+        bool got_close : 1;
+        bool got_keep_alive : 1;
+        bool got_upgrade : 1;
+        bool need_eof : 1;
+
+        //message() noexcept;
+    };
+
+    detail::workspace ws_;
+    detail::codec* cod_;
+    detail::codec* dec_[3];
+
+    config_base cfg_;
+    detail::header h_;
+
+    std::size_t committed_;
+    state state_;
+    bool got_eof_;
+    message m_;
+    mutable_buffer mb_;
 };
 
 } // http_proto

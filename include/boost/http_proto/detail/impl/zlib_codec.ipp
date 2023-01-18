@@ -9,8 +9,10 @@
 
 #ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_ZLIB_CODEC_IPP
+
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/detail/codec.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -280,6 +282,22 @@ exchange(
 }
 
 } // detail
+
+//------------------------------------------------
+
+void
+parser::
+apply_param(
+    deflate_decoder_t const&)
+{
+}
+
+void
+parser::
+apply_param(
+    gzip_decoder_t const&)
+{
+}
 
 //------------------------------------------------
 

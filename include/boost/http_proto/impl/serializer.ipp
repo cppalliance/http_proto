@@ -124,6 +124,12 @@ serializer(
 {
 }
 
+void
+serializer::
+reset() noexcept
+{
+}
+
 //------------------------------------------------
 
 auto
@@ -341,7 +347,7 @@ do_maybe_reserve(
 
 void
 serializer::
-reset_init(
+start_init(
     message_view_base const& m)
 {
     ws_.clear();
@@ -366,10 +372,10 @@ reset_init(
 
 void
 serializer::
-reset_empty_impl(
+start_empty(
     message_view_base const& m)
 {
-    reset_init(m);
+    start_init(m);
 
     st_ = style::empty;
 
@@ -403,7 +409,7 @@ reset_empty_impl(
 
 void
 serializer::
-reset_buffers_impl(
+start_buffers(
     message_view_base const& m)
 {
     st_ = style::buffers;
@@ -467,7 +473,7 @@ reset_buffers_impl(
 
 void
 serializer::
-reset_source_impl(
+start_source(
     message_view_base const& m,
     source* src)
 {
@@ -511,11 +517,11 @@ reset_source_impl(
 
 void
 serializer::
-reset_stream_impl(
+start_stream(
     message_view_base const& m,
     source& src)
 {
-    reset_init(m);
+    start_init(m);
 
     st_ = style::stream;
     do_maybe_reserve(

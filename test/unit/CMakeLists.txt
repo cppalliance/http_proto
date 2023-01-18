@@ -18,6 +18,7 @@ set(PFILES
     CMakeLists.txt
     Jamfile
     buffer.cpp
+    codec.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -45,6 +46,7 @@ set(PFILES
     response_parser.cpp
     response_view.cpp
     serializer.cpp
+    sink.cpp
     source.cpp
     status.cpp
     string_body.cpp

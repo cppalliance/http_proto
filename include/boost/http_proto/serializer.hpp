@@ -82,7 +82,13 @@ public:
 
     //--------------------------------------------
 
-    /** Reset the serializer for a new message
+    /** Prepare the serializer for a new stream
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    reset() noexcept;
+
+    /** Prepare the serializer for a new message
 
         The message will not contain a body.
         Changing the contents of the message
@@ -91,13 +97,13 @@ public:
         undefined behavior.
     */
     void
-    reset(
+    start(
         message_view_base const& m)
     {
-        reset_empty_impl(m);
+        start_empty(m);
     }
 
-    /** Reset the serializer for a new message
+    /** Prepare the serializer for a new message
 
         Changing the contents of the message
         after calling this function and before
@@ -120,11 +126,11 @@ public:
 #endif
     >
     void
-    reset(
+    start(
         message_view_base const& m,
         ConstBuffers&& body);    
 
-    /** Reset the serializer for a new message
+    /** Prepare the serializer for a new message
 
         Changing the contents of the message
         after calling this function and before
@@ -141,7 +147,7 @@ public:
 #endif
     >
     auto
-    reset(
+    start(
         message_view_base const& m,
         Source&& body) ->
             typename std::decay<
@@ -205,7 +211,7 @@ public:
     template<
         class MaybeReserve = reserve_nothing>
     stream
-    reset_stream(
+    start_stream(
         message_view_base const& m,
         MaybeReserve&& maybe_reserve = {});
 
@@ -264,11 +270,11 @@ private:
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_encoder_t const&);
 
     BOOST_HTTP_PROTO_DECL void do_maybe_reserve(source&, std::size_t);
-    BOOST_HTTP_PROTO_DECL void reset_init(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void reset_empty_impl(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void reset_buffers_impl(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void reset_source_impl(message_view_base const&, source*);
-    BOOST_HTTP_PROTO_DECL void reset_stream_impl(message_view_base const&, source&);
+    BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void start_buffers(message_view_base const&);
+    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, source*);
+    BOOST_HTTP_PROTO_DECL void start_stream(message_view_base const&, source&);
 
     enum class style
     {

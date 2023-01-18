@@ -18,12 +18,16 @@ namespace http_proto {
 //------------------------------------------------
 
 request_parser::
+request_parser()
+    : request_parser(65536)
+{
+}
+
+request_parser::
 request_parser(
-    config const& cfg,
     std::size_t buffer_bytes)
     : parser(
         detail::kind::request,
-        cfg,
         buffer_bytes)
 {
 }

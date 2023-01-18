@@ -10,9 +10,8 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/request_parser.hpp>
 
+#include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/field.hpp>
-#include <boost/http_proto/version.hpp>
 #include <boost/http_proto/rfc/combine_field_values.hpp>
 
 #include "test_suite.hpp"
@@ -24,11 +23,8 @@
 namespace boost {
 namespace http_proto {
 
-class request_parser_test
+struct request_parser_test
 {
-public:
-    context ctx_;
-
     bool
     feed(
         parser& p,
@@ -64,7 +60,7 @@ public:
         string_view s,
         std::size_t nmax)
     {
-        request_parser p(parser::config(), 4096);
+        request_parser p(4096);
         while(! s.empty())
         {
             auto b = *p.prepare().begin();
@@ -123,7 +119,7 @@ public:
         // single buffer
         {
             error_code ec;
-            request_parser p(parser::config(), 4096);
+            request_parser p(4096);
             auto const b = *p.prepare().begin();
             auto const n = (std::min)(
                 b.size(), s.size());
@@ -142,7 +138,7 @@ public:
             i < s.size(); ++i)
         {
             error_code ec;
-            request_parser p(parser::config(), 4096);
+            request_parser p(4096);
             // first buffer
             auto b = *p.prepare().begin();
             auto n = (std::min)(
@@ -168,6 +164,40 @@ public:
             f(p);
         }
     }
+
+    //--------------------------------------------
+
+    void
+    testSpecial()
+    {
+        // request_parser()
+        request_parser();
+
+        // request_parser(std::size_t)
+        request_parser(4096);
+
+        // request_parser(std::size_t, config)
+        {
+            request_parser::config cfg;
+            cfg.max_header_size = 8192;
+            request_parser(65536, cfg);
+        }
+
+        // request_parser(std::size_t, params)
+        {
+            request_parser(4096, gzip_decoder);
+        }
+    }
+
+    void
+    testStart()
+    {
+        request_parser(4096).start();
+
+        request_parser(4096).start(headers_first);
+    }
+
+    //--------------------------------------------
 
     void
     testParse()
@@ -227,7 +257,7 @@ public:
     void
     testGet()
     {
-        request_parser p(parser::config(), 4096);
+        request_parser p(4096);
         string_view s = 
             "GET / HTTP/1.1\r\n"
             "User-Agent: x\r\n"
@@ -282,13 +312,17 @@ public:
     void
     run()
     {
+        testSpecial();
+        testStart();
         testParse();
         testParseField();
         testGet();
     }
 };
 
-TEST_SUITE(request_parser_test, "boost.http_proto.request_parser");
+TEST_SUITE(
+    request_parser_test,
+    "boost.http_proto.request_parser");
 
 } // http_proto
 } // boost

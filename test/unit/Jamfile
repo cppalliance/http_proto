@@ -27,6 +27,7 @@ project
 
 local SOURCES =
     buffer.cpp
+    codec.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -54,6 +55,7 @@ local SOURCES =
     response_parser.cpp
     response_view.cpp
     serializer.cpp
+    sink.cpp
     source.cpp
     status.cpp
     string_body.cpp

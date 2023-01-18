@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/assert.hpp>
 #include <boost/none.hpp>
@@ -25,22 +26,13 @@ namespace http_proto {
 parser::
 parser(
     detail::kind k,
-    config const& cfg,
     std::size_t buffer_bytes)
-    : cfg_(cfg)
-    , h_(detail::empty{k})
+    : h_(detail::empty{k})
     , committed_(0)
     , state_(state::empty)
     , got_eof_(false)
     , m_{}
 {
-    // buffer must be large enough to
-    // hold a complete header.
-    if( buffer_bytes <
-        cfg.max_header_size)
-        buffer_bytes =
-            cfg.max_header_size;
-
     h_.buf = new char[buffer_bytes];
     h_.cbuf = h_.buf;
     h_.cap = buffer_bytes;
@@ -91,52 +83,8 @@ body() const noexcept
 
 void
 parser::
-clear() noexcept
+reset() noexcept
 {
-    reset();
-}
-
-void
-parser::
-reset()
-{
-    if(got_eof_)
-    {
-        // new connection, throw
-        // out all previous state.
-        committed_ = 0;
-        got_eof_ = false;
-    }
-    else
-    {
-        // Throwing out partial data
-        // will desync the HTTP stream
-        //BOOST_ASSERT(is_complete());
-        if( committed_ > h_.size &&
-            h_.size > 0)
-        {
-            // move unused octets to front
-            std::memcpy(
-                h_.buf,
-                h_.buf + h_.size,
-                committed_ - h_.size);
-            committed_ -= h_.size;
-            h_.size = 0;
-        }
-        else
-        {
-            committed_ = 0;
-        }
-    }
-
-    // reset the header but
-    // preserve the capacity
-    detail::header h(
-        detail::empty{h_.kind});
-    h.assign_to(h_);
-
-    m_ = message{};
-    state_ = state::empty;
 }
 
 mutable_buffers
@@ -202,10 +150,90 @@ discard_chunk() noexcept
 {
 }
 
+void
+parser::
+skip_body()
+{
+}
+
+string_view
+parser::
+buffered_data() noexcept
+{
+    return {};
+}
+
 //------------------------------------------------
 //
 // Implementation
 //
+//------------------------------------------------
+
+void
+parser::
+apply_param(
+    config_base const& cfg) noexcept
+{
+    // buffer must be large enough to
+    // hold a complete header.
+    if( h_.cap <
+        cfg.max_header_size)
+        detail::throw_invalid_argument();
+
+    cfg_ = cfg;
+}
+//------------------------------------------------
+
+void
+parser::
+apply_start(
+    headers_first_t)
+{
+}
+
+void
+parser::
+start_impl()
+{
+    if(got_eof_)
+    {
+        // new connection, throw
+        // out all previous state.
+        committed_ = 0;
+        got_eof_ = false;
+    }
+    else
+    {
+        // Throwing out partial data
+        // will desync the HTTP stream
+        //BOOST_ASSERT(is_complete());
+        if( committed_ > h_.size &&
+            h_.size > 0)
+        {
+            // move unused octets to front
+            std::memcpy(
+                h_.buf,
+                h_.buf + h_.size,
+                committed_ - h_.size);
+            committed_ -= h_.size;
+            h_.size = 0;
+        }
+        else
+        {
+            committed_ = 0;
+        }
+    }
+
+    // reset the header but
+    // preserve the capacity
+    detail::header h(
+        detail::empty{h_.kind});
+    h.assign_to(h_);
+
+    m_ = message{};
+    state_ = state::empty;
+}
+
 //------------------------------------------------
 
 void

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_GZIP_HPP
-#define BOOST_HTTP_PROTO_GZIP_HPP
+#ifndef BOOST_HTTP_PROTO_CODEC_HPP
+#define BOOST_HTTP_PROTO_CODEC_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 
@@ -31,12 +31,31 @@ constexpr __implementation_defined__ gzip_decoder;
 */
 constexpr __implementation_defined__ gzip_encoder;
 
+/** Constant for the brotli decoder
+
+    This value may be passed upon construction
+    of a @ref serializer or @ref parser.
+*/
+constexpr __implementation_defined__ brotli_decoder;
+
+/** Constant for the brotli encoder
+
+    This value may be passed upon construction
+    of a @ref serializer or @ref parser.
+*/
+constexpr __implementation_defined__ brotli_encoder;
+
 #else
 
 struct gzip_decoder_t {};
 struct gzip_encoder_t {};
 constexpr gzip_decoder_t gzip_decoder{};
 constexpr gzip_encoder_t gzip_encoder{};
+
+struct brotli_decoder_t {};
+struct brotli_encoder_t {};
+constexpr brotli_decoder_t brotli_decoder{};
+constexpr brotli_encoder_t brotli_encoder{};
 
 #endif
 

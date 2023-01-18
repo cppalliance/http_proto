@@ -16,12 +16,16 @@ namespace boost {
 namespace http_proto {
 
 response_parser::
+response_parser()
+    : response_parser(65536)
+{
+}
+
+response_parser::
 response_parser(
-    config const& cfg,
     std::size_t buffer_size)
     : parser(
         detail::kind::response,
-        cfg,
         buffer_size)
 {
 }
@@ -31,6 +35,13 @@ response_parser::
 get() const noexcept
 {
     return response_view(&h_);
+}
+
+void
+response_parser::
+apply_start(
+    head_response_t)
+{
 }
 
 } // http_proto

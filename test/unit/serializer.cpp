@@ -10,7 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
 
-#include <boost/http_proto/gzip.hpp>
+#include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -118,17 +118,17 @@ struct serializer_test
         serializer sr(1024);
         response res;
 
-        sr.reset(res);
-        sr.reset(res, const_buffer{});
-        sr.reset(res, mutable_buffer{});
-        sr.reset(res, const_buffers_1{});
-        sr.reset(res, mutable_buffers_1{});
-        sr.reset(res, test_source{});
-        sr.reset(res, make_const(const_buffer{}));
-        sr.reset(res, make_const(mutable_buffer{}));
-        sr.reset(res, make_const(const_buffers_1{}));
-        sr.reset(res, make_const(mutable_buffers_1{}));
-        sr.reset(res, make_const(test_source{}));
+        sr.start(res);
+        sr.start(res, const_buffer{});
+        sr.start(res, mutable_buffer{});
+        sr.start(res, const_buffers_1{});
+        sr.start(res, mutable_buffers_1{});
+        sr.start(res, test_source{});
+        sr.start(res, make_const(const_buffer{}));
+        sr.start(res, make_const(mutable_buffer{}));
+        sr.start(res, make_const(const_buffers_1{}));
+        sr.start(res, make_const(mutable_buffers_1{}));
+        sr.start(res, make_const(test_source{}));
 
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
         serializer(65536);
@@ -153,7 +153,7 @@ struct serializer_test
             auto res =
                 make_response(headers);
             serializer sr;
-            sr.reset(res);
+            sr.start(res);
             std::string s = read(sr);
             BOOST_TEST(s == expected);
         };
@@ -192,7 +192,7 @@ struct serializer_test
             make_response(headers);
         std::string sb = body;
         serializer sr;
-        sr.reset(res,
+        sr.start(res,
             string_body(std::move(sb)));
         std::string s = read(sr);
         BOOST_TEST(s == expected);
@@ -208,7 +208,7 @@ struct serializer_test
         auto res =
             make_response(headers);
         serializer sr;
-        sr.reset(res, std::forward<
+        sr.start(res, std::forward<
             Source>(src));
         std::string s = read(sr);
         BOOST_TEST(s == expected);
@@ -305,7 +305,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
-            sr.reset(req, test_source{});
+            sr.start(req, test_source{});
             std::string s;
             result<serializer::output> rv;
             for(;;)
@@ -346,7 +346,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
-            sr.reset(req);
+            sr.start(req);
             std::string s;
             result<serializer::output> rv;
             for(;;)
@@ -382,7 +382,7 @@ struct serializer_test
                 "\r\n";
             serializer sr;
             auto res = make_response(sv);
-            sr.reset(res, test_source{});
+            sr.start(res, test_source{});
             auto s = read(sr);
             BOOST_TEST(s ==
                 "HTTP/1.1 200 OK\r\n"

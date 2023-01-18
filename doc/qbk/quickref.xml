@@ -39,11 +39,13 @@
           <member><link linkend="http_proto.ref.boost__http_proto__response_parser">response_parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__response_view">response_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__sink">sink</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__source">source</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__string_body">string_body</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
+          <member><link linkend="http_proto.ref.boost__http_proto__is_sink">is_sink</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__is_source">is_source</link></member>
         </simplelist>
       </entry>
