@@ -258,10 +258,10 @@ private:
     BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_encoder_t const&);
 
     // in detail/impl/zlib_codec.ipp
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(deflate_decoder_t const&);
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(deflate_encoder_t const&);
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(gzip_decoder_t const&);
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(gzip_encoder_t const&);
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_encoder_t const&);
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
+    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_encoder_t const&);
 
     BOOST_HTTP_PROTO_DECL void do_maybe_reserve(source&, std::size_t);
     BOOST_HTTP_PROTO_DECL void reset_init(message_view_base const&);

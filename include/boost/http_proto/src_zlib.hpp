@@ -17,8 +17,8 @@ in a translation unit of the program.
 
 */
 
-#ifndef BOOST_HTTP_PROTO_EXT_SOURCE
-#define BOOST_HTTP_PROTO_EXT_SOURCE
+#ifndef BOOST_HTTP_PROTO_ZLIB_SOURCE
+#define BOOST_HTTP_PROTO_ZLIB_SOURCE
 #endif
 
 #include <boost/http_proto/detail/impl/zlib_codec.ipp>

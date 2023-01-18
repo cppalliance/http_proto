@@ -17,7 +17,7 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-struct codec
+struct BOOST_SYMBOL_VISIBLE codec
 {
     struct results
     {
@@ -26,7 +26,8 @@ struct codec
         std::size_t output_used = 0;
     };
 
-    virtual ~codec() = 0;
+    BOOST_HTTP_PROTO_DECL
+    virtual ~codec();
 
     virtual
     results

@@ -99,7 +99,7 @@ class gzip_decoder : public codec
     void* zs_ = nullptr;
 
 public:
-    ~gzip_decoder();
+    ~gzip_decoder() override;
     gzip_decoder();
 
     gzip_decoder(
@@ -171,10 +171,10 @@ exchange(
         const_cast<Bytef z_const*>(
             reinterpret_cast<
                 Bytef const*>(input));
-    zs->avail_in = input_size;
+    zs->avail_in = static_cast<uInt>(input_size);
     zs->next_out = reinterpret_cast<
         Bytef*>(output);
-    zs->avail_in = output_size;
+    zs->avail_out = static_cast<uInt>(output_size);
     results rv;
     rv.ec = static_cast<zlib_error>(
         ::inflate(zs, Z_NO_FLUSH));
@@ -192,7 +192,7 @@ class gzip_encoder : public codec
     void* zs_ = nullptr;
 
 public:
-    ~gzip_encoder();
+    ~gzip_encoder() override;
     gzip_encoder();
 
     gzip_encoder(
@@ -265,10 +265,10 @@ exchange(
         const_cast<Bytef z_const*>(
             reinterpret_cast<
                 Bytef const*>(input));
-    zs->avail_in = input_size;
+    zs->avail_in = static_cast<uInt>(input_size);
     zs->next_out = reinterpret_cast<
         Bytef*>(output);
-    zs->avail_in = output_size;
+    zs->avail_out = static_cast<uInt>(output_size);
     results rv;
     rv.ec = static_cast<zlib_error>(
         ::deflate(zs, Z_NO_FLUSH));

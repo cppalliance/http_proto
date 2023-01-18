@@ -76,11 +76,7 @@ file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS
     include/boost/*.natvis
 )
 
-set(BOOST_HTTP_PROTO_SOURCES
-    src/src.cpp
-    #src/src_brotli.cpp
-    #src/src_zlib.cpp
-    )
+set(BOOST_HTTP_PROTO_SOURCES src/src.cpp)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -104,6 +100,27 @@ if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     )
+endif()
+
+if (ZLIB_FOUND)
+    set(BOOST_HTTP_PROTO_ZLIB_HEADERS include/boost/http_proto/serializer.hpp)
+    set(BOOST_HTTP_PROTO_ZLIB_SOURCES include/boost/http_proto/detail/impl/zlib_codec.ipp)
+    set(BOOST_HTTP_PROTO_ZLIB_SOURCES src/src_zlib.cpp)
+
+    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_ZLIB_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+    add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
+
+    target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
+    target_link_libraries(boost_http_proto_zlib PUBLIC ZLIB::ZLIB)
+    target_compile_definitions(boost_http_proto_zlib PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
+
+    if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
+        install(TARGETS boost_http_proto_zlib
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        )
+    endif()
 endif()
 
 if(BOOST_HTTP_PROTO_BUILD_TESTS)
