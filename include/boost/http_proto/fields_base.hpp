@@ -46,8 +46,14 @@ class BOOST_SYMBOL_VISIBLE
     friend struct detail::header;
 
     BOOST_HTTP_PROTO_DECL
-    explicit fields_base(
+    explicit
+    fields_base(
         detail::kind) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        string_view);
 
     fields_base(detail::header const&);
 

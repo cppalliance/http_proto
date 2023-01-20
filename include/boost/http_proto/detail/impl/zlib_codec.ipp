@@ -281,6 +281,193 @@ exchange(
     return rv;
 }
 
+//------------------------------------------------
+
+class deflate_decoder : public codec
+{
+    void* zs_ = nullptr;
+
+public:
+    ~deflate_decoder() override;
+    deflate_decoder();
+
+    deflate_decoder(
+        deflate_decoder&&) noexcept;
+    deflate_decoder& operator=(
+        deflate_decoder&&) = delete;
+
+    results
+    exchange(
+        void* output,
+        std::size_t output_size,
+        void const* input,
+        std::size_t input_size) override;
+};
+
+deflate_decoder::
+~deflate_decoder()
+{
+    auto zs = reinterpret_cast<
+        ::z_stream*>(zs_);
+    if(zs)
+    {
+        ::inflateEnd(zs);
+        delete zs;
+    }
+}
+
+deflate_decoder::
+deflate_decoder()
+{
+    ::z_stream* zs = new ::z_stream;
+    zs->zalloc = nullptr;
+    zs->zfree = nullptr;
+    zs->opaque = nullptr;
+    int const ec = ::inflateInit(zs);
+    if(ec == Z_OK)
+    {
+        zs_ = zs;
+        return;
+    }
+    delete zs;
+    throw_exception(
+        system_error(error_code(
+            static_cast<zlib_error>(ec))),
+        BOOST_CURRENT_LOCATION);
+}
+
+deflate_decoder::
+deflate_decoder(
+    deflate_decoder&& other) noexcept
+    : zs_(other.zs_)
+{
+    other.zs_ = nullptr;
+}
+
+auto
+deflate_decoder::
+exchange(
+    void* output,
+    std::size_t output_size,
+    void const* input,
+    std::size_t input_size) ->
+        results
+{
+    auto zs = reinterpret_cast<
+        ::z_stream*>(zs_);
+    // VFALCO zlib seems to need const_cast
+    zs->next_in =
+        const_cast<Bytef z_const*>(
+            reinterpret_cast<
+                Bytef const*>(input));
+    zs->avail_in = static_cast<uInt>(input_size);
+    zs->next_out = reinterpret_cast<
+        Bytef*>(output);
+    zs->avail_out = static_cast<uInt>(output_size);
+    results rv;
+    rv.ec = static_cast<zlib_error>(
+        ::inflate(zs, Z_NO_FLUSH));
+    rv.input_used =
+        input_size - zs->avail_in;
+    rv.output_used =
+        output_size - zs->avail_out;
+    return rv;
+}
+
+//------------------------------------------------
+
+class deflate_encoder : public codec
+{
+    void* zs_ = nullptr;
+
+public:
+    ~deflate_encoder() override;
+    deflate_encoder();
+
+    deflate_encoder(
+        deflate_encoder&&) noexcept;
+    deflate_encoder& operator=(
+        deflate_encoder&&) = delete;
+
+    results
+    exchange(
+        void* output,
+        std::size_t output_size,
+        void const* input,
+        std::size_t input_size) override;
+};
+
+deflate_encoder::
+~deflate_encoder()
+{
+    auto zs = reinterpret_cast<
+        ::z_stream*>(zs_);
+    if(zs)
+    {
+        ::deflateEnd(zs);
+        delete zs;
+    }
+}
+
+deflate_encoder::
+deflate_encoder()
+{
+    ::z_stream* zs = new ::z_stream;
+    zs->zalloc = nullptr;
+    zs->zfree = nullptr;
+    zs->opaque = nullptr;
+    int const ec = ::deflateInit(zs,
+        Z_DEFAULT_COMPRESSION);
+    if(ec == Z_OK)
+    {
+        zs_ = zs;
+        return;
+    }
+    delete zs;
+    throw_exception(
+        system_error(error_code(
+            static_cast<zlib_error>(ec))),
+        BOOST_CURRENT_LOCATION);
+}
+
+deflate_encoder::
+deflate_encoder(
+    deflate_encoder&& other) noexcept
+    : zs_(other.zs_)
+{
+    other.zs_ = nullptr;
+}
+
+auto
+deflate_encoder::
+exchange(
+    void* output,
+    std::size_t output_size,
+    void const* input,
+    std::size_t input_size) ->
+        results
+{
+    auto zs = reinterpret_cast<
+        ::z_stream*>(zs_);
+    // VFALCO zlib seems to need const_cast
+    zs->next_in =
+        const_cast<Bytef z_const*>(
+            reinterpret_cast<
+                Bytef const*>(input));
+    zs->avail_in = static_cast<uInt>(input_size);
+    zs->next_out = reinterpret_cast<
+        Bytef*>(output);
+    zs->avail_out = static_cast<uInt>(output_size);
+    results rv;
+    rv.ec = static_cast<zlib_error>(
+        ::deflate(zs, Z_NO_FLUSH));
+    rv.input_used =
+        input_size - zs->avail_in;
+    rv.output_used =
+        output_size - zs->avail_out;
+    return rv;
+}
+
 } // detail
 
 //------------------------------------------------
@@ -290,6 +477,8 @@ parser::
 apply_param(
     deflate_decoder_t const&)
 {
+    dec_[deflate_codec].reset(
+        new detail::deflate_decoder);
 }
 
 void
@@ -297,6 +486,8 @@ parser::
 apply_param(
     gzip_decoder_t const&)
 {
+    dec_[gzip_codec].reset(
+        new detail::gzip_decoder);
 }
 
 //------------------------------------------------
@@ -306,6 +497,8 @@ serializer::
 apply_param(
     deflate_decoder_t const&)
 {
+    dec_[deflate_codec].reset(
+        new detail::deflate_decoder);
 }
 
 void
@@ -313,6 +506,8 @@ serializer::
 apply_param(
     deflate_encoder_t const&)
 {
+    enc_[deflate_codec].reset(
+        new detail::deflate_encoder);
 }
 
 void
@@ -320,8 +515,8 @@ serializer::
 apply_param(
     gzip_decoder_t const&)
 {
-    dec_[gzip_codec] = &ws_.push(
-        detail::gzip_decoder());
+    dec_[gzip_codec].reset(
+        new detail::gzip_decoder);
 }
 
 void
@@ -329,8 +524,8 @@ serializer::
 apply_param(
     gzip_encoder_t const&)
 {
-    enc_[gzip_codec] = &ws_.push(
-        detail::gzip_encoder());
+    enc_[gzip_codec].reset(
+        new detail::gzip_encoder);
 }
 
 } // http_proto

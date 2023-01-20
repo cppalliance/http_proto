@@ -21,23 +21,91 @@
 namespace boost {
 namespace http_proto {
 
+/*
+    Parser design:
+
+    The usage of the parser is thus:
+
+    pr.reset(); // prepare for a new stream
+
+    pr.start(); // prepare for a new message
+    pr.start_head_response(); // new message with no payload
+
+    read_header( ..., pr );
+        do
+        {
+            read_some(..., pr );
+        }
+        while(! got_header());
+
+    pr.set_body( ... );
+        // invalidates the headers? yes.
+
+    read_body( ..., pr );
+        while(! (pr.flags() &
+            parser::is_done_bit ) );
+        {
+            read_some(..., pr );
+        }
+
+    If these are called out of order, an
+    exception is thrown.
+
+    Every call to `prepare` must be
+    followed by a call to commit, reset,
+    or the destructor.
+*/
 //------------------------------------------------
 
 parser::
 parser(
     detail::kind k,
-    std::size_t buffer_bytes)
-    : h_(detail::empty{k})
-    , committed_(0)
-    , state_(state::empty)
-    , got_eof_(false)
-    , m_{}
+    config_base const& cfg)
+    : cfg_(cfg)
+    , h_(detail::empty{k})
 {
-    h_.buf = new char[buffer_bytes];
-    h_.cbuf = h_.buf;
-    h_.cap = buffer_bytes;
-    h_.size = 0;
-    h_.prefix = 0;
+}
+
+void
+parser::
+construct(
+    std::size_t extra_buffer_size)
+{
+    // max_headers_size too large
+    if( cfg_.max_headers_size >
+        BOOST_HTTP_PROTO_MAX_HEADER)
+        detail::throw_invalid_argument();
+
+    // max_field_size too large
+    if( cfg_.max_field_size >=
+        cfg_.max_headers_size)
+        detail::throw_invalid_argument();
+
+    // max_field_count too large
+    if( cfg_.max_field_count >
+        cfg_.max_headers_size / 4)
+        detail::throw_invalid_argument();
+
+    // largest space needed
+    auto const bytes_needed =
+        detail::header::bytes_needed(
+            cfg_.max_headers_size,
+            cfg_.max_field_count);
+
+    // extra_buffer_size is too large
+    if(extra_buffer_size >
+            std::size_t(-1) - bytes_needed)
+        detail::throw_invalid_argument();
+
+/*  Layout:
+
+    |<- bytes_needed ->|<- extra_buffer_size ->|
+*/
+    ws_ = detail::workspace(
+        bytes_needed +
+        extra_buffer_size);
+
+    reset();
 }
 
 //------------------------------------------------
@@ -49,8 +117,11 @@ parser(
 parser::
 ~parser()
 {
-    delete[] h_.buf;
 }
+
+parser::
+parser(
+    parser&&) noexcept = default;
 
 //------------------------------------------------
 //
@@ -62,6 +133,7 @@ string_view
 parser::
 body() const noexcept
 {
+#if 0
     // VFALCO How about some
     // asserts or exceptions?
     if(! m_.got_chunked)
@@ -73,6 +145,9 @@ body() const noexcept
             h_.size +
             m_.n_chunk,
         m_.n_payload);
+#else
+    return {};
+#endif
 }
 
 //------------------------------------------------
@@ -85,41 +160,153 @@ void
 parser::
 reset() noexcept
 {
+    // largest space needed
+    auto const bytes_needed =
+        detail::header::bytes_needed(
+            cfg_.max_headers_size,
+            cfg_.max_field_count);
+    h_ = detail::header(
+        detail::empty{h_.kind});
+    h_.buf = reinterpret_cast<
+        char*>(ws_.data());
+    h_.cbuf = h_.buf;
+    h_.cap = bytes_needed;
+
+    st_ = state::need_start;
+
+    m_ = {};
+
+    got_eof_ = false;
 }
 
-mutable_buffers
+auto
 parser::
-prepare()
+prepare() ->
+    buffers
 {
-    // Can't commit bytes after eof
-    BOOST_ASSERT(! got_eof_);
+    // Forgot to call start
+    if(st_ == state::need_start)
+        detail::throw_logic_error();
 
-    mb_ = {
-        h_.buf + committed_,
-        h_.cap - committed_ };
-    return { &mb_, 1 };
+    // Can't prepare after eof
+    if(got_eof_)
+        detail::throw_logic_error();
+
+    switch(st_)
+    {
+    case state::need_start:
+    case state::start_line:
+    case state::fields:
+    {
+        // read up to max_headers_size
+        auto const n =
+            cfg_.max_headers_size -
+            rd_buf_.size();
+        return {
+            rd_buf_.prepare(n),
+            mutable_buffer{} };
+    }
+
+    case state::headers:
+    {
+        // discard headers and move
+        // any leftover stream data.
+        BOOST_FALLTHROUGH;
+    }
+
+    case state::body:
+    {
+        return {};
+    }
+
+    default:
+    case state::complete:
+        // Can't call prepare again after
+        // a complete message is parsed.
+        detail::throw_logic_error();
+    }
 }
 
 void
 parser::
 commit(
-    std::size_t n,
+    std::size_t n)
+{
+    // Can't commit after eof
+    if(got_eof_)
+        detail::throw_logic_error();
+
+    rd_buf_.commit(n);
+}
+
+void
+parser::
+commit_eof()
+{
+    // Can't commit eof twice
+    if(got_eof_)
+        detail::throw_logic_error();
+
+    got_eof_ = true;
+
+    switch(st_)
+    {
+    default:
+    case state::need_start:
+    case state::start_line:
+    case state::fields:
+    case state::headers:
+    case state::body:
+    case state::complete:
+        break;
+    }
+}
+
+void
+parser::
+parse(
     error_code& ec)
 {
-    BOOST_ASSERT(! got_eof_);
-    BOOST_ASSERT(
-        n <= h_.cap - committed_);
-    committed_ += n;
-    parse(ec);
-}
+    ec.clear();
+    while(st_ != state::complete)
+    {
+        switch(st_)
+        {
+        case state::need_start:
+            if(got_eof_)
+            {
+                BOOST_ASSERT(h_.size == 0);
+                ec = error::end_of_stream;
+                return;
+            }
+            st_ = state::start_line;
+            BOOST_FALLTHROUGH;
 
-void
-parser::
-commit_eof(
-    error_code &ec)
-{
-    got_eof_ = true;
-    parse(ec);
+        case state::start_line:
+            parse_start_line(ec);
+            if(ec.failed())
+                return;
+            st_ = state::fields;
+            BOOST_FALLTHROUGH;
+
+        case state::fields:
+            parse_fields(ec);
+            if(ec.failed())
+                return;
+            st_ = state::body;
+            BOOST_FALLTHROUGH;
+
+        case state::body:
+            parse_body(ec);
+            if(ec.failed())
+                return;
+            st_ = state::complete;
+            BOOST_FALLTHROUGH;
+
+        default:
+            break;
+        }
+    }
 }
 
 //------------------------------------------------
@@ -127,12 +314,6 @@ commit_eof(
 //
 //
 //------------------------------------------------
-
-void
-parser::
-discard_header() noexcept
-{
-}
 
 // discard all of the body,
 // but don't discard chunk-ext
@@ -147,12 +328,6 @@ discard_body() noexcept
 void
 parser::
 discard_chunk() noexcept
-{
-}
-
-void
-parser::
-skip_body()
 {
 }
 
@@ -174,55 +349,43 @@ parser::
 apply_param(
     config_base const& cfg) noexcept
 {
-    // buffer must be large enough to
-    // hold a complete header.
-    if( h_.cap <
-        cfg.max_header_size)
-        detail::throw_invalid_argument();
-
     cfg_ = cfg;
 }
+
 //------------------------------------------------
 
 void
 parser::
-apply_start(
-    headers_first_t)
+start_impl(bool head_response)
 {
-}
-
-void
-parser::
-start_impl()
-{
+    // Can't call start after
+    // EOF, call reset instead.
     if(got_eof_)
+        detail::throw_logic_error();
+
+    // Can't call start with an
+    // incomplete current message.
+    if( st_ != state::complete &&
+        st_ != state::need_start)
+        detail::throw_logic_error();
+
+/*
+    if( committed_ > h_.size &&
+        h_.size > 0)
     {
-        // new connection, throw
-        // out all previous state.
-        committed_ = 0;
-        got_eof_ = false;
+        // move unused octets to front
+        std::memcpy(
+            h_.buf,
+            h_.buf + h_.size,
+            committed_ - h_.size);
+        committed_ -= h_.size;
+        h_.size = 0;
     }
     else
     {
-        // Throwing out partial data
-        // will desync the HTTP stream
-        //BOOST_ASSERT(is_complete());
-        if( committed_ > h_.size &&
-            h_.size > 0)
-        {
-            // move unused octets to front
-            std::memcpy(
-                h_.buf,
-                h_.buf + h_.size,
-                committed_ - h_.size);
-            committed_ -= h_.size;
-            h_.size = 0;
-        }
-        else
-        {
-            committed_ = 0;
-        }
+        committed_ = 0;
     }
+*/
 
     // reset the header but
     // preserve the capacity
@@ -231,89 +394,49 @@ start_impl()
     h.assign_to(h_);
 
     m_ = message{};
-    state_ = state::empty;
+    st_ = state::start_line;
+
+    BOOST_ASSERT(! head_response ||
+        h_.kind == detail::kind::response);
+    head_response_ = head_response;
+
+
+
+    // put leftovers at the beginning
+    // of the buffer
+
+    ws_.clear();
+
+    BOOST_ASSERT(ws_.size() >=
+        cfg_.max_headers_size);
+    rd_buf_ = {
+        ws_.data(),
+        cfg_.max_headers_size };
 }
 
 //------------------------------------------------
 
 void
 parser::
-parse(
-    error_code& ec)
-{
-    ec.clear();
-    while(state_ != state::complete)
-    {
-        switch(state_)
-        {
-        case state::empty:
-            if(got_eof_)
-            {
-                BOOST_ASSERT(h_.size == 0);
-                ec = error::end_of_stream;
-                return;
-            }
-            state_ = state::start_line;
-            BOOST_FALLTHROUGH;
-
-        case state::start_line:
-            parse_start_line(ec);
-            if(ec.failed())
-                return;
-            state_ = state::header_fields;
-            BOOST_FALLTHROUGH;
-
-        case state::header_fields:
-            parse_fields(ec);
-            if(ec.failed())
-                return;
-            state_ = state::body;
-            BOOST_FALLTHROUGH;
-
-        case state::body:
-            parse_body(ec);
-            if(ec.failed())
-                return;
-            state_ = state::complete;
-            BOOST_FALLTHROUGH;
-
-        default:
-            break;
-        }
-    }
-}
-
-void
-parser::
 parse_start_line(
     error_code& ec)
 {
-    BOOST_ASSERT(h_.size == 0);
-    std::size_t const new_size =
-        committed_ <= cfg_.max_header_size
-        ? committed_
-        : cfg_.max_header_size;
-    string_view s(
-        this->h_.buf, new_size);
-    auto rv =
-        detail::parse_start_line(h_, s);
-    if(rv == grammar::error::need_more)
+    BOOST_ASSERT(h_.buf == ws_.data());
+    BOOST_ASSERT(h_.cbuf == ws_.data());
+    auto const new_size = rd_buf_.size();
+    h_.parse_start_line(new_size, ec);
+    if(! ec.failed())
+        return;
+    if(ec == grammar::error::need_more)
     {
         if( new_size <
-            cfg_.max_header_size)
-        {
-            ec = rv.error();
+            cfg_.max_headers_size)
             return;
-        }
-        ec = error::header_too_large;
+        ec = BOOST_HTTP_PROTO_ERR(
+            error::header_too_large);
         return;
     }
-    if(! rv)
-    {
-        ec = rv.error();
-        return;
-    }
-    ec = {};
+    return;
 }
 
 void
@@ -321,61 +444,35 @@ parser::
 parse_fields(
     error_code& ec)
 {
-    std::size_t const new_size =
-        committed_ <= cfg_.max_header_size
-        ? committed_
-        : cfg_.max_header_size;
-    field id;
-    string_view v;
     for(;;)
     {
         auto const size0 = h_.size;
-        auto got_one = detail::parse_field(
-            h_, new_size, id, v, ec);
+        auto got_one = h_.parse_field(
+            rd_buf_.size(), ec);
         if(ec == grammar::error::need_more)
         {
-            if(new_size >=
-                    cfg_.max_header_size)
-                ec = error::header_too_large;
+            if(rd_buf_.size() >=
+                    cfg_.max_headers_size)
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::header_too_large);
+                return;
+            }
         }
         if(! got_one)
             return;
         if(h_.count > cfg_.max_field_count)
         {
-            ec = error::too_many_fields;
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::too_many_fields);
             return;
         }
         if(h_.size >
             cfg_.max_field_size + size0)
         {
-            ec = error::field_too_large;
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::field_too_large);
             return;
-        }
-        switch(id)
-        {
-        case field::connection:
-        case field::proxy_connection:
-            do_connection(v, ec);
-            if(ec.failed())
-                return;
-            break;
-        case field::content_length:
-            do_content_length(v, ec);
-            if(ec.failed())
-                return;
-            break;
-        case field::transfer_encoding:
-            do_transfer_encoding(v, ec);
-            if(ec.failed())
-                return;
-            break;
-        case field::upgrade:
-            do_upgrade(v, ec);
-            if(ec.failed())
-                return;
-            break;
-        default:
-            break;
         }
     }
 }
@@ -389,7 +486,7 @@ parse_body(
 return;
 // VFALCO TODO
 #if 0
-    BOOST_ASSERT(state_ == state::body);
+    BOOST_ASSERT(st_ == state::body);
 
     if(h_.kind == detail::kind::request)
     {
@@ -478,7 +575,7 @@ return;
             ec = {};
             return;
         }
-        state_ = state::complete;
+        st_ = state::complete;
         ec = error::end_of_message;
         return;
     }
@@ -506,7 +603,7 @@ return;
             ec = grammar::error::need_more;
             return;
         }
-        state_ = state::complete;
+        st_ = state::complete;
         ec = error::end_of_message;
         return;
     }
@@ -547,14 +644,14 @@ parse_chunk(
 {
     (void)ec;
 #if 0
-    switch(state_)
+    switch(st_)
     {
-    case state::start_line:
+    case state::start_line_line:
     case state::header_fields:
         parse_header(ec);
         if(ec.failed())
             return;
-        BOOST_ASSERT(state_ >
+        BOOST_ASSERT(st_ >
             state::header_fields);
         break;
     case state::body:
@@ -565,7 +662,7 @@ parse_chunk(
         ec = error::end_of_message;
         if(! got_eof_)
             return;
-        state_ = state::end_of_stream;
+        st_ = state::end_of_stream;
         return;
     case state::end_of_stream:
         ec = error::end_of_stream;
@@ -607,7 +704,7 @@ parse_chunk(
             v.trailer;
         m_.body = {};
         size_ += it - start; // excludes CRLF
-        state_ = state::complete;
+        st_ = state::complete;
     }
     else
     {
@@ -615,145 +712,6 @@ parse_chunk(
 
     }
 #endif
-}
-
-//------------------------------------------------
-
-// https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
-void
-parser::
-do_connection(
-    string_view s, error_code& ec)
-{
-    (void)ec;
-    (void)s;
-#if 0
-    for(auto v : bnf::range<bnf::connection>(s))
-    {
-        if(grammar::ci_is_equal(v, "close"))
-        {
-            m_.got_close = true;
-        }
-        else if(grammar::ci_is_equal(v, "keep-alive"))
-        {
-            m_.got_keep_alive = true;
-        }
-        else if(grammar::ci_is_equal(v, "upgrade"))
-        {
-            m_.got_upgrade = true;
-        }
-    }
-#endif
-}
-
-void
-parser::
-do_content_length(
-    string_view s,
-    error_code& ec)
-{
-    (void)ec;
-    (void)s;
-#if 0
-    // https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
-    // Content-Length can be a comma separated
-    // list, with all the same values, as well
-    // as having multiple Content-Length fields
-    // with the same number. We handle these here.
-    auto list = bnf::range<
-        bnf::list_of_one_or_more<
-            bnf::dec_number>>(s);
-    auto it = list.begin(ec);
-    if(ec.failed())
-    {
-        ec = error::bad_content_length;
-        return;
-    }
-    BOOST_ASSERT(it != list.end());
-    auto v = *it;
-    if(! m_.content_len.has_value())
-    {
-        if(v > cfg_.max_body_size)
-        {
-            ec = error::body_too_large;
-            return;
-        }
-        m_.content_len = v;
-    }
-    else if(*m_.content_len != v)
-    {
-        // differing values
-        ec = error::bad_content_length;
-        return;
-    }
-    for(;;)
-    {
-        it.increment(ec);
-        if(ec.failed())
-        {
-            ec = error::bad_content_length;
-            return;
-        }
-        if(it == list.end())
-            break;
-        v = *it;
-        if(m_.content_len != v)
-        {
-            // differing lengths
-            ec = error::bad_content_length;
-            return;
-        }
-    }
-    if(! m_.skip_body)
-        m_.n_remain = *m_.content_len;
-#endif
-}
-
-void
-parser::
-do_transfer_encoding(
-    string_view s, error_code& ec)
-{
-    (void)s;
-    (void)ec;
-#if 0
-    using namespace detail::string_literals;
-
-    bnf::range<bnf::transfer_encoding> te(s);
-    auto const end = te.end();
-    auto it = te.begin(ec);
-    if(ec.failed())
-    {
-        // expected at least one encoding
-        ec = error::bad_transfer_encoding;
-        return;
-    }
-    BOOST_ASSERT(it != end);
-    // handle multiple
-    // Transfer-Encoding header lines
-    m_.got_chunked = false;
-    // get last encoding
-    for(;;)
-    {
-        auto prev = it++;
-        if(it == end)
-        {
-            if(grammar::ci_is_equal(
-                prev->name, "chunked"))
-                m_.got_chunked = true;
-            break;
-        }
-    }
-#endif
-}
-
-void
-parser::
-do_upgrade(
-    string_view s, error_code& ec)
-{
-    (void)s;
-    (void)ec;
 }
 
 } // http_proto

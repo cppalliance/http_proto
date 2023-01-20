@@ -19,6 +19,7 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 
 namespace boost {
@@ -53,7 +54,7 @@ class BOOST_SYMBOL_VISIBLE
 public:
     /** A ConstBuffers representing the output
     */
-    class output;
+    class buffers;
 
     /** Destructor
     */
@@ -64,6 +65,12 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     serializer();
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    serializer(
+        serializer&&) noexcept;
 
     /** Constructor
     */
@@ -239,7 +246,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<output>;
+        result<buffers>;
 
     /** Consume bytes from the output area.
     */
@@ -255,9 +262,9 @@ private:
     auto
     make_array(std::size_t n) ->
         detail::array_of_const_buffers;
+    void apply_param(...) = delete;
     void apply_params() noexcept;
     template<class P0, class... Pn> void apply_params(P0&&, Pn&&...);
-    template<class Param> void apply_param(Param const&) = delete;
 
     // in detail/impl/brotli_codec.ipp
     BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_decoder_t const&);
@@ -305,8 +312,10 @@ private:
     class reserve;
 
     detail::workspace ws_;
-    detail::codec* dec_[3]{};
-    detail::codec* enc_[3]{};
+    std::unique_ptr<
+        detail::codec> dec_[3];
+    std::unique_ptr<
+        detail::codec> enc_[3];
 
     source* src_;
     detail::array_of_const_buffers buf_;

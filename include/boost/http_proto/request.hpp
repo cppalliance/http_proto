@@ -30,6 +30,12 @@ public:
     request() noexcept;
 
     /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    request(string_view s);
+
+    /** Constructor
 
         The moved-from object will be
         left in the default-constructed

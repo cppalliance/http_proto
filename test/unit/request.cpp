@@ -26,7 +26,7 @@ struct request_test
             "POST /x HTTP/1.0\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
-        request req = make_request(cs);
+        request req(cs);
         BOOST_TEST(req.method() == method::post);
         BOOST_TEST(req.method_text() == "POST");
         BOOST_TEST(req.target() == "/x");
@@ -43,7 +43,7 @@ struct request_test
             std::size_t count,
             string_view s)
         {
-            req = make_request(s);
+            req = request(s);
             BOOST_TEST(
                 req.size() == count);
         };
@@ -92,8 +92,7 @@ struct request_test
                     r2.version() == version::http_1_1);
             }
             {
-                request r1 =
-                    make_request(cs);
+                request r1(cs);
                 request r2(r1);
                 check(r1, 2, cs);
                 check(r2, 2, cs);
@@ -129,8 +128,7 @@ struct request_test
                     r2.version() == version::http_1_1);
             }
             {
-                request r1 =
-                    make_request(cs);
+                request r1(cs);
                 request r2(std::move(r1));
                 check(r1, 0,
                     "GET / HTTP/1.1\r\n"
@@ -153,7 +151,7 @@ struct request_test
             {
                 // default
                 request r1;
-                request r2 = make_request(cs);
+                request r2(cs);
                 r1 = r2;
                 check(r1, 2, cs);
                 check(r2, 2, cs);
@@ -168,7 +166,7 @@ struct request_test
                     r1.version() == version::http_1_0);
             }
             {
-                request r1 = make_request(cs);
+                request r1(cs);
                 request r2;
                 r1 = r2;
                 check(r1, 0,
@@ -189,7 +187,7 @@ struct request_test
         // operator=(fields&&)
         {
             {
-                request r1 = make_request(cs);
+                request r1(cs);
                 request r2;
                 r2 = std::move(r1);
                 check(r1, 0,
@@ -206,8 +204,8 @@ struct request_test
                     r2.version() == version::http_1_0);
             }
             {
-                request r1 = make_request(cs);
-                request r2 = make_request(cs2);
+                request r1(cs);
+                request r2(cs2);
                 r2 = std::move(r1);
                 check(r1, 0,
                     "GET / HTTP/1.1\r\n"
@@ -224,7 +222,7 @@ struct request_test
             }
             {
                 request r1;
-                request r2 = make_request(cs);
+                request r2(cs);
                 r2 = std::move(r1);
                 check(r1, 0,
                     "GET / HTTP/1.1\r\n"
@@ -264,7 +262,7 @@ struct request_test
                     "GET / HTTP/1.1\r\n\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -301,7 +299,7 @@ struct request_test
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -330,7 +328,7 @@ struct request_test
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -345,7 +343,7 @@ struct request_test
                     "\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "BOOST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -372,7 +370,7 @@ struct request_test
                     "GET /index.htm HTTP/1.1\r\n\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -395,7 +393,7 @@ struct request_test
                     "GET / HTTP/1.0\r\n\r\n");
             }
             {
-                request req = make_request(
+                request req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");

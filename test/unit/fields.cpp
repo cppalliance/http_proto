@@ -29,8 +29,8 @@ struct fields_test
         void (*pf)(fields&),
         string_view after)
     {
-        fields f0 = make_fields(before);
-        fields f1 = make_fields(after);
+        fields f0(before);
+        fields f1(after);
         fields f(f0);
         (*pf)(f);
         BOOST_TEST_EQ(f.buffer(),
@@ -69,7 +69,7 @@ struct fields_test
         // fields(fields&&)
         {
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2(std::move(f1));
                 test_fields(f1, "\r\n");
                 test_fields(f2, cs1);
@@ -88,7 +88,7 @@ struct fields_test
         // fields(fields const&)
         {
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2(f1);
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
@@ -110,7 +110,7 @@ struct fields_test
         // fields(fields_view const&)
         {
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2(static_cast<
                     fields_view>(f1));
 
@@ -137,22 +137,22 @@ struct fields_test
         // operator=(fields&&)
         {
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2;
                 f2 = std::move(f1);
                 test_fields(f1, "\r\n");
                 test_fields(f2, cs1);
             }
             {
-                fields f1 = make_fields(cs1);
-                fields f2 = make_fields(cs2);
+                fields f1(cs1);
+                fields f2(cs2);
                 f2 = std::move(f1);
                 test_fields(f1, "\r\n");
                 test_fields(f2, cs1);
             }
             {
                 fields f1;
-                fields f2 = make_fields(cs1);
+                fields f2(cs1);
                 f2 = std::move(f1);
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
@@ -165,7 +165,7 @@ struct fields_test
         // operator=(fields const&)
         {
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2;
                 f2 = f1;
                 test_fields(f1, cs1);
@@ -175,8 +175,8 @@ struct fields_test
                     f2.buffer().data());
             }
             {
-                fields f1 = make_fields(cs1);
-                fields f2 = make_fields(
+                fields f1(cs1);
+                fields f2(
                     "x: 1\r\n"
                     "y: 2\r\n"
                     "z: 3\r\n"
@@ -190,7 +190,7 @@ struct fields_test
             }
             {
                 fields f1;
-                fields f2 = make_fields(cs1);
+                fields f2(cs1);
                 f2 = f1;
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
@@ -203,8 +203,7 @@ struct fields_test
         // operator=(fields_view)
         {
             {
-                fields f1 =
-                    make_fields(cs1);
+                fields f1(cs1);
                 fields f2;
                 f2 = static_cast<
                     fields_view>(f1);
@@ -215,8 +214,8 @@ struct fields_test
                     f2.buffer().data());
             }
             {
-                fields f1 = make_fields(cs1);
-                fields f2 = make_fields(
+                fields f1(cs1);
+                fields f2(
                     "x: 1\r\n"
                     "y: 2\r\n"
                     "z: 3\r\n"
@@ -231,7 +230,7 @@ struct fields_test
             }
             {
                 fields_view f1;
-                fields f2 = make_fields(cs1);
+                fields f2(cs1);
                 f2 = f1;
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
@@ -242,7 +241,7 @@ struct fields_test
 
             // existing capacity
             {
-                fields f1 = make_fields(cs1);
+                fields f1(cs1);
                 fields f2;
                 f2.reserve_bytes(
                     2 * cs1.size() + 128);
@@ -268,7 +267,7 @@ struct fields_test
 
         // fields_view_base::string()
         {
-            fields f1 = make_fields(cs);
+            fields f1(cs);
             BOOST_TEST_EQ(f1.buffer(), cs);
         }
 

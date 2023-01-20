@@ -21,27 +21,11 @@ response_parser()
 {
 }
 
-response_parser::
-response_parser(
-    std::size_t buffer_size)
-    : parser(
-        detail::kind::response,
-        buffer_size)
-{
-}
-
 response_view
 response_parser::
-get() const noexcept
+get() const
 {
     return response_view(&h_);
-}
-
-void
-response_parser::
-apply_start(
-    head_response_t)
-{
 }
 
 } // http_proto

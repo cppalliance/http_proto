@@ -226,6 +226,48 @@ fields_base(
 {
 }
 
+// copy s and parse it
+fields_base::
+fields_base(
+    detail::kind k,
+    string_view s)
+    : fields_view_base(&h_)
+    , h_(detail::empty{k})
+{
+    auto n = detail::count_crlf(s);
+    if(h_.kind == detail::kind::fields)
+    {
+        if(n < 1)
+            detail::throw_invalid_argument();
+        n -= 1;
+    }
+    else
+    {
+        if(n < 2)
+            detail::throw_invalid_argument();
+        n -= 2;
+    }
+    op_t op(*this);
+    op.grow(s.size(), n);
+    s.copy(h_.buf, s.size());
+    error_code ec;
+    if(h_.kind != detail::kind::fields)
+    {
+        h_.parse_start_line(s.size(), ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+    }
+    for(;;)
+    {
+        auto b = h_.parse_field(
+            s.size(), ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        if(! b)
+            break;
+    }
+}
+
 // construct a complete copy of h
 fields_base::
 fields_base(

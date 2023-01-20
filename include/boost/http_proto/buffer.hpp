@@ -126,6 +126,9 @@ class mutable_buffer
     std::size_t n_ = 0;
 
 public:
+    using const_iterator =
+        mutable_buffer const*;
+
     mutable_buffer() = default;
     mutable_buffer(
         mutable_buffer const&) = default;
@@ -165,6 +168,18 @@ public:
     size() const noexcept
     {
         return n_;
+    }
+
+    const_iterator
+    begin() const noexcept
+    {
+        return this;
+    }
+
+    const_iterator
+    end() const noexcept
+    {
+        return this + 1;
     }
 
     mutable_buffer&
@@ -226,6 +241,9 @@ class const_buffer
     std::size_t n_ = 0;
 
 public:
+    using const_iterator =
+        const_buffer const*;
+
     const_buffer() = default;
     const_buffer(
         const_buffer const&) = default;
@@ -265,6 +283,18 @@ public:
     size() const noexcept
     {
         return n_;
+    }
+
+    const_iterator
+    begin() const noexcept
+    {
+        return this;
+    }
+
+    const_iterator
+    end() const noexcept
+    {
+        return this + 1;
     }
 
     const_buffer&
@@ -317,145 +347,6 @@ public:
             0 };
     }
 };
-
-//------------------------------------------------
-
-/** A MutableBuffer of length 1
-*/
-class mutable_buffers_1
-{
-    mutable_buffer mb_;
-
-public:
-    using value_type =
-        mutable_buffer;
-
-    using const_iterator =
-        mutable_buffer const*;
-
-    mutable_buffers_1() = default;
-
-    explicit
-    mutable_buffers_1(
-        mutable_buffer mb) noexcept
-        : mb_(mb)
-    {
-    }
-
-    mutable_buffers_1&
-    operator=(
-        mutable_buffers_1 const&) = default;
-
-    const_iterator
-    begin() const noexcept
-    {
-        return &mb_;
-    }
-
-    const_iterator
-    end() const noexcept
-    {
-        return &mb_ + 1;
-    }
-};
-
-/** A ConstBuffer of length 1
-*/
-class const_buffers_1
-{
-    const_buffer cb_;
-
-public:
-    using value_type =
-        const_buffer;
-
-    using const_iterator =
-        const_buffer const*;
-
-    const_buffers_1() = default;
-
-    explicit
-    const_buffers_1(
-        const_buffer cb) noexcept
-        : cb_(cb)
-    {
-    }
-
-    const_buffers_1&
-    operator=(const_buffers_1 const&) = default;
-
-    const_iterator
-    begin() const noexcept
-    {
-        return &cb_;
-    }
-
-    const_iterator
-    end() const noexcept
-    {
-        return &cb_ + 1;
-    }
-};
-
-//------------------------------------------------
-
-template<
-    class ConstBuffer
-#ifndef BOOST_HTTP_PROTO_DOCS
-    ,class = typename std::enable_if<
-        is_const_buffer<
-            ConstBuffer>::value &&
-        ! is_mutable_buffer<
-            ConstBuffer>::value
-                >::type
-#endif
->
-auto
-make_buffers(
-    ConstBuffer const& b) ->
-        const_buffers_1
-{
-    return const_buffers_1(
-        const_buffer(b));
-}
-
-template<
-    class MutableBuffer
-#ifndef BOOST_HTTP_PROTO_DOCS
-    ,class = typename std::enable_if<
-        is_mutable_buffer<
-            MutableBuffer>::value
-                >::type
-#endif
->
-auto
-make_buffers(
-    MutableBuffer const& b) ->
-        mutable_buffers_1
-{
-    return mutable_buffers_1(
-        mutable_buffer(b));
-}
-
-template<
-    class Buffers
-#ifndef BOOST_HTTP_PROTO_DOCS
-    ,class = typename std::enable_if<
-        ! is_const_buffer<
-            Buffers>::value &&
-        is_const_buffers<
-            Buffers>::value
-                >::type
-#endif
->
-auto
-make_buffers(
-    Buffers&& b) ->
-        Buffers&&
-{
-    return std::forward<
-        Buffers>(b);
-}
 
 //------------------------------------------------
 
@@ -608,8 +499,7 @@ buffer_size(
     ConstBuffers const& buffers) noexcept
 {
     std::size_t n = 0;
-    for(const_buffer b
-            : make_buffers(buffers))
+    for(const_buffer b : buffers)
         n += b.size();
     return n;
 }
@@ -639,12 +529,10 @@ buffer_copy(
     std::size_t total = 0;
     std::size_t pos0 = 0;
     std::size_t pos1 = 0;
-    auto const& bs0 = (make_buffers)(from);
-    auto const& bs1 = (make_buffers)(to);
-    auto const end0 = bs0.end();
-    auto const end1 = bs1.end();
-    auto it0 = bs0.begin();
-    auto it1 = bs1.begin();
+    auto const end0 = from.end();
+    auto const end1 = to.end();
+    auto it0 = from.begin();
+    auto it1 = to.begin();
     while(
         total < at_most &&
         it0 != end0 &&
@@ -690,54 +578,6 @@ buffer_copy(
     }
     return total;
 }
-
-//------------------------------------------------
-
-// VFALCO GARBAGE
-class mutable_buffers
-{
-    mutable_buffer const* p_ = nullptr;
-    std::size_t n_ = 0;
-
-public:
-    using value_type = mutable_buffer;
-
-    using iterator = value_type const*;
-
-    mutable_buffers() = default;
-
-    mutable_buffers(
-        mutable_buffers const&) = default;
-
-    mutable_buffers& operator=(
-        mutable_buffers const&) = default;
-
-    mutable_buffers(
-        value_type const* p,
-        std::size_t n) noexcept
-        : p_(p)
-        , n_(n)
-    {
-    }
-
-    std::size_t
-    size() const noexcept
-    {
-        return n_;
-    }
-
-    iterator
-    begin() const noexcept
-    {
-        return p_;
-    }
-
-    iterator
-    end() const noexcept
-    {
-        return p_ + n_;
-    }
-};
 
 } // http_proto
 } // boost

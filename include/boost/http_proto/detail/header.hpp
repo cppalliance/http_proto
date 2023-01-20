@@ -197,24 +197,29 @@ public:
     void on_erase_all(field);
 
     void update_payload() noexcept;
+
+    //
+    // parsing
+    //
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse_start_line(
+        std::size_t,
+        error_code&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    bool
+    parse_field(
+        std::size_t new_size,
+        error_code&) noexcept;
 };
 
 //------------------------------------------------
 
-BOOST_HTTP_PROTO_DECL
-result<std::size_t>
-parse_start_line(
-    header& h,
+std::size_t
+count_crlf(
     string_view s) noexcept;
-
-BOOST_HTTP_PROTO_DECL
-bool
-parse_field(
-    header& h,
-    std::size_t,
-    field& id,
-    string_view& v,
-    error_code&) noexcept;
 
 } // detail
 } // http_proto

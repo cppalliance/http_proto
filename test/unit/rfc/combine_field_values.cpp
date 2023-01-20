@@ -20,7 +20,7 @@ struct combine_field_values_test
     void
     run()
     {
-        auto f = make_fields(
+        fields f(
             "Content-Length: 42\r\n"
             "x: 1\r\n"
             "y: 2\r\n"

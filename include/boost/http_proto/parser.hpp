@@ -15,12 +15,15 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/http_proto/detail/circular_buffer.hpp>
+#include <boost/http_proto/detail/flat_buffer.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/optional.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 namespace boost {
@@ -41,20 +44,6 @@ struct codec;
 }
 #endif
 
-#ifdef BOOST_HTTP_PROTO_DOCS
-
-/** Constant to indicate receiving the headers first
-
-    This value may be passed to the `start`
-    function of a request or response parser.
-*/
-constexpr __implementation_defined__ headers_first;
-
-#else
-struct headers_first_t{};
-constexpr headers_first_t headers_first{};
-#endif
-
 /** A parser for HTTP/1 messages.
 
     The parser is strict. Any malformed
@@ -65,20 +54,22 @@ constexpr headers_first_t headers_first{};
 class BOOST_SYMBOL_VISIBLE
     parser
 {
-    parser(
-        detail::kind k,
-        std::size_t buffer_size);
-
 public:
+    // https://stackoverflow.com/questions/686217/maximum-on-http-header-values
+
     /** Parser configuration settings
     */
     struct config_base
     {
         /** Largest allowed size for the complete header
+
+            This may not exceed 65535.
         */
-        std::size_t max_header_size = 16 * 1024;
+        std::size_t max_headers_size = 16 * 1024;
 
         /** Largest size for any one field
+
+            This may not exceed @ref max_headers_size.
         */
         std::size_t max_field_size = 4096;
 
@@ -88,11 +79,17 @@ public:
 
         /** Largest allowed size for a body
         */
-        std::uint64_t max_body_size;
+        std::uint64_t max_body_size = 64 * 1024;
     };
 
-    using mutable_buffers_type =
-        mutable_buffers;
+    using buffers = mutable_buffers_pair;
+
+private:
+    BOOST_HTTP_PROTO_DECL parser(
+        detail::kind, config_base const&);
+    BOOST_HTTP_PROTO_DECL void construct(
+        std::size_t extra_buffer_size);
+public:
 
     //--------------------------------------------
     //
@@ -100,8 +97,15 @@ public:
     //
     //--------------------------------------------
 
+    /** Destructor
+    */
     BOOST_HTTP_PROTO_DECL
     ~parser();
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    parser(parser&&) noexcept;
 
     //--------------------------------------------
     //
@@ -109,29 +113,22 @@ public:
     //
     //--------------------------------------------
 
+#if 0
     /** Return true if any input was committed.
     */
     bool
     got_some() const noexcept
     {
-        // VFALCO What if discard_header was called?
-        return state_ != state::empty;
+        return st_ != state::need_start;
     }
+#endif
 
     /** Return true if the complete header was parsed.
     */
     bool
     got_header() const noexcept
     {
-        return state_ > state::header_fields;
-    }
-
-    /** Returns true if the payload uses chunked encoding.
-    */
-    bool
-    is_chunked() const noexcept
-    {
-        return m_.got_chunked;
+        return st_ > state::fields;
     }
 
     /** Returns `true` if a complete message has been parsed.
@@ -143,8 +140,7 @@ public:
     bool
     is_complete() const noexcept
     {
-        return state_ ==
-            state::complete;
+        return st_ == state::complete;
     }
 
     BOOST_HTTP_PROTO_DECL
@@ -166,7 +162,7 @@ public:
     /** Return the input buffer
     */
     BOOST_HTTP_PROTO_DECL
-    mutable_buffers_type
+    buffers
     prepare();
 
     /** Commit bytes to the input buffer
@@ -174,21 +170,22 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     commit(
-        std::size_t n,
-        error_code& ec);
+        std::size_t n);
 
     /** Indicate there will be no more input
     */
     BOOST_HTTP_PROTO_DECL
     void
-    commit_eof(
+    commit_eof();
+
+    /** Parse pending input data
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    parse(
         error_code& ec);
 
     //--------------------------------------------
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    discard_header() noexcept;
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -197,33 +194,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     discard_chunk() noexcept;
-
-    /** Indicate that the current message has no payload.
-
-        This informs the parser not to read a payload for
-        the next message, regardless of the presence or
-        absence of certain fields such as Content-Length
-        or a chunked Transfer-Encoding. Depending on the
-        request, some responses do not carry a body. For
-        example, a 200 response to a CONNECT request from
-        a tunneling proxy, or a response to a HEAD request.
-        In these cases, callers may use this function inform
-        the parser that no body is expected. The parser will
-        consider the message complete after the header has
-        been received.
-
-        @par Preconditions
-
-        This function must called before any calls to parse
-        the current message.
-
-        @see
-            https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
-
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    skip_body();
 
     /** Return any leftover data
 
@@ -241,6 +211,8 @@ private:
     void apply_params() noexcept
     {
     }
+
+    void apply_param(...) = delete;
 
     template<class P0, class... Pn>
     void
@@ -262,31 +234,32 @@ private:
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
 
-    BOOST_HTTP_PROTO_DECL void apply_start(headers_first_t);
+    BOOST_HTTP_PROTO_DECL void start_impl(bool head_response);
 
-    BOOST_HTTP_PROTO_DECL void start_impl();
-
-    void parse(error_code&);
     void parse_start_line(error_code&);
     void parse_fields(error_code&);
     void parse_body(error_code&);
     void parse_chunk(error_code&);
 
-    void do_connection(string_view, error_code&);
-    void do_content_length(string_view, error_code&);
-    void do_transfer_encoding(string_view, error_code&);
-    void do_upgrade(string_view, error_code&);
-
     friend class request_parser;
     friend class response_parser;
 
+    enum
+    {
+        br_codec = 0,
+        deflate_codec = 1,
+        gzip_codec = 2
+    };
+
     enum class state
     {
-        empty,
-        start_line,
-        header_fields,
-        body,
-        complete,
+        // order matters
+        need_start,
+        start_line, // start-line
+        fields,     // header fields
+        headers,    // delivered headers
+        body,       // payload
+        complete,   // done
     };
 
     // per-message state
@@ -303,30 +276,28 @@ private:
             content_len;            // value of Content-Length
 
         bool skip_body : 1;
-        bool got_chunked : 1;
-        bool got_close : 1;
-        bool got_keep_alive : 1;
-        bool got_upgrade : 1;
         bool need_eof : 1;
-
-        //message() noexcept;
     };
-
-    detail::workspace ws_;
-    detail::codec* cod_;
-    detail::codec* dec_[3];
 
     config_base cfg_;
     detail::header h_;
+    detail::workspace ws_;
+    state st_;
 
-    std::size_t committed_;
-    state state_;
-    bool got_eof_;
+    std::unique_ptr<
+        detail::codec> dec_[3];
+    detail::flat_buffer rd_buf_;
+
+    detail::codec* cod_;
     message m_;
-    mutable_buffer mb_;
+
+    bool got_eof_;
+    bool head_response_;
 };
 
 } // http_proto
 } // boost
+
+#include <boost/http_proto/impl/parser.hpp>
 
 #endif

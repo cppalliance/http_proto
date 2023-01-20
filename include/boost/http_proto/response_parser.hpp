@@ -20,20 +20,6 @@
 namespace boost {
 namespace http_proto {
 
-#ifdef BOOST_HTTP_PROTO_DOCS
-
-/** Constant for indicating a HEAD response
-
-    This value may be passed to the
-    @ref response::start function.
-*/
-constexpr __implementation_defined__ head_response;
-
-#else
-struct head_response_t{};
-constexpr head_response_t head_response{};
-#endif
-
 class BOOST_SYMBOL_VISIBLE
     response_parser
     : public parser
@@ -43,11 +29,14 @@ public:
     */
     struct config : config_base
     {
+        /** Constructor
+        */
         config() noexcept
         {
             max_body_size = 1024 * 1024;
         }
     };
+
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
@@ -55,23 +44,18 @@ public:
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
+    template<class... Params>
     explicit
     response_parser(
-        std::size_t buffer_size);
-
-    /** Constructor
-    */
-    template<class P0, class... Pn>
-    response_parser(
-        std::size_t buffer_size,
-        P0&& p0,
-        Pn&&... pn)
-        : response_parser(buffer_size)
+        std::size_t extra_buffer_size,
+        Params&&... params)
+        : parser(
+            detail::kind::response,
+            config{})
     {
         this->apply_params(
-            std::forward<P0>(p0),
-            std::forward<Pn>(pn)...);
+            std::forward<Params>(params)...);
+        construct(extra_buffer_size);
     }
 
     /** Prepare for the next message on the stream.
@@ -79,37 +63,45 @@ public:
     void
     start()
     {
-        start_impl();
+        start_impl(false);
     }
 
     /** Prepare for the next message on the stream.
+
+        This informs the parser not to read a
+        payload for the next message, regardless
+        of the presence or absence of certain
+        fields such as Content-Length or a chunked
+        Transfer-Encoding. Depending on the request,
+        some responses do not carry a body. For
+        example, a 200 response to a CONNECT
+        request from a tunneling proxy, or a
+        response to a HEAD request. In these
+        cases, callers may use this function
+        inform the parser that no body is
+        expected. The parser will consider the
+        message complete after the header has
+        been received.
+
+        @par Preconditions
+
+        This function must called before any calls to parse
+        the current message.
+
+        @see
+            https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
     */
-    template<class P>
     void
-    start(P&& p)
+    start_head_response()
     {
-        apply_start(
-            std::forward<P>(p));
-        start_impl();
+        start_impl(true);
     }
 
     /** Return the parsed response headers.
     */
     BOOST_HTTP_PROTO_DECL
     response_view
-    get() const noexcept;
-
-private:
-    friend class parser;
-
-    template<class P>
-    void apply_start(P&& p)
-    {
-        parser::apply_start(
-            std::forward<P>(p));
-    }
-
-    BOOST_HTTP_PROTO_DECL void apply_start(head_response_t);
+    get() const;
 };
 
 } // http_proto

@@ -37,7 +37,7 @@ struct fields_base_test
     {
         // fields
         {
-            fields f = make_fields(s0);
+            fields f(s0);
             fn(f);
             BOOST_TEST_EQ(f.buffer(), s1);
             test_fields(f, s1);
@@ -51,7 +51,7 @@ struct fields_base_test
             auto const m1 = std::string() +
                 "GET / HTTP/1.1\r\n" +
                 std::string(s1);
-            request req = make_request(m);
+            request req(m);
             fn(req);
             BOOST_TEST_EQ(req.buffer(), m1);
             test_fields(req, s1);
@@ -65,7 +65,7 @@ struct fields_base_test
             auto const m1 = std::string() +
                 "HTTP/1.1 200 OK\r\n" +
                 std::string(s1);
-            response res = make_response(m);
+            response res(m);
             fn(res);
             BOOST_TEST_EQ(res.buffer(), m1);
             test_fields(res, s1);
@@ -111,7 +111,7 @@ struct fields_base_test
             }
 
             {
-                fields f = make_fields(
+                fields f(
                     "digest: ffce\r\n"
                     "type: 3\r\n"
                     "\r\n");
@@ -127,7 +127,7 @@ struct fields_base_test
             }
 
             {
-                request req = make_request(
+                request req(
                     "POST / HTTP/1.1\r\n"
                     "User-Agent: test\r\n"
                     "Server: test\r\n"
@@ -145,7 +145,7 @@ struct fields_base_test
             }
 
             {
-                response res = make_response(
+                response res(
                     "HTTP/1.1 404 Not Found\r\n"
                     "User-Agent: test\r\n"
                     "Server: test\r\n"
@@ -204,7 +204,7 @@ struct fields_base_test
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
                     "\r\n";
-                auto res = make_response(cs);
+                response res(cs);
                 auto n = res.capacity_in_bytes();
                 BOOST_TEST_GT(n, 0);
 
@@ -256,7 +256,7 @@ struct fields_base_test
                     "digest: ffce\r\n"
                     "type: 3\r\n"
                     "\r\n";
-                fields f = make_fields(cs);
+                fields f(cs);
                 f.reserve_bytes(
                     f.capacity_in_bytes() * 2);
                 auto const n =
@@ -274,7 +274,7 @@ struct fields_base_test
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
                     "\r\n";
-                request req = make_request(cs);
+                request req(cs);
                 req.reserve_bytes(
                     req.capacity_in_bytes() * 2);
                 auto const n =
@@ -292,7 +292,7 @@ struct fields_base_test
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
                     "\r\n";
-                response res = make_response(cs);
+                response res(cs);
                 res.reserve_bytes(
                     res.capacity_in_bytes() * 2);
                 auto const n =
@@ -811,8 +811,7 @@ struct fields_base_test
             []( metadata::expect_t md,
                 string_view s)
             {
-                auto const req =
-                    make_request(s);
+                request const req(s);
                 BOOST_TEST_EQ(
                     req.metadata().expect.ec,
                     md.ec);
@@ -861,8 +860,7 @@ struct fields_base_test
             auto const check =
             [](string_view s)
             {
-                auto const res =
-                    make_response(s);
+                response const res(s);
                 BOOST_TEST_EQ(
                     res.metadata().expect.ec,
                     error_code());
@@ -903,7 +901,7 @@ struct fields_base_test
 
         // erase in response
         {
-            auto res = make_response(
+            response res(
                 "HTTP/1.1 200 OK\r\n"
                 "Expect: 100-continueish\r\n"
                 "\r\n");
@@ -925,8 +923,7 @@ struct fields_base_test
                 void(*fn)(request&),
                 string_view s)
             {
-                auto req =
-                    make_request(s);
+                request req(s);
                 fn(req);
                 BOOST_TEST_EQ(
                     req.metadata().expect.ec,
@@ -1073,6 +1070,10 @@ struct fields_base_test
         testErase();
         testSet();
         testExpect();
+
+        test_suite::log <<
+            "sizeof(detail::header) == " <<
+            sizeof(detail::header) << "\n";
     }
 };
 

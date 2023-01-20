@@ -38,8 +38,9 @@ struct request_parser_test
                 n = s.size();
             std::memcpy(b.data(),
                 s.data(), n);
+            p.commit(n);
             error_code ec;
-            p.commit(n, ec);
+            p.parse(ec);
             s.remove_prefix(n);
             if(ec == error::end_of_message
                 || ! ec)
@@ -61,6 +62,7 @@ struct request_parser_test
         std::size_t nmax)
     {
         request_parser p(4096);
+        p.start();
         while(! s.empty())
         {
             auto b = *p.prepare().begin();
@@ -71,8 +73,9 @@ struct request_parser_test
                 n = nmax;
             std::memcpy(b.data(),
                 s.data(), n);
+            p.commit(n);
             error_code ec;
-            p.commit(n, ec);
+            p.parse(ec);
             s.remove_prefix(n);
             if(ec == grammar::error::need_more)
                 continue;
@@ -118,15 +121,17 @@ struct request_parser_test
 
         // single buffer
         {
-            error_code ec;
             request_parser p(4096);
+            p.start();
             auto const b = *p.prepare().begin();
             auto const n = (std::min)(
                 b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n, ec);
+            p.commit(n);
+            error_code ec;
+            p.parse(ec);
             BOOST_TEST(! ec);
             //BOOST_TEST(p.is_done());
             if(! ec)
@@ -134,11 +139,11 @@ struct request_parser_test
         }
 
         // two buffers
-        for(std::size_t i = 27;
+        for(std::size_t i = 1;
             i < s.size(); ++i)
         {
-            error_code ec;
             request_parser p(4096);
+            p.start();
             // first buffer
             auto b = *p.prepare().begin();
             auto n = (std::min)(
@@ -146,7 +151,9 @@ struct request_parser_test
             BOOST_TEST(n == i);
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n, ec);
+            p.commit(n);
+            error_code ec;
+            p.parse(ec);
             if(! BOOST_TEST(
                 ec == grammar::error::need_more))
                 continue;
@@ -157,7 +164,8 @@ struct request_parser_test
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data() + i, n - i);
-            p.commit(n, ec);
+            p.commit(n);
+            p.parse(ec);
             if(ec.failed())
                 continue;
             //BOOST_TEST(p.is_done());
@@ -179,7 +187,7 @@ struct request_parser_test
         // request_parser(std::size_t, config)
         {
             request_parser::config cfg;
-            cfg.max_header_size = 8192;
+            cfg.max_headers_size = 8192;
             request_parser(65536, cfg);
         }
 
@@ -193,8 +201,6 @@ struct request_parser_test
     testStart()
     {
         request_parser(4096).start();
-
-        request_parser(4096).start(headers_first);
     }
 
     //--------------------------------------------
@@ -269,6 +275,7 @@ struct request_parser_test
             "c: 4\r\n"
             "\r\n";
 
+        p.start();
         feed(p, s);
 
         auto const rv = p.get();

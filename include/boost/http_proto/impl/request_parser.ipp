@@ -23,15 +23,6 @@ request_parser()
 {
 }
 
-request_parser::
-request_parser(
-    std::size_t buffer_bytes)
-    : parser(
-        detail::kind::request,
-        buffer_bytes)
-{
-}
-
 request_view
 request_parser::
 get() const noexcept

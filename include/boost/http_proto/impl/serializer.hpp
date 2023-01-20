@@ -19,14 +19,14 @@ namespace boost {
 namespace http_proto {
 
 class serializer::
-    output
+    buffers
 {
     std::size_t n_ = 0;
     const_buffer const* p_ = nullptr;
 
     friend class serializer;
 
-    output(
+    buffers(
         const_buffer const* p,
         std::size_t n) noexcept
         : n_(n)
@@ -43,11 +43,11 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    output() = default;
-    output(
-        output const&) = default;
-    output& operator=(
-        output const&) = default;
+    buffers() = default;
+    buffers(
+        buffers const&) = default;
+    buffers& operator=(
+        buffers const&) = default;
 
     iterator
     begin() const noexcept
@@ -91,9 +91,9 @@ start(
     ConstBuffers&& body)   
 {
     start_init(m);
-    auto const& bs = ws_.push(
-        (make_buffers)(std::forward<
-            ConstBuffers>(body)));
+    auto const& bs =
+        ws_.push(std::forward<
+            ConstBuffers>(body));
     std::size_t n = std::distance(
         bs.begin(), bs.end());
     buf_ = make_array(n);

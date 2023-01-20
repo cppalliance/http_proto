@@ -121,13 +121,9 @@ struct serializer_test
         sr.start(res);
         sr.start(res, const_buffer{});
         sr.start(res, mutable_buffer{});
-        sr.start(res, const_buffers_1{});
-        sr.start(res, mutable_buffers_1{});
         sr.start(res, test_source{});
         sr.start(res, make_const(const_buffer{}));
         sr.start(res, make_const(mutable_buffer{}));
-        sr.start(res, make_const(const_buffers_1{}));
-        sr.start(res, make_const(mutable_buffers_1{}));
         sr.start(res, make_const(test_source{}));
 
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -150,8 +146,7 @@ struct serializer_test
             string_view headers,
             string_view expected)
         {
-            auto res =
-                make_response(headers);
+            response res(headers);
             serializer sr;
             sr.start(res);
             std::string s = read(sr);
@@ -188,8 +183,7 @@ struct serializer_test
         string_view body,
         string_view expected)
     {
-        auto res =
-            make_response(headers);
+        response res(headers);
         std::string sb = body;
         serializer sr;
         sr.start(res,
@@ -205,8 +199,7 @@ struct serializer_test
         Source&& src,
         string_view expected)
     {
-        auto res =
-            make_response(headers);
+        response res(headers);
         serializer sr;
         sr.start(res, std::forward<
             Source>(src));
@@ -300,14 +293,14 @@ struct serializer_test
         // request
         {
             serializer sr;
-            auto req = make_request(
+            request req(
                 "GET / HTTP/1.1\r\n"
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
             sr.start(req, test_source{});
             std::string s;
-            result<serializer::output> rv;
+            result<serializer::buffers> rv;
             for(;;)
             {
                 rv = sr.prepare();
@@ -341,14 +334,14 @@ struct serializer_test
         // empty body
         {
             serializer sr;
-            auto req = make_request(
+            request req(
                 "GET / HTTP/1.1\r\n"
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
             sr.start(req);
             std::string s;
-            result<serializer::output> rv;
+            result<serializer::buffers> rv;
             for(;;)
             {
                 rv = sr.prepare();
@@ -381,7 +374,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "\r\n";
             serializer sr;
-            auto res = make_response(sv);
+            response res(sv);
             sr.start(res, test_source{});
             auto s = read(sr);
             BOOST_TEST(s ==

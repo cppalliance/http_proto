@@ -22,12 +22,11 @@ struct fields_view_base_test
     void
     testIterators()
     {
-        fields_view_base const& f =
-            make_fields(
-                "x: 1\r\n"
-                "Accept: 2\r\n"
-                "z: 3\r\n"
-                "\r\n");
+        fields_view_base const& f = fields(
+            "x: 1\r\n"
+            "Accept: 2\r\n"
+            "z: 3\r\n"
+            "\r\n");
 
         // iterator
         // begin()
@@ -156,7 +155,7 @@ struct fields_view_base_test
     testObservers()
     {
         fields_view_base const& f =
-            make_fields(
+            fields(
                 "Content-Length: 42\r\n"
                 "x: 1\r\n"
                 "y: 2\r\n"

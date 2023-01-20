@@ -171,7 +171,7 @@ public:
                 "HTTP/1.0 404 Not Found\r\n"
                 "Server: test\r\n"
                 "\r\n";
-            response_view rv = make_response(s);
+            response_view rv = response(s);
             response res(rv);
             check(res, status::not_found, 404, "Not Found", version::http_1_0);
             BOOST_TEST_EQ(res.string(), s);
@@ -268,7 +268,7 @@ public:
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
                     "\r\n";
-                response_view rv = make_response(s);
+                response_view rv = response(s);
                 response res(rv);
                 check(res, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(res.size() == 2);

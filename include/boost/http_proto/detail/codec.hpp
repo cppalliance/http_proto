@@ -17,7 +17,8 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-struct BOOST_SYMBOL_VISIBLE codec
+struct BOOST_SYMBOL_VISIBLE
+    codec
 {
     struct results
     {

@@ -22,6 +22,7 @@ in a translation unit of the program.
 #endif
 
 #include <boost/http_proto/detail/impl/circular_buffer.ipp>
+#include <boost/http_proto/detail/impl/flat_buffer.ipp>
 #include <boost/http_proto/detail/impl/codec.ipp>
 #include <boost/http_proto/detail/impl/except.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>

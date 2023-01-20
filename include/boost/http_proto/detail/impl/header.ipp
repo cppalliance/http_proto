@@ -444,6 +444,9 @@ on_erase(field id)
 
 //------------------------------------------------
 
+/*
+    https://datatracker.ietf.org/doc/html/rfc7230#section-6.1
+*/
 void
 header::
 on_insert_connection(
@@ -976,118 +979,108 @@ do_response:
 
 //------------------------------------------------
 
-static
-result<std::size_t>
-parse_request_line(
-    header& h,
-    string_view s) noexcept
-{
-    auto const it0 = s.data();
-    auto const end = it0 + s.size();
-    char const* it = it0;
-    auto rv = grammar::parse(
-        it, end, request_line_rule);
-    if(! rv)
-        return rv.error();
-    // method
-    auto sm = std::get<0>(*rv);
-    h.req.method = string_to_method(sm);
-    h.req.method_len =
-        static_cast<off_t>(sm.size());
-    // target
-    auto st = std::get<1>(*rv);
-    h.req.target_len =
-        static_cast<off_t>(st.size());
-    // version
-    switch(std::get<2>(*rv))
-    {
-    case 10:
-        h.version = version::http_1_0;
-        break;
-    case 11:
-        h.version = version::http_1_1;
-        break;
-    default:
-        return error::bad_version;
-    }
-
-    h.cbuf = s.data();
-    h.prefix =
-        static_cast<off_t>(it - it0);
-    h.size = h.prefix;
-    h.update_payload();
-    return h.prefix;
-}
-
-static
-result<std::size_t>
-parse_status_line(
-    header& h,
-    string_view s) noexcept
-{
-    auto const it0 = s.data();
-    auto const end = it0 + s.size();
-    char const* it = it0;
-    auto rv = grammar::parse(
-        it, end, status_line_rule);
-    if(! rv)
-        return rv.error();
-    // version
-    switch(std::get<0>(*rv))
-    {
-    case 10:
-        h.version = version::http_1_0;
-        break;
-    case 11:
-        h.version = version::http_1_1;
-        break;
-    default:
-        return error::bad_version;
-    }
-    // status-code
-    h.res.status_int =
-        static_cast<unsigned short>(
-            std::get<1>(*rv).v);
-    h.res.status = std::get<1>(*rv).st;
-
-    h.cbuf = s.data();
-    h.prefix =
-        static_cast<off_t>(it - it0);
-    h.size = h.prefix;
-    h.update_payload();
-    return h.prefix;
-}
-
-//------------------------------------------------
-
-result<std::size_t>
+void
+header::
 parse_start_line(
-    header& h,
-    string_view s) noexcept
+    std::size_t new_size,
+    error_code& ec) noexcept
 {
-    BOOST_ASSERT(! s.empty());
-    BOOST_ASSERT(h.size == 0);
-    BOOST_ASSERT(h.prefix == 0);
+    BOOST_ASSERT(size == 0);
+    BOOST_ASSERT(prefix == 0);
+    BOOST_ASSERT(cbuf != nullptr);
+    BOOST_ASSERT(
+        kind != detail::kind::fields);
 
     // VFALCO do we need a separate
     //        limit on start line?
 
-    if(h.kind == detail::kind::request)
-        return parse_request_line(h, s);
-    return parse_status_line(h, s);
+    auto const it0 = cbuf;
+    auto const end = it0 + new_size;
+    char const* it = it0;
+    if(kind == detail::kind::request)
+    {
+        auto rv = grammar::parse(
+            it, end, request_line_rule);
+        if(! rv)
+        {
+            ec = rv.error();
+            return;
+        }
+        // method
+        auto sm = std::get<0>(*rv);
+        req.method = string_to_method(sm);
+        req.method_len =
+            static_cast<off_t>(sm.size());
+        // target
+        auto st = std::get<1>(*rv);
+        req.target_len =
+            static_cast<off_t>(st.size());
+        // version
+        switch(std::get<2>(*rv))
+        {
+        case 10:
+            version =
+                http_proto::version::http_1_0;
+            break;
+        case 11:
+            version =
+                http_proto::version::http_1_1;
+            break;
+        default:
+        {
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::bad_version);
+            return;
+        }
+        }
+    }
+    else
+    {
+        auto rv = grammar::parse(
+            it, end, status_line_rule);
+        if(! rv)
+        {
+            ec = rv.error();
+            return;
+        }
+        // version
+        switch(std::get<0>(*rv))
+        {
+        case 10:
+            version =
+                http_proto::version::http_1_0;
+            break;
+        case 11:
+            version =
+                http_proto::version::http_1_1;
+            break;
+        default:
+        {
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::bad_version);
+            return;
+        }
+        }
+        // status-code
+        res.status_int =
+            static_cast<unsigned short>(
+                std::get<1>(*rv).v);
+        res.status = std::get<1>(*rv).st;
+    }
+    prefix = static_cast<off_t>(it - it0);
+    size = prefix;
+    on_start_line();
 }
 
 // returns: true if we added a field
 bool
+header::
 parse_field(
-    header& h,
     std::size_t new_size,
-    field& id,
-    string_view& v,
     error_code& ec) noexcept
 {
-    auto const it0 = h.cbuf + h.size;
-    auto const end = h.cbuf + new_size;
+    auto const it0 = cbuf + size;
+    auto const end = cbuf + new_size;
     char const* it = it0;
     auto rv = grammar::parse(
         it, end, field_rule);
@@ -1098,29 +1091,27 @@ parse_field(
         {
             // final CRLF
             ec.clear();
-            h.size = static_cast<off_t>(
-                it - h.cbuf);
+            size = static_cast<off_t>(
+                it - cbuf);
         }
         return false;
     }
     if(rv->has_obs_fold)
     {
         // obs fold not allowed in test views
-        BOOST_ASSERT(h.buf != nullptr);
-        remove_obs_fold(h.buf + h.size, it);
+        BOOST_ASSERT(buf != nullptr);
+        remove_obs_fold(buf + size, it);
     }
-    v = rv->value;
-    id = string_to_field(rv->name);
-    h.size = static_cast<off_t>(
-        it - h.cbuf);
+    auto id = string_to_field(rv->name);
+    size = static_cast<off_t>(it - cbuf);
 
     // add field table entry
-    if(h.buf != nullptr)
+    if(buf != nullptr)
     {
         auto& e = header::table(
-            h.buf + h.cap)[h.count];
+            buf + cap)[count];
         auto const base =
-            h.buf + h.prefix;
+            buf + prefix;
         e.np = static_cast<off_t>(
             rv->name.data() - base);
         e.nn = static_cast<off_t>(
@@ -1130,19 +1121,45 @@ parse_field(
         e.vn = static_cast<off_t>(
             rv->value.size());
         e.id = id;
-
-    #if 0
-        // VFALCO handling zero-length value?
-        if(fi.value_len > 0)
-            fi.value_pos = static_cast<
-                off_t>(t.v.value.data() - h_.buf);
-        else
-            fi.value_pos = 0; // empty string
-    #endif
     }
-    ++h.count;
-    h.on_insert(id, v);
+    ++count;
+    on_insert(id, rv->value);
     return true;
+}
+
+std::size_t
+count_crlf(
+    string_view s) noexcept
+{
+    if(s.size() < 2)
+        return 0;
+    std::size_t n = 0;
+    auto it = s.data();
+    auto end =
+        it + s.size();
+    if(end[-1] == '\r')
+        --end;
+    while(end - it > 1)
+    {
+        if(it[0] != '\r')
+        {
+            ++it;
+            continue;
+        }
+        if(it[1] == '\n')
+        {
+            ++n;
+            it += 2;
+            continue;
+        }
+        if(it[1] != '\r')
+        {
+            it += 2;
+            continue;
+        }
+        ++it;
+    }
+    return n;
 }
 
 } // detail

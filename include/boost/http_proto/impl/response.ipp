@@ -29,6 +29,16 @@ response() noexcept
 
 response::
 response(
+    string_view s)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
+        detail::kind::response, s)
+{
+}
+
+response::
+response(
     response&& other) noexcept
     : response()
 {

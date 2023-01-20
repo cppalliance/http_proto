@@ -43,6 +43,12 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
+    explicit
+    fields(string_view s) noexcept;
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
     fields(fields&& other) noexcept;
 
     /** Constructor

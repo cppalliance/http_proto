@@ -36,6 +36,15 @@ class BOOST_SYMBOL_VISIBLE
     {
     }
 
+    message_base(
+        detail::kind k,
+        string_view s)
+        : fields_view_base(
+            &this->fields_base::h_)
+        , fields_base(k, s)
+    {
+    }
+
     explicit
     message_base(
         detail::header const& ph) noexcept

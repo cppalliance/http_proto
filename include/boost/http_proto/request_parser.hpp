@@ -31,6 +31,8 @@ public:
     */
     struct config : config_base
     {
+        /** Constructor
+        */
         config() noexcept
         {
             max_body_size = 64 * 1024;
@@ -44,23 +46,18 @@ public:
 
     /** Constructor
     */
-    BOOST_HTTP_PROTO_DECL
+    template<class... Params>
     explicit
     request_parser(
-        std::size_t buffer_size);
-
-    /** Constructor
-    */
-    template<class P0, class... Pn>
-    request_parser(
-        std::size_t buffer_size,
-        P0&& p0,
-        Pn&&... pn)
-        : request_parser(buffer_size)
+        std::size_t extra_buffer_size,
+        Params&&... params)
+        : parser(
+            detail::kind::request,
+            config{})
     {
         this->apply_params(
-            std::forward<P0>(p0),
-            std::forward<Pn>(pn)...);
+            std::forward<Params>(params)...);
+        construct(extra_buffer_size);
     }
 
     /** Prepare for the next message on the stream.
@@ -68,18 +65,7 @@ public:
     void
     start()
     {
-        start_impl();
-    }
-
-    /** Prepare for the next message on the stream.
-    */
-    template<class P>
-    void
-    start(P&& p)
-    {
-        apply_start(
-            std::forward<P>(p));
-        start_impl();
+        start_impl(false);
     }
 
     /** Return the parsed request headers.

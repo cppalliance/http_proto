@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_SERIALIZER_IPP
 
 #include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/detail/codec.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
@@ -61,8 +62,9 @@ write_chunk_header(
     buf[16] = '\r';
     buf[17] = '\n';
     auto n = buffer_copy(
-        (make_buffers)(dest0),
-        const_buffer(buf, sizeof(buf)));
+        dest0,
+        const_buffer(
+            buf, sizeof(buf)));
     ignore_unused(n);
     BOOST_ASSERT(n == 18);
     BOOST_ASSERT(
@@ -119,6 +121,10 @@ serializer()
 
 serializer::
 serializer(
+    serializer&&) noexcept = default;
+
+serializer::
+serializer(
     std::size_t buffer_size)
     : ws_(buffer_size)
 {
@@ -135,7 +141,7 @@ reset() noexcept
 auto
 serializer::
 prepare() ->
-    result<output>
+    result<buffers>
 {
     // Precondition violation
     if(is_done_)
@@ -145,7 +151,7 @@ prepare() ->
     if(is_expect_continue_)
     {
         if(out_.data() == hp_)
-            return output(hp_, 1);
+            return buffers(hp_, 1);
         is_expect_continue_ = false;
         BOOST_HTTP_PROTO_RETURN_EC(
             error::expect_100_continue);
@@ -153,14 +159,14 @@ prepare() ->
 
     if(st_ == style::empty)
     {
-        return output(
+        return buffers(
             out_.data(),
             out_.size());
     }
 
     if(st_ == style::buffers)
     {
-        return output(
+        return buffers(
             out_.data(),
             out_.size());
     }
@@ -226,7 +232,7 @@ prepare() ->
         for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
-        return output(
+        return buffers(
             out_.data(),
             out_.size());
     }
@@ -244,7 +250,7 @@ prepare() ->
         for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
-        return output(
+        return buffers(
             out_.data(),
             out_.size());
     }

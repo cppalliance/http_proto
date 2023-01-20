@@ -32,7 +32,7 @@ public:
         // response_parser(std::size_t, config)
         {
             response_parser::config cfg;
-            cfg.max_header_size = 8192;
+            cfg.max_headers_size = 8192;
             response_parser(65536, cfg);
         }
 
@@ -47,9 +47,7 @@ public:
     {
         response_parser(4096).start();
 
-        response_parser(4096).start(headers_first);
-
-        response_parser(4096).start(head_response);
+        response_parser(4096).start_head_response();
     }
 
     void
