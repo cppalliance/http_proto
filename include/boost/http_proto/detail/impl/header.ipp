@@ -855,7 +855,7 @@ update_payload() noexcept
 {
     BOOST_ASSERT(kind !=
         detail::kind::fields);
-    if(md.manual_payload)
+    if(md.payload_override)
     {
         // e.g. response to
         // a HEAD request
@@ -979,51 +979,83 @@ do_response:
 
 //------------------------------------------------
 
-void
+std::size_t
 header::
+count_crlf(
+    string_view s) noexcept
+{
+    auto it = s.data();
+    auto len = s.size();
+    std::size_t n = 0;
+    while(len >= 2)
+    {
+        if( it[0] == '\r' &&
+            it[1] != '\r')
+        {
+            if(it[1] == '\n')
+                n++;
+            it += 2;
+            len -= 2;
+        }
+        else
+        {
+            it++;
+            len--;
+        }
+    }
+    return n;
+}
+
+static
+void
 parse_start_line(
+    header& h,
+    header::config& cfg,
     std::size_t new_size,
     error_code& ec) noexcept
 {
-    BOOST_ASSERT(size == 0);
-    BOOST_ASSERT(prefix == 0);
-    BOOST_ASSERT(cbuf != nullptr);
+    BOOST_ASSERT(h.size == 0);
+    BOOST_ASSERT(h.prefix == 0);
+    BOOST_ASSERT(h.cbuf != nullptr);
     BOOST_ASSERT(
-        kind != detail::kind::fields);
+        h.kind != detail::kind::fields);
 
-    // VFALCO do we need a separate
-    //        limit on start line?
-
-    auto const it0 = cbuf;
+    auto const it0 = h.cbuf;
     auto const end = it0 + new_size;
     char const* it = it0;
-    if(kind == detail::kind::request)
+    if( new_size > cfg.start_line_limit)
+        new_size = cfg.start_line_limit;
+    if(h.kind == detail::kind::request)
     {
         auto rv = grammar::parse(
             it, end, request_line_rule);
         if(! rv)
         {
             ec = rv.error();
+            if( ec == grammar::error::need_more &&
+                new_size == cfg.start_line_limit)
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::start_line_limit);
             return;
         }
         // method
         auto sm = std::get<0>(*rv);
-        req.method = string_to_method(sm);
-        req.method_len =
+        h.req.method = string_to_method(sm);
+        h.req.method_len =
             static_cast<off_t>(sm.size());
         // target
         auto st = std::get<1>(*rv);
-        req.target_len =
+        h.req.target_len =
             static_cast<off_t>(st.size());
         // version
         switch(std::get<2>(*rv))
         {
         case 10:
-            version =
+            h.version =
                 http_proto::version::http_1_0;
             break;
         case 11:
-            version =
+            h.version =
                 http_proto::version::http_1_1;
             break;
         default:
@@ -1041,17 +1073,21 @@ parse_start_line(
         if(! rv)
         {
             ec = rv.error();
+            if( ec == grammar::error::need_more &&
+                new_size == cfg.start_line_limit)
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::start_line_limit);
             return;
         }
         // version
         switch(std::get<0>(*rv))
         {
         case 10:
-            version =
+            h.version =
                 http_proto::version::http_1_0;
             break;
         case 11:
-            version =
+            h.version =
                 http_proto::version::http_1_1;
             break;
         default:
@@ -1062,25 +1098,29 @@ parse_start_line(
         }
         }
         // status-code
-        res.status_int =
+        h.res.status_int =
             static_cast<unsigned short>(
                 std::get<1>(*rv).v);
-        res.status = std::get<1>(*rv).st;
+        h.res.status = std::get<1>(*rv).st;
     }
-    prefix = static_cast<off_t>(it - it0);
-    size = prefix;
-    on_start_line();
+    h.prefix = static_cast<off_t>(it - it0);
+    h.size = h.prefix;
+    h.on_start_line();
 }
 
 // returns: true if we added a field
-bool
-header::
+static
+void
 parse_field(
+    header& h,
+    header::config& cfg,
     std::size_t new_size,
     error_code& ec) noexcept
 {
-    auto const it0 = cbuf + size;
-    auto const end = cbuf + new_size;
+    if( new_size > cfg.field_size_limit)
+        new_size = cfg.field_size_limit;
+    auto const it0 = h.cbuf + h.size;
+    auto const end = h.cbuf + new_size;
     char const* it = it0;
     auto rv = grammar::parse(
         it, end, field_rule);
@@ -1090,28 +1130,40 @@ parse_field(
         if(ec == grammar::error::end_of_range)
         {
             // final CRLF
-            ec.clear();
-            size = static_cast<off_t>(
-                it - cbuf);
+            h.size = static_cast<off_t>(
+                it - h.cbuf);
+            return;
         }
-        return false;
+        if( ec == grammar::error::need_more &&
+            new_size == cfg.field_size_limit)
+        {
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::field_size_limit);
+        }
+        return;
+    }
+    if(h.count >= cfg.fields_limit)
+    {
+        ec = BOOST_HTTP_PROTO_ERR(
+            error::fields_limit);
+        return;
     }
     if(rv->has_obs_fold)
     {
         // obs fold not allowed in test views
-        BOOST_ASSERT(buf != nullptr);
-        remove_obs_fold(buf + size, it);
+        BOOST_ASSERT(h.buf != nullptr);
+        remove_obs_fold(h.buf + h.size, it);
     }
     auto id = string_to_field(rv->name);
-    size = static_cast<off_t>(it - cbuf);
+    h.size = static_cast<off_t>(it - h.cbuf);
 
     // add field table entry
-    if(buf != nullptr)
+    if(h.buf != nullptr)
     {
         auto& e = header::table(
-            buf + cap)[count];
+            h.buf + h.cap)[h.count];
         auto const base =
-            buf + prefix;
+            h.buf + h.prefix;
         e.np = static_cast<off_t>(
             rv->name.data() - base);
         e.nn = static_cast<off_t>(
@@ -1122,44 +1174,54 @@ parse_field(
             rv->value.size());
         e.id = id;
     }
-    ++count;
-    on_insert(id, rv->value);
-    return true;
+    ++h.count;
+    h.on_insert(id, rv->value);
 }
 
-std::size_t
-count_crlf(
-    string_view s) noexcept
+void
+header::
+parse(
+    config& cfg,
+    std::size_t new_size,
+    error_code& ec) noexcept
 {
-    if(s.size() < 2)
-        return 0;
-    std::size_t n = 0;
-    auto it = s.data();
-    auto end =
-        it + s.size();
-    if(end[-1] == '\r')
-        --end;
-    while(end - it > 1)
+    if( new_size > cfg.headers_limit)
+        new_size = cfg.headers_limit;
+    if( this->prefix == 0 &&
+        this->kind !=
+            detail::kind::fields)
     {
-        if(it[0] != '\r')
+        parse_start_line(
+            *this, cfg, new_size, ec);
+        if(ec.failed())
         {
-            ++it;
-            continue;
+            if( ec == grammar::error::need_more &&
+                new_size == cfg.headers_limit)
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::headers_limit);
+            }
+            return;
         }
-        if(it[1] == '\n')
-        {
-            ++n;
-            it += 2;
-            continue;
-        }
-        if(it[1] != '\r')
-        {
-            it += 2;
-            continue;
-        }
-        ++it;
     }
-    return n;
+    for(;;)
+    {
+        parse_field(
+            *this, cfg, new_size, ec);
+        if(ec.failed())
+        {
+            if( ec == grammar::error::need_more &&
+                new_size == cfg.headers_limit)
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::headers_limit);
+                return;
+            }
+            break;
+        }
+    }
+    if(ec == grammar::error::end_of_range)
+        ec = {};
 }
 
 } // detail

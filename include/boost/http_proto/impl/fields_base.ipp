@@ -234,7 +234,7 @@ fields_base(
     : fields_view_base(&h_)
     , h_(detail::empty{k})
 {
-    auto n = detail::count_crlf(s);
+    auto n = detail::header::count_crlf(s);
     if(h_.kind == detail::kind::fields)
     {
         if(n < 1)
@@ -251,21 +251,10 @@ fields_base(
     op.grow(s.size(), n);
     s.copy(h_.buf, s.size());
     error_code ec;
-    if(h_.kind != detail::kind::fields)
-    {
-        h_.parse_start_line(s.size(), ec);
-        if(ec.failed())
-            detail::throw_system_error(ec);
-    }
-    for(;;)
-    {
-        auto b = h_.parse_field(
-            s.size(), ec);
-        if(ec.failed())
-            detail::throw_system_error(ec);
-        if(! b)
-            break;
-    }
+    detail::header::config cfg;
+    h_.parse(cfg, s.size(), ec);
+    if(ec.failed())
+        detail::throw_system_error(ec);
 }
 
 // construct a complete copy of h

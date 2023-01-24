@@ -21,11 +21,14 @@ namespace detail {
 flat_buffer::
 flat_buffer(
     void* data,
-    std::size_t capacity) noexcept
+    std::size_t capacity,
+    std::size_t initial_size) noexcept
     : data_(reinterpret_cast<
         unsigned char*>(data))
     , cap_(capacity)
+    , in_size_(initial_size)
 {
+    BOOST_ASSERT(in_size_ <= cap_);
 }
 
 bool

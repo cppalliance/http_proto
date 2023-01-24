@@ -25,7 +25,8 @@ response_view
 response_parser::
 get() const
 {
-    return response_view(&h_);
+    return response_view(
+        safe_get_header());
 }
 
 } // http_proto

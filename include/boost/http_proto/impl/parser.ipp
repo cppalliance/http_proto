@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
+#include <boost/http_proto/detail/codec.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/assert.hpp>
@@ -71,39 +72,43 @@ parser::
 construct(
     std::size_t extra_buffer_size)
 {
-    // max_headers_size too large
-    if( cfg_.max_headers_size >
+    // headers_limit too large
+    if( cfg_.headers_limit >
         BOOST_HTTP_PROTO_MAX_HEADER)
         detail::throw_invalid_argument();
 
-    // max_field_size too large
-    if( cfg_.max_field_size >=
-        cfg_.max_headers_size)
+    // start_line_limit too large
+    if( cfg_.start_line_limit >=
+        cfg_.headers_limit)
         detail::throw_invalid_argument();
 
-    // max_field_count too large
-    if( cfg_.max_field_count >
-        cfg_.max_headers_size / 4)
+    // field_size_limit too large
+    if( cfg_.field_size_limit >=
+        cfg_.headers_limit)
+        detail::throw_invalid_argument();
+
+    // fields_limit too large
+    if( cfg_.fields_limit >
+        cfg_.headers_limit / 4)
         detail::throw_invalid_argument();
 
     // largest space needed
     auto const bytes_needed =
         detail::header::bytes_needed(
-            cfg_.max_headers_size,
-            cfg_.max_field_count);
+            cfg_.headers_limit,
+            cfg_.fields_limit);
 
-    // extra_buffer_size is too large
+    // prevent overflow
     if(extra_buffer_size >
             std::size_t(-1) - bytes_needed)
         detail::throw_invalid_argument();
 
-/*  Layout:
-
-    |<- bytes_needed ->|<- extra_buffer_size ->|
-*/
+    // allocate max headers plus extra
     ws_ = detail::workspace(
         bytes_needed +
         extra_buffer_size);
+
+    h_.cap = bytes_needed;
 
     reset();
 }
@@ -152,31 +157,94 @@ body() const noexcept
 
 //------------------------------------------------
 //
-// Input
+// Modifiers
 //
 //------------------------------------------------
 
+// prepare for a new stream
 void
 parser::
 reset() noexcept
 {
-    // largest space needed
-    auto const bytes_needed =
-        detail::header::bytes_needed(
-            cfg_.max_headers_size,
-            cfg_.max_field_count);
+    st_ = state::need_start;
+    got_eof_ = false;
+}
+
+void
+parser::
+start_impl(
+    bool head_response)
+{
+    std::size_t initial_size = 0;
+    switch(st_)
+    {
+    default:
+    case state::need_start:
+        BOOST_ASSERT(h_.size == 0);
+        BOOST_ASSERT(h_buf_.size() == 0);
+        BOOST_ASSERT(! got_eof_);
+        break;
+
+    case state::headers:
+        // Can't call start twice.
+        detail::throw_logic_error();
+
+    case state::headers_done:
+    case state::body:
+        // Can't call start with
+        // an incomplete message.
+        detail::throw_logic_error();
+
+    case state::complete:
+        if(h_buf_.size() > 0)
+        {
+            // headers with no body
+            BOOST_ASSERT(h_.size > 0);
+            h_buf_.consume(h_.size);
+            initial_size = h_buf_.size();
+            // move unused octets to front
+            buffer_copy(
+                mutable_buffer(
+                    ws_.data(),
+                    initial_size),
+                h_buf_.data());
+        }
+        else
+        {
+            // leftover data after body
+        }
+        break;
+    }
+
+    ws_.clear();
+
+    // set up header read buffer
+    h_buf_ = {
+        ws_.data(),
+        cfg_.headers_limit,
+        initial_size };
+
+    // reset the header but
+    // preserve the capacity
+    auto const cap = h_.cap;
     h_ = detail::header(
         detail::empty{h_.kind});
     h_.buf = reinterpret_cast<
         char*>(ws_.data());
     h_.cbuf = h_.buf;
-    h_.cap = bytes_needed;
+    h_.cap = cap;
 
-    st_ = state::need_start;
+    cfg_impl_ = {};
+    cfg_impl_.headers_limit = cfg_.headers_limit;
+    cfg_impl_.start_line_limit = cfg_.start_line_limit;
+    cfg_impl_.field_size_limit = cfg_.field_size_limit;
+    cfg_impl_.fields_limit = cfg_.fields_limit;
 
-    m_ = {};
+    st_ = state::headers;
 
-    got_eof_ = false;
+    BOOST_ASSERT(! head_response ||
+        h_.kind == detail::kind::response);
+    head_response_ = head_response;
 }
 
 auto
@@ -184,33 +252,33 @@ parser::
 prepare() ->
     buffers
 {
-    // Forgot to call start
-    if(st_ == state::need_start)
-        detail::throw_logic_error();
-
-    // Can't prepare after eof
-    if(got_eof_)
-        detail::throw_logic_error();
-
     switch(st_)
     {
+    default:
     case state::need_start:
-    case state::start_line:
-    case state::fields:
-    {
-        // read up to max_headers_size
-        auto const n =
-            cfg_.max_headers_size -
-            rd_buf_.size();
-        return {
-            rd_buf_.prepare(n),
-            mutable_buffer{} };
-    }
+        // start must be called once
+        // before calling prepare.
+        if(st_ == state::need_start)
+            detail::throw_logic_error();
 
     case state::headers:
+        // fill up to headers_limit
+        return {
+            h_buf_.prepare(
+                cfg_.headers_limit -
+                h_buf_.size()),
+            mutable_buffer{} };
+
+    case state::headers_done:
     {
         // discard headers and move
         // any leftover stream data.
+        std::memmove(
+            ws_.data(),
+            h_.cbuf + h_.size,
+            h_buf_.size() - h_.size);
+        st_ = state::body;
+        // VFALCO set up body buffer
         BOOST_FALLTHROUGH;
     }
 
@@ -219,10 +287,10 @@ prepare() ->
         return {};
     }
 
-    default:
     case state::complete:
-        // Can't call prepare again after
-        // a complete message is parsed.
+        // Can't call `prepare` again after
+        // a complete message is parsed,
+        // call `start` first.
         detail::throw_logic_error();
     }
 }
@@ -236,26 +304,15 @@ commit(
     if(got_eof_)
         detail::throw_logic_error();
 
-    rd_buf_.commit(n);
-}
-
-void
-parser::
-commit_eof()
-{
-    // Can't commit eof twice
-    if(got_eof_)
-        detail::throw_logic_error();
-
-    got_eof_ = true;
-
     switch(st_)
     {
     default:
     case state::need_start:
-    case state::start_line:
-    case state::fields:
     case state::headers:
+        h_buf_.commit(n);
+        break;
+
+    case state::headers_done:
     case state::body:
     case state::complete:
         break;
@@ -264,76 +321,109 @@ commit_eof()
 
 void
 parser::
+commit_eof()
+{
+    switch(st_)
+    {
+    default:
+    case state::need_start:
+        // Can't commit eof
+        // before calling start.
+        detail::throw_logic_error();
+
+    case state::headers:
+    case state::headers_done:
+    case state::body:
+        got_eof_ = true;
+        break;
+
+    case state::complete:
+        // Can't commit eof when
+        // message is complete.
+        detail::throw_logic_error();
+    }
+}
+
+// process input data then
+// eof if input data runs out.
+void
+parser::
 parse(
     error_code& ec)
 {
-    ec.clear();
-    while(st_ != state::complete)
+    switch(st_)
     {
-        switch(st_)
+    default:
+    case state::need_start:
+        // You must call start before
+        // calling parse on a new message.
+        detail::throw_logic_error();
+
+    case state::headers:
+    {
+        BOOST_ASSERT(h_.buf == ws_.data());
+        BOOST_ASSERT(h_.cbuf == ws_.data());
+        auto const new_size = h_buf_.size();
+        h_.parse(cfg_impl_, new_size, ec);
+        if(! ec.failed())
         {
-        case state::need_start:
-            if(got_eof_)
+            if( h_.md.payload != payload::none ||
+                ! head_response_)
             {
-                BOOST_ASSERT(h_.size == 0);
-                ec = error::end_of_stream;
-                return;
+                // Deliver headers to caller
+                st_ = state::headers_done;
+                break;
             }
-            st_ = state::start_line;
-            BOOST_FALLTHROUGH;
-
-        case state::start_line:
-            parse_start_line(ec);
-            if(ec.failed())
-                return;
-            st_ = state::fields;
-            BOOST_FALLTHROUGH;
-
-        case state::fields:
-            parse_fields(ec);
-            if(ec.failed())
-                return;
-            st_ = state::body;
-            BOOST_FALLTHROUGH;
-
-        case state::body:
-            parse_body(ec);
-            if(ec.failed())
-                return;
+            // no payload
             st_ = state::complete;
-            BOOST_FALLTHROUGH;
-
-        default:
             break;
         }
+        if( ec == grammar::error::need_more &&
+            got_eof_)
+        {
+            if(h_.size > 0)
+            {
+                // Connection closed before
+                // message is complete.
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::incomplete);
+
+                return;
+            }
+
+            // Connection closed
+            // cleanly.
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::end_of_stream);
+
+            return;
+        }
+        return;
+    }
+
+    case state::headers_done:
+    {
+        // This is a no-op
+        ec = {};
+        break;
+    }
+
+    case state::body:
+    {
+        parse_body(ec);
+        if(ec.failed())
+            return;
+        st_ = state::complete;
+        break;
+    }
     }
 }
 
 //------------------------------------------------
-//
-//
-//
-//------------------------------------------------
-
-// discard all of the body,
-// but don't discard chunk-ext
-void
-parser::
-discard_body() noexcept
-{
-}
-
-// discard all of the payload
-// including any chunk-ext
-void
-parser::
-discard_chunk() noexcept
-{
-}
 
 string_view
 parser::
-buffered_data() noexcept
+release_buffered_data() noexcept
 {
     return {};
 }
@@ -354,127 +444,31 @@ apply_param(
 
 //------------------------------------------------
 
-void
+auto
 parser::
-start_impl(bool head_response)
+safe_get_header() const ->
+    detail::header const*
 {
-    // Can't call start after
-    // EOF, call reset instead.
-    if(got_eof_)
+    switch(st_)
+    {
+    default:
+    case state::need_start:
+    case state::headers:
+        // Headers not received yet
         detail::throw_logic_error();
 
-    // Can't call start with an
-    // incomplete current message.
-    if( st_ != state::complete &&
-        st_ != state::need_start)
+    case state::headers_done:
+        break;
+
+    case state::body:
+        // Headers received and discarded
         detail::throw_logic_error();
 
-/*
-    if( committed_ > h_.size &&
-        h_.size > 0)
-    {
-        // move unused octets to front
-        std::memcpy(
-            h_.buf,
-            h_.buf + h_.size,
-            committed_ - h_.size);
-        committed_ -= h_.size;
-        h_.size = 0;
+    case state::complete:
+        // VFALCO Could be OK
+        break;
     }
-    else
-    {
-        committed_ = 0;
-    }
-*/
-
-    // reset the header but
-    // preserve the capacity
-    detail::header h(
-        detail::empty{h_.kind});
-    h.assign_to(h_);
-
-    m_ = message{};
-    st_ = state::start_line;
-
-    BOOST_ASSERT(! head_response ||
-        h_.kind == detail::kind::response);
-    head_response_ = head_response;
-
-
-
-    // put leftovers at the beginning
-    // of the buffer
-
-    ws_.clear();
-
-    BOOST_ASSERT(ws_.size() >=
-        cfg_.max_headers_size);
-    rd_buf_ = {
-        ws_.data(),
-        cfg_.max_headers_size };
-}
-
-//------------------------------------------------
-
-void
-parser::
-parse_start_line(
-    error_code& ec)
-{
-    BOOST_ASSERT(h_.buf == ws_.data());
-    BOOST_ASSERT(h_.cbuf == ws_.data());
-    auto const new_size = rd_buf_.size();
-    h_.parse_start_line(new_size, ec);
-    if(! ec.failed())
-        return;
-    if(ec == grammar::error::need_more)
-    {
-        if( new_size <
-            cfg_.max_headers_size)
-            return;
-        ec = BOOST_HTTP_PROTO_ERR(
-            error::header_too_large);
-        return;
-    }
-    return;
-}
-
-void
-parser::
-parse_fields(
-    error_code& ec)
-{
-    for(;;)
-    {
-        auto const size0 = h_.size;
-        auto got_one = h_.parse_field(
-            rd_buf_.size(), ec);
-        if(ec == grammar::error::need_more)
-        {
-            if(rd_buf_.size() >=
-                    cfg_.max_headers_size)
-            {
-                ec = BOOST_HTTP_PROTO_ERR(
-                    error::header_too_large);
-                return;
-            }
-        }
-        if(! got_one)
-            return;
-        if(h_.count > cfg_.max_field_count)
-        {
-            ec = BOOST_HTTP_PROTO_ERR(
-                error::too_many_fields);
-            return;
-        }
-        if(h_.size >
-            cfg_.max_field_size + size0)
-        {
-            ec = BOOST_HTTP_PROTO_ERR(
-                error::field_too_large);
-            return;
-        }
-    }
+    return &h_;
 }
 
 void

@@ -187,7 +187,7 @@ struct request_parser_test
         // request_parser(std::size_t, config)
         {
             request_parser::config cfg;
-            cfg.max_headers_size = 8192;
+            cfg.headers_limit = 8192;
             request_parser(65536, cfg);
         }
 

@@ -33,7 +33,7 @@ public:
         */
         config() noexcept
         {
-            max_body_size = 1024 * 1024;
+            body_limit = 1024 * 1024;
         }
     };
 

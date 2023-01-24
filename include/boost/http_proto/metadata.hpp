@@ -262,8 +262,12 @@ struct metadata
     //--------------------------------------------
 
     /** True if payload is manually specified
+
+        This flag is used to allow the caller
+        to resolve problems with non-compliant
+        values for Content-Length.
     */
-    bool manual_payload = false;
+    bool payload_override = false;
 
     /** The type of payload
     */

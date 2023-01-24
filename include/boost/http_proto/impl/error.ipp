@@ -63,14 +63,15 @@ get_error_cat() noexcept
             case error::bad_status_line: return "bad status-line";
             case error::bad_transfer_encoding: return "bad Transfer-Encoding";
             case error::bad_upgrade: return "bad Upgrade";
-            case error::syntax: return "syntax error";
 
             case error::body_too_large: return "body too large";
-            case error::field_too_large: return "field too large";
-            case error::header_too_large: return "header too large";
-            case error::too_many_fields: return "too many fields";
-            case error::numeric_overflow: return "numeric overflow";
+            case error::headers_limit: return "headers limit";
+            case error::start_line_limit: return "start line limit";
+            case error::field_size_limit: return "field size limit";
+            case error::fields_limit: return "fields limit";
+            case error::incomplete: return "incomplete";
 
+            case error::numeric_overflow: return "numeric overflow";
             case error::multiple_content_length: return "multiple Content-Length";
             default:
                 return "unknown";

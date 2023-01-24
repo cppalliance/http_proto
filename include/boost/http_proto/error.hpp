@@ -97,11 +97,8 @@ enum class error
     /// Syntax error or illegal Upgrade
     ,bad_upgrade
 
-    /// Unspecified syntax error
-    ,syntax
-
     //
-    // Other errors (unrecoverable)
+    // Bad request / Bad response
     //
 
     /** Body too large
@@ -112,27 +109,46 @@ enum class error
     */
     ,body_too_large
 
-    /** Field too large
-
-        The parser encountered a field whose
-        size exceeded the configured limit.
+    /** Headers too large.
+     *
+        The combined size of the start line and
+        the header fields exceeded the maximum
+        configured size.
     */
-    ,field_too_large
+    ,headers_limit
 
-    /** Header too large
-
-        The parser encountered a header whose
-        total size exceeded the configured limit.
+    /** Start-line too large.
+     *
+        The size of the start line exceeded the
+        maximum configured size.
     */
-    ,header_too_large
+    ,start_line_limit
 
-    /** Too many fields
+    /** Field too large.
 
-        The parser encountered a header
-        whose total number of fields exceeded
-        the configured limit.
+        The size of an individual field exceeded
+        the maximum configured size.
     */
-    ,too_many_fields
+    ,field_size_limit
+
+    /** Too many fields.
+
+        The number of fields in the message
+        exceeded the maximum configured number
+        of allowed fields.
+    */
+    ,fields_limit
+
+    /** The message is incomplete
+
+        The end of the stream was encountered
+        before the message could be completed.
+    */
+    ,incomplete
+
+    //
+    // Metadata errors
+    //
 
     /// A number overflowed
     ,numeric_overflow
@@ -146,6 +162,8 @@ enum class error
     */
     ,multiple_content_length
 };
+
+// VFALCO we need a bad_message condition?
 
 } // http_proto
 } // boost

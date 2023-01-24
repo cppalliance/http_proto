@@ -198,9 +198,8 @@ set_prefix_impl(
                 n - h_.prefix) >
             static_cast<std::size_t>(
                 max_off_t - h_.size))
-            detail::throw_length_error(
-                "too large",
-                BOOST_CURRENT_LOCATION);
+            detail::throw_length_error();
+
         auto n0 = detail::header::bytes_needed(
             n + h_.size - h_.prefix,
             h_.count);

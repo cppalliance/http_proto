@@ -55,31 +55,59 @@ class BOOST_SYMBOL_VISIBLE
     parser
 {
 public:
-    // https://stackoverflow.com/questions/686217/maximum-on-http-header-values
-
     /** Parser configuration settings
+
+        @see
+            @li <a href="https://stackoverflow.com/questions/686217/maximum-on-http-header-values"
+                >Maximum on HTTP header values (Stackoverflow)</a>
     */
     struct config_base
     {
-        /** Largest allowed size for the complete header
+        /** Largest allowed size for the headers.
 
-            This may not exceed 65535.
+            This determines an upper bound on the
+            allowed size of the start-line plus
+            all of the individual fields in the
+            headers. This counts all delimiters
+            including trailing CRLFs.
         */
-        std::size_t max_headers_size = 16 * 1024;
+        std::size_t headers_limit = 16 * 1024;
 
-        /** Largest size for any one field
+        /** Largest allowed size for the start-line.
 
-            This may not exceed @ref max_headers_size.
+            This determines an upper bound on the
+            allowed size for the request-line of
+            an HTTP request or the status-line of
+            an HTTP response.
         */
-        std::size_t max_field_size = 4096;
+        std::size_t start_line_limit = 4096;
 
-        /** Largest allowed number of fields
-        */
-        std::size_t max_field_count = 100;
+        /** Largest size for one field.
 
-        /** Largest allowed size for a body
+            This determines an upper bound on the
+            allowed size for any single header
+            in an HTTP message. This counts
+            the field name, field value, and
+            delimiters including a trailing CRLF.
         */
-        std::uint64_t max_body_size = 64 * 1024;
+        std::size_t field_size_limit = 4096;
+
+        /** Largest allowed number of fields.
+
+            This determines an upper bound on the
+            largest number of individual header
+            fields that may appear in an HTTP
+            message.
+        */
+        std::size_t fields_limit = 100;
+
+        /** Largest allowed size for a content body.
+
+            The size of the body is measured
+            after removing any transfer encodings,
+            including a chunked encoding.
+        */
+        std::uint64_t body_limit = 64 * 1024;
     };
 
     using buffers = mutable_buffers_pair;
@@ -128,7 +156,7 @@ public:
     bool
     got_header() const noexcept
     {
-        return st_ > state::fields;
+        return st_ > state::headers;
     }
 
     /** Returns `true` if a complete message has been parsed.
@@ -159,6 +187,12 @@ public:
     void
     reset() noexcept;
 
+private:
+    // New message on the current stream
+    BOOST_HTTP_PROTO_DECL void
+        start_impl(bool head_response);
+public:
+
     /** Return the input buffer
     */
     BOOST_HTTP_PROTO_DECL
@@ -187,14 +221,6 @@ public:
 
     //--------------------------------------------
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    discard_body() noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    discard_chunk() noexcept;
-
     /** Return any leftover data
 
         This is used to forward unconsumed data
@@ -205,7 +231,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     string_view
-    buffered_data() noexcept;
+    release_buffered_data() noexcept;
 
 private:
     void apply_params() noexcept
@@ -234,10 +260,7 @@ private:
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
 
-    BOOST_HTTP_PROTO_DECL void start_impl(bool head_response);
-
-    void parse_start_line(error_code&);
-    void parse_fields(error_code&);
+    detail::header const* safe_get_header() const;
     void parse_body(error_code&);
     void parse_chunk(error_code&);
 
@@ -255,42 +278,25 @@ private:
     {
         // order matters
         need_start,
-        start_line, // start-line
-        fields,     // header fields
-        headers,    // delivered headers
-        body,       // payload
-        complete,   // done
-    };
-
-    // per-message state
-    struct message
-    {
-        std::size_t n_chunk = 0;    // bytes of chunk header
-        std::size_t n_payload = 0;  // bytes of body or chunk
-        std::uint64_t n_remain = 0; // remaining body or chunk
-
-        std::uint64_t
-            payload_seen = 0;       // total body received
-
-        optional<std::uint64_t>
-            content_len;            // value of Content-Length
-
-        bool skip_body : 1;
-        bool need_eof : 1;
+        headers,        // header fields
+        headers_done,   // delivered headers
+        body,           // reading payload
+        complete,       // done
     };
 
     config_base cfg_;
     detail::header h_;
     detail::workspace ws_;
-    state st_;
+    detail::header::config cfg_impl_;
 
     std::unique_ptr<
         detail::codec> dec_[3];
-    detail::flat_buffer rd_buf_;
-
+    detail::flat_buffer h_buf_;
+    detail::circular_buffer b_buf_;
+    detail::circular_buffer c_buf_;
     detail::codec* cod_;
-    message m_;
 
+    state st_;
     bool got_eof_;
     bool head_response_;
 };

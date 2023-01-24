@@ -67,14 +67,15 @@ public:
         check(n, error::bad_status_line);
         check(n, error::bad_transfer_encoding);
         check(n, error::bad_upgrade);
-        check(n, error::syntax);
 
         check(n, error::body_too_large);
-        check(n, error::field_too_large);
-        check(n, error::header_too_large);
-        check(n, error::too_many_fields);
-        check(n, error::numeric_overflow);
+        check(n, error::headers_limit);
+        check(n, error::start_line_limit);
+        check(n, error::field_size_limit);
+        check(n, error::fields_limit);
+        check(n, error::incomplete);
 
+        check(n, error::numeric_overflow);
         check(n, error::multiple_content_length);
     }
 };

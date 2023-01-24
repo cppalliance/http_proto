@@ -33,7 +33,8 @@ public:
 
     flat_buffer(
         void* data,
-        std::size_t capacity) noexcept;
+        std::size_t capacity,
+        std::size_t initial_size = 0) noexcept;
 
     bool empty() const noexcept;
     std::size_t size() const noexcept;

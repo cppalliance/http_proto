@@ -202,24 +202,33 @@ public:
     // parsing
     //
 
-    BOOST_HTTP_PROTO_DECL
-    void
-    parse_start_line(
-        std::size_t,
-        error_code&) noexcept;
+    struct config
+    {
+        std::size_t headers_limit =
+            BOOST_HTTP_PROTO_MAX_HEADER;
+        std::size_t start_line_limit =
+            BOOST_HTTP_PROTO_MAX_HEADER;
+        std::size_t field_size_limit =
+            BOOST_HTTP_PROTO_MAX_HEADER;
+        std::size_t fields_limit =
+            (unsigned short)(-1);
+
+        // VFALCO plus filtering state
+    };
+
+    static std::size_t count_crlf(
+        string_view s) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    bool
-    parse_field(
-        std::size_t new_size,
+    void
+    parse(
+        config&,
+        std::size_t,
         error_code&) noexcept;
 };
 
 //------------------------------------------------
 
-std::size_t
-count_crlf(
-    string_view s) noexcept;
 
 } // detail
 } // http_proto
