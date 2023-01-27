@@ -25,6 +25,11 @@ class circular_buffer
     std::size_t out_size_ = 0;
 
 public:
+    using const_buffers_type =
+        const_buffers_pair;
+    using mutable_buffers_type =
+        mutable_buffers_pair;
+
     circular_buffer() = default;
     circular_buffer(
         circular_buffer const&) = default;
@@ -35,14 +40,16 @@ public:
         void* base,
         std::size_t capacity) noexcept;
 
-    bool empty() const noexcept;
     std::size_t size() const noexcept;
+    std::size_t max_size() const noexcept;
     std::size_t capacity() const noexcept;
-    const_buffers_pair data() const noexcept;
-    mutable_buffers_pair prepare(std::size_t n);
+    const_buffers_type data() const noexcept;
+    mutable_buffers_type prepare(std::size_t n);
     void commit(std::size_t n);
-    void uncommit(std::size_t n);
     void consume(std::size_t n) noexcept;
+
+    // VFALCO I'm not happy with this
+    void uncommit(std::size_t n);
 };
 
 } // detail

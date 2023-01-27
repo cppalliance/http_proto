@@ -48,24 +48,14 @@ struct asio_const_buffers
     asio_const_buffer const* end() const noexcept;
 };
 
-BOOST_STATIC_ASSERT(  is_const_buffer    <const_buffer>::value);
-BOOST_STATIC_ASSERT(  is_const_buffer    <mutable_buffer>::value);
-BOOST_STATIC_ASSERT(  is_const_buffer    <asio_const_buffer>::value);
-BOOST_STATIC_ASSERT(! is_const_buffer    <not_a_buffer>::value);
-
-BOOST_STATIC_ASSERT(! is_mutable_buffer  <const_buffer>::value);
-BOOST_STATIC_ASSERT(  is_mutable_buffer  <mutable_buffer>::value);
-BOOST_STATIC_ASSERT(  is_mutable_buffer  <asio_mutable_buffer>::value);
-BOOST_STATIC_ASSERT(! is_mutable_buffer  <not_a_buffer>::value);
-
 BOOST_STATIC_ASSERT(  is_const_buffers   <const_buffer>::value);
 BOOST_STATIC_ASSERT(  is_const_buffers   <mutable_buffer>::value);
-BOOST_STATIC_ASSERT(  is_const_buffers   <asio_const_buffers>::value);
-BOOST_STATIC_ASSERT(  is_const_buffers   <asio_mutable_buffers>::value);
+//BOOST_STATIC_ASSERT(  is_const_buffers   <asio_const_buffers>::value);
+//BOOST_STATIC_ASSERT(  is_const_buffers   <asio_mutable_buffers>::value);
 
 BOOST_STATIC_ASSERT(  is_mutable_buffers <mutable_buffer>::value);
-BOOST_STATIC_ASSERT(  is_mutable_buffers <asio_mutable_buffers>::value);
-BOOST_STATIC_ASSERT(! is_mutable_buffers <asio_const_buffers>::value);
+//BOOST_STATIC_ASSERT(  is_mutable_buffers <asio_mutable_buffers>::value);
+//BOOST_STATIC_ASSERT(! is_mutable_buffers <asio_const_buffers>::value);
 
 BOOST_STATIC_ASSERT(  is_const_buffers   <const_buffers_pair>::value);
 BOOST_STATIC_ASSERT(  is_const_buffers   <mutable_buffers_pair>::value);
@@ -74,10 +64,10 @@ BOOST_STATIC_ASSERT(  is_mutable_buffers <mutable_buffers_pair>::value);
 
 BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, const_buffer>::value);
 BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, mutable_buffer>::value);
-BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_const_buffer>::value);
-BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_mutable_buffer>::value);
-BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, mutable_buffer>::value);
-BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, asio_mutable_buffer>::value);
+//BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_const_buffer>::value);
+//BOOST_STATIC_ASSERT(std::is_constructible<const_buffer, asio_mutable_buffer>::value);
+//BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, mutable_buffer>::value);
+//BOOST_STATIC_ASSERT(std::is_constructible<mutable_buffer, asio_mutable_buffer>::value);
 
 struct buffer_test
 {
@@ -164,31 +154,13 @@ struct buffer_test
             BOOST_TEST_EQ(b.data(), tmp);
         }
 
-        // mutable_buffer(MutableBuffer)
-        {
-            char tmp[10];
-            mutable_buffer b(
-                test_mutable(tmp, sizeof(tmp)));
-            BOOST_TEST(b.size() == sizeof(tmp));
-            BOOST_TEST_EQ(b.data(), tmp);
-        }
-
         // operator=(mutable_buffer const&)
         {
-            {
-                mutable_buffer b;
-                char tmp[10];
-                b = mutable_buffer(tmp, sizeof(tmp));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
-            {
-                mutable_buffer b;
-                char tmp[10];
-                b = test_mutable(tmp, sizeof(tmp));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
+            mutable_buffer b;
+            char tmp[10];
+            b = mutable_buffer(tmp, sizeof(tmp));
+            BOOST_TEST(b.size() == sizeof(tmp));
+            BOOST_TEST_EQ(b.data(), tmp);
         }
 
         // data()
@@ -249,29 +221,13 @@ struct buffer_test
             BOOST_TEST_EQ(b.data(), tmp);
         }
 
-        // const_buffer(ConstBuffer)
+        // const_buffer(mutable_buffer)
         {
-            {
-                char tmp[10];
-                const_buffer b(mutable_buffer(
-                    tmp, sizeof(tmp)));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
-            {
-                char tmp[10];
-                const_buffer b(
-                    test_const(tmp, sizeof(tmp)));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
-            {
-                char tmp[10];
-                const_buffer b(
-                    test_mutable(tmp, sizeof(tmp)));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
+            char tmp[10];
+            const_buffer b(mutable_buffer(
+                tmp, sizeof(tmp)));
+            BOOST_TEST(b.size() == sizeof(tmp));
+            BOOST_TEST_EQ(b.data(), tmp);
         }
 
         // operator=(const_buffer const&)
@@ -287,20 +243,6 @@ struct buffer_test
                 const_buffer b;
                 char tmp[10];
                 b = mutable_buffer(tmp, sizeof(tmp));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
-            {
-                const_buffer b;
-                char tmp[10];
-                b = test_const(tmp, sizeof(tmp));
-                BOOST_TEST(b.size() == sizeof(tmp));
-                BOOST_TEST_EQ(b.data(), tmp);
-            }
-            {
-                const_buffer b;
-                char tmp[10];
-                b = test_mutable(tmp, sizeof(tmp));
                 BOOST_TEST(b.size() == sizeof(tmp));
                 BOOST_TEST_EQ(b.data(), tmp);
             }
@@ -407,12 +349,81 @@ struct buffer_test
     }
 
     void
+    testAlgorithms()
+    {
+        // prefix
+        
+        {
+            char buf[16];
+            const_buffer b(buf, sizeof(buf));
+            const_buffer bp = prefix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 5);
+        }
+ 
+        {
+            char buf[16];
+            mutable_buffer b(buf, sizeof(buf));
+            mutable_buffer bp = prefix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 5);
+        }
+
+        // sans_prefix
+        
+        {
+            char buf[16];
+            const_buffer b(buf, sizeof(buf));
+            const_buffer bp = sans_prefix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 11);
+        }
+ 
+        {
+            char buf[16];
+            mutable_buffer b(buf, sizeof(buf));
+            mutable_buffer bp = sans_prefix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 11);
+        }
+
+        // suffix
+
+        {
+            char buf[16];
+            const_buffer b(buf, sizeof(buf));
+            const_buffer bp = suffix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 5);
+        }
+
+        {
+            char buf[16];
+            mutable_buffer b(buf, sizeof(buf));
+            mutable_buffer bp = suffix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 5);
+        }
+
+        // sans_suffix
+
+        {
+            char buf[16];
+            const_buffer b(buf, sizeof(buf));
+            const_buffer bp = sans_suffix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 11);
+        }
+
+        {
+            char buf[16];
+            mutable_buffer b(buf, sizeof(buf));
+            mutable_buffer bp = sans_suffix(b, 5);
+            BOOST_TEST_EQ(bp.size(), 11);
+        }
+    }
+
+    void
     run()
     {
         testMutableBuffer();
         testConstBuffer();
         testBufferSize();
         testBufferCopy();
+        testAlgorithms();
     }
 };
 

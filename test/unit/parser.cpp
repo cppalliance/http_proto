@@ -10,7 +10,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/parser.hpp>
 
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/request_parser.hpp>
 
 #include "test_suite.hpp"

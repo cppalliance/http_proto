@@ -13,10 +13,18 @@
 #include <boost/http_proto/detail/circular_buffer.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
+#include <boost/static_assert.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
+
+BOOST_STATIC_ASSERT(
+    is_const_buffers<circular_buffer::const_buffers_type>::value);
+BOOST_STATIC_ASSERT(
+    is_mutable_buffers<circular_buffer::mutable_buffers_type>::value);
+BOOST_STATIC_ASSERT(
+    is_dynamic_buffer<circular_buffer>::value);
 
 circular_buffer::
 circular_buffer(
@@ -28,18 +36,18 @@ circular_buffer(
 {
 }
 
-bool
-circular_buffer::
-empty() const noexcept
-{
-    return in_len_ == 0;
-}
-
 std::size_t
 circular_buffer::
 size() const noexcept
 {
     return in_len_;
+}
+
+std::size_t
+circular_buffer::
+max_size() const noexcept
+{
+    return cap_;
 }
 
 std::size_t
@@ -52,7 +60,7 @@ capacity() const noexcept
 auto
 circular_buffer::
 data() const noexcept ->
-    const_buffers_pair
+    const_buffers_type
 {
     if(in_pos_ + in_len_ <= cap_)
         return {
@@ -69,7 +77,7 @@ data() const noexcept ->
 auto
 circular_buffer::
 prepare(std::size_t n) ->
-    mutable_buffers_pair
+    mutable_buffers_type
 {
     // Buffer is too small for n
     if(n > cap_ - in_len_)

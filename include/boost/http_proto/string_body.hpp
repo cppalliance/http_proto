@@ -25,6 +25,7 @@ class string_body
     const_buffer cb_;
 
 public:
+    using value_type = const_buffer;
     using const_iterator = const_buffer const*;
 
     string_body(
@@ -57,6 +58,8 @@ public:
         return &cb_ + 1;
     }
 };
+
+//------------------------------------------------
 
 } // http_proto
 } // boost

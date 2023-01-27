@@ -242,7 +242,7 @@ prepare() ->
         std::size_t n = 0;
         if(out_.data() == hp_)
             ++n;
-        if(tmp0_.empty() && more_)
+        if(tmp0_.size() == 0 && more_)
         {
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
@@ -308,7 +308,7 @@ consume(
     case style::source:
     case style::stream:
         tmp0_.consume(n);
-        if( tmp0_.empty() &&
+        if( tmp0_.size() == 0 &&
                 ! more_)
             is_done_ = true;
         return;
