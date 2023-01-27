@@ -367,7 +367,7 @@ parse(
         h_.parse(cfg_impl_, new_size, ec);
         if(! ec.failed())
         {
-            if( h_.md.payload != payload::none ||
+            if( h_.md.payload != payload::none &&
                 ! head_response_)
             {
                 // Deliver headers to caller

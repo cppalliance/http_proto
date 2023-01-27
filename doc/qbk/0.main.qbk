@@ -45,6 +45,13 @@
 [def __SemiRegular__            [@https://en.cppreference.com/w/cpp/concepts/semiregular ['SemiRegular]]]
 [def __Swappable__              [@https://en.cppreference.com/w/cpp/named_req/Swappable ['Swappable]]]
 
+[def __ConstBuffer__            [link http_proto.concepts.constbuffer ['ConstBuffer]]]
+[def __ConstBuffers__           [link http_proto.concepts.constbuffers ['ConstBuffers]]]
+[def __MutableBuffer__          [link http_proto.concepts.mutablebuffer ['MutableBuffers]]]
+[def __MutableBuffers__         [link http_proto.concepts.mutablebuffers ['MutableBuffers]]]
+[def __Sink__                   [link http_proto.concepts.sink ['Sink]]]
+[def __Source__                 [link http_proto.concepts.source ['Source]]]
+
 [/ Dingbats ]
 
 [def __good__ [role green \u2714]]

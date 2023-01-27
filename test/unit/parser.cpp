@@ -77,57 +77,70 @@ if(! pr.is_done())
     ec = co_await async_read( sock, pr );
 
 need to get trailers
-
 */
-class parser_test
+struct parser_test
 {
-public:
+    static
+    void
+    feed(
+        parser& pr,
+        string_view& s,
+        std::size_t n,
+        error_code& ec)
+    {
+        auto dest = pr.prepare();
+        if( n > s.size())
+            n = s.size();
+        auto const n1 = buffer_copy(
+            dest, const_buffer(
+                s.data(), n));
+        BOOST_TEST_EQ(n1, n);
+        pr.commit(n1);
+        s = s.substr(n);
+        pr.parse(ec);
+    }
+
+    void
+    testParse()
+    {
+        auto const check =
+        [](string_view const s0)
+        {
+            request_parser pr;
+            for(std::size_t i = 1;
+                i < s0.size() - 1; ++i)
+            {
+                auto s = s0;
+                pr.start();
+                for(;;)
+                {
+                    error_code ec;
+                    feed(pr, s, i, ec);
+                    if(ec == grammar::error::need_more)
+                        continue;
+                    if(! BOOST_TEST(! ec.failed()))
+                    {
+                        pr.reset();
+                        break;
+                    }
+                    BOOST_TEST(pr.got_header());
+                    BOOST_TEST_EQ(
+                        pr.get().buffer(), s0);
+                    break;
+                }
+            }
+        };
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "User-Agent: test\r\n"
+            "\r\n");
+    }
+
     void
     run()
     {
-/*
-    parser p;
-
-    read_some( s, p );
-    switch( p.where() )
-    {
-    case parser::got_nothing:
-        // parser has 0 bytes of input.
-        // if the connection is closed now,
-        // then it is a graceful closure.
-
-    case parser::got_something:
-        // parser has 1 or more bytes of
-        // input, but no complete header.
-        // if the connection is closed now,
-        // then the stream was truncated.
-
-    case parser::got_header:
-        // parser got a complete header,
-        // and 1 or more body bytes are
-        // expected (or the end of file).
-        // if no body bytes are expected,
-        // this will be got_message instead.
-
-    case parser::got_body_part:
-        // parser got 1 or more bytes of
-        // body data
-
-    case parser::got_chunk:
-        // parser got a chunked header.
-        // the chunk size and extensions
-        // are available now.
-
-    case parser::got_chunk_final:
-        // parser got a final chunk.
-        // the trailer is availabe now.
-
-    case parser::got_message:
-        // the message is complete.
-    }
-
-*/
-
+        testParse();
     }
 };
 

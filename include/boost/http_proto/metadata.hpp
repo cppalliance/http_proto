@@ -48,14 +48,14 @@ enum class payload
     ,size
 
     /**
-      * The payload for this message continues until EOF
-    */
-    ,to_eof
-
-    /**
       * This message contains a chunked payload
     */
     ,chunked
+
+    /**
+      * The payload for this message continues until EOF
+    */
+    ,to_eof
 };
 
 //------------------------------------------------

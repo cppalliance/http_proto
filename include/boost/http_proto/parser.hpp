@@ -20,7 +20,6 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/url/grammar/error.hpp>
-#include <boost/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -218,6 +217,22 @@ public:
     void
     parse(
         error_code& ec);
+
+    /** Attach a body
+    */
+    template<
+        class Sink
+#ifndef BOOST_HTTP_PROTO_DOCS
+        ,class = typename
+            std::enable_if<
+                is_sink<Sink
+                    >::value>::type
+#endif
+    >
+    auto
+    set_body(Sink&& sink) ->
+        typename std::decay<
+            Sink>::type;
 
     //--------------------------------------------
 

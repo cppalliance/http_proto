@@ -27,6 +27,7 @@
     'ConstBuffers',
     'MutableBuffer',
     'MutableBuffers',
+    'Sink',
     'Source'
   "/>
 

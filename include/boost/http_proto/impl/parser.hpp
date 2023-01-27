@@ -62,6 +62,22 @@ public:
 };
 #endif
 
+//------------------------------------------------
+
+template<class Sink, class>
+auto
+parser::
+set_body(
+    Sink&& sink) ->
+        typename std::decay<
+            Sink>::type
+{
+    auto& body = ws_.push(
+        std::forward<
+            Sink>(sink));
+    return body;
+}
+
 } // http_proto
 } // boost
 
