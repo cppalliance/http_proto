@@ -26,7 +26,7 @@ namespace http_proto {
                 / DIGIT / ALPHA
                 ; any VCHAR, except delimiters
 
-    VCHAR       =  %x21-7E
+    VCHAR       =  0x21-0x7E
     @endcode
 
     @par Specification

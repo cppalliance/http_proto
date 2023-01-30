@@ -17,7 +17,6 @@ docca.reference reference.qbk
     :
         xsl/custom-overrides.xsl
         [ glob-tree-ex ../include/boost/http_proto : *.hpp *.ipp : detail impl ]
-        #../../url/include/boost/url/error_types.hpp
     :
         <doxygen:param>PROJECT_NAME=HTTP_PROTO
         <doxygen:param>PROJECT_BRIEF="HTTP Protocol Library"
@@ -73,13 +72,31 @@ install images
 
 explicit images ;
 
+install stylesheets
+    :
+        $(broot)/doc/src/boostbook.css
+    :
+        <location>$(out)/html
+    ;
+
+explicit stylesheets ;
+
+#install treeimages
+#    :
+#        [ glob $(broot)/doc/src/images/*.png ]
+#        images/doc-logo.png
+#    :
+#        <location>$(out)/html/images
+#    ;
+#
+#explicit treeimages ;
+
 xml http_proto_doc
     :
         qbk/0.main.qbk
     :
         <dependency>reference.qbk
         <dependency>images
-        # <include>$(broot)/tools/boostbook/dtd
     ;
 
 explicit http_proto_doc ;
@@ -94,13 +111,7 @@ boostbook http_proto
     :
         http_proto_doc
     :
-        <xsl:param>boost.image.src=images/doc-logo.png
-        <xsl:param>boost.image.alt="Boost.HTTP-Proto Logo"
-        <xsl:param>boost.image.w=1050
-        <xsl:param>boost.image.h=80
-        <xsl:param>boost.graphics.root=images/
         <xsl:param>boost.root=../../../..
-        <xsl:param>nav.layout=none
         <xsl:param>chapter.autolabel=1
         <xsl:param>chunk.section.depth=8                # Depth to which sections should be chunked
         <xsl:param>chunk.first.sections=1               # Chunk the first top-level section?
@@ -109,6 +120,8 @@ boostbook http_proto
         <xsl:param>generate.toc="chapter toc,title section nop reference nop part toc"
         <include>../../../tools/boostbook/dtd
     :
+        <dependency>stylesheets
+        #<dependency>treeimages
         <dependency>images
     ;
 

@@ -21,6 +21,8 @@ in a translation unit of the program.
 #define BOOST_HTTP_PROTO_SOURCE
 #endif
 
+#include <boost/http_proto/detail/config.hpp>
+
 #include <boost/http_proto/detail/impl/circular_buffer.ipp>
 #include <boost/http_proto/detail/impl/flat_buffer.ipp>
 #include <boost/http_proto/detail/impl/codec.ipp>

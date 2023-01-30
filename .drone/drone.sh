@@ -35,6 +35,11 @@ common_install () {
 
   . ./ci/common_install.sh
 
+  if [ ! -d "$BOOST_ROOT/libs/buffers" ]; then
+    pushd $BOOST_ROOT/libs
+    git clone https://github.com/CPPAlliance/buffers -b $BOOST_BRANCH --depth 1
+    popd
+  fi
 }
 
 if [ "$DRONE_JOB_BUILDTYPE" == "boost" ]; then
@@ -106,10 +111,10 @@ cp -r $DRONE_BUILD_DIR/* libs/$SELF
 git submodule update --init --recursive
 
 # Customizations
-if [ ! -d "libs/url" ]; then
-  cd libs
-  git clone https://github.com/CPPAlliance/url -b develop
-  cd ..
+if [ ! -d "$BOOST_ROOT/libs/buffers" ]; then
+  pushd $BOOST_ROOT/libs
+  git clone https://github.com/CPPAlliance/buffers -b $BOOST_BRANCH --depth 1
+  popd
 fi
 
 cd libs/$SELF

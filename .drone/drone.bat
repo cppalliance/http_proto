@@ -27,12 +27,22 @@ REM The contents of install.sh below:
 for /F %%i in ("%DRONE_REPO%") do @set SELF=%%~nxi
 SET BOOST_CI_TARGET_BRANCH=!TRAVIS_BRANCH!
 SET BOOST_CI_SRC_FOLDER=%cd%
+if "%BOOST_BRANCH%" == "" (
+    SET BOOST_BRANCH=develop
+    if "%BOOST_CI_TARGET_BRANCH%" == "master" set BOOST_BRANCH=master
+)
 
 call ci\common_install.bat
 
 echo '==================================> ZLIB'
 git clone --branch v1.2.13 https://github.com/madler/zlib.git !BOOST_ROOT!\zlib-src --depth 1
 set ZLIB_SOURCE=!BOOST_ROOT!\zlib-src
+
+REM Customizations
+cd
+pushd !BOOST_ROOT!\libs
+git clone https://github.com/CPPAlliance/buffers -b !BOOST_BRANCH!
+popd
 
 echo '==================================> COMPILE'
 

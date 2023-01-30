@@ -35,8 +35,8 @@ namespace http_proto {
 
     token           = 1*tchar
     quoted-string   = DQUOTE *( qdtext / quoted-pair ) DQUOTE
-    qdtext          = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
-    obs-text        = %x80-FF
+    qdtext          = HTAB / SP / 0x21 / 0x23-0x5B / 0x5D-0x7E / obs-text
+    obs-text        = 0x80-0xFF
     quoted-pair     = "\"" ( HTAB / SP / VCHAR / obs-text )
     @endcode
 
