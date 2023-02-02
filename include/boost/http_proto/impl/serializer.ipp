@@ -141,7 +141,7 @@ reset() noexcept
 auto
 serializer::
 prepare() ->
-    result<buffers>
+    result<const_buffers_type>
 {
     // Precondition violation
     if(is_done_)
@@ -151,7 +151,7 @@ prepare() ->
     if(is_expect_continue_)
     {
         if(out_.data() == hp_)
-            return buffers(hp_, 1);
+            return const_buffers_type(hp_, 1);
         is_expect_continue_ = false;
         BOOST_HTTP_PROTO_RETURN_EC(
             error::expect_100_continue);
@@ -159,14 +159,14 @@ prepare() ->
 
     if(st_ == style::empty)
     {
-        return buffers(
+        return const_buffers_type(
             out_.data(),
             out_.size());
     }
 
     if(st_ == style::buffers)
     {
-        return buffers(
+        return const_buffers_type(
             out_.data(),
             out_.size());
     }
@@ -232,7 +232,7 @@ prepare() ->
         for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
-        return buffers(
+        return const_buffers_type(
             out_.data(),
             out_.size());
     }
@@ -250,7 +250,7 @@ prepare() ->
         for(const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
-        return buffers(
+        return const_buffers_type(
             out_.data(),
             out_.size());
     }

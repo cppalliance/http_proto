@@ -109,7 +109,8 @@ public:
         std::uint64_t body_limit = 64 * 1024;
     };
 
-    using buffers = mutable_buffers_pair;
+    using mutable_buffers_type =
+        mutable_buffers_pair;
 
 private:
     BOOST_HTTP_PROTO_DECL parser(
@@ -195,7 +196,7 @@ public:
     /** Return the input buffer
     */
     BOOST_HTTP_PROTO_DECL
-    buffers
+    mutable_buffers_type
     prepare();
 
     /** Commit bytes to the input buffer

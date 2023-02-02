@@ -54,7 +54,7 @@ class BOOST_SYMBOL_VISIBLE
 public:
     /** A ConstBuffers representing the output
     */
-    class buffers;
+    class const_buffers_type;
 
     /** Destructor
     */
@@ -246,7 +246,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<buffers>;
+        result<const_buffers_type>;
 
     /** Consume bytes from the output area.
     */

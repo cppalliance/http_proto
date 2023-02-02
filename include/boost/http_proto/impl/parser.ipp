@@ -250,7 +250,7 @@ start_impl(
 auto
 parser::
 prepare() ->
-    buffers
+    mutable_buffers_type
 {
     switch(st_)
     {
