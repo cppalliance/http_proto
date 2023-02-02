@@ -258,8 +258,7 @@ prepare() ->
     case state::need_start:
         // start must be called once
         // before calling prepare.
-        if(st_ == state::need_start)
-            detail::throw_logic_error();
+        detail::throw_logic_error();
 
     case state::headers:
         // fill up to headers_limit
