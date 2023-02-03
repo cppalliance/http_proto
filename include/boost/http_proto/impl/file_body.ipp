@@ -35,7 +35,7 @@ file_body(
 auto
 file_body::
 read(
-    mutable_buffers_pair dest) ->
+    buffers::mutable_buffer_pair dest) ->
         results
 {
     results rv;

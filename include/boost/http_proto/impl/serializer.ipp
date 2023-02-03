@@ -13,6 +13,8 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/detail/codec.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/buffers/buffer_copy.hpp>
+#include <boost/buffers/buffer_size.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
 
@@ -23,7 +25,7 @@ namespace http_proto {
 
 void
 consume_buffers(
-    const_buffer*& p,
+    buffers::const_buffer*& p,
     std::size_t& n,
     std::size_t bytes)
 {
@@ -63,7 +65,7 @@ write_chunk_header(
     buf[17] = '\n';
     auto n = buffer_copy(
         dest0,
-        const_buffer(
+        buffers::const_buffer(
             buf, sizeof(buf)));
     ignore_unused(n);
     BOOST_ASSERT(n == 18);
@@ -212,14 +214,14 @@ prepare() ->
                     // terminate chunk
                     tmp0_.commit(buffer_copy(
                         tmp0_.prepare(2),
-                        const_buffer(
+                        buffers::const_buffer(
                             "\r\n", 2)));
                 }
                 if(! rv.more)
                 {
                     tmp0_.commit(buffer_copy(
                         tmp0_.prepare(5),
-                        const_buffer(
+                        buffers::const_buffer(
                             "0\r\n\r\n", 5)));
                 }
                 more_ = rv.more;
@@ -229,7 +231,7 @@ prepare() ->
         std::size_t n = 0;
         if(out_.data() == hp_)
             ++n;
-        for(const_buffer const& b : tmp0_.data())
+        for(buffers::const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
         return const_buffers_type(
@@ -247,7 +249,7 @@ prepare() ->
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
         }
-        for(const_buffer const& b : tmp0_.data())
+        for(buffers::const_buffer const& b : tmp0_.data())
             out_[n++] = b;
 
         return const_buffers_type(
@@ -320,8 +322,8 @@ consume(
 void
 serializer::
 copy(
-    const_buffer* dest,
-    const_buffer const* src,
+    buffers::const_buffer* dest,
+    buffers::const_buffer const* src,
     std::size_t n) noexcept
 {
     while(n--)
@@ -400,11 +402,11 @@ start_empty(
         if(ws_.size() < 5)
             detail::throw_length_error();
 
-        mutable_buffer dest(
+        buffers::mutable_buffer dest(
             ws_.data(), 5);
-        buffer_copy(
+        buffers::buffer_copy(
             dest,
-            const_buffer(
+            buffers::const_buffer(
                 "0\r\n\r\n", 5));
         out_[1] = dest;
     }
@@ -452,13 +454,13 @@ start_buffers(
             // Buffer is too small
             if(ws_.size() < 18 + 7)
                 detail::throw_length_error();
-            mutable_buffer s1(ws_.data(), 18);
-            mutable_buffer s2(ws_.data(), 18 + 7);
+           buffers::mutable_buffer s1(ws_.data(), 18);
+           buffers::mutable_buffer s2(ws_.data(), 18 + 7);
             s2 += 18; // VFALCO HACK
             write_chunk_header(
                 s1,
-                buffer_size(buf_));
-            buffer_copy(s2, const_buffer(
+                buffers::buffer_size(buf_));
+            buffers::buffer_copy(s2, buffers::const_buffer(
                 "\r\n"
                 "0\r\n"
                 "\r\n", 7));

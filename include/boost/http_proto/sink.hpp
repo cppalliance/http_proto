@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_SINK_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/buffers/const_buffer_pair.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -34,7 +34,7 @@ struct BOOST_SYMBOL_VISIBLE
     virtual
     result<void>
     write(
-        const_buffers_pair src) = 0;
+        buffers::const_buffer_pair src) = 0;
 };
 
 /** Metafunction which determines if T is a sink

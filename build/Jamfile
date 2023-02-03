@@ -34,8 +34,10 @@ explicit http_proto_sources ;
 lib boost_http_proto
    : http_proto_sources
    : requirements
+     <library>/boost//buffers
      <library>/boost//url
    : usage-requirements
+     <library>/boost//buffers
      <library>/boost//url
    ;
 

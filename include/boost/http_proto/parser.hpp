@@ -11,14 +11,14 @@
 #define BOOST_HTTP_PROTO_BASIC_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/detail/circular_buffer.hpp>
-#include <boost/http_proto/detail/flat_buffer.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/flat_buffer.hpp>
+#include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -110,7 +110,7 @@ public:
     };
 
     using mutable_buffers_type =
-        mutable_buffers_pair;
+        buffers::mutable_buffer_pair;
 
 private:
     BOOST_HTTP_PROTO_DECL parser(
@@ -307,9 +307,9 @@ private:
 
     std::unique_ptr<
         detail::codec> dec_[3];
-    detail::flat_buffer h_buf_;
-    detail::circular_buffer b_buf_;
-    detail::circular_buffer c_buf_;
+    buffers::flat_buffer h_buf_;
+    buffers::circular_buffer b_buf_;
+    buffers::circular_buffer c_buf_;
     detail::codec* cod_;
 
     state st_;

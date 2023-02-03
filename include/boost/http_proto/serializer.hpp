@@ -14,10 +14,11 @@
 #include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/detail/circular_buffer.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/type_traits.hpp>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -123,19 +124,19 @@ public:
         @endcode
     */
     template<
-        class ConstBuffers
+        class ConstBufferSequence
 #ifndef BOOST_HTTP_PROTO_DOCS
         ,class = typename
             std::enable_if<
-                is_const_buffers<
-                    ConstBuffers>::value
+                buffers::is_const_buffer_sequence<
+                    ConstBufferSequence>::value
                         >::type
 #endif
     >
     void
     start(
         message_view_base const& m,
-        ConstBuffers&& body);    
+        ConstBufferSequence&& body);    
 
     /** Prepare the serializer for a new message
 
@@ -170,7 +171,7 @@ public:
             (stream const&) = default;
 
         using buffers_type =
-            mutable_buffers_pair;
+            buffers::mutable_buffer_pair;
 
         BOOST_HTTP_PROTO_DECL
         std::size_t
@@ -256,8 +257,8 @@ public:
 
 private:
     static void copy(
-        const_buffer*,
-        const_buffer const*,
+        buffers::const_buffer*,
+        buffers::const_buffer const*,
         std::size_t n) noexcept;
     auto
     make_array(std::size_t n) ->
@@ -320,11 +321,11 @@ private:
     source* src_;
     detail::array_of_const_buffers buf_;
 
-    detail::circular_buffer tmp0_;
-    detail::circular_buffer tmp1_;
+    buffers::circular_buffer tmp0_;
+    buffers::circular_buffer tmp1_;
     detail::array_of_const_buffers out_;
 
-    const_buffer*   hp_;  // header
+    buffers::const_buffer* hp_;  // header
     detail::codec*  cod_;
 
     style st_;

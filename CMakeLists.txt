@@ -28,7 +28,7 @@ endif()
 
 include(GNUInstallDirs)
 if(BOOST_HTTP_PROTO_IS_ROOT)
-    set(BOOST_INCLUDE_LIBRARIES http_proto filesystem url)
+    set(BOOST_INCLUDE_LIBRARIES http_proto buffers filesystem url)
     set(BOOST_EXCLUDE_LIBRARIES http_proto)
     set(CMAKE_FOLDER Dependencies)
     add_subdirectory(../.. Dependencies/boost EXCLUDE_FROM_ALL)
@@ -55,6 +55,7 @@ function(boost_http_proto_setup_properties target)
         PUBLIC
             Boost::align
             Boost::assert
+            Boost::buffers
             Boost::config
             Boost::exception
             Boost::optional

@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_FILE_BODY_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/file.hpp>
 #include <boost/http_proto/source.hpp>
+#include <boost/buffers/mutable_buffer_pair.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -48,7 +48,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     results
     read(
-        mutable_buffers_pair dest);
+        buffers::mutable_buffer_pair dest);
 };
 
 } // http_proto

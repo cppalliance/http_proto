@@ -13,8 +13,11 @@
 #include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
+#include <boost/buffers/buffer_copy.hpp>
+#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/const_buffer.hpp>
+#include <boost/buffers/mutable_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
-
 #include "test_helpers.hpp"
 
 #include <string>
@@ -45,12 +48,12 @@ struct serializer_test
 
         results
         read(
-            mutable_buffers_pair dest) override
+            buffers::mutable_buffer_pair dest) override
         {
             results rv;
-            rv.bytes = buffer_copy(
+            rv.bytes = buffers::buffer_copy(
                 dest,
-                const_buffer(
+                buffers::const_buffer(
                     s_.data(),
                     s_.size()));
             s_ = s_.substr(rv.bytes);
@@ -72,10 +75,11 @@ struct serializer_test
         ConstBuffers const& src)
     {
         auto n0 = dest.size();
-        auto n = buffer_size(src);
+        auto n = buffers::buffer_size(src);
         dest.resize(n0 + n);
-        buffer_copy(mutable_buffer(
-            &dest[n0], n), src);
+        buffers::buffer_copy(
+            buffers::mutable_buffer(
+                &dest[n0], n), src);
         return n;
     }
 
@@ -85,9 +89,10 @@ struct serializer_test
     {
         std::string s;
         auto cbs = sr.prepare().value();
-        s.resize(buffer_size(cbs));
-        buffer_copy(mutable_buffer(
-            &s[0], s.size()), cbs);
+        s.resize(buffers::buffer_size(cbs));
+        buffers::buffer_copy(
+            buffers::mutable_buffer(
+                &s[0], s.size()), cbs);
         sr.consume(s.size());
         return s;
     }
@@ -119,11 +124,11 @@ struct serializer_test
         response res;
 
         sr.start(res);
-        sr.start(res, const_buffer{});
-        sr.start(res, mutable_buffer{});
+        sr.start(res, buffers::const_buffer{});
+        sr.start(res, buffers::mutable_buffer{});
         sr.start(res, test_source{});
-        sr.start(res, make_const(const_buffer{}));
-        sr.start(res, make_const(mutable_buffer{}));
+        sr.start(res, make_const(buffers::const_buffer{}));
+        sr.start(res, make_const(buffers::mutable_buffer{}));
         sr.start(res, make_const(test_source{}));
 
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -360,7 +365,8 @@ struct serializer_test
             BOOST_TEST(! sr.is_done());
             rv = sr.prepare();
             BOOST_TEST(! rv.has_error());
-            BOOST_TEST_EQ(buffer_size(*rv), 0);
+            BOOST_TEST_EQ(
+                buffers::buffer_size(*rv), 0);
             BOOST_TEST(! sr.is_done());
             sr.consume(0);
             BOOST_TEST(sr.is_done());

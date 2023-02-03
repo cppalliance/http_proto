@@ -11,6 +11,7 @@
 #include <boost/http_proto/parser.hpp>
 
 #include <boost/http_proto/request_parser.hpp>
+#include <boost/buffers/buffer_copy.hpp>
 
 #include "test_suite.hpp"
 
@@ -90,8 +91,8 @@ struct parser_test
         auto dest = pr.prepare();
         if( n > s.size())
             n = s.size();
-        auto const n1 = buffer_copy(
-            dest, const_buffer(
+        auto const n1 = buffers::buffer_copy(
+            dest, buffers::const_buffer(
                 s.data(), n));
         BOOST_TEST_EQ(n1, n);
         pr.commit(n1);

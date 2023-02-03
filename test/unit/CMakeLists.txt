@@ -17,7 +17,6 @@ set(EXTRAFILES
 set(PFILES
     CMakeLists.txt
     Jamfile
-    buffer.cpp
     codec.cpp
     context.cpp
     error.cpp

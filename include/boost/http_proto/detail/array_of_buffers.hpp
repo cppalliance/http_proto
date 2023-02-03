@@ -10,7 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_ARRAY_OF_BUFFERS_HPP
 #define BOOST_HTTP_PROTO_DETAIL_ARRAY_OF_BUFFERS_HPP
 
-#include <boost/http_proto/buffer.hpp>
+#include <boost/buffers/const_buffer.hpp>
+#include <boost/buffers/mutable_buffer.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -22,8 +23,8 @@ class array_of_buffers
 public:
     using value_type = typename
         std::conditional<isConst,
-            const_buffer,
-            mutable_buffer>::type;
+            buffers::const_buffer,
+            buffers::mutable_buffer>::type;
     using iterator = value_type*;
     using const_iterator = iterator;
 

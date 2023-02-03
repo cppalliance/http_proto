@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_STRING_BODY_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/buffers/const_buffer.hpp>
 #include <string>
 #include <utility>
 
@@ -22,11 +22,11 @@ namespace http_proto {
 class string_body
 {
     std::string s_;
-    const_buffer cb_;
+    buffers::const_buffer cb_;
 
 public:
-    using value_type = const_buffer;
-    using const_iterator = const_buffer const*;
+    using value_type = buffers::const_buffer;
+    using const_iterator = buffers::const_buffer const*;
 
     string_body(
         string_body&& other) noexcept

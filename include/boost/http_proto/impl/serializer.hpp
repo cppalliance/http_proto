@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/buffers/iterators.hpp>
 #include <iterator>
 #include <new>
 #include <utility>
@@ -22,12 +23,12 @@ class serializer::
     const_buffers_type
 {
     std::size_t n_ = 0;
-    const_buffer const* p_ = nullptr;
+    buffers::const_buffer const* p_ = nullptr;
 
     friend class serializer;
 
     const_buffers_type(
-        const_buffer const* p,
+        buffers::const_buffer const* p,
         std::size_t n) noexcept
         : n_(n)
         , p_(p)
@@ -35,11 +36,11 @@ class serializer::
     }
 
 public:
-    using iterator = const_buffer const*;
+    using iterator = buffers::const_buffer const*;
     using const_iterator = iterator;
-    using value_type = const_buffer;
-    using reference = const_buffer;
-    using const_reference = const_buffer;
+    using value_type = buffers::const_buffer;
+    using reference = buffers::const_buffer;
+    using const_reference = buffers::const_buffer;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
@@ -82,23 +83,24 @@ serializer(
 //------------------------------------------------
 
 template<
-    class ConstBuffers,
+    class ConstBufferSequence,
     class>
 void
 serializer::
 start(
     message_view_base const& m,
-    ConstBuffers&& body)   
+    ConstBufferSequence&& body)   
 {
     start_init(m);
     auto const& bs =
         ws_.push(std::forward<
-            ConstBuffers>(body));
+            ConstBufferSequence>(body));
     std::size_t n = std::distance(
-        bs.begin(), bs.end());
+        buffers::begin(bs),
+        buffers::end(bs));
     buf_ = make_array(n);
     auto p = buf_.data();
-    for(const_buffer b : bs)
+    for(buffers::const_buffer b : bs)
         *p++ = b;
     start_buffers(m);
 }
@@ -145,7 +147,7 @@ start_stream(
         }
 
         results
-        read(mutable_buffers_pair) override
+        read(buffers::mutable_buffer_pair) override
         {
             return {};
         }
@@ -166,8 +168,8 @@ make_array(std::size_t n) ->
     detail::array_of_const_buffers 
 {
     return {
-        ws_.push_array(
-            n, const_buffer{}),
+        ws_.push_array(n,
+        buffers::const_buffer{}),
         n };
 }
 

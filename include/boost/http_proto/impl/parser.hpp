@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 #define BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 
-#include <boost/http_proto/buffer.hpp>
 #include <cstdlib>
 
 namespace boost {

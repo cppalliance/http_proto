@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_SOURCE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffer.hpp>
 #include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/string_view.hpp>
+#include <boost/buffers/mutable_buffer_pair.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -111,7 +111,7 @@ struct BOOST_SYMBOL_VISIBLE
     virtual
     results
     read(
-        mutable_buffers_pair dest) = 0;
+        buffers::mutable_buffer_pair dest) = 0;
 };
 
 /** Metafunction which determines if T is a source

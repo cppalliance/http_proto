@@ -14,6 +14,7 @@
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/detail/codec.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/buffers/buffer_copy.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/assert.hpp>
 #include <boost/none.hpp>
@@ -203,8 +204,8 @@ start_impl(
             h_buf_.consume(h_.size);
             initial_size = h_buf_.size();
             // move unused octets to front
-            buffer_copy(
-                mutable_buffer(
+            buffers::buffer_copy(
+                buffers::mutable_buffer(
                     ws_.data(),
                     initial_size),
                 h_buf_.data());
@@ -266,7 +267,7 @@ prepare() ->
             h_buf_.prepare(
                 cfg_.headers_limit -
                 h_buf_.size()),
-            mutable_buffer{} };
+            buffers::mutable_buffer{} };
 
     case state::headers_done:
     {
