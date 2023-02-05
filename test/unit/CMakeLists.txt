@@ -46,8 +46,6 @@ set(PFILES
     response_view.cpp
     sandbox.cpp
     serializer.cpp
-    sink.cpp
-    source.cpp
     status.cpp
     string_body.cpp
     string_view.cpp

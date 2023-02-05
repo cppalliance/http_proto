@@ -24,8 +24,6 @@ target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::assert
     Boost::buffers
     Boost::config
-    Boost::exception
-    Boost::optional
     Boost::system
     Boost::throw_exception
     Boost::url

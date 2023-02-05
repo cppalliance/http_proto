@@ -57,8 +57,6 @@ function(boost_http_proto_setup_properties target)
             Boost::assert
             Boost::buffers
             Boost::config
-            Boost::exception
-            Boost::optional
             Boost::system
             Boost::throw_exception
             Boost::url
@@ -66,7 +64,6 @@ function(boost_http_proto_setup_properties target)
             Boost::winapi
     )
     if (ZLIB_FOUND)
-        target_link_libraries(${target} PUBLIC ZLIB::ZLIB)
         target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
     endif()
 endfunction()

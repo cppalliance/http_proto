@@ -63,50 +63,15 @@ write_chunk_header(
     }
     buf[16] = '\r';
     buf[17] = '\n';
-    auto n = buffer_copy(
+    auto n = buffers::buffer_copy(
         dest0,
         buffers::const_buffer(
             buf, sizeof(buf)));
     ignore_unused(n);
     BOOST_ASSERT(n == 18);
     BOOST_ASSERT(
-        buffer_size(dest0) == n);
+        buffers::buffer_size(dest0) == n);
 }
-
-//------------------------------------------------
-
-class serializer::
-    reserve
-    : public source::reserve_fn
-{
-    serializer& sr_;
-    std::size_t limit_;
-
-public:
-    reserve(
-        serializer& sr,
-        std::size_t limit) noexcept
-        : sr_(sr)
-        , limit_(limit)
-    {
-    }
-
-    void*
-    operator()(
-        std::size_t n) const override
-    {
-        // You can only call reserve() once!
-        if(! sr_.is_reserving_ )
-            detail::throw_logic_error();
-
-        // Requested size exceeds the limit
-        if(n > limit_)
-            detail::throw_length_error();
-
-        sr_.is_reserving_ = false;
-        return sr_.ws_.reserve(n);
-    }
-};
 
 //------------------------------------------------
 
@@ -184,7 +149,7 @@ prepare() ->
             tmp0_.commit(rv.bytes);
             if(rv.ec.failed())
                 return rv.ec;
-            more_ = rv.more;
+            more_ = ! rv.finished;
         }
         else
         {
@@ -212,19 +177,21 @@ prepare() ->
                     write_chunk_header(
                         dest, rv.bytes);
                     // terminate chunk
-                    tmp0_.commit(buffer_copy(
-                        tmp0_.prepare(2),
-                        buffers::const_buffer(
-                            "\r\n", 2)));
+                    tmp0_.commit(
+                        buffers::buffer_copy(
+                            tmp0_.prepare(2),
+                            buffers::const_buffer(
+                                "\r\n", 2)));
                 }
-                if(! rv.more)
+                if(rv.finished)
                 {
-                    tmp0_.commit(buffer_copy(
-                        tmp0_.prepare(5),
-                        buffers::const_buffer(
-                            "0\r\n\r\n", 5)));
+                    tmp0_.commit(
+                        buffers::buffer_copy(
+                            tmp0_.prepare(5),
+                            buffers::const_buffer(
+                                "0\r\n\r\n", 5)));
                 }
-                more_ = rv.more;
+                more_ = ! rv.finished;
             }
         }
 
@@ -328,29 +295,6 @@ copy(
 {
     while(n--)
         *dest++ = *src++;
-}
-
-void
-serializer::
-do_maybe_reserve(
-    source& src,
-    std::size_t limit)
-{
-    struct cleanup
-    {
-        bool& is_reserving;
-
-        ~cleanup()
-        {
-            is_reserving = false;
-        }
-    };
-
-    BOOST_ASSERT(! is_reserving_);
-    cleanup c{is_reserving_};
-    is_reserving_ = true;
-    reserve fn(*this, limit);
-    src.maybe_reserve(limit, fn);
 }
 
 void
@@ -483,12 +427,10 @@ void
 serializer::
 start_source(
     message_view_base const& m,
-    source* src)
+    buffers::source* src)
 {
     st_ = style::source;
     src_ = src;
-    do_maybe_reserve(
-        *src, ws_.size() / 2);
     out_ = make_array(
         1 + // header
         2); // tmp
@@ -523,17 +465,15 @@ start_source(
     *hp_ = { m.ph_->cbuf, m.ph_->size };
 }
 
-void
+auto
 serializer::
 start_stream(
-    message_view_base const& m,
-    source& src)
+    message_view_base const& m) ->
+        stream
 {
     start_init(m);
 
     st_ = style::stream;
-    do_maybe_reserve(
-        src, ws_.size() / 2);
     out_ = make_array(
         1 + // header
         2); // tmp
@@ -568,6 +508,8 @@ start_stream(
     *hp_ = { m.ph_->cbuf, m.ph_->size };
 
     more_ = true;
+
+    return stream{*this};
 }
 
 //------------------------------------------------

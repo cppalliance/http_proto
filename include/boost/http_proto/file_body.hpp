@@ -12,8 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/http_proto/source.hpp>
-#include <boost/buffers/mutable_buffer_pair.hpp>
+#include <boost/buffers/source.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -21,7 +20,7 @@ namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
     file_body
-    : public source
+    : public buffers::source
 {
     file f_;
     std::uint64_t n_;
@@ -47,8 +46,9 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     results
-    read(
-        buffers::mutable_buffer_pair dest);
+    read_one(
+        void* dest,
+        std::size_t size) override;
 };
 
 } // http_proto

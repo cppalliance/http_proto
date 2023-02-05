@@ -7,18 +7,18 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_BASIC_PARSER_HPP
-#define BOOST_HTTP_PROTO_BASIC_PARSER_HPP
+#ifndef BOOST_HTTP_PROTO_PARSER_HPP
+#define BOOST_HTTP_PROTO_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/mutable_buffer_pair.hpp>
+#include <boost/buffers/sink.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -226,7 +226,7 @@ public:
 #ifndef BOOST_HTTP_PROTO_DOCS
         ,class = typename
             std::enable_if<
-                is_sink<Sink
+                buffers::is_sink<Sink
                     >::value>::type
 #endif
     >

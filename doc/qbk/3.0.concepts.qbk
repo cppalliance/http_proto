@@ -11,22 +11,4 @@
 
 [section Concepts]
 
-[section ConstBuffer]
-[endsect]
-
-[section ConstBuffers]
-[endsect]
-
-[section MutableBuffer]
-[endsect]
-
-[section MutableBuffers]
-[endsect]
-
-[section Sink]
-[endsect]
-
-[section Source]
-[endsect]
-
 [endsect]

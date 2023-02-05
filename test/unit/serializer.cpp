@@ -31,34 +31,28 @@ namespace http_proto {
 
 struct serializer_test
 {
-    struct test_source : source
+    struct test_source : buffers::source
     {
         test_source()
             : s_("12345")
         {
         }
 
-        void
-        maybe_reserve(
-            std::size_t limit,
-            reserve_fn const& reserve) override
-        {
-            ignore_unused(limit, reserve);
-        }
-
         results
-        read(
-            buffers::mutable_buffer_pair dest) override
+        read_one(
+            void* dest,
+            std::size_t size) override
         {
             results rv;
-            rv.bytes = buffers::buffer_copy(
-                dest,
-                buffers::const_buffer(
-                    s_.data(),
-                    s_.size()));
+            rv.bytes =
+                buffers::buffer_copy(
+                    buffers::mutable_buffer(
+                        dest, size),
+                    buffers::const_buffer(
+                        s_.data(),
+                        s_.size()));
             s_ = s_.substr(rv.bytes);
-            rv.more = ! s_.empty();
-            rv.ec = {};
+            rv.finished = s_.empty();
             return rv;
         }
 

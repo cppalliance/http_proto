@@ -39,8 +39,6 @@
           <member><link linkend="http_proto.ref.boost__http_proto__response_parser">response_parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__response_view">response_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__sink">sink</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__source">source</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__string_body">string_body</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
@@ -103,28 +101,15 @@
       <entry valign="top">
         <bridgehead renderas="sect3">Functions</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__buffer_copy">buffer_copy</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__buffer_size">buffer_size</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Types</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__buffers_pair">buffers_pair</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__const_buffer">const_buffer</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__const_buffers_pair">const_buffers_pair</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__mutable_buffer">mutable_buffer</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__mutable_buffers_pair">mutable_buffers_pair</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__is_const_buffers">is_const_buffers</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__is_mutable_buffers">is_mutable_buffers</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Concepts</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.concepts.constbuffer">ConstBuffer</link></member>
-          <member><link linkend="http_proto.concepts.constbuffer">ConstBuffers</link></member>
-          <member><link linkend="http_proto.concepts.mutablebuffer">MutableBuffer</link></member>
-          <member><link linkend="http_proto.concepts.mutablebuffer">MutableBuffers</link></member>
         </simplelist>
       </entry>
     </row></tbody>

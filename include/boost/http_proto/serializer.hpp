@@ -12,12 +12,12 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error_types.hpp>
-#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/source.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <cstdint>
 #include <memory>
@@ -150,7 +150,7 @@ public:
 #ifndef BOOST_HTTP_PROTO_DOCS
         ,class = typename
             std::enable_if<
-                is_source<Source
+                buffers::is_source<Source
                     >::value>::type
 #endif
     >
@@ -206,22 +206,10 @@ public:
         serializer* sr_ = nullptr;
     };
 
-    struct reserve_nothing
-    {
-        void
-        operator()(
-            std::size_t,
-            source::reserve_fn const&) noexcept
-        {
-        }
-    };
-
-    template<
-        class MaybeReserve = reserve_nothing>
+    BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
-        message_view_base const& m,
-        MaybeReserve&& maybe_reserve = {});
+        message_view_base const& m);
 
     //--------------------------------------------
 
@@ -277,12 +265,10 @@ private:
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
     BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_encoder_t const&);
 
-    BOOST_HTTP_PROTO_DECL void do_maybe_reserve(source&, std::size_t);
     BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_buffers(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, source*);
-    BOOST_HTTP_PROTO_DECL void start_stream(message_view_base const&, source&);
+    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, buffers::source*);
 
     enum class style
     {
@@ -310,15 +296,13 @@ private:
         2 +         // CRLF
         2;          // CRLF
 
-    class reserve;
-
     detail::workspace ws_;
     std::unique_ptr<
         detail::codec> dec_[3];
     std::unique_ptr<
         detail::codec> enc_[3];
 
-    source* src_;
+    buffers::source* src_;
     detail::array_of_const_buffers buf_;
 
     buffers::circular_buffer tmp0_;

@@ -34,27 +34,30 @@ file_body(
 
 auto
 file_body::
-read(
-    buffers::mutable_buffer_pair dest) ->
+read_one(
+    void* dest,
+    std::size_t size) ->
         results
 {
     results rv;
-    for(auto const& mb : dest)
+    if(n_ > 0)
     {
-        if(n_ == 0)
-            break;
         std::size_t n;
-        if( n_ >= mb.size())
-            n = mb.size();
+        if( n_ >= size)
+            n = size;
         else
             n = n_;
         n = f_.read(
-            mb.data(), n, rv.ec);
+            dest, n, rv.ec);
         rv.bytes += n;
         n_ -= n;
-        rv.more = n_ > 0;
+        rv.finished = n_ == 0;
         if(rv.ec.failed())
             return rv;
+    }
+    else
+    {
+        rv.finished = true;
     }
     return rv;
 }

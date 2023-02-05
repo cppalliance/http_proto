@@ -125,40 +125,6 @@ start(
     return src;
 }
 
-template<class MaybeReserve>
-auto
-serializer::
-start_stream(
-    message_view_base const& m,
-    MaybeReserve&& maybe_reserve) ->
-        stream
-{
-    // small hack for type-erasing
-    struct Source : source
-    {
-        MaybeReserve&& f;
-
-        void
-        maybe_reserve(
-            std::size_t limit,
-            reserve_fn const& reserve) override
-        {
-            f(limit, reserve);
-        }
-
-        results
-        read(buffers::mutable_buffer_pair) override
-        {
-            return {};
-        }
-    };
-    Source src{ std::forward<
-        MaybeReserve>(maybe_reserve) };
-
-    start_stream(m, src);
-    return stream{*this};
-}
-
 //------------------------------------------------
 
 inline
