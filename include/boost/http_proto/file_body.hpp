@@ -46,9 +46,8 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     results
-    read_one(
-        void* dest,
-        std::size_t size) override;
+    do_read_one(
+        buffers::mutable_buffer b) override;
 };
 
 } // http_proto

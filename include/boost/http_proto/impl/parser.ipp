@@ -105,7 +105,7 @@ construct(
         detail::throw_invalid_argument();
 
     // allocate max headers plus extra
-    ws_ = detail::workspace(
+    ws_.allocate(
         bytes_needed +
         extra_buffer_size);
 

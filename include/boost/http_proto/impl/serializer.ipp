@@ -398,8 +398,8 @@ start_buffers(
             // Buffer is too small
             if(ws_.size() < 18 + 7)
                 detail::throw_length_error();
-           buffers::mutable_buffer s1(ws_.data(), 18);
-           buffers::mutable_buffer s2(ws_.data(), 18 + 7);
+            buffers::mutable_buffer s1(ws_.data(), 18);
+            buffers::mutable_buffer s2(ws_.data(), 18 + 7);
             s2 += 18; // VFALCO HACK
             write_chunk_header(
                 s1,
@@ -436,6 +436,11 @@ start_source(
         2); // tmp
     if(! cod_)
     {
+        buffers::buffered_base::allocator a(
+            ws_.data(), ws_.size()/2, false);
+        src->init(a);
+        ws_.reserve(a.size_used());
+
         tmp0_ = { ws_.data(), ws_.size() };
         if(tmp0_.capacity() <
                 18 +    // chunk size
@@ -446,13 +451,15 @@ start_source(
     }
     else
     {
+        buffers::buffered_base::allocator a(
+            ws_.data(), ws_.size()/3, false);
+        src->init(a);
+        ws_.reserve(a.size_used());
+
         auto const n = ws_.size() / 2;
 
-        // Buffer is too small
-        if(n < 1)
-            detail::throw_length_error();
-
-        tmp0_ = { ws_.reserve(n), n };
+        tmp0_ = { ws_.data(), ws_.size() / 2 };
+        ws_.reserve(n);
 
         // Buffer is too small
         if(ws_.size() < 1)
@@ -490,12 +497,8 @@ start_stream(
     else
     {
         auto const n = ws_.size() / 2;
-
-        // Buffer is too small
-        if(n < 1)
-            detail::throw_length_error();
-
-        tmp0_ = { ws_.reserve(n), n };
+        tmp0_ = { ws_.data(), n };
+        ws_.reserve(n);
 
         // Buffer is too small
         if(ws_.size() < 1)

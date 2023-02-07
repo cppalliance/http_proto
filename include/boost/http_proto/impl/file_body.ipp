@@ -34,21 +34,20 @@ file_body(
 
 auto
 file_body::
-read_one(
-    void* dest,
-    std::size_t size) ->
+do_read_one(
+    buffers::mutable_buffer b) ->
         results
 {
     results rv;
     if(n_ > 0)
     {
         std::size_t n;
-        if( n_ >= size)
-            n = size;
+        if( n_ >= b.size())
+            n = b.size();
         else
             n = n_;
         n = f_.read(
-            dest, n, rv.ec);
+            b.data(), n, rv.ec);
         rv.bytes += n;
         n_ -= n;
         rv.finished = n_ == 0;

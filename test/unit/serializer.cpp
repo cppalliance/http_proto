@@ -13,6 +13,7 @@
 #include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
+#include <boost/buffers/buffer.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/const_buffer.hpp>
@@ -39,16 +40,14 @@ struct serializer_test
         }
 
         results
-        read_one(
-            void* dest,
-            std::size_t size) override
+        do_read_one(
+            buffers::mutable_buffer b) override
         {
             results rv;
             rv.bytes =
                 buffers::buffer_copy(
-                    buffers::mutable_buffer(
-                        dest, size),
-                    buffers::const_buffer(
+                    b,
+                    buffers::buffer(
                         s_.data(),
                         s_.size()));
             s_ = s_.substr(rv.bytes);

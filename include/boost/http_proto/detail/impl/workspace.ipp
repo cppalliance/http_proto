@@ -18,6 +18,14 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
+/*  Layout
+
+    The buffer is laid out thusly:
+
+  base_         begin_        head_           end_
+
+    |<- reserved ->|<- unused ->|<- acquired ->|
+*/
 workspace::
 any::
 ~any() = default;
@@ -25,46 +33,54 @@ any::
 workspace::
 ~workspace()
 {
-    if(begin_)
+    if(base_)
     {
         clear();
-        delete[] begin_;
+        delete[] base_;
     }
 }
 
 workspace::
 workspace(
     std::size_t n)
-    : begin_(new unsigned char[n])
-    , end_(begin_ + n)
-    , head_(end_)
+    : base_(new unsigned char[n])
+    , begin_(base_)
+    , head_(base_ + n)
+    , end_(head_)
 {
 }
 
 workspace::
 workspace(
     workspace&& other) noexcept
-    : begin_(other.begin_)
+    : base_(other.base_)
+    , begin_(other.begin_)
+    , head_(other.end_)
     , end_(other.end_)
-    , head_(end_)
 {
+    other.base_ = nullptr;
     other.begin_ = nullptr;
+    other.head_ = nullptr;
+    other.end_ = nullptr;
 }
 
-workspace&
+void
 workspace::
-operator=(
-    workspace&& other) noexcept
+allocate(
+    std::size_t n)
 {
-    // *this is not empty
-    if(begin_ != nullptr)
-        detail::throw_length_error();
+    // n == 0
+    if(n == 0)
+        detail::throw_invalid_argument();
 
-    begin_ = other.begin_;
-    end_ = other.end_;
-    head_ = end_;
-    other.begin_ = nullptr;
-    return *this;
+    // this->size() > 0
+    if(base_ != nullptr)
+        detail::throw_logic_error();
+
+    base_ = new unsigned char[n];
+    begin_ = base_;
+    head_ = base_ + n;
+    end_ = head_;
 }
 
 void
@@ -72,6 +88,7 @@ workspace::
 clear() noexcept
 {
     BOOST_ASSERT(begin_);
+
     auto const end =
         reinterpret_cast<
             any const*>(end_);
@@ -85,31 +102,19 @@ clear() noexcept
         p = next;
     }
     head_ = end_;
+    begin_ = base_;
 }
 
-void*
+void
 workspace::
 reserve(std::size_t n)
 {
-    BOOST_ASSERT(begin_);
-
     // Requested size exceeds available space.
-    if(n > size())
+    // Note you can never reserve the last byte.
+    if(n >= size())
         detail::throw_length_error();
 
-    struct empty : any
-    {
-    };
-
-    using U = empty;
-    auto p = ::new(bump_down(
-        sizeof(U) + n, alignof(
-            ::max_align_t))) U;
-    p->next = reinterpret_cast<
-        any*>(head_);
-    head_ = reinterpret_cast<
-        unsigned char*>(p);
-    return p + 1;
+    base_ += n ;
 }
 
 // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html

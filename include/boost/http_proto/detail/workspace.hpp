@@ -21,6 +21,25 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
+/** A contiguous buffer of storage used by algorithms.
+
+    Objects of this type retain ownership of a
+    contiguous buffer of storage allocated upon
+    construction. This storage is divided into
+    three regions:
+
+    @li The reserved area, which starts at the
+        beginning of the buffer and can grow
+        upwards towards the end of the buffer.
+
+    @li The acquired area, which starts at the
+        end of the buffer and can grow downwards
+        towards the beginning of the buffer.
+
+    @li The unused area, which starts from the
+        end of the reserved area and stretches
+        until the beginning of the acquired area.
+*/
 class workspace
 {
     struct any
@@ -31,40 +50,71 @@ class workspace
         virtual ~any() = 0;
     };
 
+    unsigned char* base_ = nullptr;
     unsigned char* begin_ = nullptr;
-    unsigned char* end_;
-    unsigned char* head_;
+    unsigned char* head_ = nullptr;
+    unsigned char* end_ = nullptr;
 
 public:
+    /** Destructor.
+    */
     ~workspace();
 
-    workspace() = default;
-    workspace(workspace&&) noexcept;
-    workspace& operator=(
-        workspace&&) noexcept;
+    /** Constructor.
 
+        @param n The number of bytes of storage
+            to allocate for the internal buffer.
+    */
     explicit
     workspace(
         std::size_t n);
 
+    /** Constructor.
+    */
+    workspace() = default;
+
+    /** Constructor.
+    */
+    workspace(workspace&&) noexcept;
+
+    /** Allocate internal storage.
+
+        @throws std::logic_error this->size() > 0
+
+        @throws std::invalid_argument n == 0
+    */
+    void
+    allocate(
+        std::size_t n);
+
+    /** Return a pointer to the unused area.
+    */
     void*
     data() noexcept
     {
         return begin_;
     }
 
+    /** Return the size of the unused area.
+    */
     std::size_t
     size() const noexcept
     {
         return head_ - begin_;
     }
 
+    /** Clear the contents while preserving capacity.
+    */
     BOOST_HTTP_PROTO_DECL
     void
     clear() noexcept;
 
+    /** Convert unused storage to reserved storage.
+
+        @throws std::invalid_argument n >= this->size()
+    */
     BOOST_HTTP_PROTO_DECL
-    void*
+    void
     reserve(std::size_t n);
 
     template<class T>
