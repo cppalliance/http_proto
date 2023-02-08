@@ -46,8 +46,14 @@ public:
 
     BOOST_HTTP_PROTO_DECL
     results
-    do_read_one(
-        buffers::mutable_buffer b) override;
+    on_read(
+        buffers::mutable_buffer_span b) override;
+
+private:
+    void
+    read_impl(
+        results& rv,
+        buffers::mutable_buffer const& b);
 };
 
 } // http_proto

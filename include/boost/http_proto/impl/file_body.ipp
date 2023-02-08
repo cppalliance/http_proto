@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FILE_BODY_IPP
 
 #include <boost/http_proto/file_body.hpp>
+#include <boost/buffers/algorithm.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -34,11 +35,12 @@ file_body(
 
 auto
 file_body::
-do_read_one(
-    buffers::mutable_buffer b) ->
+on_read(
+    buffers::mutable_buffer_span bs) ->
         results
 {
     results rv;
+    auto b = buffers::front(bs);
     if(n_ > 0)
     {
         std::size_t n;
@@ -48,16 +50,10 @@ do_read_one(
             n = n_;
         n = f_.read(
             b.data(), n, rv.ec);
-        rv.bytes += n;
+        rv.bytes = n;
         n_ -= n;
-        rv.finished = n_ == 0;
-        if(rv.ec.failed())
-            return rv;
     }
-    else
-    {
-        rv.finished = true;
-    }
+    rv.finished = n_ == 0;
     return rv;
 }
 

@@ -39,9 +39,26 @@ struct serializer_test
         {
         }
 
+        auto
+        on_read(
+            buffers::mutable_buffer_span bs) ->
+                results
+        {
+            results rv;
+            for(auto const& b : bs)
+            {
+                rv += read(b);
+                if(rv.ec.failed())
+                    return rv;
+                if(rv.finished)
+                    break;
+            }
+            return rv;
+        }
+
         results
-        do_read_one(
-            buffers::mutable_buffer b) override
+        read(
+            buffers::mutable_buffer b)
         {
             results rv;
             rv.bytes =
