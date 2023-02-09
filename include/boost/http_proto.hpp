@@ -40,7 +40,6 @@
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/http_proto/string_view.hpp>
-#include <boost/http_proto/url_types.hpp>
 #include <boost/http_proto/version.hpp>
 
 #include <boost/http_proto/rfc/combine_field_values.hpp>

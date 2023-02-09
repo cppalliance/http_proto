@@ -43,8 +43,6 @@
         </simplelist>
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__is_sink">is_sink</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__is_source">is_source</link></member>
         </simplelist>
       </entry>
      
