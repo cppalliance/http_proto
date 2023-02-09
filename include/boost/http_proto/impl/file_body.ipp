@@ -36,11 +36,10 @@ file_body(
 auto
 file_body::
 on_read(
-    buffers::mutable_buffer_span bs) ->
+    buffers::mutable_buffer b) ->
         results
 {
     results rv;
-    auto b = buffers::front(bs);
     if(n_ > 0)
     {
         std::size_t n;
