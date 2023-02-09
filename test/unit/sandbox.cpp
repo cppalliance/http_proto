@@ -22,6 +22,15 @@ namespace http_proto {
         * Specify a DynamicBuffer
         * Specify a Sink
         * Read from a parser::stream
+
+parse request, serialize response
+|<-                                            ->|
+|<- Headers ->|<- Partial Body ->|<-           ->|
+|<- Headers ->|<- Partial Body ->|<-   ->|<- T ->|
+|<- Headers ->|<-     Partial Body     ->|<- T ->|
+|<- Headers ->|<-                      ->|<- T ->|
+|<- Headers ->|<- Response ->|<-               ->|
+|<-         ->|<- Response ->|<-               ->|
 */
 
 struct sandbox_test

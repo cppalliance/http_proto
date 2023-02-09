@@ -101,11 +101,17 @@ if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
 endif()
 
 if (ZLIB_FOUND)
-    set(BOOST_HTTP_PROTO_ZLIB_HEADERS include/boost/http_proto/serializer.hpp)
-    set(BOOST_HTTP_PROTO_ZLIB_SOURCES include/boost/http_proto/detail/impl/zlib_codec.ipp)
     set(BOOST_HTTP_PROTO_ZLIB_SOURCES src/src_zlib.cpp)
 
-    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_ZLIB_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+    file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_HEADERS CONFIGURE_DEPENDS
+        include/boost/http_proto/serializer.hpp
+        include/boost/http_proto/detail/impl/zlib_codec.ipp
+    )
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_ZLIB_HEADERS})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/build PREFIX "" FILES build/Jamfile)
+
+    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_ZLIB_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES} build/Jamfile)
     add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
 
     target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
