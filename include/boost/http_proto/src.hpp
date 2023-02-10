@@ -60,7 +60,6 @@ in a translation unit of the program.
 
 #include <boost/http_proto/rfc/detail/impl/rules.ipp>
 
-#include <boost/http_proto/service/impl/mime_types_service.ipp>
 #include <boost/http_proto/service/impl/service.ipp>
 
 #endif

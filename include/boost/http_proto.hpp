@@ -51,7 +51,6 @@
 #include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
 
-#include <boost/http_proto/service/mime_types_service.hpp>
 #include <boost/http_proto/service/service.hpp>
 
 #endif

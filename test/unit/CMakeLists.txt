@@ -59,7 +59,6 @@ set(PFILES
     rfc/token_rule.cpp
     rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
-    service/mime_types_service.cpp
     service/service.cpp
     )
 
