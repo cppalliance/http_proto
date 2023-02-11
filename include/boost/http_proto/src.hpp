@@ -23,7 +23,6 @@ in a translation unit of the program.
 
 #include <boost/http_proto/detail/config.hpp>
 
-#include <boost/http_proto/detail/impl/codec.ipp>
 #include <boost/http_proto/detail/impl/except.ipp>
 #include <boost/http_proto/detail/impl/header.ipp>
 #include <boost/http_proto/detail/impl/workspace.ipp>
@@ -40,6 +39,7 @@ in a translation unit of the program.
 #include <boost/http_proto/impl/file_stdio.ipp>
 #include <boost/http_proto/impl/file_win32.ipp>
 
+#include <boost/http_proto/impl/header_limits.ipp>
 #include <boost/http_proto/impl/message_base.ipp>
 #include <boost/http_proto/impl/message_view_base.ipp>
 #include <boost/http_proto/impl/method.ipp>

@@ -35,7 +35,7 @@ context::
 }
 
 context::
-context() noexcept
+context()
     : p_(new data)
 {
 }

@@ -16,8 +16,11 @@ namespace boost {
 namespace http_proto {
 
 response_parser::
-response_parser()
-    : response_parser(65536)
+response_parser(
+    context& ctx)
+    : parser(
+        ctx,
+        detail::kind::response)
 {
 }
 

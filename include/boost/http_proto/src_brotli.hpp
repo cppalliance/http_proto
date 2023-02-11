@@ -21,6 +21,6 @@ in a translation unit of the program.
 #define BOOST_HTTP_PROTO_EXT_SOURCE
 #endif
 
-#include <boost/http_proto/detail/impl/brotli_codec.ipp>
+//#include <boost/http_proto/detail/impl/brotli_codec.ipp>
 
 #endif

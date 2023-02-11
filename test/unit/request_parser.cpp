@@ -10,7 +10,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/request_parser.hpp>
 
-#include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/rfc/combine_field_values.hpp>
 
@@ -58,10 +57,11 @@ struct request_parser_test
 
     bool
     valid(
+        context& ctx,
         string_view s,
         std::size_t nmax)
     {
-        request_parser p(4096);
+        request_parser p(ctx);
         p.start();
         while(! s.empty())
         {
@@ -86,19 +86,19 @@ struct request_parser_test
     }
 
     void
-    good(string_view s)
+    good(context& ctx, string_view s)
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
-            BOOST_TEST(valid(s, nmax));
+            BOOST_TEST(valid(ctx, s, nmax));
     }
 
     void
-    bad(string_view s)
+    bad(context& ctx, string_view s)
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
-            BOOST_TEST(! valid(s, nmax));
+            BOOST_TEST(! valid(ctx, s, nmax));
     }
 
     void
@@ -119,9 +119,13 @@ struct request_parser_test
             BOOST_TEST(req.version() == v);
         };
 
+        context ctx;
+        request_parser::config cfg;
+        install_parser_service(ctx, cfg);
+
         // single buffer
         {
-            request_parser p(4096);
+            request_parser p(ctx);
             p.start();
             auto const b = *p.prepare().begin();
             auto const n = (std::min)(
@@ -142,7 +146,7 @@ struct request_parser_test
         for(std::size_t i = 1;
             i < s.size(); ++i)
         {
-            request_parser p(4096);
+            request_parser p(ctx);
             p.start();
             // first buffer
             auto b = *p.prepare().begin();
@@ -179,28 +183,12 @@ struct request_parser_test
     testSpecial()
     {
         // request_parser()
-        request_parser();
-
-        // request_parser(std::size_t)
-        request_parser(4096);
-
-        // request_parser(std::size_t, config)
         {
+            context ctx;
             request_parser::config cfg;
-            cfg.headers_limit = 8192;
-            request_parser(65536, cfg);
+            install_parser_service(ctx, cfg);
+            request_parser pr(ctx);
         }
-
-        // request_parser(std::size_t, params)
-        {
-            request_parser(4096, gzip_decoder);
-        }
-    }
-
-    void
-    testStart()
-    {
-        request_parser(4096).start();
     }
 
     //--------------------------------------------
@@ -228,42 +216,49 @@ struct request_parser_test
                 "\r\n\r\n";
         };
 
-        bad(f(":"));
-        bad(f(" :"));
-        bad(f(" x:"));
-        bad(f("x :"));
-        bad(f("x@"));
-        bad(f("x@:"));
+        context ctx;
+        request_parser::config cfg;
+        install_parser_service(ctx, cfg);
 
-        good(f(""));
-        good(f("x:"));
-        good(f("x: "));
-        good(f("x:\t "));
-        good(f("x:y"));
-        good(f("x: y"));
-        good(f("x:y "));
-        good(f("x: y "));
-        good(f("x:yy"));
-        good(f("x: yy"));
-        good(f("x:yy "));
-        good(f("x: y y "));
-        good(f("x:"));
-        good(f("x: \r\n "));
-        good(f("x: \r\n x"));
-        good(f("x: \r\n \t\r\n "));
-        good(f("x: \r\n \t\r\n x"));
-        good(f("x: y \r\n "));
+        bad(ctx, f(":"));
+        bad(ctx, f(" :"));
+        bad(ctx, f(" x:"));
+        bad(ctx, f("x :"));
+        bad(ctx, f("x@"));
+        bad(ctx, f("x@:"));
+
+        good(ctx, f(""));
+        good(ctx, f("x:"));
+        good(ctx, f("x: "));
+        good(ctx, f("x:\t "));
+        good(ctx, f("x:y"));
+        good(ctx, f("x: y"));
+        good(ctx, f("x:y "));
+        good(ctx, f("x: y "));
+        good(ctx, f("x:yy"));
+        good(ctx, f("x: yy"));
+        good(ctx, f("x:yy "));
+        good(ctx, f("x: y y "));
+        good(ctx, f("x:"));
+        good(ctx, f("x: \r\n "));
+        good(ctx, f("x: \r\n x"));
+        good(ctx, f("x: \r\n \t\r\n "));
+        good(ctx, f("x: \r\n \t\r\n x"));
+        good(ctx, f("x: y \r\n "));
 
         // errata eid4189
-        good(f("x: , , ,"));
-        good(f("x: abrowser/0.001 (C O M M E N T)"));
-        good(f("x: gzip , chunked"));
+        good(ctx, f("x: , , ,"));
+        good(ctx, f("x: abrowser/0.001 (C O M M E N T)"));
+        good(ctx, f("x: gzip , chunked"));
     }
 
     void
     testGet()
     {
-        request_parser p(4096);
+        context ctx;
+        request_parser::config cfg;
+        install_parser_service(ctx, cfg);
+        request_parser p(ctx);
         string_view s = 
             "GET / HTTP/1.1\r\n"
             "User-Agent: x\r\n"
@@ -320,7 +315,6 @@ struct request_parser_test
     run()
     {
         testSpecial();
-        testStart();
         testParse();
         testParseField();
         testGet();

@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/buffers/iterators.hpp>
+#include <boost/buffers/range.hpp>
 #include <iterator>
 #include <new>
 #include <utility>
@@ -66,23 +66,6 @@ public:
 //------------------------------------------------
 
 template<
-    class P0,
-    class... Pn>
-serializer::
-serializer(
-    std::size_t buffer_size,
-    P0&& p0,
-    Pn&&... pn)
-    : serializer(buffer_size)
-{
-    apply_params(
-        std::forward<P0>(p0),
-        std::forward<Pn>(pn)...);
-}
-
-//------------------------------------------------
-
-template<
     class ConstBufferSequence,
     class>
 void
@@ -100,7 +83,8 @@ start(
         buffers::end(bs));
     buf_ = make_array(n);
     auto p = buf_.data();
-    for(buffers::const_buffer b : bs)
+    for(buffers::const_buffer b :
+            buffers::range(bs))
         *p++ = b;
     start_buffers(m);
 }
@@ -137,30 +121,6 @@ make_array(std::size_t n) ->
         ws_.push_array(n,
         buffers::const_buffer{}),
         n };
-}
-
-inline
-void
-serializer::
-apply_params() noexcept
-{
-}
-
-template<
-    class P0,
-    class... Pn>
-void
-serializer::
-apply_params(
-    P0&& p0,
-    Pn&&... pn)
-{
-    // If you get an error here it means
-    // you passed an unknown parameter type.
-    apply_param(std::forward<P0>(p0));
-
-    apply_params(
-        std::forward<Pn>(pn)...);
 }
 
 } // http_proto

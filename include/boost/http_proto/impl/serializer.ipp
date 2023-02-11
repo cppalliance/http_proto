@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_IMPL_SERIALIZER_IPP
 
 #include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/detail/codec.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
@@ -167,8 +166,9 @@ prepare() ->
                             5 - // final chunk
                             tmp0_.size()));
                 tmp0_.commit(rv.bytes);
-                if(rv.bytes == 0)
-                    tmp0_.uncommit(18); // undo
+                // VFALCO FIXME!
+                //if(rv.bytes == 0)
+                    //tmp0_.uncommit(18); // undo
                 if(rv.ec.failed())
                     return rv.ec;
                 if(rv.bytes > 0)
@@ -318,7 +318,6 @@ start_init(
         auto const& te =
             m.ph_->md.transfer_encoding;
         is_chunked_ = te.is_chunked;
-        cod_ = nullptr;
     }
 }
 
@@ -368,7 +367,7 @@ start_buffers(
 
     if(! is_chunked_)
     {
-        if(! cod_)
+        //if(! cod_)
         {
             out_ = make_array(
                 1 +             // header
@@ -376,16 +375,18 @@ start_buffers(
             copy(&out_[1],
                 buf_.data(), buf_.size());
         }
+#if 0
         else
         {
             out_ = make_array(
                 1 + // header
                 2); // tmp1
         }
+#endif
     }
     else
     {
-        if(! cod_)
+        //if(! cod_)
         {
             out_ = make_array(
                 1 +             // header
@@ -411,12 +412,14 @@ start_buffers(
             out_[1] = s1;
             out_[out_.size() - 1] = s2;
         }
+#if 0
         else
         {
             out_ = make_array(
                 1 +     // header
                 2);     // tmp1
         }
+#endif
     }
 
     hp_ = &out_[0];
@@ -434,12 +437,12 @@ start_source(
     out_ = make_array(
         1 + // header
         2); // tmp
-    if(! cod_)
+    //if(! cod_)
     {
         buffers::buffered_base::allocator a(
             ws_.data(), ws_.size()/2, false);
         src->init(a);
-        ws_.reserve(a.size_used());
+        ws_.reserve_front(a.size_used());
 
         tmp0_ = { ws_.data(), ws_.size() };
         if(tmp0_.capacity() <
@@ -449,6 +452,7 @@ start_source(
                 5)      // final chunk
             detail::throw_length_error();
     }
+#if 0
     else
     {
         buffers::buffered_base::allocator a(
@@ -467,6 +471,7 @@ start_source(
 
         tmp1_ = { ws_.data(), ws_.size() };
     }
+#endif
 
     hp_ = &out_[0];
     *hp_ = { m.ph_->cbuf, m.ph_->size };
@@ -484,7 +489,7 @@ start_stream(
     out_ = make_array(
         1 + // header
         2); // tmp
-    if(! cod_)
+    //if(! cod_)
     {
         tmp0_ = { ws_.data(), ws_.size() };
         if(tmp0_.capacity() <
@@ -494,6 +499,7 @@ start_stream(
                 5)      // final chunk
             detail::throw_length_error();
     }
+#if 0
     else
     {
         auto const n = ws_.size() / 2;
@@ -506,6 +512,7 @@ start_stream(
 
         tmp1_ = { ws_.data(), ws_.size() };
     }
+#endif
 
     hp_ = &out_[0];
     *hp_ = { m.ph_->cbuf, m.ph_->size };

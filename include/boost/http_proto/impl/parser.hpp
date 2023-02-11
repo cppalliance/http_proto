@@ -10,71 +10,108 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 #define BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 
+#include <boost/buffers/mutable_buffer_span.hpp>
+
 #include <cstdlib>
 
 namespace boost {
 namespace http_proto {
 
-#if 0
-class parser::
-    buffers
+struct parser::any_dynamic
 {
-    std::size_t n_ = 0;
-    mutable_buffer const* p_ = nullptr;
+    virtual ~any_dynamic() = default;
+    virtual buffers::mutable_buffer_span
+        prepare(std::size_t) = 0;
+    virtual void commit(std::size_t) = 0;
+};
 
-    friend class parser;
+template<class T>
+struct parser::any_dynamic_impl
+    : any_dynamic
+{
+    T t_;
+    buffers::mutable_buffer b_[
+        dynamic_N_];
 
-    buffers(
-        mutable_buffer const* p,
-        std::size_t n) noexcept
-        : n_(n)
-        , p_(p)
+    template<class U>
+    explicit
+    any_dynamic_impl(U&& u)
+        : t_(std::forward<U>(u))
     {
     }
 
-public:
-    using iterator = mutable_buffer const*;
-    using const_iterator = iterator;
-    using value_type = const_buffer;
-    using reference = const_buffer;
-    using const_reference = const_buffer;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-
-    buffers() = default;
-    buffers(
-        buffers const&) = default;
-    buffers& operator=(
-        buffers const&) = default;
-
-    iterator
-    begin() const noexcept
+    ~any_dynamic_impl()
     {
-        return p_;
     }
 
-    iterator
-    end() const noexcept
+    buffers::mutable_buffer_span
+    prepare(std::size_t n)
     {
-        return p_ + n_;
+        std::size_t i = 0;
+        for(buffers::mutable_buffer b :
+            t_.prepare(n))
+        {
+            b_[i++] = b;
+            if(i == dynamic_N_)
+                break;
+        }
+        return { b_, i };
+    }
+
+    void
+    commit(std::size_t n)
+    {
+        t_.commit();
     }
 };
-#endif
 
 //------------------------------------------------
 
-template<class Sink, class>
-auto
+template<class DynamicBuffer>
+typename std::enable_if<
+    buffers::is_dynamic_buffer<
+        DynamicBuffer>::value,
+    typename std::decay<
+        DynamicBuffer>::type
+            >::type
 parser::
 set_body(
-    Sink&& sink) ->
-        typename std::decay<
-            Sink>::type
+    DynamicBuffer&& b)
 {
-    auto& body = ws_.push(
+    // body type already chosen
+    if(body_ != body::in_place)
+        detail::throw_logic_error();
+
+    auto& rv = ws_.push(
+        any_dynamic_impl<typename
+            std::decay<DynamicBuffer>::type>(
+                std::forward<DynamicBuffer>(b)));
+    body_ = body::dynamic;
+    dynamic_ = &rv;
+    return rv;
+}
+
+//------------------------------------------------
+
+template<class Sink>
+typename std::enable_if<
+    buffers::is_sink<Sink>::value,
+    typename std::decay<Sink>::type
+        >::type
+parser::
+set_body(
+    Sink&& sink)
+{
+    // body type already chosen
+    if(body_ != body::in_place)
+        detail::throw_logic_error();
+
+    auto& rv = ws_.push(
         std::forward<
             Sink>(sink));
-    return body;
+    body_ = body::sink;
+    sink_ = &rv;
+    return rv;
 }
 
 } // http_proto

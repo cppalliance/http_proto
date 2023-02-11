@@ -17,7 +17,6 @@ set(EXTRAFILES
 set(PFILES
     CMakeLists.txt
     Jamfile
-    codec.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -32,6 +31,7 @@ set(PFILES
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
+    header_limits.cpp
     http_proto.cpp
     message_base.cpp
     message_view_base.cpp
@@ -60,6 +60,7 @@ set(PFILES
     rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
     service/service.cpp
+    service/zlib_service.cpp
     )
 
 set(UNIT_TEST_LINK_LIBRARIES boost_http_proto)

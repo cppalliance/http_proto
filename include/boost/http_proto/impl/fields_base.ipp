@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -165,7 +165,7 @@ grow(
 {
     // extra_field is naturally limited
     // by max_off_t, since each field
-    // is at least 4 bytes
+    // is at least 4 bytes: "X:\r\n"
     BOOST_ASSERT(
         extra_field <= max_off_t &&
         extra_field <= static_cast<
@@ -251,8 +251,9 @@ fields_base(
     op.grow(s.size(), n);
     s.copy(h_.buf, s.size());
     error_code ec;
-    detail::header::config cfg;
-    h_.parse(cfg, s.size(), ec);
+    // VFALCO This is using defaults?
+    header_limits lim;
+    h_.parse(s.size(), lim, ec);
     if(ec.failed())
         detail::throw_system_error(ec);
 }
@@ -558,7 +559,7 @@ set(
         e.id = field::unknown;
         h_.buf[pos0] = '\0';
         h_.on_erase(id);
-        h_.buf[pos0] = saved;
+        h_.buf[pos0] = saved; // restore
         e.id = id;
         h_.on_insert(id, it->value);
     }

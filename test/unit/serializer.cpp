@@ -10,7 +10,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
 
-#include <boost/http_proto/codec.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/buffers/buffer.hpp>
@@ -124,8 +123,8 @@ struct serializer_test
         sr.start(res, make_const(buffers::mutable_buffer{}));
         sr.start(res, make_const(test_source{}));
 
-#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
         serializer(65536);
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 #if 0
         serializer(65536, gzip_decoder);
         serializer(65536, gzip_encoder);

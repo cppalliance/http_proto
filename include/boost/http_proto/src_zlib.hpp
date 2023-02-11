@@ -21,6 +21,6 @@ in a translation unit of the program.
 #define BOOST_HTTP_PROTO_ZLIB_SOURCE
 #endif
 
-#include <boost/http_proto/detail/impl/zlib_codec.ipp>
+#include <boost/http_proto/service/impl/zlib_service.ipp>
 
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -28,11 +28,15 @@ public:
     context& operator=(
         context const&) = delete;
 
+    /** Destructor.
+    */
     BOOST_HTTP_PROTO_DECL
     ~context();
 
+    /** Constructor.
+    */
     BOOST_HTTP_PROTO_DECL
-    context() noexcept;
+    context();
 
     //--------------------------------------------
 

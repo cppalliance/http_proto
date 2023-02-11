@@ -37,6 +37,10 @@ context::
 make_service(
     Args&&... args)
 {
+    static_assert(
+        std::is_base_of<service, T>::value,
+        "Type requirements not met.");
+
     auto const ti = detail::get_type_index<
         detail::get_key_type<T>>();
     auto const ps = find_service_impl(ti);

@@ -31,6 +31,7 @@
           <member><link linkend="http_proto.ref.boost__http_proto__fields_view">fields_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__fields_view_base">fields_view_base</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__file_body">file_body</link></member>
+          <member><link linkend="http_proto.ref.boost__http_proto__header_limits">header_limits</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__parser">parser</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request">request</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__request_parser">request_parser</link></member>
@@ -62,20 +63,17 @@
         </simplelist>
         <bridgehead renderas="sect3">Concepts</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.concepts.source">Source</link></member>
         </simplelist>
       </entry>
       <entry valign="top">
         <bridgehead renderas="sect3">Aliases</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__authority_view">authority_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_category">error_category</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_code">error_code</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__error_condition">error_condition</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__result">result</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__string_view">string_view</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__system_error">system_error</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__url_view">url_view</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Constants</bridgehead>
         <simplelist type="vert" columns="1">
@@ -86,14 +84,8 @@
           <member><link linkend="http_proto.ref.boost__http_proto__status_class">status_class</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__version">version</link></member>
         </simplelist>
-        <bridgehead renderas="sect3">Codecs</bridgehead>
+        <bridgehead renderas="sect3">Services</bridgehead>
         <simplelist type="vert" columns="1">
-          <member><link linkend="http_proto.ref.boost__http_proto__brotli_decoder">brotli_decoder</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__brotli_encoder">brotli_encoder</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__deflate_decoder">deflate_decoder</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__deflate_encoder">deflate_encoder</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__gzip_decoder">gzip_decoder</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__gzip_encoder">gzip_encoder</link></member>
         </simplelist>
       </entry>
       <entry valign="top">

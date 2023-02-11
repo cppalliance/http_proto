@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -40,10 +40,6 @@ enum class payload
 
     /**
       * This message has a known payload size
-
-        The function @ref message_view_base::payload_size
-        may be used to obtain the exact number of
-        octets in the actual payload.
     */
     ,size
 

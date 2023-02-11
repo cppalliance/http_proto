@@ -10,7 +10,9 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/parser.hpp>
 
+#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/request_parser.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 
 #include "test_suite.hpp"
@@ -41,42 +43,19 @@ Body Styles
     internal buffer, clearing the previous
     body chunk first.
 
-parser pr;
-pr.reset();                     // new connection, no preconditions
+- chunking
+    * trailers
+    * extensions
 
-response_parser pr;
-pr.start( head_response );      // response parser only
+response_parser pr( ctx );
+read_headers( sock, pr );
+if( ! pr.is_complete() )
+{
+    auto& body = pr.set_body( my_body{} );
 
-parser pr;                      // request or response
-pr.start( headers_first );      // error::headers_first on headers
-pr.start();                     
+}
 
-pr.body_into( Sink&& );         // receive body into Sink
-pr.body_into( DynaBuffer&& );   // receive body into DynBuffer
-pr.body_into( &part );          // return string_view to body
 
-// A lambda to defer body choice
-pr.reset(
-    []( request_parser&,
-        request_view const& req,
-        set_body_fn const& set_body )
-    {
-        if( req.has_payload() )
-            set_body( string_sink() );
-    });
-
-// reading a HEAD response
-pr.reset( no_payload );
-async_read( sock, pr );
-
-// reading headers first
-pr.reset( headers_first );
-auto ec = co_await async_read( sock, pr );
-assert( ec == error::got_headers );
-if(! pr.is_done())
-    ec = co_await async_read( sock, pr );
-
-need to get trailers
 */
 struct parser_test
 {
@@ -101,12 +80,31 @@ struct parser_test
     }
 
     void
+    testConfig()
+    {
+    #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
+        context ctx;
+
+        zlib::deflate_decoder_service::config cfg0;
+        cfg0.install(ctx);
+
+        request_parser::config_base cfg1;
+        cfg1.apply_deflate_decoder = true;
+        install_parser_service(ctx, cfg1);
+    #endif
+    }
+
+    void
     testParse()
     {
+        context ctx;
+        request_parser::config cfg;
+        install_parser_service(ctx, cfg);
+
         auto const check =
-        [](string_view const s0)
+        [&ctx](string_view const s0)
         {
-            request_parser pr;
+            request_parser pr(ctx);
             for(std::size_t i = 1;
                 i < s0.size() - 1; ++i)
             {
@@ -140,6 +138,7 @@ struct parser_test
     void
     run()
     {
+        testConfig();
         testParse();
     }
 };

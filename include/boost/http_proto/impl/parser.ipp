@@ -10,9 +10,10 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_PARSER_IPP
 #define BOOST_HTTP_PROTO_IMPL_PARSER_IPP
 
-#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/detail/codec.hpp>
+#include <boost/http_proto/context.hpp>
+#include <boost/http_proto/error.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/url/grammar/ci_string.hpp>
@@ -23,94 +24,124 @@
 namespace boost {
 namespace http_proto {
 
+//------------------------------------------------
 /*
-    Parser design:
+    Four body styles for `parser`
+        * Specify a DynamicBuffer
+        * Specify a Sink
+        * Read from a parser::stream
+        * in-place
 
-    The usage of the parser is thus:
+Buffer Usage
 
-    pr.reset(); // prepare for a new stream
+|                                               | begin
+| H |   p   |                               | f | read headers
+| H |   p   |                           | T | f | set T body
+| H |   p   |                       | C | T | f | make codec C
+| H |   p           |       b       | C | T | f | decode p into b
+| H |       p       |       b       | C | T | f | read/parse loop
+| H |                                   | T | f | destroy codec
+| H |                                   | T | f | finished
 
-    pr.start(); // prepare for a new message
-    pr.start_head_response(); // new message with no payload
+H   headers
+C   codec
+T   body
+f   table
+p   partial payload
+b   body data
 
-    read_header( ..., pr );
-        do
-        {
-            read_some(..., pr );
-        }
-        while(! got_header());
+- We can compact the headers:
+    move the table downwards to
+    squeeze out the unused space
 
-    pr.set_body( ... );
-        // invalidates the headers? yes.
-
-    read_body( ..., pr );
-        while(! (pr.flags() &
-            parser::is_done_bit ) );
-        {
-            read_some(..., pr );
-        }
-
-    If these are called out of order, an
-    exception is thrown.
-
-    Every call to `prepare` must be
-    followed by a call to commit, reset,
-    or the destructor.
 */
+//------------------------------------------------
+
+struct parser_service
+    : service
+{
+    parser::config_base cfg;
+    std::size_t space_needed = 0;
+    zlib::deflate_decoder_service const*
+        deflate_svc = nullptr;
+
+    parser_service(
+        context& ctx,
+        parser::config_base const& cfg_);
+};
+
+parser_service::
+parser_service(
+    context& ctx,
+    parser::config_base const& cfg_)
+        : cfg(cfg_)
+{
+/*
+    | fb |      cb0      |      cb1     | C | T | f |
+
+    fb  flat_buffer         headers.max_size
+    cb0 circular_buffer     min_in_place_body
+    cb1 circular_buffer     min_in_place_body
+    C   codec               max_codec
+    T   body                max_type_erase
+    f   table               max_table_space
+
+*/
+    // validate
+    //if(cfg.min_prepare > cfg.max_prepare)
+        //detail::throw_invalid_argument();
+
+    // fb, f
+    space_needed +=
+        cfg.headers.valid_space_needed();
+
+    // cb0, cb1
+    space_needed +=
+        2 * cfg.min_in_place_body;
+
+    // T
+    space_needed += cfg.max_type_erase;
+
+    // max(C...)
+    std::size_t C = 0;
+    {
+        if(cfg.apply_deflate_decoder)
+        {
+            deflate_svc = &ctx.get_service<
+                zlib::deflate_decoder_service>();
+            auto const n = 
+                deflate_svc->space_needed();
+            if( C < n)
+                C = n;
+        }
+    }
+    space_needed += C;
+}
+
+void
+install_parser_service(
+    context& ctx,
+    parser::config_base const& cfg)
+{
+    ctx.make_service<
+        parser_service>(cfg);
+}
+
 //------------------------------------------------
 
 parser::
 parser(
-    detail::kind k,
-    config_base const& cfg)
-    : cfg_(cfg)
+    context& ctx,
+    detail::kind k)
+    : ctx_(ctx)
+    , svc_(ctx.get_service<
+        parser_service>())
     , h_(detail::empty{k})
 {
-}
-
-void
-parser::
-construct(
-    std::size_t extra_buffer_size)
-{
-    // headers_limit too large
-    if( cfg_.headers_limit >
-        BOOST_HTTP_PROTO_MAX_HEADER)
-        detail::throw_invalid_argument();
-
-    // start_line_limit too large
-    if( cfg_.start_line_limit >=
-        cfg_.headers_limit)
-        detail::throw_invalid_argument();
-
-    // field_size_limit too large
-    if( cfg_.field_size_limit >=
-        cfg_.headers_limit)
-        detail::throw_invalid_argument();
-
-    // fields_limit too large
-    if( cfg_.fields_limit >
-        cfg_.headers_limit / 4)
-        detail::throw_invalid_argument();
-
-    // largest space needed
-    auto const bytes_needed =
-        detail::header::bytes_needed(
-            cfg_.headers_limit,
-            cfg_.fields_limit);
-
-    // prevent overflow
-    if(extra_buffer_size >
-            std::size_t(-1) - bytes_needed)
-        detail::throw_invalid_argument();
-
-    // allocate max headers plus extra
-    ws_.allocate(
-        bytes_needed +
-        extra_buffer_size);
-
-    h_.cap = bytes_needed;
-
+    auto const n =
+        svc_.space_needed;
+    ws_.allocate(n);
+    h_.cap = n;
     reset();
 }
 
@@ -131,33 +162,6 @@ parser(
 
 //------------------------------------------------
 //
-// Observers
-//
-//------------------------------------------------
-
-string_view
-parser::
-body() const noexcept
-{
-#if 0
-    // VFALCO How about some
-    // asserts or exceptions?
-    if(! m_.got_chunked)
-        return string_view(
-            h_.buf + h_.size,
-            m_.n_payload);
-    return string_view(
-        h_.buf +
-            h_.size +
-            m_.n_chunk,
-        m_.n_payload);
-#else
-    return {};
-#endif
-}
-
-//------------------------------------------------
-//
 // Modifiers
 //
 //------------------------------------------------
@@ -167,7 +171,10 @@ void
 parser::
 reset() noexcept
 {
+    ws_.clear();
     st_ = state::need_start;
+    body_ = body::in_place;
+    head_response_ = false;
     got_eof_ = false;
 }
 
@@ -176,39 +183,38 @@ parser::
 start_impl(
     bool head_response)
 {
-    std::size_t initial_size = 0;
+    std::size_t leftover = 0;
     switch(st_)
     {
     default:
     case state::need_start:
         BOOST_ASSERT(h_.size == 0);
-        BOOST_ASSERT(h_buf_.size() == 0);
+        BOOST_ASSERT(fb_.size() == 0);
         BOOST_ASSERT(! got_eof_);
         break;
 
     case state::headers:
-        // Can't call start twice.
+        // can't call start() twice
         detail::throw_logic_error();
 
     case state::headers_done:
     case state::body:
-        // Can't call start with
-        // an incomplete message.
+        // previous message was unfinished
         detail::throw_logic_error();
 
     case state::complete:
-        if(h_buf_.size() > 0)
+        if(fb_.size() > 0)
         {
             // headers with no body
             BOOST_ASSERT(h_.size > 0);
-            h_buf_.consume(h_.size);
-            initial_size = h_buf_.size();
+            fb_.consume(h_.size);
+            leftover = fb_.size();
             // move unused octets to front
             buffers::buffer_copy(
                 buffers::mutable_buffer(
                     ws_.data(),
-                    initial_size),
-                h_buf_.data());
+                    leftover),
+                fb_.data());
         }
         else
         {
@@ -216,32 +222,25 @@ start_impl(
         }
         break;
     }
+/*
+| fb |      cb0      |      cb1     | C | T | f |
+*/
+    // start with fb+cb0
+    fb_ = {
+        ws_.data(), // VFALCO this might need an offset
+        svc_.cfg.headers.max_size +
+            svc_.cfg.min_in_place_body,
+        leftover };
 
-    ws_.clear();
-
-    // set up header read buffer
-    h_buf_ = {
-        ws_.data(),
-        cfg_.headers_limit,
-        initial_size };
-
-    // reset the header but
-    // preserve the capacity
-    auto const cap = h_.cap;
     h_ = detail::header(
         detail::empty{h_.kind});
     h_.buf = reinterpret_cast<
         char*>(ws_.data());
     h_.cbuf = h_.buf;
-    h_.cap = cap;
-
-    cfg_impl_ = {};
-    cfg_impl_.headers_limit = cfg_.headers_limit;
-    cfg_impl_.start_line_limit = cfg_.start_line_limit;
-    cfg_impl_.field_size_limit = cfg_.field_size_limit;
-    cfg_impl_.fields_limit = cfg_.fields_limit;
+    h_.cap = ws_.size();
 
     st_ = state::headers;
+    body_ = body::in_place;
 
     BOOST_ASSERT(! head_response ||
         h_.kind == detail::kind::response);
@@ -257,26 +256,29 @@ prepare() ->
     {
     default:
     case state::need_start:
-        // start must be called once
-        // before calling prepare.
+        // forgot to call start()
         detail::throw_logic_error();
 
     case state::headers:
-        // fill up to headers_limit
+    {
+        BOOST_ASSERT(h_.size <
+            svc_.cfg.headers.max_size);
+        auto n = fb_.capacity() - fb_.size();
+        if( n > svc_.cfg.max_prepare)
+            n = svc_.cfg.max_prepare;
         return {
-            h_buf_.prepare(
-                cfg_.headers_limit -
-                h_buf_.size()),
+            fb_.prepare(n),
             buffers::mutable_buffer{} };
+    }
 
     case state::headers_done:
     {
-        // discard headers and move
-        // any leftover stream data.
-        std::memmove(
-            ws_.data(),
-            h_.cbuf + h_.size,
-            h_buf_.size() - h_.size);
+        // reserve headers
+        ws_.reserve_front(h_.size);
+
+        // reserve table at the back
+        ws_.reserve_back(h_.table_space());
+
         st_ = state::body;
         // VFALCO set up body buffer
         BOOST_FALLTHROUGH;
@@ -284,13 +286,16 @@ prepare() ->
 
     case state::body:
     {
-        return {};
+        //if(body_ == body::dynamic)
+        auto n = cb0_.capacity() -
+            cb0_.size();
+        if( n > svc_.cfg.max_prepare)
+            n = svc_.cfg.max_prepare;
+        return cb0_.prepare(n);
     }
 
     case state::complete:
-        // Can't call `prepare` again after
-        // a complete message is parsed,
-        // call `start` first.
+        // forgot to call start()
         detail::throw_logic_error();
     }
 }
@@ -308,14 +313,24 @@ commit(
     {
     default:
     case state::need_start:
+        // forgot to call start()
+        detail::throw_logic_error();
+
     case state::headers:
-        h_buf_.commit(n);
+        fb_.commit(n);
         break;
 
     case state::headers_done:
+        // forgot to call prepare()
+        detail::throw_logic_error();
+
     case state::body:
-    case state::complete:
+        cb0_.commit(n);
         break;
+
+    case state::complete:
+        // forgot to call start()
+        detail::throw_logic_error();
     }
 }
 
@@ -327,12 +342,17 @@ commit_eof()
     {
     default:
     case state::need_start:
-        // Can't commit eof
-        // before calling start.
+        // forgot to call prepare()
         detail::throw_logic_error();
 
     case state::headers:
+        got_eof_ = true;
+        break;
+
     case state::headers_done:
+        // forgot to call prepare()
+        detail::throw_logic_error();
+
     case state::body:
         got_eof_ = true;
         break;
@@ -343,6 +363,8 @@ commit_eof()
         detail::throw_logic_error();
     }
 }
+
+//-----------------------------------------------
 
 // process input data then
 // eof if input data runs out.
@@ -355,21 +377,23 @@ parse(
     {
     default:
     case state::need_start:
-        // You must call start before
-        // calling parse on a new message.
+        // forgot to call start()
         detail::throw_logic_error();
 
     case state::headers:
     {
         BOOST_ASSERT(h_.buf == ws_.data());
         BOOST_ASSERT(h_.cbuf == ws_.data());
-        auto const new_size = h_buf_.size();
-        h_.parse(cfg_impl_, new_size, ec);
+        auto const new_size = fb_.size();
+        h_.parse(new_size, svc_.cfg.headers, ec);
         if(! ec.failed())
         {
             if( h_.md.payload != payload::none &&
                 ! head_response_)
             {
+                if(h_.md.payload == payload::size)
+                    remain_ = h_.md.payload_size;
+
                 // Deliver headers to caller
                 st_ = state::headers_done;
                 break;
@@ -378,16 +402,16 @@ parse(
             st_ = state::complete;
             break;
         }
-        if( ec == grammar::error::need_more &&
-            got_eof_)
+        if(ec == grammar::error::need_more)
         {
+            if(! got_eof_)
+                break;
             if(h_.size > 0)
             {
                 // Connection closed before
                 // message is complete.
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::incomplete);
-
                 return;
             }
 
@@ -395,15 +419,16 @@ parse(
             // cleanly.
             ec = BOOST_HTTP_PROTO_ERR(
                 error::end_of_stream);
-
             return;
         }
+        BOOST_ASSERT(ec.failed());
         return;
     }
 
     case state::headers_done:
     {
         // This is a no-op
+        // VFALCO Is this right?
         ec = {};
         break;
     }
@@ -416,7 +441,25 @@ parse(
         st_ = state::complete;
         break;
     }
+
+    case state::complete:
+        break;
     }
+}
+
+//------------------------------------------------
+
+auto
+parser::
+get_stream() ->
+    stream
+{
+    // body type already chosen
+    if(body_ != body::in_place)
+        detail::throw_logic_error();
+
+    body_ = body::stream;
+    return stream(*this);
 }
 
 //------------------------------------------------
@@ -432,16 +475,6 @@ release_buffered_data() noexcept
 //
 // Implementation
 //
-//------------------------------------------------
-
-void
-parser::
-apply_param(
-    config_base const& cfg) noexcept
-{
-    cfg_ = cfg;
-}
-
 //------------------------------------------------
 
 auto
@@ -473,162 +506,35 @@ safe_get_header() const ->
 
 void
 parser::
+on_set_body()
+{
+}
+
+void
+parser::
 parse_body(
     error_code& ec)
 {
-    (void)ec;
-return;
-// VFALCO TODO
-#if 0
-    BOOST_ASSERT(st_ == state::body);
-
-    if(h_.kind == detail::kind::request)
+    if(body_ == body::in_place)
     {
-        // https://tools.ietf.org/html/rfc7230#section-3.3
-        if(m_.skip_body)
-            return;
-        if(m_.content_len.has_value())
-        {
-            if(*m_.content_len > cfg_.body_too_large)
-            {
-                ec = error::body_too_large;
-                return;
-            }
-            if(*m_.content_len == 0)
-                return;
-        }
-        else if(m_.got_chunked)
-        {
-            // VFALCO TODO
-            return;
-        }
-        else
-        {
-            // Content-Length: 0
-            return;
-        }
-    }
-    else
-    {
-        BOOST_ASSERT(h_.kind ==
-            detail::kind::response);
-
-        // https://tools.ietf.org/html/rfc7230#section-3.3
-        if((h_.res.status_int /  100 == 1) || // 1xx e.g. Continue
-            h_.res.status_int == 204 ||       // No Content
-            h_.res.status_int == 304)         // Not Modified
-        {
-            // Content-Length may be present, but we
-            // treat the message as not having a body.
-        }
-        else if(m_.content_len.has_value())
-        {
-            if(*m_.content_len > 0)
-            {
-                if(*m_.content_len > cfg_.body_too_large)
-                {
-                    ec = error::body_too_large;
-                    return;
-                }
-            }
-        }
-        else
-        {
-            // No Content-Length
-            return;
-        }
-    }
-
-    auto avail = committed_ - size_;
-    if(m_.content_len.has_value())
-    {
-        // known payload length
-        BOOST_ASSERT(! m_.got_chunked);
-        BOOST_ASSERT(m_.n_remain > 0);
-        BOOST_ASSERT(m_.content_len <
-            cfg_.body_too_large);
-        if(avail == 0)
-        {
-            if(! got_eof_)
-            {
-                ec = grammar::error::need_more;
-                return;
-            }
-            ec = error::need_more;
-            return;
-        }
-        if( avail > m_.n_remain)
-            avail = static_cast<
-                std::size_t>(m_.n_remain);
-        size_ += avail;
-        m_.payload_seen += avail;
-        m_.n_payload += avail;
-        m_.n_remain -= avail;
-        if(m_.n_remain > 0)
-        {
-            ec = {};
-            return;
-        }
-        st_ = state::complete;
-        ec = error::end_of_message;
+        ec = {};
         return;
     }
-
-    if(! m_.got_chunked)
+    if(body_ == body::dynamic)
     {
-        // end of body indicated by EOF
-        if(avail > 0)
-        {
-            if(avail > (std::size_t(
-                -1) - m_.n_payload))
-            {
-                // overflow size_t
-                // VFALCO revisit this
-                ec = error::numeric_overflow;
-                return;
-            }
-            size_ += avail;
-            m_.n_payload += avail;
-            ec = {};
-            return;
-        }
-        if(! got_eof_)
-        {
-            ec = grammar::error::need_more;
-            return;
-        }
-        st_ = state::complete;
-        ec = error::end_of_message;
+        ec = {};
         return;
     }
-#if 0
-    if(m_.payload_left == 0)
+    if(body_ == body::sink)
     {
-        // start of chunk
-        bnf::chunk_part p;
-        auto it = p.parse(
-            h_.buf + size_,
-            h_.buf + (
-                committed_ - size_),
-            ec);
-        if(ec)
-            return;
-        auto const v =
-            p.value();
-        m_.chunk.size = v.size;
-        m_.chunk.ext = v.ext;
-        m_.chunk.trailer = v.trailer;
-        m_.chunk.fresh = true;
-        m_.payload_left =
-            v.size - v.data.size();
+        ec = {};
+        return;
     }
-    else
+    if(body_ == body::stream)
     {
-        // continuation of chunk
-
+        ec = {};
+        return;
     }
-#endif
-#endif
 }
 
 void
@@ -636,76 +542,7 @@ parser::
 parse_chunk(
     error_code& ec)
 {
-    (void)ec;
-#if 0
-    switch(st_)
-    {
-    case state::start_line_line:
-    case state::header_fields:
-        parse_header(ec);
-        if(ec.failed())
-            return;
-        BOOST_ASSERT(st_ >
-            state::header_fields);
-        break;
-    case state::body:
-        if(! m_.got_chunked)
-            return parse_body(ec);
-        break;
-    case state::complete:
-        ec = error::end_of_message;
-        if(! got_eof_)
-            return;
-        st_ = state::end_of_stream;
-        return;
-    case state::end_of_stream:
-        ec = error::end_of_stream;
-        return;
-    }
-
-    auto const avail = committed_ - size_;
-    auto const start = h_.buf + size_;
-    if(m_.payload_left == 0)
-    {
-        // start of chunk
-        // VFALCO What about chunk_part_next?
-        BOOST_ASSERT(
-            size_ == m_.header_size);
-        bnf::chunk_part p;
-        auto it = p.parse(start,
-            h_.buf + (
-                committed_ - size_), ec);
-        BOOST_ASSERT(it == start);
-        if(ec)
-            return;
-        auto const v = p.value();
-        m_.chunk.size = v.size;
-        m_.chunk.ext = v.ext;
-        m_.chunk.fresh = true;
-        if(v.size > 0)
-        {
-            // chunk
-            m_.chunk.trailer = {};
-            m_.payload_left =
-                v.size - v.data.size();
-            size_ += it - start; // excludes CRLF
-            return;
-        }
-        // last-chunk
-        BOOST_ASSERT(
-            v.data.empty());
-        m_.chunk.trailer =
-            v.trailer;
-        m_.body = {};
-        size_ += it - start; // excludes CRLF
-        st_ = state::complete;
-    }
-    else
-    {
-        // continuation of chunk
-
-    }
-#endif
+    ec = {};
 }
 
 } // http_proto

@@ -15,11 +15,12 @@
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
-
 request_parser::
-request_parser()
-    : request_parser(65536)
+request_parser(
+    context& ctx)
+    : parser(
+        ctx,
+        detail::kind::request)
 {
 }
 

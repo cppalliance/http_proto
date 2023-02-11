@@ -26,7 +26,6 @@ project
     ;
 
 local SOURCES =
-    codec.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -41,6 +40,7 @@ local SOURCES =
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
+    header_limits.cpp
     http_proto.cpp
     message_base.cpp
     message_view_base.cpp
@@ -69,6 +69,7 @@ local SOURCES =
     rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
     service/service.cpp
+    service/zlib_service.cpp
     ;
 
 for local f in $(SOURCES)

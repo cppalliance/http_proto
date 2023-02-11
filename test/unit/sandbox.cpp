@@ -13,24 +13,30 @@ namespace boost {
 namespace http_proto {
 
 /*
-    Three body styles for `serializer`
-        * Specify a ConstBuffers
-        * Specify a Source
-        * Write into a serializer::stream
-
-    Three body styles for `parser`
+    Four body styles for `parser`
         * Specify a DynamicBuffer
         * Specify a Sink
         * Read from a parser::stream
+        * in-place
 
-parse request, serialize response
-|<-                                            ->|
-|<- Headers ->|<- Partial Body ->|<-           ->|
-|<- Headers ->|<- Partial Body ->|<-   ->|<- T ->|
-|<- Headers ->|<-     Partial Body     ->|<- T ->|
-|<- Headers ->|<-                      ->|<- T ->|
-|<- Headers ->|<- Response ->|<-               ->|
-|<-         ->|<- Response ->|<-               ->|
+    Four body styles for `serializer`
+        * Specify a ConstBufferSequence
+        * Specify a Source
+        * Write into a serializer::stream
+        * in-place
+
+    struct half_duplex_client;
+    struct full_duplex_client;
+    struct pipelined_client;
+    struct websocket_client;
+    struct websocket_client_with_permessage_deflate;
+
+    struct half_duplex_server;
+    struct full_duplex_server;
+    struct pipelined_server;
+    struct websocket_server;
+    struct websocket_server_with_permessage_deflate;
+
 */
 
 struct sandbox_test

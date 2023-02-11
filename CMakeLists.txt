@@ -86,6 +86,11 @@ add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOUR
 add_library(Boost::http_proto ALIAS boost_http_proto)
 boost_http_proto_setup_properties(boost_http_proto)
 
+target_compile_definitions(boost_http_proto
+  PUBLIC
+  BOOST_HTTP_PROTO_NO_LIB
+)
+
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_DYN_LINK=1)
 else()

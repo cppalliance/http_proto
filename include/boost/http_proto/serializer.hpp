@@ -32,15 +32,6 @@ class response;
 class request_view;
 class response_view;
 class message_view_base;
-struct brotli_decoder_t;
-struct brotli_encoder_t;
-struct deflate_decoder_t;
-struct deflate_encoder_t;
-struct gzip_decoder_t;
-struct gzip_encoder_t;
-namespace detail {
-struct codec;
-} // detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -56,6 +47,8 @@ public:
     /** A ConstBuffers representing the output
     */
     class const_buffers_type;
+
+    struct stream;
 
     /** Destructor
     */
@@ -79,14 +72,6 @@ public:
     explicit
     serializer(
         std::size_t buffer_size);
-
-    /** Constructor
-    */
-    template<class P0, class... Pn>
-    serializer(
-        std::size_t buffer_size,
-        P0&& p0,
-        Pn&&... pn);
 
     //--------------------------------------------
 
@@ -163,49 +148,6 @@ public:
 
     //--------------------------------------------
 
-    struct stream
-    {
-        stream() = default;
-        stream(stream const&) = default;
-        stream& operator=
-            (stream const&) = default;
-
-        using buffers_type =
-            buffers::mutable_buffer_pair;
-
-        BOOST_HTTP_PROTO_DECL
-        std::size_t
-        capacity() const;
-
-        BOOST_HTTP_PROTO_DECL
-        std::size_t
-        size() const;
-
-        BOOST_HTTP_PROTO_DECL
-        buffers_type
-        prepare(std::size_t n) const;
-
-        BOOST_HTTP_PROTO_DECL
-        void
-        commit(std::size_t n) const;
-
-        BOOST_HTTP_PROTO_DECL
-        void
-        close() const;
-
-    private:
-        friend class serializer;
-
-        explicit
-        stream(
-            serializer& sr) noexcept
-            : sr_(&sr)
-        {
-        }
-
-        serializer* sr_ = nullptr;
-    };
-
     BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
@@ -251,19 +193,6 @@ private:
     auto
     make_array(std::size_t n) ->
         detail::array_of_const_buffers;
-    void apply_param(...) = delete;
-    void apply_params() noexcept;
-    template<class P0, class... Pn> void apply_params(P0&&, Pn&&...);
-
-    // in detail/impl/brotli_codec.ipp
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_decoder_t const&);
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_encoder_t const&);
-
-    // in detail/impl/zlib_codec.ipp
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_encoder_t const&);
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_encoder_t const&);
 
     BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);
@@ -278,13 +207,6 @@ private:
         stream
     };
 
-    enum
-    {
-        br_codec = 0,
-        deflate_codec = 1,
-        gzip_codec = 2
-    };
-
     static
     constexpr
     std::size_t
@@ -297,11 +219,6 @@ private:
         2;          // CRLF
 
     detail::workspace ws_;
-    std::unique_ptr<
-        detail::codec> dec_[3];
-    std::unique_ptr<
-        detail::codec> enc_[3];
-
     buffers::source* src_;
     detail::array_of_const_buffers buf_;
 
@@ -310,7 +227,6 @@ private:
     detail::array_of_const_buffers out_;
 
     buffers::const_buffer* hp_;  // header
-    detail::codec*  cod_;
 
     style st_;
     bool more_;
@@ -321,6 +237,57 @@ private:
 };
 
 //------------------------------------------------
+
+struct serializer::stream
+{
+    /** Constructor.
+    */
+    stream() = default;
+
+    /** Constructor.
+    */
+    stream(stream const&) = default;
+
+    /** Constructor.
+    */
+    stream& operator=
+        (stream const&) = default;
+
+    using buffers_type =
+        buffers::mutable_buffer_pair;
+
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    capacity() const;
+
+    BOOST_HTTP_PROTO_DECL
+    std::size_t
+    size() const;
+
+    BOOST_HTTP_PROTO_DECL
+    buffers_type
+    prepare(std::size_t n) const;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    commit(std::size_t n) const;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    close() const;
+
+private:
+    friend class serializer;
+
+    explicit
+    stream(
+        serializer& sr) noexcept
+        : sr_(&sr)
+    {
+    }
+
+    serializer* sr_ = nullptr;
+};
 
 } // http_proto
 } // boost

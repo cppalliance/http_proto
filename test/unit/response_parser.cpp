@@ -10,7 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/response_parser.hpp>
 
-#include <boost/http_proto/codec.hpp>
+#include <boost/http_proto/context.hpp>
 
 #include "test_suite.hpp"
 
@@ -23,43 +23,19 @@ public:
     void
     testSpecial()
     {
-        // response_parser()
-        response_parser();
-
-        // response_parser(std::size_t)
-        response_parser(4096);
-
-        // response_parser(std::size_t, config)
+        // response_parser(context&)
         {
+            context ctx;
             response_parser::config cfg;
-            cfg.headers_limit = 8192;
-            response_parser(65536, cfg);
+            install_parser_service(ctx, cfg);
+            response_parser pr(ctx);
         }
-
-        // response_parser(std::size_t, params)
-        {
-            response_parser(4096, gzip_decoder);
-        }
-    }
-
-    void
-    testStart()
-    {
-        response_parser(4096).start();
-
-        response_parser(4096).start_head_response();
-    }
-
-    void
-    testBody()
-    {
     }
 
     void
     run()
     {
         testSpecial();
-        testStart();
     }
 };
 

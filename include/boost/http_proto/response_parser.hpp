@@ -40,23 +40,8 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    response_parser();
-
-    /** Constructor
-    */
-    template<class... Params>
     explicit
-    response_parser(
-        std::size_t extra_buffer_size,
-        Params&&... params)
-        : parser(
-            detail::kind::response,
-            config{})
-    {
-        this->apply_params(
-            std::forward<Params>(params)...);
-        construct(extra_buffer_size);
-    }
+    response_parser(context& ctx);
 
     /** Prepare for the next message on the stream.
     */

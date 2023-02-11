@@ -28,6 +28,10 @@ namespace detail {
     construction. This storage is divided into
     three regions:
 
+    @code
+    | front | free | acquired | back |
+    @endcode
+
     @li The reserved area, which starts at the
         beginning of the buffer and can grow
         upwards towards the end of the buffer.
@@ -42,9 +46,10 @@ namespace detail {
 */
 class workspace
 {
-    unsigned char* base_ = nullptr;
     unsigned char* begin_ = nullptr;
+    unsigned char* front_ = nullptr;
     unsigned char* head_ = nullptr;
+    unsigned char* back_ = nullptr;
     unsigned char* end_ = nullptr;
 
     template<class>
@@ -97,7 +102,7 @@ public:
     void*
     data() noexcept
     {
-        return begin_;
+        return front_;
     }
 
     /** Return the size of the unused area.
@@ -105,7 +110,7 @@ public:
     std::size_t
     size() const noexcept
     {
-        return head_ - begin_;
+        return head_ - front_;
     }
 
     /** Clear the contents while preserving capacity.
@@ -119,8 +124,9 @@ public:
         @throws std::invalid_argument n >= this->size()
     */
     BOOST_HTTP_PROTO_DECL
-    void
-    reserve(std::size_t n);
+    void*
+    reserve_front(
+        std::size_t n);
 
     template<class T>
     typename std::decay<T>::type&
@@ -131,6 +137,11 @@ public:
     push_array(
         std::size_t n,
         T const& t);
+
+    BOOST_HTTP_PROTO_DECL
+    void*
+    reserve_back(
+        std::size_t n);
 
 private:
     BOOST_HTTP_PROTO_DECL

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
@@ -19,6 +20,7 @@
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/sink.hpp>
+#include <boost/buffers/type_traits.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -29,18 +31,11 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
-enum class version : char;
+struct parser_service;
 class request_parser;
 class response_parser;
-struct brotli_decoder_t;
-struct brotli_encoder_t;
-struct deflate_decoder_t;
-struct deflate_encoder_t;
-struct gzip_decoder_t;
-struct gzip_encoder_t;
-namespace detail {
-struct codec;
-}
+class context;
+
 #endif
 
 /** A parser for HTTP/1 messages.
@@ -53,6 +48,9 @@ struct codec;
 class BOOST_SYMBOL_VISIBLE
     parser
 {
+    BOOST_HTTP_PROTO_DECL
+    parser(context& ctx, detail::kind);
+
 public:
     /** Parser configuration settings
 
@@ -62,43 +60,7 @@ public:
     */
     struct config_base
     {
-        /** Largest allowed size for the headers.
-
-            This determines an upper bound on the
-            allowed size of the start-line plus
-            all of the individual fields in the
-            headers. This counts all delimiters
-            including trailing CRLFs.
-        */
-        std::size_t headers_limit = 16 * 1024;
-
-        /** Largest allowed size for the start-line.
-
-            This determines an upper bound on the
-            allowed size for the request-line of
-            an HTTP request or the status-line of
-            an HTTP response.
-        */
-        std::size_t start_line_limit = 4096;
-
-        /** Largest size for one field.
-
-            This determines an upper bound on the
-            allowed size for any single header
-            in an HTTP message. This counts
-            the field name, field value, and
-            delimiters including a trailing CRLF.
-        */
-        std::size_t field_size_limit = 4096;
-
-        /** Largest allowed number of fields.
-
-            This determines an upper bound on the
-            largest number of individual header
-            fields that may appear in an HTTP
-            message.
-        */
-        std::size_t fields_limit = 100;
+        header_limits headers;
 
         /** Largest allowed size for a content body.
 
@@ -107,17 +69,38 @@ public:
             including a chunked encoding.
         */
         std::uint64_t body_limit = 64 * 1024;
+
+        /** True if parser can decode deflate transfer and content encodings.
+
+            The deflate decoder must already be
+            installed thusly, or else an exception
+            is thrown.
+
+            @par Install Deflate Decoder
+            @code
+            deflate_decoder_service::config cfg;
+            cfg.install( ctx );
+            @endcode
+        */
+        bool apply_deflate_decoder = false;
+
+        /** Minimum space for in-place bodies.
+        */
+        std::size_t min_in_place_body = 4096;
+
+        /** Largest permissible output size in prepare.
+        */
+        std::size_t max_prepare = std::size_t(-1);
+
+        /** Space to reserve for type-erasure.
+        */
+        std::size_t max_type_erase = 1024;
     };
 
     using mutable_buffers_type =
         buffers::mutable_buffer_pair;
 
-private:
-    BOOST_HTTP_PROTO_DECL parser(
-        detail::kind, config_base const&);
-    BOOST_HTTP_PROTO_DECL void construct(
-        std::size_t extra_buffer_size);
-public:
+    struct stream;
 
     //--------------------------------------------
     //
@@ -125,12 +108,12 @@ public:
     //
     //--------------------------------------------
 
-    /** Destructor
+    /** Destructor.
     */
     BOOST_HTTP_PROTO_DECL
     ~parser();
 
-    /** Constructor
+    /** Constructor.
     */
     BOOST_HTTP_PROTO_DECL
     parser(parser&&) noexcept;
@@ -170,10 +153,6 @@ public:
     {
         return st_ == state::complete;
     }
-
-    BOOST_HTTP_PROTO_DECL
-    string_view
-    body() const noexcept;
 
     //--------------------------------------------
     //
@@ -221,19 +200,42 @@ public:
 
     /** Attach a body
     */
-    template<
-        class Sink
+    // VFALCO Should this function have
+    //        error_code& ec and call parse?
+    template<class DynamicBuffer>
 #ifndef BOOST_HTTP_PROTO_DOCS
-        ,class = typename
-            std::enable_if<
-                buffers::is_sink<Sink
-                    >::value>::type
-#endif
-    >
-    auto
-    set_body(Sink&& sink) ->
+    typename std::enable_if<
+        buffers::is_dynamic_buffer<
+            DynamicBuffer>::value,
         typename std::decay<
-            Sink>::type;
+            DynamicBuffer>::type
+                >::type
+#else
+    typename std::decay<
+        DynamicBuffer>::type
+#endif
+    set_body(DynamicBuffer&& b);
+
+    /** Attach a body
+    */
+    // VFALCO Should this function have
+    //        error_code& ec and call parse?
+    template<class Sink>
+#ifndef BOOST_HTTP_PROTO_DOCS
+    typename std::enable_if<
+        buffers::is_sink<Sink>::value,
+        typename std::decay<Sink>::type
+            >::type
+#else
+    typename std::decay<Sink>::type
+#endif
+    set_body(Sink&& sink);
+
+    /** Return a stream for receiving body data.
+    */
+    BOOST_HTTP_PROTO_DECL
+    stream
+    get_stream();
 
     //--------------------------------------------
 
@@ -250,45 +252,18 @@ public:
     release_buffered_data() noexcept;
 
 private:
-    void apply_params() noexcept
-    {
-    }
-
-    void apply_param(...) = delete;
-
-    template<class P0, class... Pn>
-    void
-    apply_params(P0&& p0, Pn&&... pn)
-    {
-        // If you get an error here it means
-        // you passed an unknown parameter type.
-        apply_param(std::forward<P0>(p0));
-
-        apply_params(std::forward<Pn>(pn)...);
-    }
-
-    BOOST_HTTP_PROTO_DECL void apply_param(config_base const&) noexcept;
-
-    // in detail/impl/brotli_codec.ipp
-    BOOST_HTTP_PROTO_EXT_DECL void apply_param(brotli_decoder_t const&);
-
-    // in detail/impl/zlib_codec.ipp
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(deflate_decoder_t const&);
-    BOOST_HTTP_PROTO_ZLIB_DECL void apply_param(gzip_decoder_t const&);
-
     detail::header const* safe_get_header() const;
+    void on_set_body();
     void parse_body(error_code&);
     void parse_chunk(error_code&);
 
     friend class request_parser;
     friend class response_parser;
 
-    enum
-    {
-        br_codec = 0,
-        deflate_codec = 1,
-        gzip_codec = 2
-    };
+    template<class T>
+    struct any_dynamic_impl;
+    struct any_dynamic;
+    static constexpr unsigned dynamic_N_ = 8;
 
     enum class state
     {
@@ -300,22 +275,83 @@ private:
         complete,       // done
     };
 
-    config_base cfg_;
-    detail::header h_;
-    detail::workspace ws_;
-    detail::header::config cfg_impl_;
+    enum class body
+    {
+        in_place,
+        dynamic,
+        sink,
+        stream
+    };
 
-    std::unique_ptr<
-        detail::codec> dec_[3];
-    buffers::flat_buffer h_buf_;
-    buffers::circular_buffer b_buf_;
-    buffers::circular_buffer c_buf_;
-    detail::codec* cod_;
+    context& ctx_;
+    parser_service& svc_;
+    detail::workspace ws_;
+    detail::header h_;
+
+    buffers::flat_buffer fb_;
+    buffers::circular_buffer cb0_;
+    buffers::circular_buffer cb1_;
+    buffers::circular_buffer* cb_;
+    buffers::sink* sink_;
+    any_dynamic* dynamic_;
 
     state st_;
+    body body_;
     bool got_eof_;
     bool head_response_;
+    std::uint64_t remain_;
 };
+
+//------------------------------------------------
+
+struct parser::stream
+{
+    /** Constructor.
+    */
+    stream() = default;
+
+    /** Constructor.
+    */
+    stream(stream const&) = default;
+
+    /** Constructor.
+    */
+    stream& operator=
+        (stream const&) = default;
+
+    using buffers_type =
+        buffers::const_buffer_pair;
+
+    BOOST_HTTP_PROTO_DECL
+    buffers_type
+    data() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    consume(std::size_t n);
+
+private:
+    friend class parser;
+
+    explicit
+    stream(
+        parser& pr) noexcept
+        : pr_(&pr)
+    {
+    }
+
+    parser* pr_ = nullptr;
+};
+
+//------------------------------------------------
+
+/** Install the parser service.
+*/
+BOOST_HTTP_PROTO_DECL
+void
+install_parser_service(
+    context& ctx,
+    parser::config_base const& cfg);
 
 } // http_proto
 } // boost

@@ -18,14 +18,6 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-/*  Layout
-
-    The buffer is laid out thusly:
-
-  base_         begin_        head_           end_
-
-    |<- reserved ->|<- unused ->|<- acquired ->|
-*/
 workspace::
 any::
 ~any() = default;
@@ -33,19 +25,20 @@ any::
 workspace::
 ~workspace()
 {
-    if(base_)
+    if(begin_)
     {
         clear();
-        delete[] base_;
+        delete[] begin_;
     }
 }
 
 workspace::
 workspace(
     std::size_t n)
-    : base_(new unsigned char[n])
-    , begin_(base_)
-    , head_(base_ + n)
+    : begin_(new unsigned char[n])
+    , front_(begin_)
+    , head_(begin_ + n)
+    , back_(head_)
     , end_(head_)
 {
 }
@@ -53,14 +46,16 @@ workspace(
 workspace::
 workspace(
     workspace&& other) noexcept
-    : base_(other.base_)
-    , begin_(other.begin_)
+    : begin_(other.begin_)
+    , front_(other.front_)
     , head_(other.end_)
+    , back_(other.back_)
     , end_(other.end_)
 {
-    other.base_ = nullptr;
     other.begin_ = nullptr;
+    other.front_ = nullptr;
     other.head_ = nullptr;
+    other.back_ = nullptr;
     other.end_ = nullptr;
 }
 
@@ -69,17 +64,18 @@ workspace::
 allocate(
     std::size_t n)
 {
-    // n == 0
+    // Cannot be empty
     if(n == 0)
         detail::throw_invalid_argument();
 
-    // this->size() > 0
-    if(base_ != nullptr)
+    // Already allocated
+    if(begin_ != nullptr)
         detail::throw_logic_error();
 
-    base_ = new unsigned char[n];
-    begin_ = base_;
-    head_ = base_ + n;
+    begin_ = new unsigned char[n];
+    front_ = begin_;
+    head_ = begin_ + n;
+    back_ = head_;
     end_ = head_;
 }
 
@@ -87,11 +83,12 @@ void
 workspace::
 clear() noexcept
 {
-    BOOST_ASSERT(begin_);
+    if(! begin_)
+        return;
 
     auto const end =
         reinterpret_cast<
-            any const*>(end_);
+            any const*>(back_);
     auto p =
         reinterpret_cast<
             any const*>(head_);
@@ -101,20 +98,49 @@ clear() noexcept
         p->~any();
         p = next;
     }
+    front_ = begin_;
     head_ = end_;
-    begin_ = base_;
+    back_ = end_;
 }
 
-void
+void*
 workspace::
-reserve(std::size_t n)
+reserve_front(
+    std::size_t n)
 {
+    // 
     // Requested size exceeds available space.
     // Note you can never reserve the last byte.
     if(n >= size())
         detail::throw_length_error();
 
-    base_ += n ;
+    auto const p = front_;
+    front_ += n ;
+    return p;
+}
+
+void*
+workspace::
+reserve_back(
+    std::size_t n)
+{
+    // can't reserve after acquire
+    if(head_ != end_)
+        detail::throw_logic_error();
+
+    // can't reserve twice
+    if(back_ != end_)
+        detail::throw_logic_error();
+
+    // over capacity
+    std::size_t const lim =
+        head_ - front_;
+    if(n >= lim)
+        detail::throw_length_error();
+
+    head_ -= n;
+    back_ = head_;
+    return back_;
 }
 
 // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html
@@ -127,10 +153,10 @@ bump_down(
     BOOST_ASSERT(align > 0);
     BOOST_ASSERT(
         (align & (align - 1)) == 0);
-    BOOST_ASSERT(begin_);
+    BOOST_ASSERT(front_);
 
     auto ip0 = reinterpret_cast<
-        std::uintptr_t>(begin_);
+        std::uintptr_t>(front_);
     auto ip = reinterpret_cast<
         std::uintptr_t>(head_);
 

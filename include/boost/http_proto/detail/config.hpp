@@ -74,12 +74,13 @@ namespace http_proto {
 # define BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
 #endif
 
-using off_t = ::uint16_t; // private
+// holds any offset within headers
+using off_t = ::uint32_t; // private
 
 // maximum size of http header,
 // chunk header, or chunk extensions
 #ifndef BOOST_HTTP_PROTO_MAX_HEADER
-#define BOOST_HTTP_PROTO_MAX_HEADER 65535U
+#define BOOST_HTTP_PROTO_MAX_HEADER (off_t(-1))
 #endif
 static constexpr auto max_off_t =
     BOOST_HTTP_PROTO_MAX_HEADER;
