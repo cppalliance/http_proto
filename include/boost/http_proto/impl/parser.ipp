@@ -402,7 +402,7 @@ parse(
             st_ = state::complete;
             break;
         }
-        if(ec == grammar::error::need_more)
+        if(ec == condition::need_more_input)
         {
             if(! got_eof_)
                 break;

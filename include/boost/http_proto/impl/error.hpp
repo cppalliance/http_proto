@@ -11,12 +11,38 @@
 #define BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 
 namespace boost {
+
+namespace system {
+
+template<>
+struct is_error_code_enum<
+    ::boost::http_proto::error>
+{
+    static bool const value = true;
+};
+
+template<>
+struct is_error_condition_enum<
+    ::boost::http_proto::condition>
+{
+    static bool const value = true;
+};
+
+} // system
+
+//-----------------------------------------------
+
 namespace http_proto {
 
 BOOST_HTTP_PROTO_DECL
 error_code
 make_error_code(
     error ev) noexcept;
+
+BOOST_HTTP_PROTO_DECL
+error_condition
+make_error_condition(
+    condition c) noexcept;
 
 } // http_proto
 } // boost

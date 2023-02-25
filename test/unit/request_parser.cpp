@@ -45,7 +45,7 @@ struct request_parser_test
                 || ! ec)
                 break;
             if(! BOOST_TEST(
-                ec == grammar::error::need_more))
+                ec == condition::need_more_input))
             {
                 test_suite::log <<
                     ec.message() << "\n";
@@ -77,7 +77,7 @@ struct request_parser_test
             error_code ec;
             p.parse(ec);
             s.remove_prefix(n);
-            if(ec == grammar::error::need_more)
+            if(ec == condition::need_more_input)
                 continue;
             auto const es = ec.message();
             return ! ec.failed();
@@ -159,7 +159,7 @@ struct request_parser_test
             error_code ec;
             p.parse(ec);
             if(! BOOST_TEST(
-                ec == grammar::error::need_more))
+                ec == condition::need_more_input))
                 continue;
             // second buffer
             b = *p.prepare().begin();

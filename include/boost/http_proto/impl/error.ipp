@@ -11,26 +11,25 @@
 #define BOOST_HTTP_PROTO_IMPL_ERROR_IPP
 
 #include <boost/http_proto/error.hpp>
+#include <boost/url/grammar/error.hpp>
 #include <boost/assert.hpp>
 #include <type_traits>
 
 namespace boost {
 namespace http_proto {
 
-namespace detail {
-
-static
-error_category const&
-get_error_cat() noexcept
+error_code
+make_error_code(
+    error ev) noexcept
 {
-    struct codes : error_category
+    struct cat_type : error_category
     {
-        codes() noexcept
+        cat_type() noexcept
             : error_category(
                 0x3663257e7585fbfd)
         {
         }
-            
+
         const char*
         name() const noexcept override
         {
@@ -38,9 +37,9 @@ get_error_cat() noexcept
         }
 
         std::string
-        message(int ev) const override
+        message(int code) const override
         {
-            switch(static_cast<error>(ev))
+            switch(static_cast<error>(code))
             {
             case error::expect_100_continue: return "expect continue";
             case error::end_of_message: return "end of message";
@@ -78,20 +77,60 @@ get_error_cat() noexcept
             }
         }
     };
-    static codes const t{};
-    return t;
-}
 
-} // detail
-
-error_code
-make_error_code(
-    error ev) noexcept
-{
+    static cat_type const cat{};
     return error_code{static_cast<
         std::underlying_type<
-            error>::type>(ev),
-        detail::get_error_cat()};
+            error>::type>(ev), cat};
+}
+
+error_condition
+make_error_condition(
+    condition cv) noexcept
+{
+    struct cat_type : error_category
+    {
+        cat_type() noexcept
+            : error_category(
+                0xa36e10f16c666a7)
+        {
+        }
+
+        const char*
+        name() const noexcept override
+        {
+            return "boost.http.proto";
+        }
+
+        std::string
+        message(int code) const override
+        {
+            switch(static_cast<condition>(code))
+            {
+            default:
+            case condition::need_more_input: return "need more input";
+            }
+        }
+
+        bool
+        equivalent(
+            system::error_code const& ec,
+            int code) const noexcept
+        {
+            auto cond = static_cast<condition>(code);
+            if( ec == urls::grammar::error::need_more &&
+                cond == condition::need_more_input)
+                return true;
+            return
+                *this == ec.category() &&
+                ec.value() == code;
+        }
+    };
+
+    static cat_type const cat{};
+    return error_condition{static_cast<
+        std::underlying_type<
+            error>::type>(cv), cat};
 }
 
 } // http_proto

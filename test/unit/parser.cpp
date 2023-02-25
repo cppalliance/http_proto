@@ -13,6 +13,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/buffers/buffer.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 
 #include "test_suite.hpp"
@@ -21,44 +22,30 @@ namespace boost {
 namespace http_proto {
 
 /*
-
-Body Styles
------------
-
-1 A Sink
-    parser calls the sink zero or more
-    times with a buffer containing body data
-
-2 A DynaBuffer
-    parser writes body data directly into
-    the dynamic buffer
-
-3 Read fully into parser
-    parser reads the entire body into its
-    internal buffer. if the body doesn't fit
-    an error is returned.
-
-4 Read a buffer at a time
-    parser reads the next body chunk into its
-    internal buffer, clearing the previous
-    body chunk first.
-
-- chunking
-    * trailers
-    * extensions
-
-response_parser pr( ctx );
-read_headers( sock, pr );
-if( ! pr.is_complete() )
-{
-    auto& body = pr.set_body( my_body{} );
-
-}
-
-
+    Four body styles for `parser`
+        * Specify a DynamicBuffer
+        * Specify a Sink
+        * Read from a parser::stream
+        * in-place
 */
 struct parser_test
 {
+    static
+    result<request_view>
+    read_header(
+        string_view& in,
+        request_parser& pr)
+    {
+        result<request_view> rv;
+        auto n = buffers::buffer_copy(
+            pr.prepare(),
+            buffers::buffer(
+                in.data(),
+                in.size()));
+        in.remove_prefix(n);
+        return rv;
+    }
+
     static
     void
     feed(

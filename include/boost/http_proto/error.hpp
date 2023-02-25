@@ -165,22 +165,16 @@ enum class error
 
 // VFALCO we need a bad_message condition?
 
-} // http_proto
-} // boost
-
-//--------------------------------------
-
-namespace boost {
-namespace system {
-
-template<>
-struct is_error_code_enum<
-    ::boost::http_proto::error>
+/** Error conditions corresponding to sets of library error codes.
+*/
+enum class condition
 {
-    static bool const value = true;
+    /** More input data is required.
+    */
+    need_more_input,
 };
 
-} // system
+} // http_proto
 } // boost
 
 #include <boost/http_proto/impl/error.hpp>
