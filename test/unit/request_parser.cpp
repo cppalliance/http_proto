@@ -26,20 +26,20 @@ struct request_parser_test
 {
     bool
     feed(
-        parser& p,
+        parser& pr,
         string_view s)
     {
         while(! s.empty())
         {
-            auto b = *p.prepare().begin();
+            auto b = *pr.prepare().begin();
             auto n = b.size();
             if( n > s.size())
                 n = s.size();
             std::memcpy(b.data(),
                 s.data(), n);
-            p.commit(n);
+            pr.commit(n);
             error_code ec;
-            p.parse(ec);
+            pr.parse(ec);
             s.remove_prefix(n);
             if(ec == error::end_of_message
                 || ! ec)
@@ -61,11 +61,12 @@ struct request_parser_test
         string_view s,
         std::size_t nmax)
     {
-        request_parser p(ctx);
-        p.start();
+        request_parser pr(ctx);
+        pr.reset();
+        pr.start();
         while(! s.empty())
         {
-            auto b = *p.prepare().begin();
+            auto b = *pr.prepare().begin();
             auto n = b.size();
             if( n > s.size())
                 n = s.size();
@@ -73,9 +74,9 @@ struct request_parser_test
                 n = nmax;
             std::memcpy(b.data(),
                 s.data(), n);
-            p.commit(n);
+            pr.commit(n);
             error_code ec;
-            p.parse(ec);
+            pr.parse(ec);
             s.remove_prefix(n);
             if(ec == condition::need_more_input)
                 continue;
@@ -109,9 +110,9 @@ struct request_parser_test
         string_view const s)
     {
         auto const f =
-            [&](request_parser const& p)
+            [&](request_parser const& pr)
         {
-            auto const req = p.get();
+            auto const req = pr.get();
             BOOST_TEST(req.method() == m);
             BOOST_TEST(req.method_text() ==
                 to_string(m));
@@ -125,55 +126,57 @@ struct request_parser_test
 
         // single buffer
         {
-            request_parser p(ctx);
-            p.start();
-            auto const b = *p.prepare().begin();
+            request_parser pr(ctx);
+            pr.reset();
+            pr.start();
+            auto const b = *pr.prepare().begin();
             auto const n = (std::min)(
                 b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n);
+            pr.commit(n);
             error_code ec;
-            p.parse(ec);
+            pr.parse(ec);
             BOOST_TEST(! ec);
-            //BOOST_TEST(p.is_done());
+            //BOOST_TEST(pr.is_done());
             if(! ec)
-                f(p);
+                f(pr);
         }
 
         // two buffers
         for(std::size_t i = 1;
             i < s.size(); ++i)
         {
-            request_parser p(ctx);
-            p.start();
+            request_parser pr(ctx);
+            pr.reset();
+            pr.start();
             // first buffer
-            auto b = *p.prepare().begin();
+            auto b = *pr.prepare().begin();
             auto n = (std::min)(
                 b.size(), i);
             BOOST_TEST(n == i);
             std::memcpy(
                 b.data(), s.data(), n);
-            p.commit(n);
+            pr.commit(n);
             error_code ec;
-            p.parse(ec);
+            pr.parse(ec);
             if(! BOOST_TEST(
                 ec == condition::need_more_input))
                 continue;
             // second buffer
-            b = *p.prepare().begin();
+            b = *pr.prepare().begin();
             n = (std::min)(
                 b.size(), s.size());
             BOOST_TEST(n == s.size());
             std::memcpy(
                 b.data(), s.data() + i, n - i);
-            p.commit(n);
-            p.parse(ec);
+            pr.commit(n);
+            pr.parse(ec);
             if(ec.failed())
                 continue;
-            //BOOST_TEST(p.is_done());
-            f(p);
+            //BOOST_TEST(pr.is_done());
+            f(pr);
         }
     }
 
@@ -200,7 +203,7 @@ struct request_parser_test
             version::http_1_1,
             "GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
-            "Content-Length: 42\r\n"
+            "Host: localhost\r\n"
             "\r\n");
     }
 
@@ -258,22 +261,23 @@ struct request_parser_test
         context ctx;
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
-        request_parser p(ctx);
+        request_parser pr(ctx);
         string_view s = 
             "GET / HTTP/1.1\r\n"
+            "Accept: *\r\n"
             "User-Agent: x\r\n"
             "Connection: close\r\n"
-            "Transfer-Encoding: chunked\r\n"
             "a: 1\r\n"
             "b: 2\r\n"
             "a: 3\r\n"
             "c: 4\r\n"
             "\r\n";
 
-        p.start();
-        feed(p, s);
+        pr.reset();
+        pr.start();
+        feed(pr, s);
 
-        auto const rv = p.get();
+        auto const rv = pr.get();
         BOOST_TEST(
             rv.method() == method::get);
         BOOST_TEST(
@@ -290,8 +294,7 @@ struct request_parser_test
         BOOST_TEST(rv.exists("Connection"));
         BOOST_TEST(rv.exists("CONNECTION"));
         BOOST_TEST(! rv.exists("connector"));
-        BOOST_TEST(rv.count(
-            field::transfer_encoding) == 1);
+        BOOST_TEST(rv.count(field::accept) == 1);
         BOOST_TEST(
             rv.count(field::age) == 0);
         BOOST_TEST(

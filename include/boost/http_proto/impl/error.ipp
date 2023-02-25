@@ -55,6 +55,7 @@ make_error_code(
             case error::bad_list: return "bad list";
             case error::bad_method: return "bad method";
             case error::bad_number: return "bad number";
+            case error::bad_payload: return "bad payload";
             case error::bad_version: return "bad version";
             case error::bad_reason: return "bad reason-phrase";
             case error::bad_request_target: return "bad request-target";
@@ -117,10 +118,17 @@ make_error_condition(
             system::error_code const& ec,
             int code) const noexcept
         {
-            auto cond = static_cast<condition>(code);
-            if( ec == urls::grammar::error::need_more &&
-                cond == condition::need_more_input)
-                return true;
+            switch(static_cast<condition>(code))
+            {
+            case condition::need_more_input:
+                if( ec == urls::grammar::error::need_more ||
+                    ec == error::need_data)
+                    return true;
+                break;
+
+            default:
+                break;
+            }
             return
                 *this == ec.category() &&
                 ec.value() == code;

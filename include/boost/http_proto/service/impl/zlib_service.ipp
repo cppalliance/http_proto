@@ -232,10 +232,10 @@ private:
         return 0;
     }
 
-    buffers::filter&
+    filter&
     make_filter(http_proto::detail::workspace& ws) const override
     {
-        buffers::filter* p;
+        filter* p;
         (void)ws;
         p = nullptr;
         return *p;

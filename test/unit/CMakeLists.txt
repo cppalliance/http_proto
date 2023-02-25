@@ -17,6 +17,7 @@ set(EXTRAFILES
 set(PFILES
     CMakeLists.txt
     Jamfile
+    buffered_base.cpp
     context.cpp
     error.cpp
     error_types.cpp
@@ -31,6 +32,7 @@ set(PFILES
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
+    filter.cpp
     header_limits.cpp
     http_proto.cpp
     message_base.cpp
@@ -46,6 +48,8 @@ set(PFILES
     response_view.cpp
     sandbox.cpp
     serializer.cpp
+    sink.cpp
+    source.cpp
     status.cpp
     string_body.cpp
     string_view.cpp

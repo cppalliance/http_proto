@@ -12,9 +12,9 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/service/service.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
-#include <boost/buffers/filter.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -46,7 +46,7 @@ struct deflate_decoder_service
     space_needed() const noexcept = 0;
 
     virtual
-    buffers::filter&
+    filter&
     make_filter(detail::workspace& ws) const = 0;
 };
 

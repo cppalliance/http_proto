@@ -26,7 +26,7 @@ request_parser(
 
 request_view
 request_parser::
-get() const noexcept
+get() const
 {
     return request_view(
         safe_get_header());

@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
+#include <boost/http_proto/buffered_base.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/deflate.hpp>
 #include <boost/http_proto/error.hpp>
@@ -25,6 +26,7 @@
 #include <boost/http_proto/file_posix.hpp>
 #include <boost/http_proto/file_win32.hpp>
 #include <boost/http_proto/file_stdio.hpp>
+#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/message_view_base.hpp>
@@ -37,6 +39,8 @@
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/sink.hpp>
+#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/http_proto/string_view.hpp>

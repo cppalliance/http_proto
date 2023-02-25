@@ -103,7 +103,7 @@ clear() noexcept
     back_ = end_;
 }
 
-void*
+unsigned char*
 workspace::
 reserve_front(
     std::size_t n)
@@ -119,7 +119,7 @@ reserve_front(
     return p;
 }
 
-void*
+unsigned char*
 workspace::
 reserve_back(
     std::size_t n)
@@ -144,7 +144,7 @@ reserve_back(
 }
 
 // https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html
-void*
+unsigned char*
 workspace::
 bump_down(
     std::size_t size,
@@ -177,7 +177,8 @@ bump_down(
     if(ip < ip0)
         detail::throw_bad_alloc();
 
-    return reinterpret_cast<void*>(ip);
+    return reinterpret_cast<
+        unsigned char*>(ip);
 }
 
 } // detail

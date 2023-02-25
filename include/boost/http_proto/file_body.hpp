@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/buffers/source.hpp>
+#include <boost/http_proto/source.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -20,7 +20,7 @@ namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
     file_body
-    : public buffers::source
+    : public source
 {
     file f_;
     std::uint64_t n_;

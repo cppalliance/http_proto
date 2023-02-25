@@ -42,6 +42,25 @@ public:
     }
 
     void
+    check(
+        char const* name,
+        condition c,
+        system::error_code ec)
+    {
+        {
+            BOOST_TEST_NE(ec.category().name(), nullptr);
+            BOOST_TEST(! ec.message().empty());
+            BOOST_TEST_EQ(ec, c);
+        }
+        {
+            auto cc = make_error_condition(c);
+            BOOST_TEST_NE(cc.category().name(), nullptr);
+            BOOST_TEST(! cc.message().empty());
+            BOOST_TEST_EQ(cc, c);
+        }
+    }
+
+    void
     run()
     {
         char const* const n = "boost.http.proto";
@@ -60,6 +79,7 @@ public:
         check(n, error::bad_list);
         check(n, error::bad_method);
         check(n, error::bad_number);
+        check(n, error::bad_payload);
         check(n, error::bad_version);
         check(n, error::bad_reason);
         check(n, error::bad_request_target);
@@ -77,6 +97,12 @@ public:
 
         check(n, error::numeric_overflow);
         check(n, error::multiple_content_length);
+
+        //---
+
+        check(n,
+            condition::need_more_input,
+            urls::grammar::error::need_more);
     }
 };
 

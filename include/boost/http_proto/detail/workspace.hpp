@@ -99,7 +99,7 @@ public:
 
     /** Return a pointer to the unused area.
     */
-    void*
+    unsigned char*
     data() noexcept
     {
         return front_;
@@ -124,7 +124,7 @@ public:
         @throws std::invalid_argument n >= this->size()
     */
     BOOST_HTTP_PROTO_DECL
-    void*
+    unsigned char*
     reserve_front(
         std::size_t n);
 
@@ -139,13 +139,13 @@ public:
         T const& t);
 
     BOOST_HTTP_PROTO_DECL
-    void*
+    unsigned char*
     reserve_back(
         std::size_t n);
 
 private:
     BOOST_HTTP_PROTO_DECL
-    void*
+    unsigned char*
     bump_down(
         std::size_t size,
         std::size_t align);

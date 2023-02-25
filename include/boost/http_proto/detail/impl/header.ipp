@@ -401,12 +401,13 @@ void
 header::
 on_start_line()
 {
-    if(kind ==
-        detail::kind::response)
-    {
-        // maybe status_int
-        update_payload();
-    }
+    // items in both the request-line
+    // and the status-line can affect
+    // the payload, for example whether
+    // or not EOF marks the end of the
+    // payload.
+
+    update_payload();
 }
 
 // called after a field is inserted
@@ -1193,6 +1194,7 @@ parse_field(
     }
     ++h.count;
     h.on_insert(id, rv->value);
+    ec = {};
 }
 
 void

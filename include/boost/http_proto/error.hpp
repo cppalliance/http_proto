@@ -76,6 +76,9 @@ enum class error
     /// Syntax error in number
     ,bad_number
 
+    /// Something wrong with payload fields
+    ,bad_payload
+
     /// Syntax error in HTTP-Version
     ,bad_version
 

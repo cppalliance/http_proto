@@ -20,6 +20,7 @@ namespace http_proto {
 struct parser::any_dynamic
 {
     virtual ~any_dynamic() = default;
+    virtual std::size_t size() const = 0;
     virtual buffers::mutable_buffer_span
         prepare(std::size_t) = 0;
     virtual void commit(std::size_t) = 0;
@@ -27,7 +28,7 @@ struct parser::any_dynamic
 
 template<class T>
 struct parser::any_dynamic_impl
-    : any_dynamic
+    : parser::any_dynamic
 {
     T t_;
     buffers::mutable_buffer b_[
@@ -44,8 +45,16 @@ struct parser::any_dynamic_impl
     {
     }
 
-    buffers::mutable_buffer_span
-    prepare(std::size_t n)
+    std::size_t
+    size() const override
+    {
+        return t_.size();
+    }
+
+    auto
+    prepare(
+        std::size_t n) ->
+            buffers::mutable_buffer_span override
     {
         std::size_t i = 0;
         for(buffers::mutable_buffer b :
@@ -59,7 +68,8 @@ struct parser::any_dynamic_impl
     }
 
     void
-    commit(std::size_t n)
+    commit(
+        std::size_t n) override
     {
         t_.commit();
     }
@@ -82,20 +92,21 @@ set_body(
     if(body_ != body::in_place)
         detail::throw_logic_error();
 
-    auto& rv = ws_.push(
+    auto& dyn = ws_.push(
         any_dynamic_impl<typename
             std::decay<DynamicBuffer>::type>(
                 std::forward<DynamicBuffer>(b)));
+    dyn_ = &dyn;
     body_ = body::dynamic;
-    dynamic_ = &rv;
-    return rv;
+    on_set_body();
+    return dyn;
 }
 
 //------------------------------------------------
 
 template<class Sink>
 typename std::enable_if<
-    buffers::is_sink<Sink>::value,
+    is_sink<Sink>::value,
     typename std::decay<Sink>::type
         >::type
 parser::
@@ -106,12 +117,13 @@ set_body(
     if(body_ != body::in_place)
         detail::throw_logic_error();
 
-    auto& rv = ws_.push(
+    auto& s = ws_.push(
         std::forward<
             Sink>(sink));
+    sink_ = &s;
     body_ = body::sink;
-    sink_ = &rv;
-    return rv;
+    on_set_body();
+    return s;
 }
 
 } // http_proto

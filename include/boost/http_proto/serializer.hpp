@@ -12,12 +12,12 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error_types.hpp>
+#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
-#include <boost/buffers/source.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <cstdint>
 #include <memory>
@@ -133,10 +133,8 @@ public:
     template<
         class Source
 #ifndef BOOST_HTTP_PROTO_DOCS
-        ,class = typename
-            std::enable_if<
-                buffers::is_source<Source
-                    >::value>::type
+        ,class = typename std::enable_if<
+            is_source<Source>::value>::type
 #endif
     >
     auto
@@ -197,7 +195,7 @@ private:
     BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_buffers(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, buffers::source*);
+    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, source*);
 
     enum class style
     {
@@ -219,8 +217,8 @@ private:
         2;          // CRLF
 
     detail::workspace ws_;
-    buffers::source* src_;
     detail::array_of_const_buffers buf_;
+    source* src_;
 
     buffers::circular_buffer tmp0_;
     buffers::circular_buffer tmp1_;
@@ -233,7 +231,6 @@ private:
     bool is_done_;
     bool is_chunked_;
     bool is_expect_continue_;
-    bool is_reserving_ = false;
 };
 
 //------------------------------------------------

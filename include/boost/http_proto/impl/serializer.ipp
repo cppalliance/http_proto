@@ -430,7 +430,7 @@ void
 serializer::
 start_source(
     message_view_base const& m,
-    buffers::source* src)
+    source* src)
 {
     st_ = style::source;
     src_ = src;
@@ -439,7 +439,7 @@ start_source(
         2); // tmp
     //if(! cod_)
     {
-        buffers::buffered_base::allocator a(
+        buffered_base::allocator a(
             ws_.data(), ws_.size()/2, false);
         src->init(a);
         ws_.reserve_front(a.size_used());

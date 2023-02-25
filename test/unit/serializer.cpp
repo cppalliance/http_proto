@@ -31,7 +31,7 @@ namespace http_proto {
 
 struct serializer_test
 {
-    struct test_source : buffers::source
+    struct test_source : source
     {
         test_source()
             : s_("12345")

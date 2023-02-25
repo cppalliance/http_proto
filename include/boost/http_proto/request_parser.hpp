@@ -57,7 +57,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     request_view
-    get() const noexcept;
+    get() const;
 };
 
 } // http_proto

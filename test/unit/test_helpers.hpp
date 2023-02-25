@@ -13,6 +13,9 @@
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/response.hpp>
+#include <boost/buffers/buffer.hpp>
+#include <boost/buffers/buffer_copy.hpp>
+#include <boost/buffers/buffer_size.hpp>
 #include <boost/url/grammar/parse.hpp>
 
 #include "test_suite.hpp"
@@ -22,6 +25,29 @@
 
 namespace boost {
 namespace http_proto {
+
+inline
+std::string const&
+test_pattern()
+{
+    static std::string const pat =
+        "012" "34567" "89abcde";
+    return pat;
+}
+
+template<class Buffers>
+std::string
+test_to_string(Buffers const& bs)
+{
+    std::string s(
+        buffers::buffer_size(bs), 0);
+    s.resize(buffers::buffer_copy(
+        buffers::buffer(&s[0], s.size()),
+        bs));
+    return s;
+}
+
+//------------------------------------------------
 
 // Test that fields equals HTTP string
 void

@@ -13,13 +13,14 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/header_limits.hpp>
+#include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/mutable_buffer_pair.hpp>
-#include <boost/buffers/sink.hpp>
+#include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
@@ -31,7 +32,8 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
-struct parser_service;
+class parser_service;
+class filter;
 class request_parser;
 class response_parser;
 class context;
@@ -84,11 +86,31 @@ public:
         */
         bool apply_deflate_decoder = false;
 
-        /** Minimum space for in-place bodies.
+        /** Minimum space for payload buffering.
+
+            This value controls the following
+            settings:
+
+            @li The smallest allocated size of
+                the buffers used for reading
+                and decoding the payload.
+
+            @li The lowest guaranteed size of
+                an in-place body.
+
+            @li The largest size used to reserve
+                space in dynamic buffer bodies
+                when the payload size is not
+                known ahead of time.
+
+            This cannot be zero, and this cannot
+            be greater than @ref body_limit.
         */
-        std::size_t min_in_place_body = 4096;
+        std::size_t min_buffer = 4096;
 
         /** Largest permissible output size in prepare.
+
+            This cannot be zero.
         */
         std::size_t max_prepare = std::size_t(-1);
 
@@ -98,7 +120,7 @@ public:
     };
 
     using mutable_buffers_type =
-        buffers::mutable_buffer_pair;
+        buffers::mutable_buffer_span;
 
     struct stream;
 
@@ -139,7 +161,7 @@ public:
     bool
     got_header() const noexcept
     {
-        return st_ > state::headers;
+        return st_ > state::header;
     }
 
     /** Returns `true` if a complete message has been parsed.
@@ -223,7 +245,7 @@ public:
     template<class Sink>
 #ifndef BOOST_HTTP_PROTO_DOCS
     typename std::enable_if<
-        buffers::is_sink<Sink>::value,
+        is_sink<Sink>::value,
         typename std::decay<Sink>::type
             >::type
 #else
@@ -236,6 +258,10 @@ public:
     BOOST_HTTP_PROTO_DECL
     stream
     get_stream();
+
+    BOOST_HTTP_PROTO_DECL
+    string_view
+    in_place_body() const;
 
     //--------------------------------------------
 
@@ -252,13 +278,13 @@ public:
     release_buffered_data() noexcept;
 
 private:
-    detail::header const* safe_get_header() const;
-    void on_set_body();
-    void parse_body(error_code&);
-    void parse_chunk(error_code&);
-
     friend class request_parser;
     friend class response_parser;
+
+    detail::header const*
+        safe_get_header() const;
+    void on_headers(error_code&);
+    void on_set_body();
 
     template<class T>
     struct any_dynamic_impl;
@@ -268,11 +294,11 @@ private:
     enum class state
     {
         // order matters
-        need_start,
-        headers,        // header fields
-        headers_done,   // delivered headers
-        body,           // reading payload
-        complete,       // done
+        reset,
+        start,
+        header,
+        body,
+        complete,
     };
 
     enum class body
@@ -291,15 +317,16 @@ private:
     buffers::flat_buffer fb_;
     buffers::circular_buffer cb0_;
     buffers::circular_buffer cb1_;
-    buffers::circular_buffer* cb_;
-    buffers::sink* sink_;
-    any_dynamic* dynamic_;
+    buffers::circular_buffer* body_buf_;
+    buffers::mutable_buffer_pair mbp_;
+    any_dynamic* dyn_;
+    filter* filt_;
+    sink* sink_;
 
     state st_;
     body body_;
     bool got_eof_;
     bool head_response_;
-    std::uint64_t remain_;
 };
 
 //------------------------------------------------
