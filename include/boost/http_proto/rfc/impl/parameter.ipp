@@ -21,11 +21,11 @@ parameter_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     (void)it;
     (void)end;
-    return error_code{};
+    return system::error_code{};
 }
 
 } // http_proto

@@ -297,7 +297,8 @@ struct serializer_test
                 "\r\n");
             sr.start(req, test_source{});
             std::string s;
-            result<serializer::const_buffers_type> rv;
+            system::result<
+                serializer::const_buffers_type> rv;
             for(;;)
             {
                 rv = sr.prepare();
@@ -338,7 +339,8 @@ struct serializer_test
                 "\r\n");
             sr.start(req);
             std::string s;
-            result<serializer::const_buffers_type> rv;
+            system::result<
+                serializer::const_buffers_type> rv;
             for(;;)
             {
                 rv = sr.prepare();

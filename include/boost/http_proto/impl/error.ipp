@@ -18,11 +18,12 @@
 namespace boost {
 namespace http_proto {
 
-error_code
+system::error_code
 make_error_code(
     error ev) noexcept
 {
-    struct cat_type : error_category
+    struct cat_type
+        : system::error_category
     {
         cat_type() noexcept
             : error_category(
@@ -80,16 +81,17 @@ make_error_code(
     };
 
     static cat_type const cat{};
-    return error_code{static_cast<
+    return system::error_code{static_cast<
         std::underlying_type<
             error>::type>(ev), cat};
 }
 
-error_condition
+system::error_condition
 make_error_condition(
     condition cv) noexcept
 {
-    struct cat_type : error_category
+    struct cat_type
+        : system::error_category
     {
         cat_type() noexcept
             : error_category(
@@ -116,7 +118,7 @@ make_error_condition(
         bool
         equivalent(
             system::error_code const& ec,
-            int code) const noexcept
+            int code) const noexcept override
         {
             switch(static_cast<condition>(code))
             {
@@ -136,8 +138,8 @@ make_error_condition(
     };
 
     static cat_type const cat{};
-    return error_condition{static_cast<
-        std::underlying_type<
+    return system::error_condition{
+        static_cast<std::underlying_type<
             error>::type>(cv), cat};
 }
 

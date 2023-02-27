@@ -218,7 +218,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     parse(
-        error_code& ec);
+        system::error_code& ec);
 
     /** Attach a body
     */
@@ -283,7 +283,7 @@ private:
 
     detail::header const*
         safe_get_header() const;
-    void on_headers(error_code&);
+    void on_headers(system::error_code&);
     void on_set_body();
 
     template<class T>

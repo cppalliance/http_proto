@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/type_traits/make_void.hpp>
+#include <cstdint>
 #include <type_traits>
 
 namespace boost {
@@ -132,26 +133,26 @@ struct is_file : std::false_type {};
 template<class T>
 struct is_file<T, boost::void_t<decltype(
     std::declval<bool&>() = std::declval<T const&>().is_open(),
-    std::declval<T&>().close(std::declval<error_code&>()),
+    std::declval<T&>().close(std::declval<system::error_code&>()),
     std::declval<T&>().open(
         std::declval<char const*>(),
         std::declval<file_mode>(),
-        std::declval<error_code&>()),
+        std::declval<system::error_code&>()),
     std::declval<std::uint64_t&>() = std::declval<T&>().size(
-        std::declval<error_code&>()),
+        std::declval<system::error_code&>()),
     std::declval<std::uint64_t&>() = std::declval<T&>().pos(
-        std::declval<error_code&>()),
+        std::declval<system::error_code&>()),
     std::declval<T&>().seek(
         std::declval<std::uint64_t>(),
-        std::declval<error_code&>()),
+        std::declval<system::error_code&>()),
     std::declval<std::size_t&>() = std::declval<T&>().read(
         std::declval<void*>(),
         std::declval<std::size_t>(),
-        std::declval<error_code&>()),
+        std::declval<system::error_code&>()),
     std::declval<std::size_t&>() = std::declval<T&>().write(
         std::declval<void const*>(),
         std::declval<std::size_t>(),
-        std::declval<error_code&>())
+        std::declval<system::error_code&>())
             )>> : std::integral_constant<bool,
     std::is_default_constructible<T>::value &&
     std::is_destructible<T>::value

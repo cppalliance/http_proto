@@ -43,18 +43,20 @@ public:
 
     void
     check(
-        char const* name,
+        std::string name,
         condition c,
         system::error_code ec)
     {
         {
-            BOOST_TEST_NE(ec.category().name(), nullptr);
+            BOOST_TEST_NE(
+                ec.category().name(), nullptr);
             BOOST_TEST(! ec.message().empty());
             BOOST_TEST_EQ(ec, c);
         }
         {
             auto cc = make_error_condition(c);
-            BOOST_TEST_NE(cc.category().name(), nullptr);
+            BOOST_TEST_EQ(std::string(
+                cc.category().name()), name);
             BOOST_TEST(! cc.message().empty());
             BOOST_TEST_EQ(cc, c);
         }

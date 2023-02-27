@@ -42,7 +42,7 @@ struct ows_comma_t
     parse(
         char const*& it,
         char const* end) const noexcept ->
-            result<value_type>
+            system::result<value_type>
     {
         auto it1 = it;
         while(it != end)
@@ -96,7 +96,7 @@ struct list_rule_t<Rule>::
     parse(
         char const*& it,
         char const* end) const ->
-            result<value_type>
+            system::result<value_type>
     {
     //  first       => [ element / ( "," *( OWS "," ) [ OWS element ] ) ]
 
@@ -149,7 +149,7 @@ struct list_rule_t<Rule>::
     parse(
         char const*& it,
         char const* end) const ->
-            result<value_type>
+            system::result<value_type>
     {
     //  next        => "" / ( 1*( OWS "," ) [ OWS element ] )
 
@@ -182,7 +182,7 @@ list_rule_t<Rule>::
 parse(
     char const*& it,
     char const* end) const ->
-        result<value_type>
+        system::result<value_type>
 {
     return grammar::parse(it, end,
         grammar::range_rule(

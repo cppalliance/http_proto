@@ -22,7 +22,7 @@ crlf_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     if(it == end)
         return grammar::error::need_more;
@@ -44,7 +44,7 @@ version_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     value_type v = 0;
     if(it == end)
@@ -112,7 +112,7 @@ status_code_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     auto const dig =
         [](char c) -> int
@@ -183,7 +183,7 @@ field_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     if(it == end)
     {

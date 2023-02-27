@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_RFC_PARAMETER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/rfc/quoted_token_view.hpp>
+#include <boost/system/result.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -71,7 +71,7 @@ struct parameter_rule_t
     parse(
         char const*&,
         char const*) const noexcept ->
-            result<value_type>;
+            system::result<value_type>;
 };
 
 constexpr parameter_rule_t parameter_rule{};

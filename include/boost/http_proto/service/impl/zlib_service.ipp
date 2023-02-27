@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_SERVICE_IMPL_ZLIB_SERVICE_IPP
 
 #include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/system/result.hpp>
 #include "zlib.h"
 
 namespace boost {
@@ -38,11 +39,12 @@ enum class error
     version_err = -6
 };
 
-error_code
+system::error_code
 make_error_code(
     error ev) noexcept
 {
-    struct cat_t : error_category
+    struct cat_t
+        : system::error_category
     {
         cat_t() noexcept
             : error_category(
@@ -76,7 +78,7 @@ make_error_code(
         }
     };
     static cat_t const cat{};
-    return error_code{static_cast<
+    return system::error_code{static_cast<
         std::underlying_type<
             error>::type>(ev), cat};
 }

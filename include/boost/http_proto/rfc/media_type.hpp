@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_RFC_MEDIA_TYPE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/rfc/parameter.hpp>
 #include <boost/url/grammar/range_rule.hpp>
 

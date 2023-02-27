@@ -1030,7 +1030,7 @@ parse_start_line(
     header& h,
     header_limits const& lim,
     std::size_t new_size,
-    error_code& ec) noexcept
+    system::error_code& ec) noexcept
 {
     BOOST_ASSERT(h.size == 0);
     BOOST_ASSERT(h.prefix == 0);
@@ -1133,7 +1133,7 @@ parse_field(
     header& h,
     header_limits const& lim,
     std::size_t new_size,
-    error_code& ec) noexcept
+    system::error_code& ec) noexcept
 {
     if( new_size > lim.max_field)
         new_size = lim.max_field;
@@ -1202,7 +1202,7 @@ header::
 parse(
     std::size_t new_size,
     header_limits const& lim,
-    error_code& ec) noexcept
+    system::error_code& ec) noexcept
 {
     if( new_size > lim.max_size)
         new_size = lim.max_size;

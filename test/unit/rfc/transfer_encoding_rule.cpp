@@ -20,7 +20,7 @@ namespace http_proto {
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
-        result<transfer_coding>>::value);
+        system::result<transfer_coding>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
@@ -36,7 +36,7 @@ BOOST_STATIC_ASSERT(
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
-        result<transfer_coding>>::value);
+        system::result<transfer_coding>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<

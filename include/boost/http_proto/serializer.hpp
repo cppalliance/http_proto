@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
@@ -19,6 +18,7 @@
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/type_traits.hpp>
+#include <boost/system/result.hpp>
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -175,7 +175,8 @@ public:
     BOOST_HTTP_PROTO_DECL
     auto
     prepare() ->
-        result<const_buffers_type>;
+        system::result<
+            const_buffers_type>;
 
     /** Consume bytes from the output area.
     */

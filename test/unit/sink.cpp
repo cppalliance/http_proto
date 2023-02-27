@@ -43,9 +43,9 @@ struct sink_test
             results rv;
             if(fail_-- == 0)
             {
-                rv.ec = boost::system::error_code(
-                    boost::system::errc::invalid_argument,
-                    boost::system::generic_category());
+                rv.ec = system::error_code(
+                    system::errc::invalid_argument,
+                    system::generic_category());
                 return rv;
             }
             s_.append(static_cast<

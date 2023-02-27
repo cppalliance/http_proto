@@ -23,7 +23,7 @@ upgrade_protocol_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     value_type t;
     // token

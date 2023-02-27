@@ -28,7 +28,7 @@ class win32_unicode_path
     using WCHAR_ = boost::winapi::WCHAR_;
 
 public:
-    win32_unicode_path(const char* utf8_path, error_code& ec) {
+    win32_unicode_path(const char* utf8_path, system::error_code& ec) {
         int ret = mb2wide(utf8_path, static_buf_.data(),
             static_buf_.size());
         if (ret == 0)
@@ -36,8 +36,8 @@ public:
             int sz = mb2wide(utf8_path, nullptr, 0);
             if (sz == 0)
             {
-                ec.assign(boost::winapi::GetLastError(),
-                    system_category());
+                ec.assign(winapi::GetLastError(),
+                    system::system_category());
                 return;
             }
             dynamic_buf_.resize(sz);
@@ -46,8 +46,8 @@ public:
                 dynamic_buf_.size());
             if (ret2 == 0)
             {
-                ec.assign(boost::winapi::GetLastError(),
-                    system_category());
+                ec.assign(winapi::GetLastError(),
+                    system::system_category());
                 return;
             }
         }
@@ -63,14 +63,14 @@ public:
 private:
     int mb2wide(const char* utf8_path, WCHAR_* buf, size_t sz)
     {
-        return boost::winapi::MultiByteToWideChar(
-            boost::winapi::CP_UTF8_,
-            boost::winapi::MB_ERR_INVALID_CHARS_,
+        return winapi::MultiByteToWideChar(
+            winapi::CP_UTF8_,
+            winapi::MB_ERR_INVALID_CHARS_,
             utf8_path, -1,
             buf, static_cast<int>(sz));
     }
 
-    std::array<WCHAR_, boost::winapi::MAX_PATH_> static_buf_;
+    std::array<WCHAR_, winapi::MAX_PATH_> static_buf_;
     std::vector<WCHAR_> dynamic_buf_;
 };
 

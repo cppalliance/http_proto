@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_RFC_UPGRADE_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 
@@ -75,7 +74,7 @@ struct upgrade_protocol_rule_t
     parse(
         char const*& it,
         char const* end) const noexcept ->
-            result<value_type>;
+            system::result<value_type>;
 };
 
 constexpr upgrade_protocol_rule_t upgrade_protocol_rule{};

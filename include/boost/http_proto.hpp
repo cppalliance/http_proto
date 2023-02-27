@@ -14,7 +14,6 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/deflate.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/fields_base.hpp>

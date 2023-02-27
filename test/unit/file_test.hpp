@@ -136,29 +136,34 @@ test_file()
         BOOST_TEST(! f.is_open());
         BOOST_TEST(! fs::exists(path));
         {
-            error_code ec;
+            system::error_code ec;
             f.size(ec);
-            BOOST_TEST(ec == errc::bad_file_descriptor);
+            BOOST_TEST(ec ==
+                system::errc::bad_file_descriptor);
         }
         {
-            error_code ec;
+            system::error_code ec;
             f.pos(ec);
-            BOOST_TEST(ec == errc::bad_file_descriptor);
+            BOOST_TEST(ec ==
+                system::errc::bad_file_descriptor);
         }
         {
-            error_code ec;
+            system::error_code ec;
             f.seek(0, ec);
-            BOOST_TEST(ec == errc::bad_file_descriptor);
+            BOOST_TEST(ec ==
+                system::errc::bad_file_descriptor);
         }
         {
-            error_code ec;
+            system::error_code ec;
             f.read(buf, 0, ec);
-            BOOST_TEST(ec == errc::bad_file_descriptor);
+            BOOST_TEST(ec ==
+                system::errc::bad_file_descriptor);
         }
         {
-            error_code ec;
+            system::error_code ec;
             f.write(buf, 0, ec);
-            BOOST_TEST(ec == errc::bad_file_descriptor);
+            BOOST_TEST(ec ==
+                system::errc::bad_file_descriptor);
         }
     }
 
@@ -166,7 +171,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             create(path);
             f.open(path, file_mode::read, ec);
             BOOST_TEST(! ec);
@@ -178,7 +183,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             create(path);
             f.open(path, file_mode::scan, ec);
             BOOST_TEST(! ec);
@@ -190,7 +195,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(! fs::exists(path));
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
@@ -198,7 +203,7 @@ test_file()
         }
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(fs::exists(path));
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
@@ -211,7 +216,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(! fs::exists(path));
             f.open(path, file_mode::write_new, ec);
             BOOST_TEST(! ec);
@@ -219,7 +224,7 @@ test_file()
         }
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(fs::exists(path));
             f.open(path, file_mode::write_new, ec);
             BOOST_TEST(ec);
@@ -231,7 +236,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(! fs::exists(path));
             f.open(path, file_mode::write_existing, ec);
             BOOST_TEST(ec);
@@ -239,7 +244,7 @@ test_file()
         }
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             create(path);
             BOOST_TEST(fs::exists(path));
             f.open(path, file_mode::write_existing, ec);
@@ -252,7 +257,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(! fs::exists(path));
             f.open(path, file_mode::append, ec);
             BOOST_TEST(! ec);
@@ -267,7 +272,7 @@ test_file()
 
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(fs::exists(path));
             f.open(path, file_mode::append, ec);
             BOOST_TEST(! ec);
@@ -286,7 +291,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             BOOST_TEST(! fs::exists(path));
             f.open(path, file_mode::append_existing, ec);
             BOOST_TEST(ec);
@@ -295,7 +300,7 @@ test_file()
         remove(path);
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             create(path, "the cat");
             f.open(path, file_mode::append_existing, ec);
             BOOST_TEST(! ec);
@@ -314,7 +319,7 @@ test_file()
     {
         {
             File f1;
-            error_code ec;
+            system::error_code ec;
             f1.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
             BOOST_TEST(f1.is_open());
@@ -337,7 +342,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
             f.open(path, file_mode::write, ec);
@@ -350,7 +355,7 @@ test_file()
     {
         temp_path path2;
         {
-            error_code ec;
+            system::error_code ec;
 
             File f1;
             f1.open(path, file_mode::write, ec);
@@ -372,7 +377,7 @@ test_file()
     {
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
             f = std::move(f);
@@ -386,7 +391,7 @@ test_file()
         {
             File f;
             auto none = f.native_handle();
-            error_code ec;
+            system::error_code ec;
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
             auto fd = f.native_handle();
@@ -404,7 +409,7 @@ test_file()
         // write
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
 
@@ -426,7 +431,7 @@ test_file()
         // read
         {
             File f;
-            error_code ec;
+            system::error_code ec;
             f.open(path, file_mode::read, ec);
             BOOST_TEST(! ec);
 

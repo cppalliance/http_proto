@@ -250,7 +250,7 @@ fields_base(
     op_t op(*this);
     op.grow(s.size(), n);
     s.copy(h_.buf, s.size());
-    error_code ec;
+    system::error_code ec;
     // VFALCO This is using defaults?
     header_limits lim;
     h_.parse(s.size(), lim, ec);

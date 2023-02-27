@@ -188,7 +188,7 @@ public:
         string_view s) noexcept;
     BOOST_HTTP_PROTO_DECL void parse(
         std::size_t, header_limits const&,
-            error_code&) noexcept;
+            system::error_code&) noexcept;
 };
 
 } // detail

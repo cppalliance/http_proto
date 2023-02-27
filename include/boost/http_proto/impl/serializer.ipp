@@ -107,7 +107,8 @@ reset() noexcept
 auto
 serializer::
 prepare() ->
-    result<const_buffers_type>
+    system::result<
+        const_buffers_type>
 {
     // Precondition violation
     if(is_done_)

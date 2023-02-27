@@ -59,7 +59,8 @@ native_handle(std::FILE* f)
 
 void
 file_stdio::
-close(error_code& ec)
+close(
+    system::error_code& ec)
 {
     if(f_)
     {
@@ -67,7 +68,8 @@ close(error_code& ec)
         f_ = nullptr;
         if(failed)
         {
-            ec.assign(errno, generic_category());
+            ec.assign(errno,
+                system::generic_category());
             return;
         }
     }
@@ -76,7 +78,8 @@ close(error_code& ec)
 
 void
 file_stdio::
-open(char const* path, file_mode mode, error_code& ec)
+open(char const* path, file_mode mode,
+    system::error_code& ec)
 {
     if(f_)
     {
@@ -130,13 +133,15 @@ open(char const* path, file_mode mode, error_code& ec)
         if(! ev)
         {
             std::fclose(f0);
-            ec = make_error_code(errc::file_exists);
+            ec = make_error_code(
+                system::errc::file_exists);
             return;
         }
         else if(ev !=
-            errc::no_such_file_or_directory)
+            system::errc::no_such_file_or_directory)
         {
-            ec.assign(ev, generic_category());
+            ec.assign(ev,
+                system::generic_category());
             return;
         }
         s = L"wb";
@@ -171,7 +176,8 @@ open(char const* path, file_mode mode, error_code& ec)
             ::_wfopen_s(&f0, unicode_path.c_str(), L"rb+");
         if(ev)
         {
-            ec.assign(ev, generic_category());
+            ec.assign(ev,
+                system::generic_category());
             return;
         }
 #else
@@ -179,7 +185,8 @@ open(char const* path, file_mode mode, error_code& ec)
             std::fopen(path, "rb+");
         if(! f0)
         {
-            ec.assign(errno, generic_category());
+            ec.assign(errno,
+                system::generic_category());
             return;
         }
 #endif
@@ -194,18 +201,21 @@ open(char const* path, file_mode mode, error_code& ec)
     }
 
 #if defined(BOOST_MSVC) || defined(_MSVC_STL_VERSION)
-    auto const ev = ::_wfopen_s(&f_, unicode_path.c_str(), s);
+    auto const ev = ::_wfopen_s(
+        &f_, unicode_path.c_str(), s);
     if(ev)
     {
         f_ = nullptr;
-        ec.assign(ev, generic_category());
+        ec.assign(ev,
+            system::generic_category());
         return;
     }
 #else
     f_ = std::fopen(path, s);
     if(! f_)
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return;
     }
 #endif
@@ -213,35 +223,41 @@ open(char const* path, file_mode mode, error_code& ec)
 
 std::uint64_t
 file_stdio::
-size(error_code& ec) const
+size(
+    system::error_code& ec) const
 {
     if(! f_)
     {
-        ec = make_error_code(errc::bad_file_descriptor);
+        ec = make_error_code(
+            system::errc::bad_file_descriptor);
         return 0;
     }
     long pos = std::ftell(f_);
     if(pos == -1L)
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return 0;
     }
     int result = std::fseek(f_, 0, SEEK_END);
     if(result != 0)
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return 0;
     }
     long size = std::ftell(f_);
     if(size == -1L)
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         std::fseek(f_, pos, SEEK_SET);
         return 0;
     }
     result = std::fseek(f_, pos, SEEK_SET);
     if(result != 0)
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
     else
         ec = {};
     return size;
@@ -249,17 +265,20 @@ size(error_code& ec) const
 
 std::uint64_t
 file_stdio::
-pos(error_code& ec) const
+pos(
+    system::error_code& ec) const
 {
     if(! f_)
     {
-        ec = make_error_code(errc::bad_file_descriptor);
+        ec = make_error_code(
+            system::errc::bad_file_descriptor);
         return 0;
     }
     long pos = std::ftell(f_);
     if(pos == -1L)
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return 0;
     }
     ec = {};
@@ -268,39 +287,46 @@ pos(error_code& ec) const
 
 void
 file_stdio::
-seek(std::uint64_t offset, error_code& ec)
+seek(std::uint64_t offset,
+    system::error_code& ec)
 {
     if(! f_)
     {
-        ec = make_error_code(errc::bad_file_descriptor);
+        ec = make_error_code(
+            system::errc::bad_file_descriptor);
         return;
     }
     if(offset > static_cast<std::uint64_t>((std::numeric_limits<long>::max)()))
     {
-        ec = make_error_code(errc::invalid_seek);
+        ec = make_error_code(
+            system::errc::invalid_seek);
         return;
     }
     int result = std::fseek(f_,
         static_cast<long>(offset), SEEK_SET);
     if(result != 0)
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
     else
         ec = {};
 }
 
 std::size_t
 file_stdio::
-read(void* buffer, std::size_t n, error_code& ec) const
+read(void* buffer, std::size_t n,
+    system::error_code& ec) const
 {
     if(! f_)
     {
-        ec = make_error_code(errc::bad_file_descriptor);
+        ec = make_error_code(
+            system::errc::bad_file_descriptor);
         return 0;
     }
     auto nread = std::fread(buffer, 1, n, f_);
     if(std::ferror(f_))
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return 0;
     }
     return nread;
@@ -308,17 +334,20 @@ read(void* buffer, std::size_t n, error_code& ec) const
 
 std::size_t
 file_stdio::
-write(void const* buffer, std::size_t n, error_code& ec)
+write(void const* buffer, std::size_t n,
+    system::error_code& ec)
 {
     if(! f_)
     {
-        ec = make_error_code(errc::bad_file_descriptor);
+        ec = make_error_code(
+            system::errc::bad_file_descriptor);
         return 0;
     }
     auto nwritten = std::fwrite(buffer, 1, n, f_);
     if(std::ferror(f_))
     {
-        ec.assign(errno, generic_category());
+        ec.assign(errno,
+            system::generic_category());
         return 0;
     }
     return nwritten;

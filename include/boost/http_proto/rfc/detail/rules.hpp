@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_RFC_DETAIL_RULES_HPP
 #define BOOST_HTTP_PROTO_RFC_DETAIL_RULES_HPP
 
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -55,7 +54,7 @@ struct ows_comma_ows_rule_t
     parse(
         char const*& it,
         char const* end) const noexcept ->
-            result<void>
+            system::result<void>
     {
         // OWS
         it = grammar::find_if_not(
@@ -133,13 +132,13 @@ struct ows_rule_t
 {
     using value_type = void;
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) noexcept
     {
         skip_ows(it, end);
-        return error_code();
+        return system::error_code();
     }
 };
 
@@ -152,7 +151,7 @@ struct crlf_rule_t
 {
     using value_type = void;
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) const noexcept;
@@ -167,7 +166,7 @@ struct version_rule_t
 {
     using value_type = unsigned char;
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) const noexcept;
@@ -203,7 +202,7 @@ struct status_code_rule_t
         string_view s;
     };
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) const noexcept;
@@ -238,7 +237,7 @@ struct field_rule_t
         bool has_obs_fold = false;
     };
 
-    result<value_type>
+    system::result<value_type>
     parse(
         char const*& it,
         char const* end) const noexcept;

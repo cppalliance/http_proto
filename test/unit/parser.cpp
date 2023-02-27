@@ -48,7 +48,7 @@ struct parser_test
     feed(
         parser& pr,
         pieces& in,
-        error_code& ec)
+        system::error_code& ec)
     {
         if(! in.empty())
         {

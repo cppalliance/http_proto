@@ -98,7 +98,7 @@ typename std::enable_if<
 bad(
     R const& r,
     string_view s,
-    error_code const& e)
+    system::error_code const& e)
 {
     auto rv = grammar::parse(s, r);
     if(BOOST_TEST(rv.has_error()))

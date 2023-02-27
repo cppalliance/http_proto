@@ -30,6 +30,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/file_base.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -115,7 +116,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    close(error_code& ec);
+    close(system::error_code& ec);
 
     /** Open a file at the given path with the specified mode
 
@@ -127,7 +128,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    open(char const* path, file_mode mode, error_code& ec);
+    open(char const* path, file_mode mode, system::error_code& ec);
 
     /** Return the size of the open file
 
@@ -137,7 +138,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::uint64_t
-    size(error_code& ec) const;
+    size(system::error_code& ec) const;
 
     /** Return the current position in the open file
 
@@ -147,7 +148,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::uint64_t
-    pos(error_code& ec) const;
+    pos(system::error_code& ec) const;
 
     /** Adjust the current position in the open file
 
@@ -157,7 +158,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     void
-    seek(std::uint64_t offset, error_code& ec);
+    seek(std::uint64_t offset, system::error_code& ec);
 
     /** Read from the open file
 
@@ -169,7 +170,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    read(void* buffer, std::size_t n, error_code& ec) const;
+    read(void* buffer, std::size_t n, system::error_code& ec) const;
 
     /** Write to the open file
 
@@ -181,7 +182,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    write(void const* buffer, std::size_t n, error_code& ec);
+    write(void const* buffer, std::size_t n, system::error_code& ec);
 };
 
 } // http_proto

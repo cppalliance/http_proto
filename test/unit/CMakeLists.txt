@@ -20,7 +20,6 @@ set(PFILES
     buffered_base.cpp
     context.cpp
     error.cpp
-    error_types.cpp
     field.cpp
     fields.cpp
     fields_base.cpp

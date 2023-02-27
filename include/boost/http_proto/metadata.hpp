@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_METADATA_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/error.hpp> // VFALCO TEMPORARY
+#include <boost/system/error_code.hpp>
 #include <cstdint>
 #include <cstdlib>
 
@@ -66,7 +66,7 @@ struct metadata
     {
         /** Error status of Connection
         */
-        error_code ec;
+        system::error_code ec;
 
         /** The total number of fields
         */
@@ -90,7 +90,7 @@ struct metadata
 
         constexpr
         connection_t(
-            error_code ec_,
+            system::error_code ec_,
             std::size_t count_,
             bool close_,
             bool keep_alive_,
@@ -113,7 +113,7 @@ struct metadata
     {
         /** Error status of Content-Length
         */
-        error_code ec;
+        system::error_code ec;
 
         /** The total number of fields
         */
@@ -133,7 +133,7 @@ struct metadata
 
         constexpr
         content_length_t(
-            error_code ec_,
+            system::error_code ec_,
             std::size_t count_,
             std::uint64_t value_) noexcept
             : ec(ec_)
@@ -152,7 +152,7 @@ struct metadata
     {
         /** Error status of Expect
         */
-        error_code ec;
+        system::error_code ec;
 
         /** The total number of fields
         */
@@ -168,7 +168,7 @@ struct metadata
 
         constexpr
         expect_t(
-            error_code ec_,
+            system::error_code ec_,
             std::size_t count_,
             bool is_100_continue_) noexcept
             : ec(ec_)
@@ -187,7 +187,7 @@ struct metadata
     {
         /** Error status of Content-Length
         */
-        error_code ec;
+        system::error_code ec;
 
         /** The total number of fields
         */
@@ -207,7 +207,7 @@ struct metadata
 
         constexpr
         transfer_encoding_t(
-            error_code ec_,
+            system::error_code ec_,
             std::size_t count_,
             std::size_t codings_,
             bool is_chunked_) noexcept
@@ -228,7 +228,7 @@ struct metadata
     {
         /** Error status of Upgrade
         */
-        error_code ec;
+        system::error_code ec;
 
         /** The total number of fields
         */
@@ -244,7 +244,7 @@ struct metadata
 
         constexpr
         upgrade_t(
-            error_code ec_,
+            system::error_code ec_,
             std::size_t count_,
             bool websocket_) noexcept
             : ec(ec_)

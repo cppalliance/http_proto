@@ -27,6 +27,8 @@ namespace http_proto {
 
 struct metadata_test
 {
+    system::error_code const ok{};
+
     // make sure that subrange correctly
     // uses the count information in
     // the metadata
@@ -184,32 +186,32 @@ struct metadata_test
             "Connection: close\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, true, false, false });
+            { ok, 1, true, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: keep-alive\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, false, true, false });
+            { ok, 1, false, true, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: upgrade\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, false, false, true});
+            { ok, 1, false, false, true});
 
         req("GET / HTTP/1.1\r\n"
             "Connection: upgrade, close, keep-alive\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, true, true, true});
+            { ok, 1, true, true, true});
 
         req("GET / HTTP/1.1\r\n"
             "Server: localhost\r\n"
             "Connection: upgrade, close, keep-alive\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, true, true, true});
+            { ok, 1, true, true, true});
 
         //----------------------------------------
 
@@ -219,7 +221,7 @@ struct metadata_test
             {
                 f.append(field::connection, "close");
             },
-            { error_code(), 1, true, false, false });
+            { ok, 1, true, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
@@ -227,7 +229,7 @@ struct metadata_test
             {
                 f.append(field::connection, "keep-alive");
             },
-            { error_code(), 1, false, true, false});
+            { ok, 1, false, true, false});
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
@@ -235,7 +237,7 @@ struct metadata_test
             {
                 f.append(field::connection, "upgrade");
             },
-            { error_code(), 1, false, false, true});
+            { ok, 1, false, false, true});
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
@@ -245,7 +247,7 @@ struct metadata_test
                 f.append(field::connection, "keep-alive");
                 f.append(field::connection, "upgrade");
             },
-            { error_code(), 3, true, true, true});
+            { ok, 3, true, true, true});
 
         req("GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
@@ -256,7 +258,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::connection));
             },
-            { error_code(), 2, false, true, true});
+            { ok, 2, false, true, true});
 
         // erase all
         req("GET / HTTP/1.1\r\n"
@@ -267,7 +269,7 @@ struct metadata_test
             {
                 f.erase(field::connection);
             },
-            { error_code(), 0, false, false, false});
+            { ok, 0, false, false, false});
     }
 
     void
@@ -307,7 +309,7 @@ struct metadata_test
             "Content-Length: 0\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, 0 });
+            { ok, 1, 0 });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -315,7 +317,7 @@ struct metadata_test
             "Content-Length: 2\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 2, 2 });
+            { ok, 2, 2 });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -337,7 +339,7 @@ struct metadata_test
                 f.erase(f.find(
                     field::content_length));
             },
-            { error_code{}, 1, 42 });
+            { ok, 1, 42 });
 
         // remove duplicate
         check(
@@ -350,7 +352,7 @@ struct metadata_test
                 f.erase(f.find(
                     field::content_length));
             },
-            { error_code{}, 1, 42 });
+            { ok, 1, 42 });
 
         // remove duplicate
         check(
@@ -364,7 +366,7 @@ struct metadata_test
                 f.erase(f.find(
                     field::content_length));
             },
-            { error_code{}, 2, 42 });
+            { ok, 2, 42 });
 
         // remove last
         check(
@@ -376,7 +378,7 @@ struct metadata_test
                 f.erase(f.find(
                     field::content_length));
             },
-            { error_code{}, 0, 0 });
+            { ok, 0, 0 });
 
         // erase all
         check(
@@ -389,7 +391,7 @@ struct metadata_test
             {
                 f.erase(field::content_length);
             },
-            { error_code{}, 0, 0 });
+            { ok, 0, 0 });
 
         // erase all
         check(
@@ -402,7 +404,7 @@ struct metadata_test
             {
                 f.erase(field::content_length);
             },
-            { error_code{}, 0, 0 });
+            { ok, 0, 0 });
     }
 
     void
@@ -427,14 +429,14 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 0, 0, false });
+            { ok, 0, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 1, true });
+            { ok, 1, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -486,35 +488,35 @@ struct metadata_test
             "Transfer-Encoding: compress\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 1, false });
+            { ok, 1, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: deflate\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 1, false });
+            { ok, 1, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: gzip\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 1, false });
+            { ok, 1, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: custom;a=1\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 1, false});
+            { ok, 1, 1, false});
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: a,b,c\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 1, 3, false});
+            { ok, 1, 3, false});
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -522,7 +524,7 @@ struct metadata_test
             "Transfer-Encoding: x,y\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code{}, 2, 5, false});
+            { ok, 2, 5, false});
 
         //----------------------------------------
 
@@ -534,7 +536,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { error_code(), 0, 0, false });
+            { ok, 0, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -545,7 +547,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { error_code(), 1, 1, true });
+            { ok, 1, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -557,7 +559,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { error_code(), 1, 1, true });
+            { ok, 1, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -568,7 +570,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { error_code(), 0, 0, false });
+            { ok, 0, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -581,7 +583,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { error_code(), 2, 2, true });
+            { ok, 2, 2, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -594,7 +596,7 @@ struct metadata_test
             {
                 f.erase(field::transfer_encoding);
             },
-            { error_code(), 0, 0, false });
+            { ok, 0, 0, false });
     }
 
     void
@@ -619,14 +621,14 @@ struct metadata_test
             "Upgrade: websocket\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: WEBSOCKET\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -663,7 +665,7 @@ struct metadata_test
             "Upgrade: chaka\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -671,14 +673,14 @@ struct metadata_test
             "Upgrade: rick/morty\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 2, true });
+            { ok, 2, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: websocket/2\r\n"
             "\r\n",
             [](message_base&){},
-            { error_code(), 1, false });
+            { ok, 1, false });
 
         //----------------------------------------
 
@@ -689,7 +691,7 @@ struct metadata_test
             {
                 f.append(field::upgrade, "http/2");
             },
-            { error_code(), 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -699,7 +701,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::upgrade));
             },
-            { error_code(), 0, false });
+            { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -709,7 +711,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::upgrade));
             },
-            { error_code(), 0, false });
+            { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -720,7 +722,7 @@ struct metadata_test
                 f.append(field::upgrade, "chaka");
                 f.erase(f.find(field::upgrade));
             },
-            { error_code(), 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -731,7 +733,7 @@ struct metadata_test
                 f.append(field::upgrade, "websocket");
                 f.erase(f.find(field::upgrade));
             },
-            { error_code(), 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -743,7 +745,7 @@ struct metadata_test
             {
                 f.erase(field::upgrade);
             },
-            { error_code(), 0, false });
+            { ok, 0, false });
     }
 
     void

@@ -84,7 +84,7 @@ struct list_rule_t
     parse(
         char const*& it,
         char const* end) const ->
-            result<value_type>;
+            system::result<value_type>;
 
 private:
     struct first_rule;

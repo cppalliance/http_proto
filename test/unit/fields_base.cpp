@@ -863,7 +863,7 @@ struct fields_base_test
                 response const res(s);
                 BOOST_TEST_EQ(
                     res.metadata().expect.ec,
-                    error_code());
+                    system::error_code());
                 BOOST_TEST_EQ(
                     res.metadata().expect.count,
                     res.count(field::expect));

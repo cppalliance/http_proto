@@ -466,7 +466,7 @@ commit_eof()
 void
 parser::
 parse(
-    error_code& ec)
+    system::error_code& ec)
 {
     ec = {};
     switch(st_)
@@ -689,7 +689,7 @@ safe_get_header() const ->
 void
 parser::
 on_headers(
-    error_code& ec)
+    system::error_code& ec)
 {
     auto const overread =
         fb_.size() - h_.size;

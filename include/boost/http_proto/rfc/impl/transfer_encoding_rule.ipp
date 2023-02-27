@@ -37,7 +37,7 @@ struct tparam_rule_t
     parse(
         char const*& it,
         char const* end) const noexcept ->
-            result<value_type>
+            system::result<value_type>
     {
         value_type t;
         auto it0 = it;
@@ -112,7 +112,7 @@ transfer_coding_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
-        result<value_type>
+        system::result<value_type>
 {
     value_type t;
     {

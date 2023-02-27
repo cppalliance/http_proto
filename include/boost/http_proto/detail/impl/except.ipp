@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_EXCEPT_IPP
 
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/version.hpp>
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
@@ -93,11 +94,11 @@ throw_runtime_error(
 
 void
 throw_system_error(
-    error_code const& ec,
+    system::error_code const& ec,
     source_location const& loc)
 {
     throw_exception(
-        system_error(ec), loc);
+        system::system_error(ec), loc);
 }
 
 void
@@ -106,7 +107,7 @@ throw_system_error(
     source_location const& loc)
 {
     throw_exception(
-        system_error(e), loc);
+        system::system_error(e), loc);
 }
 
 } // detail

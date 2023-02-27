@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_RFC_QUOTED_TOKEN_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error_types.hpp>
 #include <boost/http_proto/rfc/quoted_token_view.hpp>
+#include <boost/system/result.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -59,7 +59,7 @@ struct quoted_token_rule_t
     parse(
         char const*& it,
         char const* end) const noexcept ->
-            result<value_type>;
+            system::result<value_type>;
 };
 
 constexpr quoted_token_rule_t quoted_token_rule{};
