@@ -39,6 +39,10 @@ enum class error
     */
     ,end_of_stream
 
+    /** The in_place buffer is full
+    */
+    ,in_place_overflow
+
     /** Additional data is required
     */
     ,need_data
@@ -163,6 +167,15 @@ enum class error
         with different field values.
     */
     ,multiple_content_length
+
+    //
+    // Other errors
+    //
+
+    /**
+     *  A dynamic buffer's maximum size would be exceeded
+    */
+    ,buffer_overflow
 };
 
 // VFALCO we need a bad_message condition?
@@ -173,7 +186,7 @@ enum class condition
 {
     /** More input data is required.
     */
-    need_more_input,
+    need_more_input
 };
 
 } // http_proto

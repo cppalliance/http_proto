@@ -1198,6 +1198,8 @@ struct metadata_test
     void
     run()
     {
+        system::result<int> rv;
+
         testSubrange();
         testConnection();
         testContentLength();

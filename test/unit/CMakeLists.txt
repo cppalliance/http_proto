@@ -26,6 +26,7 @@ set(PFILES
     fields_view.cpp
     fields_view_base.cpp
     file.cpp
+    file_test.hpp
     file_base.cpp
     file_body.cpp
     file_posix.cpp

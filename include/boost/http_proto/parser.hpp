@@ -21,6 +21,7 @@
 #include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
+#include <boost/buffers/any_dynamic_buffer.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -121,6 +122,9 @@ public:
     using mutable_buffers_type =
         buffers::mutable_buffer_span;
 
+    using const_buffers_type =
+        buffers::const_buffer_span;
+
     struct stream;
 
     //--------------------------------------------
@@ -175,6 +179,31 @@ public:
         return st_ == state::complete;
     }
 
+    /** Returns `true` if the end of the stream was reached.
+
+        The end of the stream is encountered
+        when one of the following conditions
+        occurs:
+
+        @li @ref commit_eof was called and there
+            is no more data left to parse, or
+
+        @li An unrecoverable error occurred
+            during parsing.
+
+        When the end of stream is reached, the
+            function @ref reset must be called
+            to start parsing a new stream.
+    */
+    bool
+    is_end_of_stream() const noexcept
+    {
+        return
+            st_ == state::reset ||
+            (   st_ == state::complete &&
+                got_eof_);
+    }
+
     //--------------------------------------------
     //
     // Modifiers
@@ -223,24 +252,23 @@ public:
     */
     // VFALCO Should this function have
     //        error_code& ec and call parse?
-    template<class DynamicBuffer>
 #ifndef BOOST_HTTP_PROTO_DOCS
-    typename std::enable_if<
-        buffers::is_dynamic_buffer<
-            DynamicBuffer>::value,
-        typename std::decay<
-            DynamicBuffer>::type
-                >::type
+    template<
+        class DynamicBuffer
+        , class = typename std::enable_if<
+            buffers::is_dynamic_buffer<
+                DynamicBuffer>::value
+            >::type
+    >
 #else
-    typename std::decay<
-        DynamicBuffer>::type
+    template<class DynamicBuffer>
 #endif
+    typename std::decay<
+        DynamicBuffer>::type&
     set_body(DynamicBuffer&& b);
 
     /** Attach a body
     */
-    // VFALCO Should this function have
-    //        error_code& ec and call parse?
     template<class Sink>
 #ifndef BOOST_HTTP_PROTO_DOCS
     typename std::enable_if<
@@ -252,15 +280,21 @@ public:
 #endif
     set_body(Sink&& sink);
 
-    /** Return a stream for receiving body data.
+    /** Return the available body data and consume it.
+
+        The buffer referenced by the string view
+        will be invalidated if any member function
+        of the parser is called.
     */
     BOOST_HTTP_PROTO_DECL
-    stream
-    get_stream();
+    const_buffers_type
+    pull_some();
 
+    /** Return the complete body as a contiguous character buffer.
+    */
     BOOST_HTTP_PROTO_DECL
     core::string_view
-    in_place_body() const;
+    body() const noexcept;
 
     //--------------------------------------------
 
@@ -282,13 +316,12 @@ private:
 
     detail::header const*
         safe_get_header() const;
+    bool is_plain() const noexcept;
     void on_headers(system::error_code&);
-    void on_set_body();
 
-    template<class T>
-    struct any_dynamic_impl;
-    struct any_dynamic;
-    static constexpr unsigned dynamic_N_ = 8;
+    BOOST_HTTP_PROTO_DECL void on_set_body();
+
+    static constexpr unsigned buffers_N = 8;
 
     enum class state
     {
@@ -297,76 +330,39 @@ private:
         start,
         header,
         body,
+        body_set,
         complete,
     };
 
-    enum class body
+    enum class how
     {
         in_place,
         dynamic,
         sink,
-        stream
+        pull
     };
 
     context& ctx_;
     parser_service& svc_;
     detail::workspace ws_;
     detail::header h_;
+    std::uint64_t body_avail_;      // in body_buf_
+    std::uint64_t body_total_;      // total output
+    std::uint64_t payload_remain_;  // if known
 
     buffers::flat_buffer fb_;
     buffers::circular_buffer cb0_;
     buffers::circular_buffer cb1_;
     buffers::circular_buffer* body_buf_;
     buffers::mutable_buffer_pair mbp_;
-    any_dynamic* dyn_;
+    buffers::any_dynamic_buffer* dyn_;
     filter* filt_;
     sink* sink_;
 
     state st_;
-    body body_;
+    how how_;
     bool got_eof_;
     bool head_response_;
-};
-
-//------------------------------------------------
-
-struct parser::stream
-{
-    /** Constructor.
-    */
-    stream() = default;
-
-    /** Constructor.
-    */
-    stream(stream const&) = default;
-
-    /** Constructor.
-    */
-    stream& operator=
-        (stream const&) = default;
-
-    using buffers_type =
-        buffers::const_buffer_pair;
-
-    BOOST_HTTP_PROTO_DECL
-    buffers_type
-    data() const noexcept;
-
-    BOOST_HTTP_PROTO_DECL
-    void
-    consume(std::size_t n);
-
-private:
-    friend class parser;
-
-    explicit
-    stream(
-        parser& pr) noexcept
-        : pr_(&pr)
-    {
-    }
-
-    parser* pr_ = nullptr;
 };
 
 //------------------------------------------------

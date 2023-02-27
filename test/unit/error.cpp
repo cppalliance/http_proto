@@ -70,6 +70,7 @@ public:
         check(n, error::expect_100_continue);
         check(n, error::end_of_message);
         check(n, error::end_of_stream);
+        check(n, error::in_place_overflow);
         check(n, error::need_data);
 
         check(n, error::bad_connection);
@@ -99,6 +100,8 @@ public:
 
         check(n, error::numeric_overflow);
         check(n, error::multiple_content_length);
+
+        check(n, error::buffer_overflow);
 
         //---
 

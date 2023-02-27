@@ -69,6 +69,11 @@ struct BOOST_SYMBOL_VISIBLE
         @li This is the first call to @ref write,
             or the last value of `more` was `true`.
 
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.bytes == buffer_size(bs)
+        @endcode
+
         @return The result of the operation.
 
         @param bs The buffers to use.

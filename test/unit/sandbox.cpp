@@ -14,10 +14,10 @@ namespace http_proto {
 
 /*
     Four body styles for `parser`
-        * Specify a DynamicBuffer
-        * Specify a Sink
-        * Read from a parser::stream
         * in-place
+        * a DynamicBuffer
+        * a Sink
+        * a parser::stream
 
     Four body styles for `serializer`
         * Specify a ConstBufferSequence
@@ -44,6 +44,17 @@ struct sandbox_test
     void
     run()
     {
+/*
+        std::string s;
+        read_header( sock, pr );
+        char temp[1024];
+        auto mb = buffers::buffer(temp);
+        while(! pr.is_complete())
+        {
+            auto[ec, n] = co_await
+                async_read_some( sock, pr, mb );
+        }
+*/
     }
 };
 

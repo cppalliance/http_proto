@@ -10,6 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 #define BOOST_HTTP_PROTO_IMPL_ERROR_HPP
 
+#include <boost/core/detail/string_view.hpp>
+#include <boost/system/error_category.hpp>
 #include <boost/system/is_error_code_enum.hpp>
 #include <boost/system/is_error_condition_enum.hpp>
 
@@ -37,15 +39,70 @@ struct is_error_condition_enum<
 
 namespace http_proto {
 
-BOOST_HTTP_PROTO_DECL
+namespace detail {
+
+struct BOOST_SYMBOL_VISIBLE
+    error_cat_type
+    : system::error_category
+{
+    BOOST_HTTP_PROTO_DECL const char* name(
+        ) const noexcept override;
+    BOOST_HTTP_PROTO_DECL std::string message(
+        int) const override;
+    BOOST_HTTP_PROTO_DECL char const* message(
+        int, char*, std::size_t
+            ) const noexcept override;
+    BOOST_SYSTEM_CONSTEXPR error_cat_type()
+        : error_category(0x3663257e7585fbfd)
+    {
+    }
+};
+
+struct BOOST_SYMBOL_VISIBLE
+    condition_cat_type
+    : system::error_category
+{
+    BOOST_HTTP_PROTO_DECL const char* name(
+        ) const noexcept override;
+    BOOST_HTTP_PROTO_DECL std::string message(
+        int) const override;
+    BOOST_HTTP_PROTO_DECL char const* message(
+        int, char*, std::size_t
+            ) const noexcept override;
+    BOOST_HTTP_PROTO_DECL bool equivalent(
+        system::error_code const&, int
+            ) const noexcept override;
+    BOOST_SYSTEM_CONSTEXPR condition_cat_type()
+        : error_category(0xa36e10f16c666a7)
+    {
+    }
+};
+
+} // detail
+
+inline
 system::error_code
 make_error_code(
-    error ev) noexcept;
+    error ev) noexcept
+{
+    static BOOST_SYSTEM_CONSTEXPR
+        detail::error_cat_type cat{};
+    return system::error_code{
+        static_cast<std::underlying_type<
+            error>::type>(ev), cat};
+}
 
-BOOST_HTTP_PROTO_DECL
+inline
 system::error_condition
 make_error_condition(
-    condition c) noexcept;
+    condition c) noexcept
+{
+    static BOOST_SYSTEM_CONSTEXPR
+        detail::condition_cat_type cat{};
+    return system::error_condition{
+        static_cast<std::underlying_type<
+            condition>::type>(c), cat};
+}
 
 } // http_proto
 } // boost

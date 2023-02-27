@@ -39,49 +39,7 @@ enum class error
     version_err = -6
 };
 
-system::error_code
-make_error_code(
-    error ev) noexcept
-{
-    struct cat_t
-        : system::error_category
-    {
-        cat_t() noexcept
-            : error_category(
-                0xe6c6d0215d1d6e22)
-        {
-        }
-            
-        const char*
-        name() const noexcept override
-        {
-            return "boost.http.proto.zlib";
-        }
-
-        std::string
-        message(int ev) const override
-        {
-            switch(static_cast<error>(ev))
-            {
-            case error::ok: return "Z_OK";
-            case error::stream_end: return "Z_STREAM_END";
-            case error::need_dict: return "Z_NEED_DICT";
-            case error::errno_: return "Z_ERRNO";
-            case error::stream_err: return "Z_STREAM_ERROR";
-            case error::data_err: return "Z_DATA_ERROR";
-            case error::mem_err: return "Z_MEM_ERROR";
-            case error::buf_err: return "Z_BUF_ERROR";
-            case error::version_err: return "Z_VERSION_ERROR";
-            default:
-                return "unknown";
-            }
-        }
-    };
-    static cat_t const cat{};
-    return system::error_code{static_cast<
-        std::underlying_type<
-            error>::type>(ev), cat};
-}
+//------------------------------------------------
 } // detail
 } // zlib
 } // http_proto
@@ -96,6 +54,63 @@ struct is_error_code_enum<
 namespace http_proto {
 namespace zlib {
 namespace detail {
+//------------------------------------------------
+
+struct error_cat_type
+    : system::error_category
+{
+    BOOST_SYSTEM_CONSTEXPR
+    error_cat_type() noexcept
+        : error_category(
+            0xe6c6d0215d1d6e22)
+    {
+    }
+            
+    const char*
+    name() const noexcept override
+    {
+        return "boost.http.proto.zlib";
+    }
+
+    std::string
+    message( int ev ) const override
+    {
+        return message( ev, nullptr, 0 );
+    }
+
+    char const*
+    message(
+        int ev,
+        char*,
+        std::size_t) const noexcept override
+    {
+        switch(static_cast<error>(ev))
+        {
+        case error::ok: return "Z_OK";
+        case error::stream_end: return "Z_STREAM_END";
+        case error::need_dict: return "Z_NEED_DICT";
+        case error::errno_: return "Z_ERRNO";
+        case error::stream_err: return "Z_STREAM_ERROR";
+        case error::data_err: return "Z_DATA_ERROR";
+        case error::mem_err: return "Z_MEM_ERROR";
+        case error::buf_err: return "Z_BUF_ERROR";
+        case error::version_err: return "Z_VERSION_ERROR";
+        default:
+            return "unknown";
+        }
+    }
+};
+
+system::error_code
+make_error_code(
+    error ev) noexcept
+{
+    static BOOST_SYSTEM_CONSTEXPR
+        error_cat_type cat{};
+    return system::error_code{static_cast<
+        std::underlying_type<
+            error>::type>(ev), cat};
+}
 
 //------------------------------------------------
 
