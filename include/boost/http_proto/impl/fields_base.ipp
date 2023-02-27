@@ -27,8 +27,8 @@ class fields_base::
     op_t
 {
     fields_base& self_;
-    string_view* s0_;
-    string_view* s1_;
+    core::string_view* s0_;
+    core::string_view* s1_;
     char* buf_ = nullptr;
     char const* cbuf_ = nullptr;
     std::size_t cap_ = 0;
@@ -37,8 +37,8 @@ public:
     explicit
     op_t(
         fields_base& self,
-        string_view* s0 = nullptr,
-        string_view* s1 = nullptr) noexcept
+        core::string_view* s0 = nullptr,
+        core::string_view* s1 = nullptr) noexcept
         : self_(self)
         , s0_(s0)
         , s1_(s1)
@@ -230,7 +230,7 @@ fields_base(
 fields_base::
 fields_base(
     detail::kind k,
-    string_view s)
+    core::string_view s)
     : fields_view_base(&h_)
     , h_(detail::empty{k})
 {
@@ -413,7 +413,7 @@ erase(
 std::size_t
 fields_base::
 erase(
-    string_view name) noexcept
+    core::string_view name) noexcept
 {
     auto it0 = find(name);
     auto const end_ = end();
@@ -466,7 +466,7 @@ void
 fields_base::
 set(
     iterator it,
-    string_view value)
+    core::string_view value)
 {
     auto const i = it.i_;
     auto const& e0 = h_.tab()[i];
@@ -571,7 +571,7 @@ void
 fields_base::
 set(
     field id,
-    string_view value)
+    core::string_view value)
 {
     BOOST_ASSERT(
         id != field::unknown);
@@ -601,8 +601,8 @@ set(
 void
 fields_base::
 set(
-    string_view name,
-    string_view value)
+    core::string_view name,
+    core::string_view value)
 {
     auto const i0 = h_.find(name);
     if(i0 != h_.count)
@@ -669,8 +669,8 @@ void
 fields_base::
 insert_impl(
     field id,
-    string_view name,
-    string_view value,
+    core::string_view name,
+    core::string_view value,
     std::size_t before)
 {
     auto const tab0 = h_.tab_();

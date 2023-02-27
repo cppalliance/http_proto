@@ -47,9 +47,9 @@ operator*() const noexcept ->
         ph_->cbuf + ph_->prefix;
     return {
         e.id,
-        string_view(
+        core::string_view(
             p + e.np, e.nn),
-        string_view(
+        core::string_view(
             p + e.vp, e.vn) };
 }
 
@@ -68,9 +68,9 @@ operator*() const noexcept ->
         ph_->cbuf + ph_->prefix;
     return {
         e.id,
-        string_view(
+        core::string_view(
             p + e.np, e.nn),
-        string_view(
+        core::string_view(
             p + e.vp, e.vn) };
 }
 
@@ -109,7 +109,7 @@ operator*() const noexcept ->
         ph_->tab()[i_];
     auto const p =
         ph_->cbuf + ph_->prefix;
-    return string_view(
+    return core::string_view(
         p + e.vp, e.vn);
 }
 
@@ -138,14 +138,14 @@ operator++() noexcept ->
     }
     auto const p =
         ph_->cbuf + ph_->prefix;
-    auto name =
-        string_view(p + e->np, e->nn);
+    auto name = core::string_view(
+        p + e->np, e->nn);
     ++i_;
     --e;
     while(i_ != ph_->count)
     {
         if(grammar::ci_is_equal(
-            name, string_view(
+            name, core::string_view(
                 p + e->np, e->nn)))
             break;
         ++i_;
@@ -171,7 +171,7 @@ exists(
 bool
 fields_view_base::
 exists(
-    string_view name) const noexcept
+    core::string_view name) const noexcept
 {
     return find(name) != end();
 }
@@ -189,7 +189,8 @@ count(field id) const noexcept
 
 std::size_t
 fields_view_base::
-count(string_view name) const noexcept
+count(
+    core::string_view name) const noexcept
 {
     std::size_t n = 0;
     for(auto v : *this)
@@ -217,7 +218,8 @@ find(field id) const noexcept ->
 
 auto
 fields_view_base::
-find(string_view name) const noexcept ->
+find(
+    core::string_view name) const noexcept ->
     iterator
 {
     auto it = begin();
@@ -253,7 +255,7 @@ auto
 fields_view_base::
 find(
     iterator from, 
-    string_view name) const noexcept ->
+    core::string_view name) const noexcept ->
         iterator
 {
     auto const last = end();
@@ -289,7 +291,7 @@ auto
 fields_view_base::
 find_last(
     iterator it,
-    string_view name) const noexcept ->
+    core::string_view name) const noexcept ->
         iterator
 {
     auto const it0 = begin();
@@ -304,11 +306,11 @@ find_last(
     }
 }
 
-string_view
+core::string_view
 fields_view_base::
 value_or(
     field id,
-    string_view s) const noexcept
+    core::string_view s) const noexcept
 {
     auto it = find(id);
     if(it != end())
@@ -316,11 +318,11 @@ value_or(
     return s;
 }
 
-string_view
+core::string_view
 fields_view_base::
 value_or(
-    string_view name,
-    string_view s) const noexcept
+    core::string_view name,
+    core::string_view s) const noexcept
 {
     auto it = find(name);
     if(it != end())
@@ -343,7 +345,7 @@ find_all(
 auto
 fields_view_base::
 find_all(
-    string_view name) const noexcept ->
+    core::string_view name) const noexcept ->
         subrange
 {
     return subrange(

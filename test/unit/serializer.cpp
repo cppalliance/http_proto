@@ -55,7 +55,7 @@ struct serializer_test
         }
 
     private:
-        string_view s_;
+        core::string_view s_;
     };
 
     template<
@@ -140,8 +140,8 @@ struct serializer_test
     {
         auto const check =
         [](
-            string_view headers,
-            string_view expected)
+            core::string_view headers,
+            core::string_view expected)
         {
             response res(headers);
             serializer sr;
@@ -176,9 +176,9 @@ struct serializer_test
 
     void
     check(
-        string_view headers,
-        string_view body,
-        string_view expected)
+        core::string_view headers,
+        core::string_view body,
+        core::string_view expected)
     {
         response res(headers);
         std::string sb = body;
@@ -192,9 +192,9 @@ struct serializer_test
     template<class Source>
     void
     check_src(
-        string_view headers,
+        core::string_view headers,
         Source&& src,
-        string_view expected)
+        core::string_view expected)
     {
         response res(headers);
         serializer sr;
@@ -368,7 +368,7 @@ struct serializer_test
 
         // response
         {
-            string_view sv =
+            core::string_view sv =
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Length: 5\r\n"
                 "Expect: 100-continue\r\n"

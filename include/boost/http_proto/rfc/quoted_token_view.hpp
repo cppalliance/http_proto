@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_RFC_QUOTED_TOKEN_VIEW_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/url/grammar/string_view_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -27,7 +27,7 @@ class quoted_token_view
     // unquoted
     explicit
     quoted_token_view(
-        string_view s) noexcept
+        core::string_view s) noexcept
         : string_view_base(s)
         , n_(s.size())
     {
@@ -35,7 +35,7 @@ class quoted_token_view
 
     // maybe quoted
     quoted_token_view(
-        string_view s,
+        core::string_view s,
         std::size_t n) noexcept
         : string_view_base(s)
         , n_(n)

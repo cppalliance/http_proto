@@ -117,8 +117,8 @@ parse(
         ++it;
         ++n;
     }
-    return value_type(
-        string_view(it0, ++it - it0), n);
+    return value_type(core::string_view(
+        it0, ++it - it0), n);
 }
 
 } // http_proto

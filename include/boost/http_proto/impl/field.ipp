@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_FIELD_IPP
 
 #include <boost/http_proto/field.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/assert.hpp>
 #include <algorithm>
 #include <array>
@@ -40,13 +41,13 @@ struct field_table
             (p[3] << 24);
     }
 
-    using array_type =
-        std::array<string_view, 357>;
+    using array_type = std::array<
+        core::string_view, 357>;
 
     // Strings are converted to lowercase
     static
     std::uint32_t
-    digest(string_view s)
+    digest(core::string_view s)
     {
         std::uint32_t r = 0;
         std::size_t n = s.size();
@@ -76,7 +77,9 @@ struct field_table
     // strings must contain only valid http field characters.
     static
     bool
-    equals(string_view lhs, string_view rhs)
+    equals(
+        core::string_view lhs,
+        core::string_view rhs)
     {
         using Int = std::uint32_t; // VFALCO std::size_t?
         auto n = lhs.size();
@@ -494,12 +497,13 @@ struct field_table
     }
 
     field
-    string_to_field(string_view s) const noexcept
+    string_to_field(
+        core::string_view s) const noexcept
     {
         auto h = digest(s);
         auto j = h % N;
         int i = map_[j][0];
-        string_view s2 = by_name_[i];
+        core::string_view s2 = by_name_[i];
         if(i != 0 && equals(s, s2))
             return static_cast<field>(i);
         i = map_[j][1];
@@ -549,7 +553,7 @@ get_field_table() noexcept
 
 } // detail
 
-string_view
+core::string_view
 to_string(field f)
 {
     auto const& v = detail::get_field_table();
@@ -558,7 +562,8 @@ to_string(field f)
 }
 
 field
-string_to_field(string_view s) noexcept
+string_to_field(
+    core::string_view s) noexcept
 {
     return detail::get_field_table().string_to_field(s);
 }

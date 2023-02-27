@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_FIELD_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <cstdint>
 #include <iosfwd>
 #include <type_traits>
@@ -388,7 +388,7 @@ enum class field : unsigned short
     @param f The field to convert
 */
 BOOST_HTTP_PROTO_DECL
-string_view
+core::string_view
 to_string(field f);
 
 /** Return the field id for  a header name
@@ -400,7 +400,8 @@ to_string(field f);
 */
 BOOST_HTTP_PROTO_DECL
 field
-string_to_field(string_view s) noexcept;
+string_to_field(
+    core::string_view s) noexcept;
 
 /// Write the text for a field name to an output stream.
 BOOST_HTTP_PROTO_DECL

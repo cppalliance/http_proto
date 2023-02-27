@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/source.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>

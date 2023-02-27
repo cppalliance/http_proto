@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_IMPL_MESSAGE_BASE_IPP
 
 #include <boost/http_proto/message_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -101,7 +102,7 @@ set_keep_alive(bool value)
     // one or more Connection fields
     auto it = begin();
     auto const erase_token =
-        [&](string_view token)
+        [&](core::string_view token)
         {
             while(it != end())
             {

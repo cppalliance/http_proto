@@ -14,6 +14,7 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -67,8 +68,8 @@ public:
     struct reference
     {
         field const id;
-        string_view const name;
-        string_view const value;
+        core::string_view const name;
+        core::string_view const value;
 
     #ifndef BOOST_HTTP_PROTO_DOCS
         reference const*
@@ -185,10 +186,10 @@ public:
 
     /** Return a string representing the serialized data
     */
-    string_view
+    core::string_view
     buffer() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf, ph_->size);
     }
 
@@ -210,7 +211,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     bool
-    exists(string_view name) const noexcept;
+    exists(
+        core::string_view name) const noexcept;
 
     /** Return the number of matching fields
     */
@@ -222,7 +224,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    count(string_view name) const noexcept;
+    count(
+        core::string_view name) const noexcept;
 
     /** Returns an iterator to the matching element if it exists
     */
@@ -238,7 +241,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     iterator
-    find(string_view name) const noexcept;
+    find(
+        core::string_view name) const noexcept;
 
     /** Returns an iterator to the matching element if it exists
     */
@@ -254,7 +258,7 @@ public:
     iterator
     find(
         iterator from, 
-        string_view name) const noexcept;
+        core::string_view name) const noexcept;
 
     /** Returns an iterator to the matching element if it exists
     */
@@ -270,23 +274,23 @@ public:
     iterator
     find_last(
         iterator before, 
-        string_view name) const noexcept;
+        core::string_view name) const noexcept;
 
     /** Return the value of a field
     */
     BOOST_HTTP_PROTO_DECL
-    string_view
+    core::string_view
     value_or(
         field id,
-        string_view s) const noexcept;
+        core::string_view s) const noexcept;
 
     /** Return the value of a field
     */
     BOOST_HTTP_PROTO_DECL
-    string_view
+    core::string_view
     value_or(
-        string_view name,
-        string_view s) const noexcept;
+        core::string_view name,
+        core::string_view s) const noexcept;
 
     //---
 
@@ -300,7 +304,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     subrange
-    find_all(string_view name) const noexcept;
+    find_all(
+        core::string_view name) const noexcept;
 };
 
 } // http_proto

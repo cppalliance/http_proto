@@ -22,7 +22,7 @@ struct request_test
     void
     testHelpers()
     {
-        string_view const cs =
+        core::string_view const cs =
             "POST /x HTTP/1.0\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
@@ -41,20 +41,20 @@ struct request_test
         auto const check =
         []( request& req,
             std::size_t count,
-            string_view s)
+            core::string_view s)
         {
             req = request(s);
             BOOST_TEST(
                 req.size() == count);
         };
 
-        string_view const cs =
+        core::string_view const cs =
             "POST /x HTTP/1.0\r\n"
             "Content-Length: 42\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
 
-        string_view const cs2 =
+        core::string_view const cs2 =
             "CONNECT 127.0.0.1 HTTP/1.1\r\n"
             "User-Agent: boost\r\n"
             "\r\n";

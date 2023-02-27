@@ -17,6 +17,7 @@
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/url/grammar/parse.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 #include "test_suite.hpp"
 
@@ -53,7 +54,7 @@ test_to_string(Buffers const& bs)
 void
 test_fields(
     fields_view_base const& f,
-    string_view match);
+    core::string_view match);
 
 //------------------------------------------------
 
@@ -62,7 +63,7 @@ template<class R>
 typename std::enable_if<
     grammar::is_rule<R>::value>::type
 ok( R const& r,
-    string_view s)
+    core::string_view s)
 {
     BOOST_TEST(grammar::parse(s, r).has_value());
 }
@@ -72,7 +73,7 @@ template<class R, class V>
 typename std::enable_if<
     grammar::is_rule<R>::value>::type
 ok( R const& r,
-    string_view s,
+    core::string_view s,
     V const& v)
 {
     auto rv = grammar::parse(s, r);
@@ -86,7 +87,7 @@ typename std::enable_if<
     grammar::is_rule<R>::value>::type
 bad(
     R const& r,
-    string_view s)
+    core::string_view s)
 {
     BOOST_TEST(grammar::parse(s, r).has_error());
 }
@@ -97,7 +98,7 @@ typename std::enable_if<
     grammar::is_rule<R>::value>::type
 bad(
     R const& r,
-    string_view s,
+    core::string_view s,
     system::error_code const& e)
 {
     auto rv = grammar::parse(s, r);

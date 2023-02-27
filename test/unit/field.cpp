@@ -25,7 +25,7 @@ public:
     testField()
     {
         auto const match =
-            [&](field f, string_view s)
+            [&](field f, core::string_view s)
             {
                 BOOST_TEST(grammar::ci_is_equal(
                     to_string(f), s));
@@ -394,7 +394,7 @@ public:
         match(field::xref, "Xref");
 
         auto const unknown =
-            [&](string_view s)
+            [&](core::string_view s)
             {
                 BOOST_TEST(string_to_field(s) == field::unknown);
             };

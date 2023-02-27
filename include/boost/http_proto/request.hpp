@@ -33,7 +33,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    request(string_view s);
+    request(
+        core::string_view s);
 
     /** Constructor
 
@@ -109,20 +110,20 @@ public:
 
     /** Return the method as a string
     */
-    string_view
+    core::string_view
     method_text() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf,
             ph_->req.method_len);
     }
 
     /** Return the request-target string
     */
-    string_view
+    core::string_view
     target() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf +
                 ph_->req.method_len + 1,
             ph_->req.target_len);
@@ -159,7 +160,7 @@ public:
     */
     void
     set_method(
-        string_view s)
+        core::string_view s)
     {
         set_impl(
             string_to_method(s),
@@ -177,7 +178,7 @@ public:
     */
     void
     set_target(
-        string_view s)
+        core::string_view s)
     {
         set_impl(
             ph_->req.method,
@@ -207,7 +208,7 @@ public:
     void
     set_start_line(
         http_proto::method m,
-        string_view t,
+        core::string_view t,
         http_proto::version v)
     {
         set_impl(m, to_string(m), t, v);
@@ -220,8 +221,8 @@ public:
     */
     void
     set_start_line(
-        string_view m,
-        string_view t,
+        core::string_view m,
+        core::string_view t,
         http_proto::version v)
     {
         set_impl(string_to_method(m), m, t, v);
@@ -260,8 +261,8 @@ private:
     void
     set_impl(
         http_proto::method m,
-        string_view ms,
-        string_view t,
+        core::string_view ms,
+        core::string_view t,
         http_proto::version v);
 };
 

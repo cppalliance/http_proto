@@ -29,7 +29,8 @@ request() noexcept
 }
 
 request::
-request(string_view s)
+request(
+    core::string_view s)
     : fields_view_base(
         &this->fields_base::h_)
     , message_base(
@@ -147,8 +148,8 @@ void
 request::
 set_impl(
     http_proto::method m,
-    string_view ms,
-    string_view t,
+    core::string_view ms,
+    core::string_view t,
     http_proto::version v)
 {
     detail::copied_strings cs(

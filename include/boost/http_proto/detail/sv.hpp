@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_SV_HPP
 #define BOOST_HTTP_PROTO_DETAIL_SV_HPP
 
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,12 +20,12 @@ namespace detail {
 // so introduce a namespace for this purprose.
 namespace string_literals {
 inline
-string_view
+core::string_view
 operator"" _sv(
     char const* p,
     std::size_t n) noexcept
 {
-    return string_view(p, n);
+    return core::string_view(p, n);
 }
 } // string_literals
 

@@ -29,7 +29,7 @@ response() noexcept
 
 response::
 response(
-    string_view s)
+    core::string_view s)
     : fields_view_base(
         &this->fields_base::h_)
     , message_base(
@@ -92,7 +92,7 @@ response::
 set_impl(
     http_proto::status sc,
     unsigned short si,
-    string_view rs,
+    core::string_view rs,
     http_proto::version v)
 {
     // measure and resize

@@ -65,7 +65,7 @@ public:
         good(method::unlink);
 
         auto const bad =
-            [&](string_view s)
+            [&](core::string_view s)
             {
                 auto const v = string_to_method(s);
                 BOOST_TEST(v == method::unknown);

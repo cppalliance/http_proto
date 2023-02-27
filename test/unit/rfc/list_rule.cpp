@@ -23,7 +23,7 @@ namespace http_proto {
 struct list_rule_test
 {
     void
-    bad(string_view s)
+    bad(core::string_view s)
     {
         auto rv = grammar::parse(s,
             list_rule(token_rule));
@@ -31,9 +31,9 @@ struct list_rule_test
     }
 
     void
-    ok( string_view s,
+    ok( core::string_view s,
         std::initializer_list<
-            string_view> init)
+            core::string_view> init)
     {
         auto rv = grammar::parse(s,
             list_rule(token_rule));

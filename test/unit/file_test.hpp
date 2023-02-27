@@ -10,9 +10,8 @@
 #ifndef BOOST_HTTP_PROTO_FILE_TEST_HPP
 #define BOOST_HTTP_PROTO_FILE_TEST_HPP
 
-#include "test_suite.hpp"
 #include <boost/http_proto/file_base.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -23,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -404,7 +404,8 @@ test_file()
 
     // read and write
     {
-        string_view const s = "Hello, world!";
+        core::string_view const s =
+            "Hello, world!";
 
         // write
         {

@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_METHOD_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <iosfwd>
 
 namespace boost {
@@ -134,11 +134,12 @@ enum class method : char
 */
 BOOST_HTTP_PROTO_DECL
 method
-string_to_method(string_view s);
+string_to_method(
+    core::string_view s);
 
 /// Return the string for a method enum.
 BOOST_HTTP_PROTO_DECL
-string_view
+core::string_view
 to_string(method v);
 
 /// Write the text for a method enum to an output stream.

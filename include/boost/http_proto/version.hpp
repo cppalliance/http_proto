@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_VERSION_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <iosfwd>
 
 namespace boost {
@@ -30,7 +30,7 @@ enum class version : char
 /** Return the serialized string representing the HTTP version
 */
 BOOST_HTTP_PROTO_DECL
-string_view
+core::string_view
 to_string(version v) noexcept;
 
 /** Format the version to an output stream.

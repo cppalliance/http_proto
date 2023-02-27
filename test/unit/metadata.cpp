@@ -36,7 +36,7 @@ struct metadata_test
     testSubrange()
     {
         auto const req = [](
-            string_view s,
+            core::string_view s,
             field id,
             std::size_t n)
         {
@@ -139,7 +139,7 @@ struct metadata_test
     testConnection()
     {
         auto const req = [](
-            string_view s,
+            core::string_view s,
             void(*f)(message_base&),
             metadata::connection_t con)
         {
@@ -276,7 +276,7 @@ struct metadata_test
     testContentLength()
     {
         auto const check = [](
-            string_view s,
+            core::string_view s,
             void(*f)(message_base&),
             metadata::content_length_t clen)
         {
@@ -411,7 +411,7 @@ struct metadata_test
     testTransferEncoding()
     {
         auto const check = [](
-            string_view s,
+            core::string_view s,
             void(*f)(message_base&),
             metadata::transfer_encoding_t te)
         {
@@ -603,7 +603,7 @@ struct metadata_test
     testUpgrade()
     {
         auto const check = [](
-            string_view s,
+            core::string_view s,
             void(*f)(message_base&),
             metadata::upgrade_t te)
         {
@@ -752,9 +752,9 @@ struct metadata_test
     testOtherFields()
     {
         auto const check = [](
-            string_view s,
+            core::string_view s,
             void(*f)(message_base&),
-            string_view s1)
+            core::string_view s1)
         {
             request req(s);
             f(req);
@@ -809,9 +809,9 @@ struct metadata_test
     testFields()
     {
         auto const check = [](
-            string_view s,
+            core::string_view s,
             void(*f)(fields_base&),
-            string_view s1)
+            core::string_view s1)
         {
             fields fld(s);
             f(fld);
@@ -861,7 +861,7 @@ struct metadata_test
     testPayload()
     {
         auto const req = [](
-            string_view s,
+            core::string_view s,
             void(*f)(fields_base&),
             payload v,
             std::uint64_t n = 0)
@@ -874,7 +874,7 @@ struct metadata_test
         };
 
         auto const res = [](
-            string_view s,
+            core::string_view s,
             void(*f)(fields_base&),
             payload pay,
             std::uint64_t n = 0)
@@ -1002,7 +1002,7 @@ struct metadata_test
     testKeepAlive()
     {
         auto const res = [](
-            string_view s,
+            core::string_view s,
             void(*f)(fields_base&),
             bool keep_alive)
         {
@@ -1013,9 +1013,9 @@ struct metadata_test
         };
 
         auto const set = [](
-            string_view s0,
+            core::string_view s0,
             bool keep_alive,
-            string_view s1)
+            core::string_view s1)
         {
             request m(s0);
             m.set_keep_alive(keep_alive);

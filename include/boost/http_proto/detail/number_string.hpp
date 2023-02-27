@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_DETAIL_NUMBER_STRING_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -75,15 +76,15 @@ public:
         return size_;
     }
 
-    string_view
+    core::string_view
     str() const noexcept
     {
-        return string_view(
+        return core::string_view(
             data(), size());
     }
 
     operator
-    string_view() const noexcept
+    core::string_view() const noexcept
     {
         return str();
     }

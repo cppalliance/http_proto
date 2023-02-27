@@ -27,7 +27,7 @@ struct request_parser_test
     bool
     feed(
         parser& pr,
-        string_view s)
+        core::string_view s)
     {
         while(! s.empty())
         {
@@ -58,7 +58,7 @@ struct request_parser_test
     bool
     valid(
         context& ctx,
-        string_view s,
+        core::string_view s,
         std::size_t nmax)
     {
         request_parser pr(ctx);
@@ -87,7 +87,7 @@ struct request_parser_test
     }
 
     void
-    good(context& ctx, string_view s)
+    good(context& ctx, core::string_view s)
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
@@ -95,7 +95,7 @@ struct request_parser_test
     }
 
     void
-    bad(context& ctx, string_view s)
+    bad(context& ctx, core::string_view s)
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
@@ -105,9 +105,9 @@ struct request_parser_test
     void
     check(
         method m,
-        string_view t,
+        core::string_view t,
         version v,
-        string_view const s)
+        core::string_view const s)
     {
         auto const f =
             [&](request_parser const& pr)
@@ -210,7 +210,7 @@ struct request_parser_test
     void
     testParseField()
     {
-        auto f = [](string_view f)
+        auto f = [](core::string_view f)
         {
             return std::string(
                 "GET / HTTP/1.1\r\n") +
@@ -262,7 +262,7 @@ struct request_parser_test
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
         request_parser pr(ctx);
-        string_view s = 
+        core::string_view s = 
             "GET / HTTP/1.1\r\n"
             "Accept: *\r\n"
             "User-Agent: x\r\n"

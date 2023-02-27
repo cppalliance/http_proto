@@ -17,6 +17,7 @@
 #include <boost/url/grammar/lut_chars.hpp>
 #include <boost/url/grammar/token_rule.hpp>
 #include <boost/url/grammar/tuple_rule.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -199,7 +200,7 @@ struct status_code_rule_t
     {
         int v;
         status st;
-        string_view s;
+        core::string_view s;
     };
 
     system::result<value_type>
@@ -232,8 +233,8 @@ struct field_rule_t
 {
     struct value_type
     {
-        string_view name;
-        string_view value;
+        core::string_view name;
+        core::string_view value;
         bool has_obs_fold = false;
     };
 

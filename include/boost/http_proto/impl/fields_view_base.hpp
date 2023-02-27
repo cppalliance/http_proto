@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
 #define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
 
+#include <boost/core/detail/string_view.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -247,7 +248,7 @@ public:
     //class reverse_iterator;
     using const_iterator = iterator;
     using value_type = std::string;
-    using reference = string_view;
+    using reference = core::string_view;
     using const_reference = reference;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -292,7 +293,7 @@ class fields_view_base::subrange::
 
 public:
     using value_type = std::string;
-    using reference = string_view;
+    using reference = core::string_view;
     using pointer = void const*;
     using difference_type =
         std::ptrdiff_t;

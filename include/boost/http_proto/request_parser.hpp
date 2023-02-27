@@ -15,7 +15,6 @@
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request_view.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <cstddef>
 #include <utility>
 

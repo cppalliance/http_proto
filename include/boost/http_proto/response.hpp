@@ -33,7 +33,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    response(string_view s);
+    response(
+        core::string_view s);
 
     /** Constructor
 
@@ -109,10 +110,10 @@ public:
         and should only be used for display
         purposes.
     */
-    string_view
+    core::string_view
     reason() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf + 13,
             ph_->prefix - 15);
     }
@@ -175,7 +176,7 @@ public:
     void
     set_start_line(
         unsigned short si,
-        string_view reason,
+        core::string_view reason,
         http_proto::version v)
     {
         set_impl(
@@ -211,7 +212,7 @@ private:
     set_impl(
         http_proto::status sc,
         unsigned short si,
-        string_view reason,
+        core::string_view reason,
         http_proto::version v);
 };
 

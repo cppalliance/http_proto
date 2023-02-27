@@ -629,7 +629,7 @@ get_stream() ->
     return stream(*this);
 }
 
-string_view
+core::string_view
 parser::
 in_place_body() const
 {
@@ -643,14 +643,14 @@ in_place_body() const
 
     buffers::const_buffer_pair bs = body_buf_->data();
     BOOST_ASSERT(bs[1].size() == 0);
-    return string_view(static_cast<
+    return core::string_view(static_cast<
         char const*>(bs[0].data()),
             bs[0].size());
 }
 
 //------------------------------------------------
 
-string_view
+core::string_view
 parser::
 release_buffered_data() noexcept
 {

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/message_view_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -67,10 +68,10 @@ public:
         and should only be used for display
         purposes.
     */
-    string_view
+    core::string_view
     reason() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf + 13,
             ph_->prefix - 15);
     }

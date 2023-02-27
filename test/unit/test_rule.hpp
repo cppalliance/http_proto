@@ -11,9 +11,9 @@
 #define BOOST_HTTP_PROTO_RULE_TESTS_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/type_traits.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <type_traits>
 #include "test_suite.hpp"
 
@@ -25,7 +25,7 @@ template<class R>
 typename std::enable_if<
     grammar::is_rule<R>::value>::type
 ok( R const& r,
-    string_view s)
+    core::string_view s)
 {
     BOOST_TEST(grammar::parse(s, r).has_value());
 }
@@ -35,7 +35,7 @@ template<class R, class V>
 typename std::enable_if<
     grammar::is_rule<R>::value>::type
 ok( R const& r,
-    string_view s,
+    core::string_view s,
     V const& v)
 {
     auto rv = grammar::parse(s, r);
@@ -49,7 +49,7 @@ typename std::enable_if<
     grammar::is_rule<R>::value>::type
 bad(
     R const& r,
-    string_view s)
+    core::string_view s)
 {
     BOOST_TEST(grammar::parse(s, r).has_error());
 }
@@ -60,7 +60,7 @@ typename std::enable_if<
     grammar::is_rule<R>::value>::type
 bad(
     R const& r,
-    string_view s,
+    core::string_view s,
     system::error_code const& e)
 {
     auto rv = grammar::parse(s, r);

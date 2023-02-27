@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/url/grammar/recycled.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <string>
 
 namespace boost {
@@ -52,7 +53,7 @@ namespace http_proto {
     may be empty.
 */
 BOOST_HTTP_PROTO_DECL
-string_view
+core::string_view
 combine_field_values(
     fields_view_base::subrange const& vr,
     grammar::recycled_ptr<std::string>& temp);

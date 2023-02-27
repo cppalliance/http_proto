@@ -11,10 +11,10 @@
 #define BOOST_HTTP_PROTO_RFC_TRANSFER_ENCODING_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
 #include <boost/url/grammar/range_rule.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -36,12 +36,12 @@ struct transfer_coding
 
     struct param
     {
-        string_view key;
+        core::string_view key;
         quoted_token_view value;
     };
 
     coding id = unknown;
-    string_view str;
+    core::string_view str;
     grammar::range<param> params;
 };
 

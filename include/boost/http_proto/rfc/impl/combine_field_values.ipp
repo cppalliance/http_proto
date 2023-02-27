@@ -15,12 +15,12 @@
 namespace boost {
 namespace http_proto {
 
-string_view
+core::string_view
 combine_field_values(
     fields_view_base::subrange const& vr,
     grammar::recycled_ptr<std::string>& temp)
 {
-    string_view result;
+    core::string_view result;
     bool acquired = false;
     for(auto s : vr)
     {

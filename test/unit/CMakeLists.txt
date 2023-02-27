@@ -51,7 +51,6 @@ set(PFILES
     source.cpp
     status.cpp
     string_body.cpp
-    string_view.cpp
     version.cpp
     #rfc/chunk_ext_rule.cpp
     rfc/combine_field_values.cpp

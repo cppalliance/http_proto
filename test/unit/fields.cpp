@@ -25,9 +25,9 @@ struct fields_test
 {
     void
     modify(
-        string_view before,
+        core::string_view before,
         void (*pf)(fields&),
-        string_view after)
+        core::string_view after)
     {
         fields f0(before);
         fields f1(after);
@@ -42,14 +42,14 @@ struct fields_test
     void
     testSpecial()
     {
-        string_view const cs1 =
+        core::string_view const cs1 =
             "Connection: close\r\n"
             "Set-Cookie: 0\r\n"
             "User-Agent: boost\r\n"
             "Set-Cookie: 1\r\n"
             "\r\n";
 
-        string_view const cs2 =
+        core::string_view const cs2 =
             "x: 1\r\n"
             "y: 2\r\n"
             "z: 3\r\n"
@@ -258,7 +258,7 @@ struct fields_test
     void
     testObservers()
     {
-        string_view const cs =
+        core::string_view const cs =
             "Connection: close\r\n"
             "Set-Cookie: 0\r\n"
             "User-Agent: boost\r\n"

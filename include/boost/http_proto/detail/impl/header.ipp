@@ -284,7 +284,7 @@ find(
 std::size_t
 header::
 find(
-    string_view name) const noexcept
+    core::string_view name) const noexcept
 {
     if(count == 0)
         return 0;
@@ -292,7 +292,7 @@ find(
     auto const* p = &tab()[0];
     while(i < count)
     {
-        string_view s(
+        core::string_view s(
             cbuf + prefix + p->np,
             p->nn);
         if(grammar::ci_is_equal(s, name))
@@ -415,7 +415,7 @@ void
 header::
 on_insert(
     field id,
-    string_view v)
+    core::string_view v)
 {
     if(kind == detail::kind::fields)
         return;
@@ -468,7 +468,7 @@ on_erase(field id)
 void
 header::
 on_insert_connection(
-    string_view v)
+    core::string_view v)
 {
     ++md.connection.count;
     if(md.connection.ec.failed())
@@ -500,7 +500,7 @@ on_insert_connection(
 void
 header::
 on_insert_content_length(
-    string_view v)
+    core::string_view v)
 {
     static
     constexpr
@@ -546,7 +546,7 @@ on_insert_content_length(
 void
 header::
 on_insert_expect(
-    string_view v)
+    core::string_view v)
 {
     ++md.expect.count;
     if(kind != detail::kind::request)
@@ -632,7 +632,7 @@ on_insert_transfer_encoding()
 void
 header::
 on_insert_upgrade(
-    string_view v)
+    core::string_view v)
 {
     ++md.upgrade.count;
     if(md.upgrade.ec.failed())
@@ -687,8 +687,9 @@ on_erase_connection()
     while(n > 0)
     {
         if(e->id == field::connection)
-            on_insert_connection(string_view(
-                p + e->vp, e->vn));
+            on_insert_connection(
+                core::string_view(
+                    p + e->vp, e->vn));
         --n;
         --e;
     }
@@ -722,7 +723,8 @@ on_erase_content_length()
     {
         if(e->id == field::content_length)
             on_insert_content_length(
-                string_view(p + e->vp, e->vn));
+                core::string_view(
+                    p + e->vp, e->vn));
         --n;
         --e;
     }
@@ -760,7 +762,8 @@ on_erase_expect()
     {
         if(e->id == field::expect)
             on_insert_expect(
-                string_view(p + e->vp, e->vn));
+                core::string_view(
+                    p + e->vp, e->vn));
         --n;
         --e;
     }
@@ -807,8 +810,9 @@ on_erase_upgrade()
     while(n > 0)
     {
         if(e->id == field::upgrade)
-            on_insert_upgrade(string_view(
-                p + e->vp, e->vn));
+            on_insert_upgrade(
+                core::string_view(
+                    p + e->vp, e->vn));
         --n;
         --e;
     }
@@ -1000,7 +1004,7 @@ do_response:
 std::size_t
 header::
 count_crlf(
-    string_view s) noexcept
+    core::string_view s) noexcept
 {
     auto it = s.data();
     auto len = s.size();

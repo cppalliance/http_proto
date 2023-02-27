@@ -171,7 +171,7 @@ parse(
     t.v = t.v + v;
     ++it;
 
-    t.s = string_view(it0, it - it0);
+    t.s = core::string_view(it0, it - it0);
     t.st = int_to_status(t.v);
     return t;
 }
@@ -297,7 +297,7 @@ parse(
         v.has_obs_fold = true;
     }
 
-    v.value = string_view(s0, (it - s0) - 2);
+    v.value = core::string_view(s0, (it - s0) - 2);
     BOOST_ASSERT(! v.value.empty());
     //BOOST_ASSERT(! ws(t.v.value.front()));
 
@@ -317,7 +317,7 @@ parse(
         }
     }
 done:
-    v.value = string_view(
+    v.value = core::string_view(
         v.value.data(),
         p - v.value.data());
     return v;

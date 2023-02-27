@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_STATUS_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <iosfwd>
 
 namespace boost {
@@ -163,7 +163,7 @@ to_status_class(status v);
     @param v The status code to use.
 */
 BOOST_HTTP_PROTO_DECL
-string_view
+core::string_view
 obsolete_reason(status v);
 
 /// Outputs the standard reason phrase of a status code to a stream.

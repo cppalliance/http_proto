@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_COPIED_STRINGS_HPP
 #define BOOST_HTTP_PROTO_DETAIL_COPIED_STRINGS_HPP
 
-#include <boost/http_proto/string_view.hpp>
 #include <functional>
 
 namespace boost {
@@ -27,14 +26,14 @@ class basic_copied_strings
         dynamic_buf* next;
     };
 
-    string_view s_;
+    core::string_view s_;
     char* local_buf_;
     std::size_t local_remain_;
     dynamic_buf* dynamic_list_ = nullptr;
 
     bool
     is_overlapping(
-        string_view s) const noexcept
+        core::string_view s) const noexcept
     {
         auto const b1 = s_.data();
         auto const e1 = b1 + s_.size();
@@ -62,7 +61,7 @@ public:
     }
 
     basic_copied_strings(
-        string_view s,
+        core::string_view s,
         char* local_buf,
         std::size_t local_size) noexcept
         : s_(s)
@@ -71,9 +70,9 @@ public:
     {
     }
 
-    string_view
+    core::string_view
     maybe_copy(
-        string_view s)
+        core::string_view s)
     {
         if(! is_overlapping(s))
             return s;
@@ -81,7 +80,7 @@ public:
         {
             std::memcpy(local_buf_,
                 s.data(), s.size());
-            s = string_view(
+            s = core::string_view(
                 local_buf_, s.size());
             local_buf_ += s.size();
             local_remain_ -= s.size();
@@ -95,7 +94,7 @@ public:
                     sizeof(n))];
         std::memcpy(p + 1,
             s.data(), s.size());
-        s = string_view(reinterpret_cast<
+        s = core::string_view(reinterpret_cast<
             char const*>(p + 1), s.size());
         p->next = dynamic_list_;
         dynamic_list_ = p;
@@ -110,7 +109,7 @@ class copied_strings
 
 public:
     copied_strings(
-        string_view s)
+        core::string_view s)
         : basic_copied_strings(
             s, buf_, sizeof(buf_))
     {

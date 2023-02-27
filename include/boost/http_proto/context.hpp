@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_CONTEXT_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/service/service.hpp>
 #include <boost/http_proto/detail/type_index.hpp>
 #include <memory>

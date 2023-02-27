@@ -19,7 +19,7 @@ class version_test
 {
 public:
     void
-    check(version v, string_view s)
+    check(version v, core::string_view s)
     {
         std::stringstream ss;
         ss << v;

@@ -33,7 +33,8 @@ namespace http_proto {
 */
 struct parser_test
 {
-    using pieces = std::vector<string_view>;
+    using pieces = std::vector<
+        core::string_view>;
 
     context ctx_;
 
@@ -52,7 +53,7 @@ struct parser_test
     {
         if(! in.empty())
         {
-            string_view& s = in[0];
+            core::string_view& s = in[0];
             auto const n =
                 buffers::buffer_copy(
                 pr.prepare(),
@@ -72,8 +73,8 @@ struct parser_test
 
     void
     check_req_1(
-        string_view sh,
-        string_view sb,
+        core::string_view sh,
+        core::string_view sb,
         pieces& v)
     {
         request_parser pr(ctx_);
@@ -95,8 +96,8 @@ struct parser_test
 
     void
     check_res_1(
-        string_view sh,
-        string_view sb,
+        core::string_view sh,
+        core::string_view sb,
         pieces& v)
     {
         response_parser pr(ctx_);
@@ -118,10 +119,12 @@ struct parser_test
 
     void
     grind(
-        string_view sh,
-        string_view sb,
+        core::string_view sh,
+        core::string_view sb,
         void (parser_test::*mfn)(
-            string_view, string_view, pieces&))
+            core::string_view,
+            core::string_view,
+            pieces&))
     {
         std::string const s = [&]
         {
@@ -133,7 +136,7 @@ struct parser_test
         }();
         pieces v;
         v.reserve(3);
-        string_view const sv(
+        core::string_view const sv(
             s.data(), s.size());
 
         // one piece
@@ -164,8 +167,8 @@ struct parser_test
 
     void
     check_req(
-        string_view sh,
-        string_view sb)
+        core::string_view sh,
+        core::string_view sb)
     {
         grind(sh, sb,
             &parser_test::check_req_1);
@@ -173,8 +176,8 @@ struct parser_test
 
     void
     check_res(
-        string_view sh,
-        string_view sb)
+        core::string_view sh,
+        core::string_view sb)
     {
         grind(sh, sb,
             &parser_test::check_res_1);

@@ -30,7 +30,7 @@ namespace http_proto {
 */
 struct parameter
 {
-    string_view name;
+    core::string_view name;
     quoted_token_view value;
 };
 

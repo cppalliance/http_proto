@@ -14,7 +14,6 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/sink.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
@@ -260,7 +259,7 @@ public:
     get_stream();
 
     BOOST_HTTP_PROTO_DECL
-    string_view
+    core::string_view
     in_place_body() const;
 
     //--------------------------------------------
@@ -274,7 +273,7 @@ public:
         data that we want to retrieve.
     */
     BOOST_HTTP_PROTO_DECL
-    string_view
+    core::string_view
     release_buffered_data() noexcept;
 
 private:

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -53,7 +54,7 @@ class BOOST_SYMBOL_VISIBLE
     BOOST_HTTP_PROTO_DECL
     fields_base(
         detail::kind,
-        string_view);
+        core::string_view);
 
     fields_base(detail::header const&);
 
@@ -149,7 +150,7 @@ public:
     void
     append(
         field id,
-        string_view value)
+        core::string_view value)
     {
         BOOST_ASSERT(
             id != field::unknown);
@@ -191,8 +192,8 @@ public:
     */
     void
     append(
-        string_view name,
-        string_view value)
+        core::string_view name,
+        core::string_view value)
     {
         insert_impl(
             string_to_field(
@@ -243,7 +244,7 @@ public:
     insert(
         iterator before,
         field id,
-        string_view value)
+        core::string_view value)
     {
         BOOST_ASSERT(
             id != field::unknown);
@@ -294,8 +295,8 @@ public:
     iterator
     insert(
         iterator before,
-        string_view name,
-        string_view value)
+        core::string_view name,
+        core::string_view value)
     {
         insert_impl(
             string_to_field(
@@ -382,7 +383,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    erase(string_view name) noexcept;
+    erase(
+        core::string_view name) noexcept;
 
     //--------------------------------------------
 
@@ -410,7 +412,7 @@ public:
     void
     set(
         iterator it,
-        string_view value);
+        core::string_view value);
 
     /** Set a header value
 
@@ -438,7 +440,7 @@ public:
     void
     set(
         field id,
-        string_view value);
+        core::string_view value);
 
     /** Set a header value
 
@@ -462,8 +464,8 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     set(
-        string_view name,
-        string_view value);
+        core::string_view name,
+        core::string_view value);
 
     //--------------------------------------------
 
@@ -477,8 +479,8 @@ private:
     void
     insert_impl(
         field id,
-        string_view name,
-        string_view value,
+        core::string_view name,
+        core::string_view value,
         std::size_t before);
 
     BOOST_HTTP_PROTO_DECL

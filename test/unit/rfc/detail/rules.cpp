@@ -22,7 +22,8 @@ struct rules_test
     testReplaceObsFold()
     {
         auto const check =
-            [](string_view sv0, string_view sv1)
+            []( core::string_view sv0,
+                core::string_view sv1)
         {
             std::string s(
                 sv0.data(), sv0.size());

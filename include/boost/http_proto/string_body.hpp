@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_STRING_BODY_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/buffers/const_buffer.hpp>
 #include <string>
 #include <utility>

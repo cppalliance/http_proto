@@ -18,7 +18,7 @@ namespace http_proto {
 void
 test_fields(
     fields_view_base const& f,
-    string_view match)
+    core::string_view match)
 {
     fields r(match);
     std::size_t n = std::distance(

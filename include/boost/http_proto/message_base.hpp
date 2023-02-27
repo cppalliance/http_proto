@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/message_view_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -38,7 +39,7 @@ class BOOST_SYMBOL_VISIBLE
 
     message_base(
         detail::kind k,
-        string_view s)
+        core::string_view s)
         : fields_view_base(
             &this->fields_base::h_)
         , fields_base(k, s)

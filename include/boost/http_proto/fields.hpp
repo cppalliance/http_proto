@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/fields_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <initializer_list>
 
 namespace boost {
@@ -44,7 +45,8 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    fields(string_view s) noexcept;
+    fields(
+        core::string_view s) noexcept;
 
     /** Constructor
     */

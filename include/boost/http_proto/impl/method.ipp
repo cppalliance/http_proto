@@ -18,7 +18,7 @@
 namespace boost {
 namespace http_proto {
 
-string_view
+core::string_view
 to_string(method v)
 {
     using namespace detail::string_literals;
@@ -73,7 +73,8 @@ to_string(method v)
 }
 
 method
-string_to_method(string_view v)
+string_to_method(
+    core::string_view v)
 {
 /*
     ACL

@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_MOVE_CHARS_HPP
 #define BOOST_HTTP_PROTO_DETAIL_MOVE_CHARS_HPP
 
-#include <boost/http_proto/string_view.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <cstring>
 #include <functional>
 
@@ -25,8 +25,8 @@ namespace detail {
 inline
 bool
 is_overlapping(
-    string_view buf,
-    string_view s) noexcept
+    core::string_view buf,
+    core::string_view s) noexcept
 {
     auto const b0 = buf.data();
     auto const e0 = b0 + buf.size();
@@ -48,7 +48,7 @@ inline
 void
 move_chars_impl(
     std::ptrdiff_t,
-    string_view const&) noexcept
+    core::string_view const&) noexcept
 {
 }
 
@@ -56,8 +56,8 @@ template<class... Sn>
 void
 move_chars_impl(
     std::ptrdiff_t d,
-    string_view const& buf,
-    string_view* s,
+    core::string_view const& buf,
+    core::string_view* s,
     Sn&&... sn) noexcept
 {
     if( s != nullptr &&
@@ -78,7 +78,7 @@ move_chars(
 {
     move_chars_impl(
         dest - src,
-        string_view(src, n),
+        core::string_view(src, n),
         args...);
     std::memmove(
         dest, src, n);

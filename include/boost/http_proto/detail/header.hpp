@@ -16,8 +16,8 @@
 #include <boost/http_proto/metadata.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/status.hpp>
-#include <boost/http_proto/string_view.hpp>
 #include <boost/http_proto/version.hpp>
+#include <boost/core/detail/string_view.hpp>
 #include <boost/assert.hpp>
 #include <cstdint>
 #include <type_traits>
@@ -157,7 +157,7 @@ public:
     entry* tab_() const noexcept;
     bool is_default() const noexcept;
     std::size_t find(field) const noexcept;
-    std::size_t find(string_view) const noexcept;
+    std::size_t find(core::string_view) const noexcept;
     void copy_table(void*, std::size_t) const noexcept;
     void copy_table(void*) const noexcept;
     void assign_to(header&) const noexcept;
@@ -167,13 +167,13 @@ public:
     std::size_t maybe_count(field) const noexcept;
     bool is_special(field) const noexcept;
     void on_start_line();
-    void on_insert(field, string_view);
+    void on_insert(field, core::string_view);
     void on_erase(field);
-    void on_insert_connection(string_view);
-    void on_insert_content_length(string_view);
-    void on_insert_expect(string_view);
+    void on_insert_connection(core::string_view);
+    void on_insert_content_length(core::string_view);
+    void on_insert_expect(core::string_view);
     void on_insert_transfer_encoding();
-    void on_insert_upgrade(string_view);
+    void on_insert_upgrade(core::string_view);
     void on_erase_connection();
     void on_erase_content_length();
     void on_erase_expect();
@@ -185,7 +185,7 @@ public:
     // parsing
 
     static std::size_t count_crlf(
-        string_view s) noexcept;
+        core::string_view s) noexcept;
     BOOST_HTTP_PROTO_DECL void parse(
         std::size_t, header_limits const&,
             system::error_code&) noexcept;

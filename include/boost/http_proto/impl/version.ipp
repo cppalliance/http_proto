@@ -16,8 +16,9 @@
 namespace boost {
 namespace http_proto {
 
-string_view
-to_string(version v) noexcept
+core::string_view
+to_string(
+    version v) noexcept
 {
     switch(v)
     {

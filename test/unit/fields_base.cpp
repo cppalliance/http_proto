@@ -31,9 +31,9 @@ struct fields_base_test
     static
     void
     check(
-        string_view s0,
+        core::string_view s0,
         void(*fn)(fields_base&),
-        string_view s1)
+        core::string_view s1)
     {
         // fields
         {
@@ -199,7 +199,7 @@ struct fields_base_test
 
             // response
             {
-                string_view const cs =
+                core::string_view const cs =
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
@@ -252,7 +252,7 @@ struct fields_base_test
             }
 
             {
-                string_view const cs = 
+                core::string_view const cs = 
                     "digest: ffce\r\n"
                     "type: 3\r\n"
                     "\r\n";
@@ -268,7 +268,7 @@ struct fields_base_test
             }
 
             {
-                string_view const cs =
+                core::string_view const cs =
                     "POST / HTTP/1.1\r\n"
                     "User-Agent: test\r\n"
                     "Server: test\r\n"
@@ -286,7 +286,7 @@ struct fields_base_test
             }
 
             {
-                string_view const cs =
+                core::string_view const cs =
                     "HTTP/1.1 404 Not Found\r\n"
                     "User-Agent: test\r\n"
                     "Server: test\r\n"
@@ -809,7 +809,7 @@ struct fields_base_test
         {
             auto const check =
             []( metadata::expect_t md,
-                string_view s)
+                core::string_view s)
             {
                 request const req(s);
                 BOOST_TEST_EQ(
@@ -858,7 +858,7 @@ struct fields_base_test
         // parse response
         {
             auto const check =
-            [](string_view s)
+            [](core::string_view s)
             {
                 response const res(s);
                 BOOST_TEST_EQ(
@@ -921,7 +921,7 @@ struct fields_base_test
             auto const check =
             []( metadata::expect_t md,
                 void(*fn)(request&),
-                string_view s)
+                core::string_view s)
             {
                 request req(s);
                 fn(req);

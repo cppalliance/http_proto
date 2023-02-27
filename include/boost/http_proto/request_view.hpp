@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/message_view_base.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -76,20 +77,20 @@ public:
 
     /** Return the method as a string
     */
-    string_view
+    core::string_view
     method_text() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf,
             ph_->req.method_len);
     }
 
     /** Return the request-target string
     */
-    string_view
+    core::string_view
     target_text() const noexcept
     {
-        return string_view(
+        return core::string_view(
             ph_->cbuf +
                 ph_->req.method_len + 1,
             ph_->req.target_len);
