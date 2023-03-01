@@ -138,11 +138,13 @@ private:
         return on_process(out, in, more);
     }
 
-    template<class B0, class B1>
+    template<
+        class MutableBuffers,
+        class ConstBuffers>
     results
     process_impl(
-        B0 const& out,
-        B1 const& in,
+        MutableBuffers const& out,
+        ConstBuffers const& in,
         bool more);
 };
 
