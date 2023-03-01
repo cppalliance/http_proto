@@ -120,19 +120,21 @@ public:
 
 } // detail
 
-template<class B0, class B1>
+template<
+    class MutableBuffers,
+    class ConstBuffers>
 auto
 filter::
 process_impl(
-    B0 const& out,
-    B1 const& in,
+    MutableBuffers const& out,
+    ConstBuffers const& in,
     bool more) ->
         results
 {
     results rv;
     constexpr int N = 16;
-    detail::unrolled<B1, N> u0(in);
-    detail::unrolled<B0, N> u1(out);
+    detail::unrolled<ConstBuffers, N> u0(in);
+    detail::unrolled<MutableBuffers, N> u1(out);
 
     return rv;
 }
