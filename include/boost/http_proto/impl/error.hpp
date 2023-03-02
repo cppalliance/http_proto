@@ -78,30 +78,35 @@ struct BOOST_SYMBOL_VISIBLE
     }
 };
 
+BOOST_HTTP_PROTO_DECL extern
+    error_cat_type error_cat;
+BOOST_HTTP_PROTO_DECL extern
+    condition_cat_type condition_cat;
+
 } // detail
 
 inline
+BOOST_SYSTEM_CONSTEXPR
 system::error_code
 make_error_code(
     error ev) noexcept
 {
-    static BOOST_SYSTEM_CONSTEXPR
-        detail::error_cat_type cat{};
     return system::error_code{
         static_cast<std::underlying_type<
-            error>::type>(ev), cat};
+            error>::type>(ev),
+        detail::error_cat};
 }
 
 inline
+BOOST_SYSTEM_CONSTEXPR
 system::error_condition
 make_error_condition(
     condition c) noexcept
 {
-    static BOOST_SYSTEM_CONSTEXPR
-        detail::condition_cat_type cat{};
     return system::error_condition{
         static_cast<std::underlying_type<
-            condition>::type>(c), cat};
+            condition>::type>(c),
+        detail::condition_cat};
 }
 
 } // http_proto
