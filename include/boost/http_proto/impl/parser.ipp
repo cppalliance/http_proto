@@ -67,10 +67,7 @@ namespace http_proto {
     axiom #:
         A parser and a serializer are always
         used in pairs.
-*/
 
-//------------------------------------------------
-/*
 Buffer Usage
 
 |                                               | begin
@@ -102,8 +99,13 @@ Buffer Usage
     A "buffered payload" is any payload which is
         not plain. A second buffer is required
         for reading.
+
+    "overread" is additional data received past
+    the end of the headers when reading headers,
+    or additional data received past the end of
+    the message payload.
 */
-//------------------------------------------------
+//-----------------------------------------------
 
 class parser_service
     : public service
@@ -135,7 +137,7 @@ parser_service(
         : cfg(cfg_)
 {
 /*
-    | fb |      cb0      |      cb1     | C | T | f |
+    | fb |     cb0     |     cb1     | C | T | f |
 
     fb  flat_buffer         headers.max_size
     cb0 circular_buffer     min_buffer
@@ -190,6 +192,12 @@ parser_service(
         }
     }
     space_needed += max_codec;
+
+    // round up to alignof(detail::header::entry)
+    auto const al = alignof(
+        detail::header::entry);
+    space_needed = al * ((
+        space_needed + al - 1) / al);
 }
 
 void
@@ -229,10 +237,6 @@ parser::
 ~parser()
 {
 }
-
-parser::
-parser(
-    parser&&) noexcept = default;
 
 //------------------------------------------------
 //
@@ -326,9 +330,10 @@ start_impl(
         h_.kind == detail::kind::response);
     head_response_ = head_response;
 
-    nprepare_ = 0;
+    // begin with in_place mode
     how_ = how::in_place;
     st_ = state::header;
+    nprepare_ = 0;
 }
 
 auto
@@ -366,9 +371,9 @@ prepare() ->
     case state::body:
     {
     do_body:
-        // buffered payload
-        if(body_buf_ != &cb0_)
+        if(! is_plain())
         {
+            // buffered payload
             auto n = cb0_.capacity() -
                 cb0_.size();
             if( n > svc_.cfg.max_prepare)
@@ -377,7 +382,6 @@ prepare() ->
             nprepare_ = n;
             return mutable_buffers_type(mbp_);
         }
-        BOOST_ASSERT(is_plain());
 
         // plain payload
 
@@ -505,39 +509,67 @@ parser::
 commit(
     std::size_t n)
 {
-    // n can't be greater than prepared size
-    if(n > nprepare_)
-    {
-        nprepare_ = 0; // invalidate
-        detail::throw_invalid_argument();
-    }
-
-    // can't add data after EOF
-    if( got_eof_ &&
-        n > 0)
-    {
-        nprepare_ = 0; // invalidate
-        detail::throw_logic_error();
-    }
-
-    nprepare_ = 0; // invalidate
-
     switch(st_)
     {
     default:
     case state::reset:
+    {
         // reset must be called first
+        nprepare_ = 0; // invalidate
         detail::throw_logic_error();
+    }
 
     case state::start:
+    {
         // forgot to call start()
+        nprepare_ = 0; // invalidate
+        st_ = state::reset; // unrecoverable
         detail::throw_logic_error();
+    }
 
     case state::header:
+    {
+        // n can't be greater than prepared size
+        if(n > nprepare_)
+        {
+            nprepare_ = 0; // invalidate
+            st_ = state::reset; // unrecoverable
+            detail::throw_invalid_argument();
+        }
+
+        // can't add data after EOF
+        if( got_eof_ &&
+            n > 0)
+        {
+            nprepare_ = 0; // invalidate
+            st_ = state::reset; // unrecoverable
+            detail::throw_logic_error();
+        }
+
+        nprepare_ = 0; // invalidate
         fb_.commit(n);
         break;
+    }
 
     case state::body:
+    {
+        // n can't be greater than prepared size
+        if(n > nprepare_)
+        {
+            nprepare_ = 0; // invalidate
+            st_ = state::reset; // unrecoverable
+            detail::throw_invalid_argument();
+        }
+
+        // can't add data after EOF
+        if( got_eof_ &&
+            n > 0)
+        {
+            nprepare_ = 0; // invalidate
+            st_ = state::reset; // unrecoverable
+            detail::throw_logic_error();
+        }
+
         if(! is_plain())
         {
             // buffered payload
@@ -549,7 +581,25 @@ commit(
 
         if(how_ == how::in_place)
         {
+            BOOST_ASSERT(body_buf_ == &cb0_);
             cb0_.commit(n);
+            if(h_.md.payload == payload::size)
+            {
+                if(cb0_.size() <
+                    h_.md.payload_size)
+                {
+                    body_avail_ += n;
+                    payload_remain_ -= n;
+                    break;
+                }
+                body_avail_ = h_.md.payload_size;
+                payload_remain_ = 0;
+                st_ = state::complete;
+                break;
+            }
+            BOOST_ASSERT(
+                h_.md.payload == payload::to_eof);
+            body_avail_ += n;
             break;
         }
 
@@ -595,8 +645,18 @@ commit(
             detail::throw_logic_error();
         }
         break;
+    }
 
     case state::set_body:
+    {
+        // n can't be greater than prepared size
+        if(n > nprepare_)
+        {
+            nprepare_ = 0; // invalidate
+            st_ = state::reset; // unrecoverable
+            detail::throw_invalid_argument();
+        }
+
         BOOST_ASSERT(is_plain());
         BOOST_ASSERT(n == 0);
         if( how_ == how::dynamic ||
@@ -605,11 +665,22 @@ commit(
             // intended no-op
             break;
         }
+
+        // VFALCO TODO
         detail::throw_logic_error();
+    }
 
     case state::complete:
+    {
+        BOOST_ASSERT(nprepare_ == 0);
+
+        // n can't be greater than prepared size
+        if(n > 0)
+            detail::throw_invalid_argument();
+
         // intended no-op
         break;
+    }
     }
 }
 
@@ -617,6 +688,8 @@ void
 parser::
 commit_eof()
 {
+    nprepare_ = 0; // invalidate
+
     switch(st_)
     {
     default:
@@ -682,9 +755,11 @@ parse(
                 // headers incomplete
                 return;
             }
-            if(h_.size == 0)
+
+            if(fb_.size() == 0)
             {
                 // stream closed cleanly
+                st_ = state::complete;
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::end_of_stream);
                 return;
@@ -692,6 +767,7 @@ parse(
 
             // stream closed with a
             // partial message received
+            st_ = state::reset;
             ec = BOOST_HTTP_PROTO_ERR(
                 error::incomplete);
             return;
@@ -737,13 +813,14 @@ parse(
 
         if(how_ == how::in_place)
         {
+            BOOST_ASSERT(body_avail_ ==
+                body_buf_->size());
             if(h_.md.payload == payload::size)
             {
-                if(cb0_.size() <
+                if(body_avail_ <
                     h_.md.payload_size)
                 {
-                    body_avail_ = cb0_.size();
-                    if(cb0_.capacity() == 0)
+                    if(body_buf_->capacity() == 0)
                     {
                         // in_place buffer limit
                         ec = BOOST_HTTP_PROTO_ERR(
@@ -754,11 +831,11 @@ parse(
                         error::need_data);
                     return;
                 }
-                body_avail_ = h_.md.payload_size;
+                BOOST_ASSERT(body_avail_ ==
+                    h_.md.payload_size);
                 st_ = state::complete;
                 break;
             }
-            body_avail_ = cb0_.size();
             if(body_avail_ > svc_.cfg.body_limit)
             {
                 ec = BOOST_HTTP_PROTO_ERR(
@@ -1012,7 +1089,8 @@ safe_get_header() const ->
     detail::header const*
 {
     // headers must be received
-    if(! got_header())
+    if( ! got_header() ||
+        fb_.size() == 0) // happens on eof
         detail::throw_logic_error();
 
     return &h_;
@@ -1027,17 +1105,28 @@ is_plain() const noexcept
             payload::chunked;
 }
 
-// Called immediately after
-// complete headers are received
+// Called immediately after complete headers
+// are received. We leave fb_ as-is to indicate
+// whether any data was received before eof.
+//
 void
 parser::
 on_headers(
     system::error_code& ec)
 {
-    auto const overread =
-        fb_.size() - h_.size;
+    auto const overread = fb_.size() - h_.size;
     BOOST_ASSERT(
         overread <= svc_.max_overread());
+
+    // metadata error
+    if(h_.md.payload == payload::error)
+    {
+        // VFALCO This needs looking at
+        ec = BOOST_HTTP_PROTO_ERR(
+            error::bad_payload);
+        st_ = state::reset; // unrecoverable
+        return;
+    }
 
     // reserve headers + table
     ws_.reserve_front(h_.size);
@@ -1059,23 +1148,13 @@ on_headers(
         return;
     }
 
-    // metadata error
-    if(h_.md.payload == payload::error)
-    {
-        // VFALCO This needs looking at
-        ec = BOOST_HTTP_PROTO_ERR(
-            error::bad_payload);
-        st_ = state::reset; // unrecoverable
-        return;
-    }
-
     // calculate filter
-    filt_ = nullptr;
+    filt_ = nullptr; // VFALCO TODO
 
-    // plain payload
     if(is_plain())
     {
-        // payload size is known
+        // plain payload
+
         if(h_.md.payload == payload::size)
         {
             if(h_.md.payload_size >
@@ -1096,14 +1175,10 @@ on_headers(
             if( n0 > h_.md.payload_size &&
                 n0 - h_.md.payload_size >=
                     svc_.max_overread())
-                n0 =
-                    h_.md.payload_size +
+                n0 = h_.md.payload_size +
                     svc_.max_overread();
             BOOST_ASSERT(n0 <= ws_.size());
-            cb0_ = {
-                ws_.data(),
-                n0,
-                overread };
+            cb0_ = { ws_.data(), n0, overread };
             body_buf_ = &cb0_;
             body_avail_ = cb0_.size();
             if( body_avail_ >= h_.md.payload_size)
@@ -1115,17 +1190,15 @@ on_headers(
             return;
         }
 
-        // payload to eof
         // overread is not applicable
+        BOOST_ASSERT(
+            h_.md.payload == payload::to_eof);
         auto const n0 =
             fb_.capacity() - h_.size +
             svc_.cfg.min_buffer +
             svc_.max_codec;
         BOOST_ASSERT(n0 <= ws_.size());
-        cb0_ = {
-            ws_.data(),
-            n0,
-            overread };
+        cb0_ = { ws_.data(), n0, overread };
         body_buf_ = &cb0_;
         body_avail_ = cb0_.size();
         body_total_ = body_avail_;
@@ -1134,27 +1207,18 @@ on_headers(
     }
 
     // buffered payload
-    auto const n0 =
-        fb_.capacity() - h_.size;
-    BOOST_ASSERT(
-        n0 <= svc_.max_overread());
+    auto const n0 = fb_.capacity() - h_.size;
+    BOOST_ASSERT(n0 <= svc_.max_overread());
     auto n1 = svc_.cfg.min_buffer;
     if(! filt_)
         n1 += svc_.max_codec;
-    BOOST_ASSERT(
-        n0 + n1 <= ws_.size());
-    cb0_ = {
-        ws_.data(),
-        n0,
-        overread };
-    cb1_ = {
-        ws_.data() + n0,
-        n1 };
+    BOOST_ASSERT(n0 + n1 <= ws_.size());
+    cb0_ = { ws_.data(), n0, overread };
+    cb1_ = { ws_.data() + n0, n1 };
     body_buf_ = &cb1_;
     body_avail_ = 0;
     body_total_ = 0;
     st_ = state::body;
-    return;
 }
 
 // Called at the end of set_body
@@ -1169,19 +1233,12 @@ on_set_body()
     BOOST_ASSERT(got_header());
 
     nprepare_ = 0; // invalidate
-
-    // VFALCO review this hack
-    if(! is_plain())
-        return;
-
-    // plain payload
-
+ 
     if(how_ == how::dynamic)
     {
         if(h_.md.payload == payload::none)
         {
-            BOOST_ASSERT(
-                st_ == state::complete);
+            BOOST_ASSERT(st_ == state::complete);
             return;
         }
 
@@ -1191,14 +1248,20 @@ on_set_body()
 
     if(how_ == how::sink)
     {
-        // handle this in parse() where
-        // we can return an error_code.
+        if(h_.md.payload == payload::none)
+        {
+            BOOST_ASSERT(st_ == state::complete);
+            // force a trip through parse so
+            // we can calculate any error.
+            st_ = state::set_body;
+            return;
+        }
+
         st_ = state::set_body;
         return;
     }
 
     // VFALCO TODO
-    st_ = state::set_body;
     detail::throw_logic_error();
 }
 
@@ -1209,8 +1272,8 @@ init_dynamic(
 {
     // attempt to transfer in-place
     // body into the dynamic buffer.
-    BOOST_ASSERT(body_avail_ ==
-        body_buf_->size());
+    BOOST_ASSERT(
+        body_avail_ == body_buf_->size());
     BOOST_ASSERT(
         body_total_ == body_avail_);
     auto const space_left =

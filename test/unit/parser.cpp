@@ -22,29 +22,36 @@
 
 #include "test_helpers.hpp"
 
-#include <future>
+#include <vector>
 
 namespace boost {
 namespace http_proto {
 
-/*
-    Four body styles for `parser`
-        * Specify a DynamicBuffer
-        * Specify a Sink
-        * Read from a parser::stream
-        * in-place
-*/
 struct parser_test
 {
     using pieces = std::vector<
         core::string_view>;
 
     context ctx_;
+    core::string_view sh_;
+    core::string_view sb_;
+    request_parser req_pr_;
+    response_parser res_pr_;
+    parser* pr_ = nullptr;
 
     parser_test()
+        : ctx_()
+        , req_pr_(
+            [&]() -> context&
+            {
+                request_parser::config cfg;
+                cfg.body_limit = 5;
+                cfg.min_buffer = 3;
+                install_parser_service(ctx_, cfg);
+                return ctx_;
+            }())
+        , res_pr_(ctx_)
     {
-        request_parser::config cfg;
-        install_parser_service(ctx_, cfg);
     }
 
     struct test_sink : sink
@@ -84,11 +91,9 @@ struct parser_test
 
     //-------------------------------------------
 
-    static
     void
     read_some(
         pieces& in,
-        parser& pr,
         system::error_code& ec)
     {
         if(! in.empty())
@@ -96,31 +101,29 @@ struct parser_test
             core::string_view& s = in[0];
             auto const n =
                 buffers::buffer_copy(
-                pr.prepare(),
+                pr_->prepare(),
                 buffers::buffer(
                     s.data(), s.size()));
-            pr.commit(n);
+            pr_->commit(n);
             s.remove_prefix(n);
             if(s.empty())
                 in.erase(in.begin());
         }
         else
         {
-            pr.commit_eof();
+            pr_->commit_eof();
         }
-        pr.parse(ec);
+        pr_->parse(ec);
     }
 
-    static
     void
     read_header(
         pieces& in,
-        parser& pr,
         system::error_code& ec)
     {
-        while(! pr.got_header())
+        while(! pr_->got_header())
         {
-            read_some(in, pr, ec);
+            read_some(in, ec);
             if(ec == condition::need_more_input)
                 continue;
             if(ec.failed())
@@ -129,21 +132,19 @@ struct parser_test
         ec = {};
     }
 
-    static
     void
     read(
         pieces& in,
-        parser& pr,
         system::error_code& ec)
     {
-        if(pr.is_complete())
+        if(pr_->is_complete())
         {
-            pr.parse(ec);
+            pr_->parse(ec);
             return;
         }
-        while(! pr.is_complete())
+        while(! pr_->is_complete())
         {
-            read_some(in, pr, ec);
+            read_some(in, ec);
             if(ec == condition::need_more_input)
                 continue;
             if(ec.failed())
@@ -151,218 +152,214 @@ struct parser_test
         }
     }
 
-    //-------------------------------------------
+    //--------------------------------------------
+
+    void
+    start()
+    {
+        if(pr_->is_end_of_stream())
+            pr_->reset();
+        if(pr_ == &req_pr_)
+            req_pr_.start();
+        else
+            res_pr_.start();
+    }
 
     void
     check_in_place(
-        core::string_view sb,
-        parser& pr,
         pieces& in,
-        system::error_code expected = {})
+        system::error_code ex = {})
     {
         system::error_code ec;
-        read_header(in, pr, ec);
+
+        start();
+        read_header(in, ec);
         if(ec.failed())
         {
-            BOOST_TEST_EQ(ec, expected);
+            BOOST_TEST_EQ(ec, ex);
             return;
         }
-        if(pr.is_complete())
+        if(pr_->is_complete())
         {
-            BOOST_TEST_EQ(pr.body(), sb);
+            BOOST_TEST_EQ(pr_->body(), sb_);
             // this should be a no-op
-            read(in, pr, ec);
+            read(in, ec);
             BOOST_TEST(! ec.failed());
-            BOOST_TEST_EQ(pr.body(), sb);
+            BOOST_TEST_EQ(pr_->body(), sb_);
             return;
         }
-        BOOST_TEST(pr.body().empty());
-        read(in, pr, ec);
+        BOOST_TEST(pr_->body().empty());
+        read(in, ec);
         if(ec.failed())
         {
-            BOOST_TEST_EQ(ec, expected);
+            BOOST_TEST_EQ(ec, ex);
             return;
         }
-        if(! BOOST_TEST(pr.is_complete()))
+        if(! BOOST_TEST(pr_->is_complete()))
             return;
-        BOOST_TEST_EQ(pr.body(), sb);
+        BOOST_TEST_EQ(pr_->body(), sb_);
         // this should be a no-op
-        read(in, pr, ec);
+        read(in, ec);
         BOOST_TEST(! ec.failed());
-        BOOST_TEST_EQ(pr.body(), sb);
+        BOOST_TEST_EQ(pr_->body(), sb_);
     }
 
     void
     check_dynamic(
-        core::string_view sb,
-        parser& pr,
         pieces& in,
-        system::error_code expected = {})
+        system::error_code ex = {})
     {
         char buf[5];
         system::error_code ec;
-        read_header(in, pr, ec);
+
+        start();
+        read_header(in, ec);
         if(ec.failed())
         {
-            BOOST_TEST_EQ(ec, expected);
+            BOOST_TEST_EQ(ec, ex);
             return;
         }
-        auto& fb = pr.set_body(
+        auto& fb = pr_->set_body(
             buffers::flat_buffer(
                 buf, sizeof(buf)));
-        BOOST_TEST(pr.body().empty());
-        if(! pr.is_complete())
+        BOOST_TEST(pr_->body().empty());
+        if(! pr_->is_complete())
         {
-            read(in, pr, ec);
+            read(in, ec);
             if(ec.failed())
             {
-                BOOST_TEST_EQ(ec, expected);
+                BOOST_TEST_EQ(ec, ex);
                 return;
             }
-            if(! BOOST_TEST(pr.is_complete()))
+            if(! BOOST_TEST(pr_->is_complete()))
                 return;
         }
         BOOST_TEST_EQ(
-            test_to_string(fb.data()), sb);
-        BOOST_TEST(pr.body().empty());
+            test_to_string(fb.data()), sb_);
+        BOOST_TEST(pr_->body().empty());
         // this should be a no-op
-        read(in, pr, ec);
+        read(in, ec);
         BOOST_TEST(! ec.failed());
         BOOST_TEST_EQ(
-            test_to_string(fb.data()), sb);
+            test_to_string(fb.data()), sb_);
     }
 
     void
     check_sink(
-        core::string_view sb,
-        parser& pr,
         pieces& in,
-        system::error_code expected = {})
+        system::error_code ex = {})
     {
         system::error_code ec;
-        read_header(in, pr, ec);
+
+        start();
+        read_header(in, ec);
         if(ec.failed())
         {
-            BOOST_TEST_EQ(ec, expected);
+            BOOST_TEST_EQ(ec, ex);
             return;
         }
-        auto& ts = pr.set_body(test_sink{});
-        BOOST_TEST(pr.body().empty());
-        if(! pr.is_complete())
+        auto& ts = pr_->set_body(test_sink{});
+        BOOST_TEST(pr_->body().empty());
+        if(! pr_->is_complete())
         {
-            read(in, pr, ec);
+            read(in, ec);
             if(ec.failed())
             {
-                BOOST_TEST_EQ(ec, expected);
+                BOOST_TEST_EQ(ec, ex);
                 return;
             }
-            if(! BOOST_TEST(pr.is_complete()))
+            if(! BOOST_TEST(pr_->is_complete()))
                 return;
         }
-        BOOST_TEST_EQ(ts.s, sb);
-        BOOST_TEST(pr.body().empty());
+        BOOST_TEST_EQ(ts.s, sb_);
+        BOOST_TEST(pr_->body().empty());
         // this should be a no-op
-        read(in, pr, ec);
+        read(in, ec);
         BOOST_TEST(! ec.failed());
-        BOOST_TEST_EQ(ts.s, sb);
+        BOOST_TEST_EQ(ts.s, sb_);
     }
 
     //-------------------------------------------
 
-    template<class Parser>
     void
-    start(Parser& pr)
+    check_header()
     {
-        if(pr.is_end_of_stream())
-            pr.reset();
-        pr.start();
+        if(pr_ == &req_pr_)
+        {
+            request_view req;
+            BOOST_TEST_NO_THROW((
+                req = req_pr_.get()));
+            BOOST_TEST_EQ(req.buffer(), sh_);
+        }
+        else
+        {
+            response_view res;
+            BOOST_TEST_NO_THROW((
+                res = res_pr_.get()));
+            BOOST_TEST_EQ(res.buffer(), sh_);
+        }
     }
 
     void
     check_req_1(
-        request_parser& pr,
-        pieces& in0,
-        core::string_view sh,
-        core::string_view sb,
-        system::error_code expected)
+        pieces const& in0,
+        system::error_code ex)
     {
-        (void)sh;
-
         // in_place
         {
             auto in = in0;
-            start(pr);
-            check_in_place(
-                sb, pr, in, expected);
+            check_in_place(in, ex);
         }
 
         // dynamic
         {
             auto in = in0;
-            start(pr);
-            check_dynamic(
-                sb, pr, in, expected);
+            check_dynamic(in, ex);
         }
 
         // sink
 #if 0
         {
             auto in = in0;
-            start(pr);
-            check_sink(sb, pr, in, expected);
+            check_sink(in, ex);
         }
 #endif
     }
 
     void
     check_res_1(
-        response_parser& pr,
-        pieces& in0,
-        core::string_view sh,
-        core::string_view sb,
-        system::error_code expected)
+        pieces const& in0,
+        system::error_code ex)
     {
-        (void)sh;
-
         // in_place
         {
             auto in = in0;
-            start(pr);
-            check_in_place(
-                sb, pr, in, expected);
+            check_in_place(in, ex);
         }
 
         // dynamic
         {
             auto in = in0;
-            start(pr);
-            check_dynamic(
-                sb, pr, in, expected);
+            check_dynamic(in, ex);
         }
 
         // sink
 #if 0
         {
             auto in = in0;
-            start(pr);
-            check_sink(sb, pr, in, expected);
+            check_sink(
+                res_pr_, in, ex);
         }
 #endif
     }
 
-    template<class Parser>
+    // void Fn( pieces& )
+    template<class Fn>
     void
     grind(
-        Parser& pr,
         core::string_view sh,
         core::string_view sb,
-        system::error_code expected,
-        void (parser_test::*mfn)(
-            Parser& pr,
-            pieces&,
-            core::string_view,
-            core::string_view,
-            system::error_code))
+        Fn const& fn)
     {
         std::string const s = [&]
         {
@@ -372,6 +369,9 @@ struct parser_test
             s.append(sb.data(), sb.size());
             return s;
         }();
+
+        sh_ = sh;
+        sb_ = sb;
         pieces in;
         in.reserve(3);
         core::string_view const sv(
@@ -379,8 +379,7 @@ struct parser_test
 
         // one piece
         in = { sv };
-        (this->*mfn)(
-            pr, in, sh, sb, expected);
+        fn(in);
 
         for(std::size_t i = 0;
             i <= s.size(); ++i)
@@ -389,9 +388,10 @@ struct parser_test
             in = {
                 sv.substr(0, i),
                 sv.substr(i) };
-            (this->*mfn)(
-                pr, in, sh, sb, expected);
+            fn(in);
 
+#if 0
+            // VFALCO is this helpful?
             for(std::size_t j = i;
                 j <= s.size(); ++j)
             {
@@ -400,9 +400,9 @@ struct parser_test
                     sv.substr(0, i),
                     sv.substr(i, j - i),
                     sv.substr(j) };
-                (this->*mfn)(
-                    pr, in, sh, sb, expected);
+                fn(in);
             }
+#endif
         }
     }
 
@@ -410,71 +410,76 @@ struct parser_test
     check_req(
         core::string_view sh,
         core::string_view sb,
-        system::error_code expected = {})
+        system::error_code ex = {})
     {
-        request_parser pr(ctx_);
-        pr.reset();
-        grind(pr, sh, sb, expected,
-            &parser_test::check_req_1);
+        pr_ = &req_pr_;
+        grind(sh, sb, [&](
+            pieces const& in0)
+            {
+                check_req_1(in0, ex);
+            });
     }
 
     void
     check_res(
         core::string_view sh,
         core::string_view sb,
-        system::error_code expected = {})
+        system::error_code ex = {})
     {
-        response_parser pr(ctx_);
-        pr.reset();
-        grind(pr, sh, sb, expected,
-            &parser_test::check_res_1);
+        pr_ = &res_pr_;
+        grind(sh, sb, [&](
+            pieces const& in0)
+            {
+                check_res_1(in0, ex);
+            });
     }
 
     void
-    testParseRequest()
+    should_pass(
+        core::string_view sh,
+        core::string_view sb)
     {
-        check_req(
-            "GET / HTTP/1.1\r\n"
-            "User-Agent: test\r\n"
-            "\r\n",
-            "");
-
-        check_req(
-            "GET / HTTP/1.1\r\n"
-            "User-Agent: test\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n",
-            "Hello");
+        BOOST_ASSERT(! sh.empty());
+        if(sh[0] != 'H')
+            check_req(sh, sb);
+        else
+            check_res(sh, sb);
     }
 
     void
-    testParseResponse()
+    should_fail(
+        system::error_code ex,
+        core::string_view sh,
+        core::string_view sb)
     {
-        check_res(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "\r\n",
-            "");
+        if(sh.empty())
+        {
+            BOOST_ASSERT(sb.empty());
+            check_req(sh, sb, ex);
+            check_res(sh, sb, ex);
+            return;
+        }
+        if(sh[0] != 'H')
+            check_req(sh, sb, ex);
+        else
+            check_res(sh, sb, ex);
+    }
 
-        check_res(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n",
-            "Hello");
+    //--------------------------------------------
 
-        check_res(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "\r\n",
-            "Hello");
+    void
+    testSpecial()
+    {
+        // ~parser
 
-        check_res(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "\r\n",
-            "Hellox",
-            error::buffer_overflow);
+        {
+            request_parser pr(ctx_);
+        }
+
+        {
+            response_parser pr(ctx_);
+        }
+
     }
 
     void
@@ -493,14 +498,235 @@ struct parser_test
     }
 
     void
+    testParseHeader()
+    {
+        // clean stream close
+        should_fail(
+            error::end_of_stream,
+            "",
+            "");
+
+        // partial message
+        should_fail(
+            error::incomplete,
+            "GET",
+            "");
+
+        // VFALCO TODO map grammar error codes
+        // invalid syntax
+        //should_fail(
+            //error::bad_method,
+            //" B", "");
+
+        // payload error
+        should_fail(
+            error::bad_payload,
+            "GET / HTTP/1.1\r\n"
+            "Content-Length: 1\r\n"
+            "Content-Length: 2\r\n"
+            "\r\n",
+            "12");
+
+        should_pass(
+            "GET / HTTP/1.1\r\n"
+            "\r\n",
+            "");
+    }
+
+    void
+    testParseRequest()
+    {
+        should_pass(
+            "GET / HTTP/1.1\r\n"
+            "User-Agent: test\r\n"
+            "\r\n",
+            "");
+
+        should_pass(
+            "GET / HTTP/1.1\r\n"
+            "User-Agent: test\r\n"
+            "Content-Length: 3\r\n"
+            "\r\n",
+            "123");
+    }
+
+    void
+    testParseResponse()
+    {
+        should_pass(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "\r\n",
+            "");
+
+        should_pass(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "Content-Length: 3\r\n"
+            "\r\n",
+            "123");
+
+        should_pass(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "\r\n",
+            "123");
+
+        should_fail(
+            error::body_too_large,
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "\r\n",
+            "Hello");
+    }
+
+    void
+    testMembers()
+    {
+        //
+        // start
+        //
+
+        {
+            // missing reset
+            request_parser pr(ctx_);
+            BOOST_TEST_THROWS(
+                pr.start(),
+                std::logic_error);
+        }
+
+        {
+            // start called twice
+            request_parser pr(ctx_);
+            pr.reset();
+            pr.start();
+            BOOST_TEST_THROWS(
+                pr.start(),
+                std::logic_error);
+        }
+
+        //
+        // prepare
+        //
+
+        {
+            // missing reset
+            request_parser pr(ctx_);
+            BOOST_TEST_THROWS(
+                pr.prepare(),
+                std::logic_error);
+        }
+
+        {
+            // missing start
+            request_parser pr(ctx_);
+            pr.reset();
+            BOOST_TEST_THROWS(
+                pr.prepare(),
+                std::logic_error);
+        }
+
+        //
+        // commit
+        //
+
+        {
+            // missing reset
+            request_parser pr(ctx_);
+            BOOST_TEST_THROWS(
+                pr.commit(0),
+                std::logic_error);
+        }
+
+        {
+            // missing start
+            request_parser pr(ctx_);
+            pr.reset();
+            BOOST_TEST_THROWS(
+                pr.commit(0),
+                std::logic_error);
+        }
+
+        {
+            // n too large
+            request_parser pr(ctx_);
+            pr.reset();
+            pr.start();
+            BOOST_TEST_THROWS(
+                pr.commit(1),
+                std::invalid_argument);
+        }
+
+        {
+            // n too large
+            request_parser pr(ctx_);
+            pr.reset();
+            pr.start();
+            auto dest = pr.prepare();
+            BOOST_TEST_THROWS(
+                pr.commit(buffers::buffer_size(dest) + 1),
+                std::invalid_argument);
+        }
+
+        //
+        // commit_eof
+        //
+
+        {
+            // missing reset
+            request_parser pr(ctx_);
+            BOOST_TEST_THROWS(
+                pr.commit_eof(),
+                std::logic_error);
+        }
+
+        {
+            // missing start
+            request_parser pr(ctx_);
+            pr.reset();
+            BOOST_TEST_THROWS(
+                pr.commit_eof(),
+                std::logic_error);
+        }
+
+        //
+        // parse
+        //
+
+        {
+            // missing reset
+            request_parser pr(ctx_);
+            system::error_code ec;
+            BOOST_TEST_THROWS(
+                pr.parse(ec),
+                std::logic_error);
+        }
+
+        {
+            // missing start
+            request_parser pr(ctx_);
+            system::error_code ec;
+            pr.reset();
+            BOOST_TEST_THROWS(
+                pr.parse(ec),
+                std::logic_error);
+        }
+    }
+
+    //-------------------------------------------
+
+    void
     run()
     {
+        testSpecial();
+        testConfig();
         //for(int i = 0; i < 10000; ++i )
         {
+        testParseHeader();
         testParseRequest();
         testParseResponse();
-        testConfig();
         }
+        testMembers();
     }
 };
 

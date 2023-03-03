@@ -138,10 +138,13 @@ public:
     BOOST_HTTP_PROTO_DECL
     ~parser();
 
-    /** Constructor.
+    /** Constructor (deleted)
     */
-    BOOST_HTTP_PROTO_DECL
-    parser(parser&&) noexcept;
+    parser(parser&&) = delete;
+
+    /** Assignment (deleted)
+    */
+    parser& operator=(parser&&) = delete;
 
     //--------------------------------------------
     //
@@ -236,6 +239,10 @@ public:
         std::size_t n);
 
     /** Indicate there will be no more input
+
+        @par Postconditions
+        All buffer sequences previously obtained
+        by calling @ref prepare are invalidated.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -331,7 +338,7 @@ private:
         header,
         body,
         set_body,
-        complete,
+        complete
     };
 
     enum class how
