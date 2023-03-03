@@ -47,6 +47,41 @@ struct parser_test
         install_parser_service(ctx_, cfg);
     }
 
+    struct test_sink : sink
+    {
+        std::string s;
+        std::size_t max_size_;
+
+        explicit
+        test_sink(
+            std::size_t max_size =
+                std::size_t(-1)) noexcept
+            : max_size_(max_size)
+        {
+        }
+
+        results
+        on_write(
+            buffers::const_buffer b,
+            bool more) noexcept override
+        {
+            (void)more;
+            results rv;
+            auto const space = 
+                max_size_ - s.size();
+            auto n = b.size();
+            if( n > space)
+                n = space;
+            s.append(static_cast<
+                char const*>(b.data()),
+                    b.size());
+            rv.bytes = n;
+            if(n < b.size())
+                rv.ec = error::buffer_overflow;
+            return rv;
+        }
+    };
+
     //-------------------------------------------
 
     static
@@ -197,6 +232,41 @@ struct parser_test
             test_to_string(fb.data()), sb);
     }
 
+    void
+    check_sink(
+        core::string_view sb,
+        parser& pr,
+        pieces& in,
+        system::error_code expected = {})
+    {
+        system::error_code ec;
+        read_header(in, pr, ec);
+        if(ec.failed())
+        {
+            BOOST_TEST_EQ(ec, expected);
+            return;
+        }
+        auto& ts = pr.set_body(test_sink{});
+        BOOST_TEST(pr.body().empty());
+        if(! pr.is_complete())
+        {
+            read(in, pr, ec);
+            if(ec.failed())
+            {
+                BOOST_TEST_EQ(ec, expected);
+                return;
+            }
+            if(! BOOST_TEST(pr.is_complete()))
+                return;
+        }
+        BOOST_TEST_EQ(ts.s, sb);
+        BOOST_TEST(pr.body().empty());
+        // this should be a no-op
+        read(in, pr, ec);
+        BOOST_TEST(! ec.failed());
+        BOOST_TEST_EQ(ts.s, sb);
+    }
+
     //-------------------------------------------
 
     template<class Parser>
@@ -233,6 +303,15 @@ struct parser_test
             check_dynamic(
                 sb, pr, in, expected);
         }
+
+        // sink
+#if 0
+        {
+            auto in = in0;
+            start(pr);
+            check_sink(sb, pr, in, expected);
+        }
+#endif
     }
 
     void
@@ -260,6 +339,15 @@ struct parser_test
             check_dynamic(
                 sb, pr, in, expected);
         }
+
+        // sink
+#if 0
+        {
+            auto in = in0;
+            start(pr);
+            check_sink(sb, pr, in, expected);
+        }
+#endif
     }
 
     template<class Parser>

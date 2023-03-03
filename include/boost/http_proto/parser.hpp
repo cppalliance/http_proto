@@ -274,9 +274,9 @@ public:
     typename std::enable_if<
         is_sink<Sink>::value,
         typename std::decay<Sink>::type
-            >::type
+            >::type&
 #else
-    typename std::decay<Sink>::type
+    typename std::decay<Sink>::type&
 #endif
     set_body(Sink&& sink);
 
@@ -318,8 +318,8 @@ private:
         safe_get_header() const;
     bool is_plain() const noexcept;
     void on_headers(system::error_code&);
-
     BOOST_HTTP_PROTO_DECL void on_set_body();
+    void init_dynamic(system::error_code&);
 
     static constexpr unsigned buffers_N = 8;
 
@@ -330,7 +330,7 @@ private:
         start,
         header,
         body,
-        body_set,
+        set_body,
         complete,
     };
 
@@ -346,9 +346,10 @@ private:
     parser_service& svc_;
     detail::workspace ws_;
     detail::header h_;
-    std::uint64_t body_avail_;      // in body_buf_
-    std::uint64_t body_total_;      // total output
-    std::uint64_t payload_remain_;  // if known
+    std::uint64_t body_avail_;
+    std::uint64_t body_total_;
+    std::uint64_t payload_remain_;
+    std::size_t nprepare_;
 
     buffers::flat_buffer fb_;
     buffers::circular_buffer cb0_;

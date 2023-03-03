@@ -24,8 +24,12 @@ parser::
 set_body(
     DynamicBuffer&& b)
 {
-    // body type already chosen
+    // body must not be set already
     if(how_ != how::in_place)
+        detail::throw_logic_error();
+
+    // headers must be complete
+    if(! got_header())
         detail::throw_logic_error();
 
     auto& dyn = ws_.push(
@@ -45,18 +49,21 @@ template<class Sink>
 typename std::enable_if<
     is_sink<Sink>::value,
     typename std::decay<Sink>::type
-        >::type
+        >::type&
 parser::
 set_body(
     Sink&& sink)
 {
-    // body type already chosen
+    // body must not be set already
     if(how_ != how::in_place)
         detail::throw_logic_error();
 
+    // headers must be complete
+    if(! got_header())
+        detail::throw_logic_error();
+
     auto& s = ws_.push(
-        std::forward<
-            Sink>(sink));
+        std::forward<Sink>(sink));
     sink_ = &s;
     how_ = how::sink;
     on_set_body();
