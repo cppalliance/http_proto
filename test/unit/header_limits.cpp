@@ -23,6 +23,7 @@ struct header_limits_test
         // header_limits();
         {
             header_limits lim;
+            (void)lim;
         }
     }
 

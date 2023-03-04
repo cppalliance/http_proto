@@ -10,6 +10,8 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/service/zlib_service.hpp>
 
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
+
 #include <boost/http_proto/context.hpp>
 
 #include "test_helpers.hpp"
@@ -35,3 +37,5 @@ TEST_SUITE(
 
 } // http_proto
 } // boost
+
+#endif

@@ -44,14 +44,6 @@ public:
     explicit
     request_parser(context&);
 
-    /** Prepare for the next message on the stream.
-    */
-    void
-    start()
-    {
-        start_impl(false);
-    }
-
     /** Return the parsed request headers.
     */
     BOOST_HTTP_PROTO_DECL

@@ -44,14 +44,6 @@ public:
     response_parser(context& ctx);
 
     /** Prepare for the next message on the stream.
-    */
-    void
-    start()
-    {
-        start_impl(false);
-    }
-
-    /** Prepare for the next message on the stream.
 
         This informs the parser not to read a
         payload for the next message, regardless

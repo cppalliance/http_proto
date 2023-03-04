@@ -274,8 +274,12 @@ start_impl(
         break;
 
     case state::header:
-        // start() called twice
-        detail::throw_logic_error();
+        if(fb_.size() == 0)
+        {
+            // start() called twice
+            detail::throw_logic_error();
+        }
+        BOOST_FALLTHROUGH;
 
     case state::body:
     case state::set_body:
@@ -370,6 +374,9 @@ prepare() ->
 
     case state::body:
     {
+        if(got_eof_)
+            return mutable_buffers_type{};
+
     do_body:
         if(! is_plain())
         {
@@ -415,39 +422,47 @@ prepare() ->
                 return dyn_->prepare(n);
             }
 
-            // heuristic size
+            BOOST_ASSERT(
+                h_.md.payload == payload::to_eof);
             std::size_t n = 0;
             if(! got_eof_)
             {
+                // calculate n heuristically
                 n = svc_.cfg.min_buffer;
                 if( n > svc_.cfg.max_prepare)
                     n = svc_.cfg.max_prepare;
-                std::size_t avail;
-                avail =
-                    dyn_->max_size() - dyn_->size();
-                if( n > avail)
-                    n = avail;
-                avail = 
-                    dyn_->capacity() - dyn_->size();
-                if( n > avail &&
-                    avail != 0)
-                    n = avail;
+                {
+                    // apply max_size()
+                    auto avail =
+                        dyn_->max_size() -
+                            dyn_->size();
+                    if( n > avail)
+                        n = avail;
+                }
+                // fill capacity() first,
+                // to avoid an allocation
+                {
+                    auto avail = 
+                        dyn_->capacity() -
+                            dyn_->size();
+                    if( n > avail &&
+                            avail != 0)
+                        n = avail;
+                }
                 if(n == 0)
                 {
                     // dynamic buffer is full
-                    if(body_avail_ == 0)
-                    {
-                        // attempt a 1 byte read so
-                        // we can detect overflow
-                        BOOST_ASSERT(
-                            body_buf_->size() == 0);
-                        mbp_ = body_buf_->prepare(1);
-                        nprepare_ = 1;
-                        return
-                            mutable_buffers_type(mbp_);
-                    }
+                    // attempt a 1 byte read so
+                    // we can detect overflow
+                    BOOST_ASSERT(
+                        body_buf_->size() == 0);
+                    // handled in init_dynamic
+                    BOOST_ASSERT(
+                        body_avail_ == 0);
+                    mbp_ = body_buf_->prepare(1);
+                    nprepare_ = 1;
                     return
-                        mutable_buffers_type{};
+                        mutable_buffers_type(mbp_);
                 }
             }
             nprepare_ = n;
@@ -515,34 +530,27 @@ commit(
     case state::reset:
     {
         // reset must be called first
-        nprepare_ = 0; // invalidate
         detail::throw_logic_error();
     }
 
     case state::start:
     {
         // forgot to call start()
-        nprepare_ = 0; // invalidate
-        st_ = state::reset; // unrecoverable
         detail::throw_logic_error();
     }
 
     case state::header:
     {
-        // n can't be greater than prepared size
         if(n > nprepare_)
         {
-            nprepare_ = 0; // invalidate
-            st_ = state::reset; // unrecoverable
+            // n can't be greater than size of
+            // the buffers returned by prepare()
             detail::throw_invalid_argument();
         }
 
-        // can't add data after EOF
-        if( got_eof_ &&
-            n > 0)
+        if(got_eof_)
         {
-            nprepare_ = 0; // invalidate
-            st_ = state::reset; // unrecoverable
+            // can't commit after EOF
             detail::throw_logic_error();
         }
 
@@ -553,22 +561,14 @@ commit(
 
     case state::body:
     {
-        // n can't be greater than prepared size
         if(n > nprepare_)
         {
-            nprepare_ = 0; // invalidate
-            st_ = state::reset; // unrecoverable
+            // n can't be greater than size of
+            // the buffers returned by prepare()
             detail::throw_invalid_argument();
         }
 
-        // can't add data after EOF
-        if( got_eof_ &&
-            n > 0)
-        {
-            nprepare_ = 0; // invalidate
-            st_ = state::reset; // unrecoverable
-            detail::throw_logic_error();
-        }
+        BOOST_ASSERT(! got_eof_ || n == 0);
 
         if(! is_plain())
         {
@@ -597,6 +597,7 @@ commit(
                 st_ = state::complete;
                 break;
             }
+
             BOOST_ASSERT(
                 h_.md.payload == payload::to_eof);
             body_avail_ += n;
@@ -649,11 +650,10 @@ commit(
 
     case state::set_body:
     {
-        // n can't be greater than prepared size
         if(n > nprepare_)
         {
-            nprepare_ = 0; // invalidate
-            st_ = state::reset; // unrecoverable
+            // n can't be greater than size of
+            // the buffers returned by prepare()
             detail::throw_invalid_argument();
         }
 
@@ -674,9 +674,12 @@ commit(
     {
         BOOST_ASSERT(nprepare_ == 0);
 
-        // n can't be greater than prepared size
         if(n > 0)
+        {
+            // n can't be greater than size of
+            // the buffers returned by prepare()
             detail::throw_invalid_argument();
+        }
 
         // intended no-op
         break;
@@ -820,6 +823,13 @@ parse(
                 if(body_avail_ <
                     h_.md.payload_size)
                 {
+                    if(got_eof_)
+                    {
+                        // incomplete
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::incomplete);
+                        return;
+                    }
                     if(body_buf_->capacity() == 0)
                     {
                         // in_place buffer limit
@@ -850,6 +860,7 @@ parse(
                     error::need_data);
                 return;
             }
+            BOOST_ASSERT(got_eof_);
             st_ = state::complete;
             break;
         }
@@ -1278,6 +1289,7 @@ init_dynamic(
         body_total_ == body_avail_);
     auto const space_left =
         dyn_->max_size() - dyn_->size();
+
     if(h_.md.payload == payload::size)
     {
         if(space_left < h_.md.payload_size)
@@ -1313,6 +1325,7 @@ init_dynamic(
         st_ = state::complete;
         return;
     }
+
     BOOST_ASSERT(h_.md.payload ==
         payload::to_eof);
     if(space_left < body_avail_)

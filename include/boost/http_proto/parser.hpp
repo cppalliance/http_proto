@@ -219,6 +219,14 @@ public:
     void
     reset() noexcept;
 
+    /** Prepare for the next message on the stream.
+    */
+    void
+    start()
+    {
+        start_impl(false);
+    }
+
 private:
     // New message on the current stream
     BOOST_HTTP_PROTO_DECL void
@@ -370,6 +378,7 @@ private:
     state st_;
     how how_;
     bool got_eof_;
+//    bool need_more_;
     bool head_response_;
 };
 
