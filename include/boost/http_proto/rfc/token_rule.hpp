@@ -36,10 +36,15 @@ namespace http_proto {
         >B.1. Core Rules (rfc5234)</a>
 */
 constexpr grammar::lut_chars tchars =
+#ifdef BOOST_HTTP_PROTO_DOCS
+    __see_below__
+#else
     "!#$%&'*+-.^_`|~"
     "0123456789"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz";
+    "abcdefghijklmnopqrstuvwxyz"
+#endif
+    ;
 
 /** Match a token
 
