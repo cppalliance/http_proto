@@ -1,4 +1,6 @@
+build
 html
 temp
+node_modules
 out.txt
 qbk/reference.qbk

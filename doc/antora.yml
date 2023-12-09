@@ -1,0 +1,16 @@
+name: http_proto
+version: ~
+title: Boost.HTTP.Proto
+start_page: index.adoc
+asciidoc:
+  attributes:
+    source-language: asciidoc@
+    table-caption: false
+nav:
+  - modules/ROOT/nav.adoc
+ext:
+  collector:
+    run:
+      command: node doc/generate-files.mjs
+    scan:
+      dir: doc/build/generated-files
