@@ -62,3 +62,48 @@ using the combinators provided by the library.
 This library wouldn't be where it is today without the help of
 https://github.com/pdimov[Peter Dimov,window=blank_]
 for design advice and general assistance.
+
+== Design
+
+=== Comparison to Boost.Beast
+
+This library builds on the experiences learned from Boost.Beast's seven years
+of success. Beast brings these unique design strengths:
+
+* Body type named requirements
+* First-class message container
+* Individual parser and serializer objects
+
+The message container suffers from these problems:
+
+* Templated on the body type.
+* Templated on Allocator
+* Node-based implementation
+* Serialization is too costly
+
+Meanwhile parsers and serializes suffer from these problems:
+
+* Buffer-at-a-time operation is clumsy.
+* Objects are not easily re-used
+* Parser is a class template because of body types
+
+==== Message Container
+
+In HTTP.Proto the message container implementation always stores the complete
+message or fields in its correctly serialized form. Insertions and modifications
+are performed in linear time. When the container is reused, the amortized cost
+of reallocation becomes zero. A small lookup table is stored past the end of
+the serialized message, permitting iteration in constant time.
+
+==== Parser
+
+The HTTP.Proto parser is designed to persist for the lifetime of the connection
+or application. It allocates a fixed size memory buffer upon construction and
+uses this memory region to perform type-erasure and apply or remove content
+encodings to the body. The parser is a regular class instead of a class
+template, which greatly improves its ease of use over the Beast parser design.
+
+==== Serializer
+
+As with the parser, the serializer is designed to persist for the lifetime of
+the connection or application and also allocates a fixed size buffer.
