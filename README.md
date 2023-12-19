@@ -37,7 +37,7 @@ source file in your project.
 
 ### Embedded
 
-Boost.Http.Proto works great on embedded devices.
+Boost.HTTP.Proto works great on embedded devices.
 It is designed to work without exceptions if desired.
 
 ### Supported Compilers
@@ -60,8 +60,8 @@ these per-commit analyses:
 
 ## Visual Studio Solution Generation
 
-    cmake -G "Visual Studio 16 2019" -A Win32 -B bin -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msvc.cmake
-    cmake -G "Visual Studio 16 2019" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+    cmake -G "Visual Studio 17 2022" -A win32 -B bin -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="C:/Users/vinnie/src/boost/libs/http_proto/cmake/toolchains/msvc.cmake"
+    cmake -G "Visual Studio 17 2022" -A x64 -B bin64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="C:/Users/vinnie/src/boost/libs/http_proto/cmake/toolchains/msvc.cmake"
 
 ## License
 
