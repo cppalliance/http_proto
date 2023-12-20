@@ -1,9 +1,15 @@
-# Copyright 2020-2021 Peter Dimov
-# Copyright 2021 Andrey Semashev
-# Copyright 2021 Alexander Grund
 #
-# Distributed under the Boost Software License, Version 1.0.
-# (See accompanying file LICENSE_1_0.txt or copy at http://boost.org/LICENSE_1_0.txt)
+# Copyright (c) 2023 Christian Mazakas
+# Copyright (c) 2023 Alan de Freitas
+# Copyright (c) 2021-2023 Sam Darwin
+# Copyright (c) 2020-2021 Peter Dimov
+# Copyright (c) 2021 Andrey Semashev
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+# Official repository: https://github.com/CPPAlliance/http_proto/
+#
 
 name: CI
 
@@ -13,7 +19,11 @@ on:
     branches:
       - master
       - develop
+      - bugfix/**
       - feature/**
+      - fix/**
+      - pr/**
+
 
 concurrency:
   group: ${{format('{0}:{1}', github.repository, github.ref)}}
@@ -22,232 +32,316 @@ concurrency:
 env:
   GIT_FETCH_JOBS: 8
   NET_RETRY_COUNT: 5
-  B2_CI_VERSION: 1
-  B2_VARIANT: debug,release
-  B2_LINK: shared,static
-  LCOV_BRANCH_COVERAGE: 0
+  DEFAULT_BUILD_VARIANT: debug,release
 
 jobs:
-  posix:
+  runner-selection:
+    name: Runner Selection
+    runs-on: ${{ github.repository_owner == 'boostorg' && fromJSON('[ "self-hosted", "linux", "x64", "ubuntu-latest-aws" ]') || 'ubuntu-latest' }}
+    outputs:
+      labelmatrix: ${{ steps.aws_hosted_runners.outputs.labelmatrix }}
+    steps:
+      - name: AWS Hosted Runners
+        id: aws_hosted_runners
+        uses: cppalliance/aws-hosted-runners@v1.0.0
+
+  cpp-matrix:
+    needs: [ runner-selection ]
+    runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)['ubuntu-latest'] }}
+    name: Generate Test Matrix
+    outputs:
+      matrix: ${{ steps.cpp-matrix.outputs.matrix }}
+    steps:
+      - name: Generate Test Matrix
+        uses: alandefreitas/cpp-actions/cpp-matrix@73f19810550b61d5481a202ed3d5694579ac246a
+        id: cpp-matrix
+        with:
+          compilers: |
+            gcc >=5.1
+            clang >=3.8
+            msvc >=14.20
+            apple-clang *
+            mingw *
+            clang-cl *
+          standards: '>=11'
+          latest-factors: |
+            gcc ubsan asan shared no-threads coverage
+            msvc shared x86
+            clang ubsan asan time-trace fuzz
+            mingw shared
+          factors: false
+          trace-commands: true
+
+  build:
+    needs: [ cpp-matrix,runner-selection ]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.cpp-matrix.outputs.matrix) }}
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)[matrix.runs-on] }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 120
+
+    steps:
+      - name: Clone Boost.HTTP.Proto
+        uses: actions/checkout@v3
+        with:
+          path: http-proto-root
+
+      - name: Clone Boost.Buffers
+        uses: actions/checkout@v3
+        with:
+          path: buffers-root
+          repository: cppalliance/buffers
+          ref: develop
+
+      - name: Setup C++
+        uses: alandefreitas/cpp-actions/setup-cpp@73f19810550b61d5481a202ed3d5694579ac246a
+        id: setup-cpp
+        with:
+          compiler: ${{ matrix.compiler }}
+          version: ${{ matrix.version }}
+          check-latest: ${{ matrix.compiler != 'clang' || matrix.version != '^3.8' }}
+          trace-commands: true
+
+      - name: Install packages
+        uses: alandefreitas/cpp-actions/package-install@73f19810550b61d5481a202ed3d5694579ac246a
+        id: package-install
+        with:
+          apt-get: "${{ matrix.install }} python3"
+
+      - name: Clone Boost
+        uses: alandefreitas/cpp-actions/boost-clone@73f19810550b61d5481a202ed3d5694579ac246a
+        id: boost-clone
+        with:
+          branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
+          boost-dir: boost-source
+          scan-modules-dir: http-proto-root
+          scan-modules-ignore: http_proto
+          trace-commands: ${{ env.ACTIONS_STEP_DEBUG == 'true' }}
+
+      - name: Patch Boost
+        id: patch
+        shell: bash
+        run: |
+          set -xe
+          pwd
+          ls
+          ls -lah boost-source
+
+          # Identify boost module being tested
+          module=${GITHUB_REPOSITORY#*/}
+          echo "module=$module" >> $GITHUB_OUTPUT
+
+          # Identify GitHub workspace root
+          workspace_root=$(echo "$GITHUB_WORKSPACE" | sed 's/\\/\//g')
+          echo -E "workspace_root=$workspace_root" >> $GITHUB_OUTPUT
+
+          # Remove module from boost-source
+          rm -r "boost-source/libs/$module" || true
+
+          # Copy cached boost-source to an isolated boost-root
+          cp -r boost-source boost-root
+
+          # Set boost-root output
+          cd boost-root
+          boost_root="$(pwd)"
+          boost_root=$(echo "$boost_root" | sed 's/\\/\//g')
+          echo -E "boost_root=$boost_root" >> $GITHUB_OUTPUT
+
+          # Patch boost-root with workspace module
+          mkdir "libs/$module"
+          cp -r "$workspace_root"/http-proto-root/* "libs/$module"
+
+          mkdir libs/buffers
+          cp -r "$workspace_root"/buffers-root/* libs/buffers
+
+          python3 tools/boostdep/depinst/depinst.py buffers
+
+      - name: Boost B2 Workflow
+        uses: alandefreitas/cpp-actions/b2-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        with:
+          source-dir: boost-root
+          modules: http_proto
+          toolset: ${{ matrix.b2-toolset }}
+          build-variant: ${{ matrix.build-type }}
+          cxx: ${{ steps.setup-cpp.outputs.cxx || matrix.cxx || '' }}
+          cxxstd: ${{ matrix.cxxstd }}
+          address-model: ${{ (matrix.x86 && '32') || '64' }}
+          asan: ${{ matrix.asan }}
+          ubsan: ${{ matrix.ubsan }}
+          tsan: ${{ matrix.tsan }}
+          shared: ${{ matrix.shared }}
+          rtti: ${{ (matrix.is-latest && 'on,off') || 'on' }}
+
+      - name: Boost CMake Workflow
+        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        if: ${{ matrix.is-latest || matrix.is-earliest }}
+        with:
+          source-dir: boost-root
+          build-dir: __build_cmake_test__
+          generator: ${{ matrix.generator }}
+          generator-toolset: ${{ matrix.generator-toolset }}
+          build-type: ${{ matrix.build-type }}
+          build-target: tests boost_http_proto_tests boost_http_proto_limits
+          run-tests: true
+          install-prefix: .local
+          cxxstd: ${{ matrix.latest-cxxstd }}
+          cc:  ${{ steps.setup-cpp.outputs.cc || matrix.cc }}
+          ccflags: ${{ matrix.ccflags }}
+          cxx: ${{ steps.setup-cpp.outputs.cxx || matrix.cxx }}
+          cxxflags: ${{ matrix.cxxflags }}
+          shared: ${{ matrix.shared }}
+          cmake-version: '>=3.15'
+          extra-args: |
+            -D Boost_VERBOSE=ON
+            -D BOOST_INCLUDE_LIBRARIES="${{ steps.patch.outputs.module }}"
+            -D BOOST_HTTP_PROTO_BUILD_TESTS=ON
+          export-compile-commands: ${{ matrix.time-trace }}
+          package: false
+          package-artifact: false
+          ref-source-dir: boost-root/libs/http_proto
+
+      - name: Set Path
+        if: startsWith(matrix.runs-on, 'windows') && matrix.shared
+        run: echo "$GITHUB_WORKSPACE/.local/bin" >> $GITHUB_PATH
+
+      - name: Set LD_LIBRARY_PATH
+        if: startsWith(matrix.runs-on, 'ubuntu') && matrix.shared
+        run: |
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/.local/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+
+      - name: Find Package Integration Workflow
+        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        if: ${{ matrix.is-latest || matrix.is-earliest }}
+        with:
+          source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
+          build-dir: __build_cmake_install_test__
+          generator: ${{ matrix.generator }}
+          generator-toolset: ${{ matrix.generator-toolset }}
+          build-type: ${{ matrix.build-type }}
+          cxxstd: ${{ matrix.latest-cxxstd }}
+          cc: ${{ steps.setup-cpp.outputs.cc || matrix.cc }}
+          ccflags: ${{ matrix.ccflags }}
+          cxx: ${{ steps.setup-cpp.outputs.cxx || matrix.cxx }}
+          cxxflags: ${{ matrix.cxxflags }}
+          shared: ${{ matrix.shared }}
+          install: false
+          cmake-version: '>=3.15'
+          extra-args: |
+            -D BOOST_CI_INSTALL_TEST=ON
+            -D CMAKE_PREFIX_PATH=${{ steps.patch.outputs.workspace_root }}/.local
+          ref-source-dir: boost-root/libs/http_proto
+          trace-commands: true
+
+      - name: Subdirectory Integration Workflow
+        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        if: ${{ matrix.is-latest || matrix.is-earliest }}
+        with:
+          source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
+          build-dir: __build_cmake_subdir_test__
+          generator: ${{ matrix.generator }}
+          generator-toolset: ${{ matrix.generator-toolset }}
+          build-type: ${{ matrix.build-type }}
+          cxxstd: ${{ matrix.latest-cxxstd }}
+          cc: ${{ steps.setup-cpp.outputs.cc || matrix.cc }}
+          ccflags: ${{ matrix.ccflags }}
+          cxx: ${{ steps.setup-cpp.outputs.cxx || matrix.cxx }}
+          cxxflags: ${{ matrix.cxxflags }}
+          shared: ${{ matrix.shared }}
+          install: false
+          cmake-version: '>=3.15'
+          extra-args: -D BOOST_CI_INSTALL_TEST=OFF
+          ref-source-dir: boost-root/libs/http_proto/test/cmake_test
+
+
+
+      - name: Root Project CMake Workflow
+        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        if: ${{ matrix.is-latest || matrix.is-earliest }}
+        with:
+          source-dir: boost-root/libs/${{ steps.patch.outputs.module }}
+          build-dir: __build_root_test__
+          generator: ${{ matrix.generator }}
+          generator-toolset: ${{ matrix.generator-toolset }}
+          build-type: ${{ matrix.build-type }}
+          build-target: boost_http_proto_tests boost_http_proto_limits
+          run-tests: false
+          install: false
+          cxxstd: ${{ matrix.latest-cxxstd }}
+          cc: ${{ steps.setup-cpp.outputs.cc || matrix.cc }}
+          ccflags: ${{ matrix.ccflags }}
+          cxx: ${{ steps.setup-cpp.outputs.cxx || matrix.cxx }}
+          cxxflags: ${{ matrix.cxxflags }}
+          shared: ${{ matrix.shared }}
+          extra-args: -D Boost_VERBOSE=ON -D BUILD_TESTING=ON -D BOOST_SRC_DIR="../boost-root"
+          cmake-version: '>=3.15'
+          package: false
+          package-artifact: false
+          ref-source-dir: boost-root
+
+      - name: FlameGraph
+        uses: alandefreitas/cpp-actions/flamegraph@73f19810550b61d5481a202ed3d5694579ac246a
+        if: matrix.time-trace
+        with:
+          source-dir: boost-root/libs/http_proto
+          build-dir: boost-root/__build_cmake_test__
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Codecov
+        if: ${{ matrix.coverage }}
+        run: |
+          set -x
+
+          # Generate report
+          gcov_tool="gcov"
+          if command -v "gcov-${{ steps.setup-cpp.outputs.version-major }}.${{ steps.setup-cpp.outputs.version-minor }}" &> /dev/null; then
+              gcov_tool="gcov"
+          elif command -v "gcov-${{ steps.setup-cpp.outputs.version-major }}" &> /dev/null; then
+              gcov_tool="gcov-${{ steps.setup-cpp.outputs.version-major }}"
+          fi
+          lcov -c -q -o "boost-root/__build_cmake_test__/coverage.info" -d "boost-root/__build_cmake_test__" --include "$(pwd)/boost-root/libs/${{steps.patch.outputs.module}}/*" --gcov-tool "$gcov_tool"
+
+          # Upload to codecov
+          bash <(curl -s https://codecov.io/bash) -f "boost-root/__build_cmake_test__/coverage.info"
+
+          # Summary
+          echo "# Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[![codecov](https://codecov.io/github/$GITHUB_REPOSITORY/commit/$GITHUB_SHA/graphs/sunburst.svg)](https://codecov.io/github/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: [![codecov](https://codecov.io/github/$GITHUB_REPOSITORY/commit/$GITHUB_SHA/graph/badge.svg)](https://codecov.io/github/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: [![codecov](https://codecov.io/github/$GITHUB_REPOSITORY/branch/$GITHUB_REF_NAME/graph/badge.svg)](https://codecov.io/github/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  changelog:
+    needs: [ cpp-matrix,runner-selection ]
     defaults:
       run:
         shell: bash
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Linux, gcc
-          - { compiler: gcc-4.4,   cxxstd: '98,0x',       os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: gcc-4.6,   cxxstd: '0x',          os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: gcc-4.7,   cxxstd: '11',          os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: gcc-4.8,   cxxstd: '11',          os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-4.9,   cxxstd: '11',          os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: gcc-5,     cxxstd: '11,14,1z',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-6,     cxxstd: '11,14,17',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-7,     cxxstd: '11,14,17',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-8,     cxxstd: '11,14,17,2a', os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-9,     cxxstd: '11,14,17,2a', os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: gcc-10,    cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { compiler: gcc-11,    cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { name: GCC w/ sanitizers, sanitize: yes,
-              compiler: gcc-11,    cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { name: Collect coverage, coverage: yes, 
-              compiler: gcc-11,     cxxstd: '11',          os: ubuntu-22.04 }
-
-          # Linux, clang
-          - { compiler: clang-3.5, cxxstd: '11',          os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: clang-3.6, cxxstd: '11,14',       os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: clang-3.7, cxxstd: '11,14',       os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: clang-3.8, cxxstd: '11,14',       os: ubuntu-22.04, container: 'ubuntu:16.04' }
-          - { compiler: clang-3.9, cxxstd: '11,14',       os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: clang-4.0, cxxstd: '11,14',       os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: clang-5.0, cxxstd: '11,14,1z',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: clang-6.0, cxxstd: '11,14,17',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: clang-7,   cxxstd: '11,14,17',    os: ubuntu-22.04, container: 'ubuntu:18.04' }
-            # Note: clang-8 does not fully support C++20, so it is not compatible with some libstdc++ versions in this mode
-          - { compiler: clang-8,   cxxstd: '11,14,17,2a', os: ubuntu-22.04, container: 'ubuntu:18.04', install: [ clang-8, g++-7 ], gcc_toolchain: 7 }
-          - { compiler: clang-9,   cxxstd: '11,14,17,2a', os: ubuntu-22.04, container: 'ubuntu:18.04' }
-          - { compiler: clang-10,  cxxstd: '11,14,17,20', os: ubuntu-20.04 }
-          - { compiler: clang-11,  cxxstd: '11,14,17,20', os: ubuntu-20.04 }
-          - { compiler: clang-12,  cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { compiler: clang-13,  cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { compiler: clang-14,  cxxstd: '11,14,17,20', os: ubuntu-22.04 }
-          - { compiler: clang-12,  cxxstd: '11,14,17,20', os: ubuntu-22.04, install: [clang-12, libc++-12-dev, libc++abi-12-dev], env: {B2_STDLIB: libc++ } }
-          - { name: Clang w/ sanitizers, sanitize: yes,
-              compiler: clang-12,  cxxstd: '11,14,17,20', os: ubuntu-22.04, install: [clang-12, libc++-12-dev, libc++abi-12-dev], env: {B2_STDLIB: libc++ } }
-          
-          # OSX, clang
-          - { compiler: clang,     cxxstd: '11,14,17,2a', os: macos-11, sanitize: yes }
-
-          - { name: CMake tests, cmake_tests: 1, os: ubuntu-22.04 }
-
+    name: Changelog Summary
+    runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)['ubuntu-22.04'] }}
     timeout-minutes: 120
-    runs-on: ${{matrix.os}}
-    container: ${{matrix.container}}
 
     steps:
-      - name: Setup environment
-        run: |
-            if [ -f "/etc/debian_version" ]; then
-                echo "DEBIAN_FRONTEND=noninteractive" >> $GITHUB_ENV
-                export DEBIAN_FRONTEND=noninteractive
-            fi
-            if [ -n "${{matrix.container}}" ] && [ -f "/etc/debian_version" ]; then
-                apt-get -o Acquire::Retries=$NET_RETRY_COUNT update
-                apt-get -o Acquire::Retries=$NET_RETRY_COUNT install -y sudo software-properties-common build-essential g++ python libpython-dev
-                # Need newer git
-                add-apt-repository ppa:git-core/ppa
-                apt-get -o Acquire::Retries=$NET_RETRY_COUNT update && apt-get -o Acquire::Retries=$NET_RETRY_COUNT install -y git
-            fi
-            git config --global pack.threads 0
-
-      - uses: actions/checkout@v2
-        if: '!matrix.coverage'
-      - uses: actions/checkout@v2
-        if: 'matrix.coverage'
+      - name: Clone Boost.HTTProto
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          # Avoid the common API rate limit exceeded error in boostorg by including 100 latest commits in any case
+          fetch-depth: 100
 
-      - name: Fetch Boost.CI
-        uses: actions/checkout@v2
+      - name: Changelog
+        uses: alandefreitas/cpp-actions/create-changelog@73f19810550b61d5481a202ed3d5694579ac246a
         with:
-          repository: boostorg/boost-ci
-          ref: master
-          path: boost-ci-cloned
-      - name: Get CI scripts folder
-        run: |
-            # Copy ci folder if not testing Boost.CI
-            [[ "$GITHUB_REPOSITORY" =~ "boost-ci" ]] || cp -r boost-ci-cloned/ci .
-            rm -rf boost-ci-cloned
-
-      - name: Install packages
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-            SOURCE_KEYS=(${{join(matrix.source_keys, ' ')}})
-            SOURCES=(${{join(matrix.sources, ' ')}})
-            # Add this by default
-            SOURCES+=(ppa:ubuntu-toolchain-r/test)
-            for key in "${SOURCE_KEYS[@]}"; do
-                for i in {1..$NET_RETRY_COUNT}; do
-                    wget -O - "$key" | sudo apt-key add - && break || sleep 2
-                done
-            done
-            for source in "${SOURCES[@]}"; do
-                for i in {1..$NET_RETRY_COUNT}; do
-                    sudo add-apt-repository $source && break || sleep 2
-                done
-            done
-            sudo apt-get -o Acquire::Retries=$NET_RETRY_COUNT update
-            if [[ -z "${{matrix.install}}" ]]; then
-                pkgs="${{matrix.compiler}}"
-                pkgs="${pkgs/gcc-/g++-}"
-            else
-                pkgs="${{join(matrix.install, ' ')}}"
-            fi
-            sudo apt-get -o Acquire::Retries=$NET_RETRY_COUNT install -y $pkgs
-
-      - name: Setup GCC Toolchain
-        if: matrix.gcc_toolchain
-        run: |
-            GCC_TOOLCHAIN_ROOT="$HOME/gcc-toolchain"
-            echo "GCC_TOOLCHAIN_ROOT=$GCC_TOOLCHAIN_ROOT" >> $GITHUB_ENV
-            MULTIARCH_TRIPLET="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-            mkdir -p "$GCC_TOOLCHAIN_ROOT"
-            ln -s /usr/include "$GCC_TOOLCHAIN_ROOT/include"
-            ln -s /usr/bin "$GCC_TOOLCHAIN_ROOT/bin"
-            mkdir -p "$GCC_TOOLCHAIN_ROOT/lib/gcc/$MULTIARCH_TRIPLET"
-            ln -s "/usr/lib/gcc/$MULTIARCH_TRIPLET/${{matrix.gcc_toolchain}}" "$GCC_TOOLCHAIN_ROOT/lib/gcc/$MULTIARCH_TRIPLET/${{matrix.gcc_toolchain}}"
-
-      - name: Setup Boost
-        env:
-          B2_COMPILER: ${{matrix.compiler}}
-          B2_CXXSTD: ${{matrix.cxxstd}}
-          B2_SANITIZE: ${{matrix.sanitize}}
-          B2_DONT_BOOTSTRAP: ${{matrix.cmake_tests}}
-        run: source ci/github/install.sh
-
-      - name: Setup coverage collection
-        if: matrix.coverage
-        run: ci/github/codecov.sh "setup"
-
-      - name: Run tests
-        if: '!matrix.cmake_tests'
-        run: ci/build.sh
-
-      - name: Upload coverage
-        if: matrix.coverage
-        run: ci/codecov.sh "upload"
-
-      - name: Run CMake tests
-        if: matrix.cmake_tests
-        run: |
-            cd "$BOOST_ROOT"
-            mkdir __build_cmake_test__ && cd __build_cmake_test__
-            cmake -DBUILD_TESTING=ON -DBOOST_INCLUDE_LIBRARIES=$SELF ..
-            cmake --build . --target tests
-            ctest --output-on-failure
-
-      - name: Run CMake subdir tests
-        if: matrix.cmake_tests
-        run: |
-            cmake_test_folder="$BOOST_ROOT/libs/$SELF/test/cmake_test" # New unified folder
-            [ -d "$cmake_test_folder" ] || cmake_test_folder="$BOOST_ROOT/libs/$SELF/test/cmake_subdir_test"
-            cd "$cmake_test_folder"
-            mkdir __build_cmake_subdir_test__ && cd __build_cmake_subdir_test__
-            cmake -DBOOST_CI_INSTALL_TEST=OFF ..
-            cmake --build .
-            cmake --build . --target check
-
-      - name: Run CMake install tests
-        if: matrix.cmake_tests
-        run: |
-            cd "$BOOST_ROOT"
-            mkdir __build_cmake_install_test__ && cd __build_cmake_install_test__
-            cmake -DBOOST_INCLUDE_LIBRARIES=$SELF -DCMAKE_INSTALL_PREFIX=~/.local -DBoost_VERBOSE=ON -DBoost_DEBUG=ON ..
-            cmake --build . --target install
-            cmake_test_folder="$BOOST_ROOT/libs/$SELF/test/cmake_test" # New unified folder
-            [ -d "$cmake_test_folder" ] || cmake_test_folder="$BOOST_ROOT/libs/$SELF/test/cmake_install_test"
-            cd "$cmake_test_folder"
-            mkdir __build_cmake_install_test__ && cd __build_cmake_install_test__
-            cmake -DBOOST_CI_INSTALL_TEST=ON -DCMAKE_INSTALL_PREFIX=~/.local ..
-            cmake --build .
-            cmake --build . --target check
-  windows:
-    defaults:
-      run:
-        shell: cmd
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { toolset: msvc-14.1, cxxstd: '14,17,latest',   addrmd: 32,64, os: windows-2016 }
-          - { toolset: msvc-14.2, cxxstd: '14,17,20',       addrmd: 32,64, os: windows-2019 }
-          - { toolset: gcc,       cxxstd: '11,14,17,2a',    addrmd: 64,    os: windows-2019 }
-
-    runs-on: ${{matrix.os}}
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Fetch Boost.CI
-        uses: actions/checkout@v2
-        with:
-          repository: boostorg/boost-ci
-          ref: master
-          path: boost-ci-cloned
-      - name: Get CI scripts folder
-        run: |
-            REM Copy ci folder if not testing Boost.CI
-            if "%GITHUB_REPOSITORY%" == "%GITHUB_REPOSITORY:boost-ci=%" xcopy /s /e /q /i /y boost-ci-cloned\ci .\ci
-            rmdir /s /q boost-ci-cloned
-
-      - name: Setup Boost
-        run: ci\github\install.bat
-
-      - name: Run tests
-        run: ci\build.bat
-        env:
-          B2_TOOLSET: ${{matrix.toolset}}
-          B2_CXXSTD: ${{matrix.cxxstd}}
-          B2_ADDRESS_MODEL: ${{matrix.addrmd}}
+          thank-non-regular: ${{ startsWith(github.ref, 'refs/tags/') }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          limit: 200
+          tag-pattern: 'boost-.*\..*\..*'
