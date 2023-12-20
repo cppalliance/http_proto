@@ -100,7 +100,7 @@ test_file()
         [](fs::path const& path, std::string const& data = "")
         {
             BOOST_TEST(! fs::exists(path));
-            fs::ofstream out(path);
+            std::ofstream out(path.c_str());
             BOOST_TEST(out.is_open());
             if (data.size())
                 out.write(data.c_str(), data.size());
@@ -117,8 +117,7 @@ test_file()
         [](fs::path const& path)
         {
             // no exceptions - failure will result in an empty string
-            std::ifstream in;
-            in.open(path.native());
+            std::ifstream in(path.c_str());
             noskipws(in);
             auto s = std::string(
                 std::istream_iterator<char>(in),
@@ -178,7 +177,7 @@ test_file()
         }
         remove(path);
     }
-    
+
     // file_mode::scan
     {
         {
@@ -190,7 +189,7 @@ test_file()
         }
         remove(path);
     }
-    
+
     // file_mode::write
     {
         {
@@ -211,7 +210,7 @@ test_file()
         }
         remove(path);
     }
-    
+
     // file_mode::write_new
     {
         {
@@ -231,7 +230,7 @@ test_file()
         }
         remove(path);
     }
-    
+
     // file_mode::write_existing
     {
         {
@@ -252,7 +251,7 @@ test_file()
         }
         remove(path);
     }
-    
+
     // file_mode::append
     {
         {
@@ -286,7 +285,7 @@ test_file()
         }
         remove(path);
     }
-        
+
     // file_mode::append_existing
     {
         {
