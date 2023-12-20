@@ -64,6 +64,7 @@ set(PFILES
     rfc/detail/rules.cpp
     service/service.cpp
     service/zlib_service.cpp
+    service/virtual_service.cpp
     )
 
 set(UNIT_TEST_LINK_LIBRARIES boost_http_proto)

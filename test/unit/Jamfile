@@ -72,6 +72,7 @@ local SOURCES =
     rfc/detail/rules.cpp
     service/service.cpp
     service/zlib_service.cpp
+    service/virtual_service.cpp
     ;
 
 for local f in $(SOURCES)
