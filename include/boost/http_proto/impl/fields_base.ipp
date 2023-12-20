@@ -176,7 +176,7 @@ grow(
             max_off_t - self_.h_.size))
         detail::throw_length_error();
     auto n1 = growth(
-        self_.h_.cap, 
+        self_.h_.cap,
         detail::header::bytes_needed(
             self_.h_.size + extra_char,
             self_.h_.count + extra_field));
@@ -741,7 +741,7 @@ insert_impl(
             while(--i);
         }
     }
-    auto& e = tab[0 - before - 1];
+    auto& e = tab[0 - static_cast<std::ptrdiff_t>(before) - 1];
     e.np = static_cast<off_t>(
         pos - h_.prefix);
     e.nn = static_cast<
@@ -839,7 +839,7 @@ offset(
         return h_.prefix;
     if(i < h_.count)
         return h_.prefix +
-            h_.tab_()[0-(i + 1)].np;
+            h_.tab_()[0-(static_cast<std::ptrdiff_t>(i) + 1)].np;
     // make final CRLF the last "field"
     //BOOST_ASSERT(i == h_.count);
     return h_.size - 2;
