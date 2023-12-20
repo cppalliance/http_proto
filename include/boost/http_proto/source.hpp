@@ -32,7 +32,7 @@ namespace http_proto {
     Non-const member functions may not be
     called concurrently on the same instance.
 */
-struct BOOST_SYMBOL_VISIBLE
+struct BOOST_HTTP_PROTO_DECL
     source
     : buffered_base
 {
@@ -122,7 +122,6 @@ private:
             then the result must indicate failure
             or that no more data remains (or both).
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_read(
@@ -154,9 +153,8 @@ private:
             If the buffers are not filled
             completely, then the result must
             indicate failure or that no more
-            data remains (or both).       
+            data remains (or both).
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_read(

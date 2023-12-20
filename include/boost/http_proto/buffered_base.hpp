@@ -22,7 +22,7 @@ namespace http_proto {
     @ref source, or @ref sink inherit from
     this common interface.
 */
-struct BOOST_SYMBOL_VISIBLE
+struct BOOST_HTTP_PROTO_DECL
     buffered_base
 {
     /** Allocator for buffered algorithms.
@@ -31,7 +31,6 @@ struct BOOST_SYMBOL_VISIBLE
 
     /** Destructor.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     ~buffered_base();
 
@@ -79,7 +78,7 @@ struct BOOST_SYMBOL_VISIBLE
         correctly even when insufficient storage
         is available from the allocator. In this
         case they should simply allocate normally.
-        
+
         @par Preconditions
         Initialization has not already occurred.
 
@@ -91,7 +90,6 @@ struct BOOST_SYMBOL_VISIBLE
             total amount of bytes for the
             allocator.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     init(
         allocator& a,
@@ -117,7 +115,6 @@ protected:
 
         @param a The allocator to use.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     void
     on_init(allocator& a);

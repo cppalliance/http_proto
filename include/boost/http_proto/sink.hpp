@@ -32,7 +32,7 @@ namespace http_proto {
     Non-const member functions may not be
     called concurrently on the same instance.
 */
-struct BOOST_SYMBOL_VISIBLE
+struct BOOST_HTTP_PROTO_DECL
     sink
     : buffered_base
 {
@@ -129,7 +129,6 @@ private:
         @param more `true` if there will be one
             or more subsequent calls to @ref write.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_write(
@@ -165,7 +164,6 @@ private:
         @param more `true` if there will be one
             or more subsequent calls to @ref write.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_write(
