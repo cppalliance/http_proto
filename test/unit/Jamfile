@@ -23,6 +23,7 @@ project
       <source>./test_helpers.cpp
       <include>.
       <include>../../../url/extra
+      <undefined-sanitizer>norecover:<link>static
     ;
 
 local SOURCES =
