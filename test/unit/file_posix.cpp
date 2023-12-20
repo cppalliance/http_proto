@@ -10,7 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/file_posix.hpp>
 
-#if BOOST_BEAST_USE_POSIX_FILE
+#if BOOST_HTTP_PROTO_USE_POSIX_FILE
 
 #include "file_test.hpp"
 #include "test_suite.hpp"
