@@ -31,7 +31,7 @@ struct file : file_stdio
 #else
 #if BOOST_HTTP_PROTO_USE_WIN32_FILE
 using file = file_win32;
-#elif BOOST_BEAST_USE_POSIX_FILE
+#elif BOOST_HTTP_PROTO_USE_POSIX_FILE
 using file = file_posix;
 #else
 using file = file_stdio;
