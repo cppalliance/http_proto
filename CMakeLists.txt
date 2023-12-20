@@ -57,6 +57,7 @@ function(boost_http_proto_setup_properties target)
             Boost::assert
             Boost::buffers
             Boost::config
+            Boost::container_hash
             Boost::system
             Boost::throw_exception
             Boost::url

@@ -23,7 +23,8 @@ struct context::data
     // Installed services
     std::unordered_map<
         detail::type_index,
-        std::unique_ptr<service>
+        std::unique_ptr<service>,
+        detail::type_index_hasher
             > services;
 };
 
@@ -59,7 +60,7 @@ context::
 make_service_impl(
     detail::type_index id,
     std::unique_ptr<service> sp) ->
-        service&    
+        service&
 {
     auto const result =
         p_->services.emplace(
