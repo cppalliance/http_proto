@@ -102,7 +102,7 @@ struct parser_test
         {
             (void)more;
             results rv;
-            auto const space = 
+            auto const space =
                 max_size_ - s.size();
             auto n = b.size();
             if( n > space)
@@ -496,7 +496,8 @@ struct parser_test
             if( ! BOOST_TEST(! ec.failed()) ||
                 ! BOOST_TEST(pr->got_header()))
                 return;
-            std::string tmp;
+            std::unique_ptr<std::string> ptmp(new std::string());
+            auto &tmp = *ptmp;
             buffers::string_buffer sb(
                 &tmp, dynamic_max_size);
             pr->set_body(std::move(sb));
@@ -505,6 +506,12 @@ struct parser_test
                 dest = pr->prepare());
             BOOST_TEST_EQ(
                 buffers::buffer_size(dest), n);
+
+            // the parser must be manually reset() to clear its inner workspace
+            // otherwise, ~workspace itself will wind up clearing the registered
+            // buffers which winds up touching the long-dead `ptmp` used by the
+            // `buffers::string_buffer`
+            pr->reset();
         };
 
         {
@@ -582,7 +589,8 @@ struct parser_test
                 "HTTP/1.1 200 OK\r\n"
                 "\r\n" });
             read_header(pr, in, ec);
-            std::string s;
+            std::unique_ptr<std::string> ps(new std::string());
+            auto &s = *ps;
             // requires small string optimization
             BOOST_TEST_GT(s.capacity(), 0);
             BOOST_TEST_LT(s.capacity(), 5000);
@@ -592,6 +600,8 @@ struct parser_test
             BOOST_TEST_EQ(
                 buffers::buffer_size(dest),
                 body.capacity());
+
+            pr.reset();
         }
 
         {
@@ -826,10 +836,12 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
-            std::string s;
+            std::unique_ptr<std::string> ps(new std::string());
+            auto &s = *ps;
             pr.set_body(
                 buffers::string_buffer(&s));
             pr.commit(0);
+            pr.reset();
         }
 
         {
@@ -849,12 +861,15 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
-            std::string s;
+
+            std::unique_ptr<std::string> ps(new std::string());
+            auto &s = *ps;
             pr.set_body(
                 buffers::string_buffer(&s));
             BOOST_TEST_THROWS(
                 pr.commit(1),
                 std::logic_error);
+            pr.reset();
         }
 
         //
@@ -954,11 +969,13 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(! pr.is_complete());
-            std::string s;
+            std::unique_ptr<std::string> ps(new std::string());
+            auto &s = *ps;
             pr.set_body(
                 buffers::string_buffer(&s));
             BOOST_TEST_NO_THROW(
                 pr.commit_eof());
+            pr.reset();
         }
 
         {
