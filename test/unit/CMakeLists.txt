@@ -83,3 +83,4 @@ target_link_libraries(
 if (ZLIB_FOUND)
     target_link_libraries(boost_http_proto_tests PRIVATE ZLIB::ZLIB)
 endif()
+add_test(NAME boost_http_proto_tests COMMAND boost_http_proto_tests)
