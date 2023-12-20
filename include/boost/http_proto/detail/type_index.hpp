@@ -1,4 +1,5 @@
 //
+// Copyright (c) 2023 Christian Mazakas
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -76,15 +77,20 @@ struct type_index_hasher {
   }
 };
 
-// return type_index for T.
-// This might not be unique in
-// a shared-library scenario.
-template <class T>
-type_index
-get_type_index() noexcept
-{
-    static constexpr char c{};
-    return &c;
+template <class U, class T> U downcast(T *p) {
+#ifdef BOOST_NO_RTTI
+  return static_cast<U>(p);
+#else
+  return dynamic_cast<U>(p);
+#endif
+}
+
+template <class U, class T> U downcast(T &p) {
+#ifdef BOOST_NO_RTTI
+  return static_cast<U>(p);
+#else
+  return dynamic_cast<U>(p);
+#endif
 }
 
 } // namespace detail

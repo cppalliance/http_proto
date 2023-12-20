@@ -65,7 +65,7 @@ struct error_cat_type
             0xe6c6d0215d1d6e22)
     {
     }
-            
+
     const char*
     name() const noexcept override
     {

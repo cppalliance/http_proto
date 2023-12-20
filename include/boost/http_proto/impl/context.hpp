@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_IMPL_CONTEXT_HPP
 
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/detail/type_index.hpp>
+
 #include <boost/mp11/utility.hpp>
 #include <utility>
 
@@ -47,7 +49,7 @@ make_service(
     if(ps)
         detail::throw_invalid_argument(
             "service exists");
-    return static_cast<T&>(
+    return detail::downcast<T&>(
         make_service_impl(ti,
             std::unique_ptr<service>(
                 new T(*this, std::forward<
@@ -64,7 +66,7 @@ find_service() const noexcept
     auto const ps = find_service_impl(ti);
     if(! ps)
         return nullptr;
-    return dynamic_cast<T*>(ps);
+    return detail::downcast<T*>(ps);
 }
 
 template<class T>
