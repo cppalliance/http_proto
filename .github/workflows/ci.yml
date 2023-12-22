@@ -53,7 +53,7 @@ jobs:
       matrix: ${{ steps.cpp-matrix.outputs.matrix }}
     steps:
       - name: Generate Test Matrix
-        uses: alandefreitas/cpp-actions/cpp-matrix@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/cpp-matrix@v1.7.0
         id: cpp-matrix
         with:
           compilers: |
@@ -101,7 +101,7 @@ jobs:
           ref: develop
 
       - name: Setup C++
-        uses: alandefreitas/cpp-actions/setup-cpp@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/setup-cpp@v1.7.0
         id: setup-cpp
         with:
           compiler: ${{ matrix.compiler }}
@@ -110,13 +110,13 @@ jobs:
           trace-commands: true
 
       - name: Install packages
-        uses: alandefreitas/cpp-actions/package-install@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/package-install@v1.7.0
         id: package-install
         with:
           apt-get: "${{ matrix.install }} python3"
 
       - name: Clone Boost
-        uses: alandefreitas/cpp-actions/boost-clone@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/boost-clone@v1.7.0
         id: boost-clone
         with:
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
@@ -164,7 +164,7 @@ jobs:
           python3 tools/boostdep/depinst/depinst.py buffers
 
       - name: Boost B2 Workflow
-        uses: alandefreitas/cpp-actions/b2-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/b2-workflow@v1.7.0
         with:
           source-dir: boost-root
           modules: http_proto
@@ -180,7 +180,7 @@ jobs:
           rtti: ${{ (matrix.is-latest && 'on,off') || 'on' }}
 
       - name: Boost CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.7.0
         if: ${{ matrix.is-latest || matrix.is-earliest }}
         with:
           source-dir: boost-root
@@ -217,7 +217,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/.local/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
       - name: Find Package Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.7.0
         if: ${{ matrix.is-latest || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -240,7 +240,7 @@ jobs:
           trace-commands: true
 
       - name: Subdirectory Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.7.0
         if: ${{ matrix.is-latest || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -262,7 +262,7 @@ jobs:
 
 
       - name: Root Project CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.7.0
         if: ${{ matrix.is-latest || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}
@@ -286,7 +286,7 @@ jobs:
           ref-source-dir: boost-root
 
       - name: FlameGraph
-        uses: alandefreitas/cpp-actions/flamegraph@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/flamegraph@v1.7.0
         if: matrix.time-trace
         with:
           source-dir: boost-root/libs/http_proto
@@ -339,7 +339,7 @@ jobs:
           fetch-depth: 100
 
       - name: Changelog
-        uses: alandefreitas/cpp-actions/create-changelog@73f19810550b61d5481a202ed3d5694579ac246a
+        uses: alandefreitas/cpp-actions/create-changelog@v1.7.0
         with:
           thank-non-regular: ${{ startsWith(github.ref, 'refs/tags/') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
