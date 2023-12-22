@@ -496,6 +496,12 @@ struct parser_test
             if( ! BOOST_TEST(! ec.failed()) ||
                 ! BOOST_TEST(pr->got_header()))
                 return;
+
+            // we use a heap-allocated std::string object because internally,
+            // parsers store copies of the provided buffers (which have view
+            // semantics)
+            // placing the object on the heap ensures reliable
+            // use-after-free errors are produced under sanitized builds
             std::unique_ptr<std::string> ptmp(new std::string());
             auto &tmp = *ptmp;
             buffers::string_buffer sb(
