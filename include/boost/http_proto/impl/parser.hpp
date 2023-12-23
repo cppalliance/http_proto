@@ -51,8 +51,8 @@ set_body(
             std::decay<ElasticBuffer>::type,
                 buffers_N>(std::forward<
                     ElasticBuffer>(eb)));
-    dyn_ = &dyn;
-    how_ = how::dynamic;
+    eb_ = &dyn;
+    how_ = how::elastic;
     on_set_body();
 }
 
@@ -79,8 +79,8 @@ set_body(
         buffers::any_dynamic_buffer_impl<typename
             std::decay<ElasticBuffer>::type&,
                 buffers_N>(eb));
-    dyn_ = &dyn;
-    how_ = how::dynamic;
+    eb_ = &dyn;
+    how_ = how::elastic;
     on_set_body();
 }
 

@@ -224,6 +224,7 @@ parser(
         parser_service>())
     , h_(detail::empty{k})
     , st_(state::reset)
+    , eb_(nullptr)
 {
     auto const n =
         svc_.space_needed;
@@ -249,6 +250,12 @@ void
 parser::
 reset() noexcept
 {
+    if(eb_)
+    {
+        eb_->~any_dynamic_buffer();
+        eb_ = nullptr;
+    }
+
     ws_.clear();
     st_ = state::start;
     got_eof_ = false;
@@ -404,7 +411,7 @@ prepare() ->
             return mutable_buffers_type(mbp_);
         }
 
-        if(how_ == how::dynamic)
+        if(how_ == how::elastic)
         {
             // Overreads are not allowed, or
             // else the caller will see extra
@@ -419,7 +426,7 @@ prepare() ->
                 if( n > svc_.cfg.max_prepare)
                     n = svc_.cfg.max_prepare;
                 nprepare_ = n;
-                return dyn_->prepare(n);
+                return eb_->prepare(n);
             }
 
             BOOST_ASSERT(
@@ -434,8 +441,8 @@ prepare() ->
                 {
                     // apply max_size()
                     auto avail =
-                        dyn_->max_size() -
-                            dyn_->size();
+                        eb_->max_size() -
+                            eb_->size();
                     if( n > avail)
                         n = avail;
                 }
@@ -443,8 +450,8 @@ prepare() ->
                 // to avoid an allocation
                 {
                     auto avail = 
-                        dyn_->capacity() -
-                            dyn_->size();
+                        eb_->capacity() -
+                            eb_->size();
                     if( n > avail &&
                             avail != 0)
                         n = avail;
@@ -466,7 +473,7 @@ prepare() ->
                 }
             }
             nprepare_ = n;
-            return dyn_->prepare(n);
+            return eb_->prepare(n);
         }
 
         // VFALCO TODO
@@ -481,7 +488,7 @@ prepare() ->
     {
         BOOST_ASSERT(is_plain());
 
-        if(how_ == how::dynamic)
+        if(how_ == how::elastic)
         {
             // attempt to transfer in-place
             // body into the dynamic buffer.
@@ -604,14 +611,14 @@ commit(
             break;
         }
 
-        if(how_ == how::dynamic)
+        if(how_ == how::elastic)
         {
-            if(dyn_->size() < dyn_->max_size())
+            if(eb_->size() < eb_->max_size())
             {
                 BOOST_ASSERT(body_avail_ == 0);
                 BOOST_ASSERT(
                     body_buf_->size() == 0);
-                dyn_->commit(n);
+                eb_->commit(n);
             }
             else
             {
@@ -659,7 +666,7 @@ commit(
 
         BOOST_ASSERT(is_plain());
         BOOST_ASSERT(n == 0);
-        if( how_ == how::dynamic ||
+        if( how_ == how::elastic ||
             how_ == how::sink)
         {
             // intended no-op
@@ -865,7 +872,7 @@ parse(
             break;
         }
 
-        if(how_ == how::dynamic)
+        if(how_ == how::elastic)
         {
             // state already updated in commit
             if(h_.md.payload == payload::size)
@@ -876,8 +883,8 @@ parse(
                 if(body_avail_ != 0)
                 {
                     BOOST_ASSERT(
-                        dyn_->max_size() -
-                            dyn_->size() <
+                        eb_->max_size() -
+                            eb_->size() <
                         payload_remain_);
                     ec = BOOST_HTTP_PROTO_ERR(
                         error::buffer_overflow);
@@ -895,7 +902,7 @@ parse(
             }
             BOOST_ASSERT(
                 h_.md.payload == payload::to_eof);
-            if( dyn_->size() == dyn_->max_size() &&
+            if( eb_->size() == eb_->max_size() &&
                 body_avail_ > 0)
             {
                 // got here from the 1-byte read
@@ -924,7 +931,7 @@ parse(
 
         // transfer in_place data into set body
 
-        if(how_ == how::dynamic)
+        if(how_ == how::elastic)
         {
             init_dynamic(ec);
             if(! ec.failed())
@@ -1003,13 +1010,13 @@ parse(
         case how::in_place:
             break;
 
-        case how::dynamic:
+        case how::elastic:
         {
             if(body_buf_->size() == 0)
                 break;
-            BOOST_ASSERT(dyn_->size() == 0);
+            BOOST_ASSERT(eb_->size() == 0);
             auto n = buffers::buffer_copy(
-                dyn_->prepare(
+                eb_->prepare(
                     body_buf_->size()),
                 body_buf_->data());
             body_buf_->consume(n);
@@ -1245,7 +1252,7 @@ on_set_body()
 
     nprepare_ = 0; // invalidate
  
-    if(how_ == how::dynamic)
+    if(how_ == how::elastic)
     {
         if(h_.md.payload == payload::none)
         {
@@ -1288,7 +1295,7 @@ init_dynamic(
     BOOST_ASSERT(
         body_total_ == body_avail_);
     auto const space_left =
-        dyn_->max_size() - dyn_->size();
+        eb_->max_size() - eb_->size();
 
     if(h_.md.payload == payload::size)
     {
@@ -1299,14 +1306,14 @@ init_dynamic(
             return;
         }
         // reserve the full size
-        dyn_->prepare(h_.md.payload_size);
+        eb_->prepare(h_.md.payload_size);
         // transfer in-place body
         auto n = body_avail_;
         if( n > h_.md.payload_size)
             n = h_.md.payload_size;
-        dyn_->commit(
+        eb_->commit(
             buffers::buffer_copy(
-                dyn_->prepare(n),
+                eb_->prepare(n),
                 body_buf_->data()));
         BOOST_ASSERT(body_avail_ == n);
         BOOST_ASSERT(body_total_ == n);
@@ -1334,9 +1341,9 @@ init_dynamic(
             error::buffer_overflow);
         return;
     }
-    dyn_->commit(
+    eb_->commit(
         buffers::buffer_copy(
-            dyn_->prepare(body_avail_),
+            eb_->prepare(body_avail_),
             body_buf_->data()));
     body_buf_->consume(body_avail_);
     body_avail_ = 0;

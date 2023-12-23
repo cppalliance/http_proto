@@ -379,7 +379,7 @@ private:
     enum class how
     {
         in_place,
-        dynamic,
+        elastic,
         sink,
         pull
     };
@@ -398,7 +398,7 @@ private:
     buffers::circular_buffer cb1_;
     buffers::circular_buffer* body_buf_;
     buffers::mutable_buffer_pair mbp_;
-    buffers::any_dynamic_buffer* dyn_;
+    buffers::any_dynamic_buffer* eb_;
     filter* filt_;
     sink* sink_;
 
