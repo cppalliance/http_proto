@@ -15,6 +15,7 @@
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/http_proto/detail/type_traits.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/flat_buffer.hpp>
@@ -25,6 +26,7 @@
 #include <boost/url/grammar/error.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -258,36 +260,60 @@ public:
 
     /** Parse pending input data
     */
+    // VFALCO return result<void>?
     BOOST_HTTP_PROTO_DECL
     void
     parse(
         system::error_code& ec);
 
-    /** Attach a body
+    /** Attach a body.
+
+        This function attaches the specified elastic
+        buffer as the storage for the message body.
+        The parser acquires ownership of the object
+        `eb` and destroys it when:
+
+        @li @ref is_complete returns `true`, or
+        @li @ref reset is called, or
+        @li an unrecoverable parsing error occurs, or
+        @li the parser is destroyed.
     */
     // VFALCO Should this function have
     //        error_code& ec and call parse?
+    template<class ElasticBuffer>
 #ifndef BOOST_HTTP_PROTO_DOCS
-    template<
-        class DynamicBuffer
-        , class = typename std::enable_if<
-            buffers::is_dynamic_buffer<
-                DynamicBuffer>::value
-            >::type
-    >
+    typename std::enable_if<
+        ! detail::is_reference_wrapper<
+            ElasticBuffer>::value &&
+        ! is_sink<ElasticBuffer>::value>::type
 #else
-    template<class DynamicBuffer>
+    void
 #endif
-    typename std::decay<
-        DynamicBuffer>::type&
-    set_body(DynamicBuffer&& b);
+    set_body(ElasticBuffer&& eb);
+
+    /** Attach a body.
+
+        This function attaches the specified elastic
+        buffer reference as the storage for the message body.
+        Ownership is not transferred; the caller must
+        ensure that the lifetime of the object
+        reference by `eb` extends until:
+
+        @li @ref is_complete returns `true`, or
+        @li @ref reset is called, or
+        @li an unrecoverable parsing error occurs, or
+        @li the parser is destroyed.
+    */
+    template<class ElasticBuffer>
+    void set_body(
+        std::reference_wrapper<ElasticBuffer> eb);
 
     /** Attach a body
     */
     template<class Sink>
 #ifndef BOOST_HTTP_PROTO_DOCS
     typename std::enable_if<
-        is_sink<Sink>::value,
+            is_sink<Sink>::value,
         typename std::decay<Sink>::type
             >::type&
 #else
@@ -321,6 +347,7 @@ public:
         could be additional protocol-dependent
         data that we want to retrieve.
     */
+    // VFALCO rename to get_leftovers()?
     BOOST_HTTP_PROTO_DECL
     core::string_view
     release_buffered_data() noexcept;

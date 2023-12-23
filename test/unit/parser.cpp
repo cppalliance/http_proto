@@ -25,6 +25,73 @@
 
 #include <vector>
 
+//------------------------------------------------
+/*
+
+Parser operation
+
+    For caller provided objects the parser can copy
+    its internal contents into the caller's object
+    by calling a function. Or it can request a buffer
+    from the caller's object into which the body
+    contents are placed. In the simple case this
+    means that enclosing socket reads can read
+    directly into caller-provided buffers.
+
+General Case
+    parser pr;
+    error_code ec;
+        
+    pr.start();                 // must call first
+    auto mb = pr.prepare();     // returns the input buffer
+    ... 
+    pr.commit( n );             // commit input buffer bytes
+    pr.parse( ec );             // parse data
+                                // (inspect ec for special codes)
+
+Parser-provided string_view body (default)
+
+    // nothing to do
+    assert( pr.is_complete() );
+    string_view s = pr.body();
+
+Parser-provided buffer-at-time body
+
+    parser::const_buffers_type part = pr.pull_some()
+
+Caller-provided body buffers (dynamic buffer?)
+
+    pr.set_body( bb );           // 
+
+Caller-provided sink
+
+    pr.set_body( sk );
+
+--------------------------------------------------
+
+Caller wants to parse a message and have the body
+stored in a std::string upon completion.
+    1. Re-using an existing string, or
+    2. Creating a new string
+
+This all speaks to DynamicBuffer as the correct API
+    * But is our DynamicBuffer owning or reference-like?
+    * What triggers the final resize() on the std::string?
+        - destructor
+        - other member function
+
+    parser pr;
+    std::string s;
+    ...
+    pr.set_body( buffers::dynamic_for( s ) ); // reference semantics
+
+    parser pr;
+    buffers::flat_buffer fb;
+    ...
+    pr.set_body( fb ); // flat_buffer&
+*/
+//------------------------------------------------
+
 namespace boost {
 namespace http_proto {
 
@@ -600,13 +667,11 @@ struct parser_test
             // requires small string optimization
             BOOST_TEST_GT(s.capacity(), 0);
             BOOST_TEST_LT(s.capacity(), 5000);
-            auto& body = pr.set_body(
-                buffers::string_buffer(&s));
+            pr.set_body(buffers::string_buffer(&s));
             auto dest = pr.prepare();
-            BOOST_TEST_EQ(
+            BOOST_TEST_LE(
                 buffers::buffer_size(dest),
-                body.capacity());
-
+                s.capacity());
             pr.reset();
         }
 
@@ -1205,9 +1270,8 @@ struct parser_test
             BOOST_TEST_EQ(ec, ex);
             return;
         }
-        auto& fb = pr_->set_body(
-            buffers::flat_buffer(
-                buf, sizeof(buf)));
+        buffers::flat_buffer fb(buf, sizeof(buf));
+        pr_->set_body(std::ref(fb));
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
