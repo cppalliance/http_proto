@@ -44,7 +44,7 @@ native_close(native_handle_type& fd)
 /*  https://github.com/boostorg/beast/issues/1445
 
     This function is tuned for Linux / Mac OS:
-    
+
     * only calls close() once
     * returns the error directly to the caller
     * does not loop on EINTR
@@ -152,21 +152,21 @@ open(char const* path, file_mode mode, system::error_code& ec)
     #endif
         break;
 
-    case file_mode::write_new:      
+    case file_mode::write_new:
         f = O_RDWR | O_CREAT | O_EXCL;
     #if BOOST_HTTP_PROTO_USE_POSIX_FADVISE
         advise = POSIX_FADV_RANDOM;
     #endif
         break;
 
-    case file_mode::write_existing: 
+    case file_mode::write_existing:
         f = O_RDWR | O_EXCL;
     #if BOOST_HTTP_PROTO_USE_POSIX_FADVISE
         advise = POSIX_FADV_RANDOM;
     #endif
         break;
 
-    case file_mode::append:         
+    case file_mode::append:
         f = O_WRONLY | O_CREAT | O_APPEND;
     #if BOOST_HTTP_PROTO_USE_POSIX_FADVISE
         advise = POSIX_FADV_SEQUENTIAL;
@@ -240,7 +240,7 @@ pos(
         return 0;
     }
     auto const result = ::lseek(fd_, 0, SEEK_CUR);
-    if(result == (off_t)-1)
+    if(result == (::off_t)-1)
     {
         ec.assign(errno,
             system::system_category());
@@ -262,7 +262,7 @@ seek(std::uint64_t offset,
         return;
     }
     auto const result = ::lseek(fd_, offset, SEEK_SET);
-    if(result == static_cast<off_t>(-1))
+    if(result == static_cast<::off_t>(-1))
     {
         ec.assign(errno,
             system::system_category());

@@ -182,7 +182,7 @@ parser_service(
         {
             deflate_svc = &ctx.get_service<
                 zlib::deflate_decoder_service>();
-            auto const n = 
+            auto const n =
                 deflate_svc->space_needed();
             if( max_codec < n)
                 max_codec = n;
@@ -289,7 +289,7 @@ start_impl(
     {
         // remove partial body.
         if(body_buf_ == &cb0_)
-            cb0_.consume(body_avail_);
+            cb0_.consume(static_cast<std::size_t>(body_avail_));
 
         if(cb0_.size() > 0)
         {
@@ -414,7 +414,7 @@ prepare() ->
                 // set_body moves avail to dyn
                 BOOST_ASSERT(body_buf_->size() == 0);
                 BOOST_ASSERT(body_avail_ == 0);
-                auto n = payload_remain_;
+                auto n = static_cast<std::size_t>(payload_remain_);
                 if( n > svc_.cfg.max_prepare)
                     n = svc_.cfg.max_prepare;
                 nprepare_ = n;
@@ -441,7 +441,7 @@ prepare() ->
                 // fill capacity() first,
                 // to avoid an allocation
                 {
-                    auto avail = 
+                    auto avail =
                         eb_->capacity() -
                             eb_->size();
                     if( n > avail &&
@@ -969,7 +969,7 @@ parse(
                     goto do_body;
                 }
 
-                n = h_.md.payload_size;
+                n = static_cast<std::size_t>(h_.md.payload_size);
             }
             // complete
             BOOST_ASSERT(body_buf_ == &cb0_);
@@ -1076,7 +1076,7 @@ body() const noexcept
         return core::string_view(
             static_cast<char const*>(
                 cbp[0].data()),
-            body_avail_);
+            static_cast<std::size_t>(body_avail_));
     }
 }
 
@@ -1185,7 +1185,7 @@ on_headers(
             if( n0 > h_.md.payload_size &&
                 n0 - h_.md.payload_size >=
                     svc_.max_overread())
-                n0 = h_.md.payload_size +
+                n0 = static_cast<std::size_t>(h_.md.payload_size) +
                     svc_.max_overread();
             BOOST_ASSERT(n0 <= ws_.size());
             cb0_ = { ws_.data(), n0, overread };
@@ -1243,7 +1243,7 @@ on_set_body()
     BOOST_ASSERT(got_header());
 
     nprepare_ = 0; // invalidate
- 
+
     if(how_ == how::elastic)
     {
         if(h_.md.payload == payload::none)
@@ -1298,11 +1298,11 @@ init_dynamic(
             return;
         }
         // reserve the full size
-        eb_->prepare(h_.md.payload_size);
+        eb_->prepare(static_cast<std::size_t>(h_.md.payload_size));
         // transfer in-place body
-        auto n = body_avail_;
+        auto n = static_cast<std::size_t>(body_avail_);
         if( n > h_.md.payload_size)
-            n = h_.md.payload_size;
+            n = static_cast<std::size_t>(h_.md.payload_size);
         eb_->commit(
             buffers::buffer_copy(
                 eb_->prepare(n),
@@ -1335,9 +1335,9 @@ init_dynamic(
     }
     eb_->commit(
         buffers::buffer_copy(
-            eb_->prepare(body_avail_),
+            eb_->prepare(static_cast<std::size_t>(body_avail_)),
             body_buf_->data()));
-    body_buf_->consume(body_avail_);
+    body_buf_->consume(static_cast<std::size_t>(body_avail_));
     body_avail_ = 0;
     BOOST_ASSERT(
         body_buf_->size() == 0);

@@ -43,7 +43,7 @@ on_read(
         if( n_ >= b.size())
             n = b.size();
         else
-            n = n_;
+            n = static_cast<std::size_t>(n_);
         n = f_.read(
             b.data(), n, rv.ec);
         rv.bytes = n;
