@@ -252,7 +252,7 @@ struct fields_base_test
             }
 
             {
-                core::string_view const cs = 
+                core::string_view const cs =
                     "digest: ffce\r\n"
                     "type: 3\r\n"
                     "\r\n";
@@ -361,6 +361,17 @@ struct fields_base_test
                 f.append("X", "");
             },
             "X:\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.append("X", "");
+                f.append("Y", "");
+            },
+            "X:\r\n"
+            "Y:\r\n"
             "\r\n");
     }
 

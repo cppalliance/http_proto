@@ -119,7 +119,7 @@ parse(
                 return -1;
             return uc;
         };
-        
+
     if(it == end)
     {
         // end
@@ -221,8 +221,14 @@ parse(
         v.name = rv.value();
     }
 
-    // consume all obs-fold until
-    // field char or end of field
+    // consume all obs-fold until field char or end of field:
+    //
+    //    HTTP-message = start-line *( header-field CRLF ) CRLF [ message-body ]
+    //    header-field = field-name ":" OWS field-value OWS
+    //    field-value = *( field-content / obs-fold )
+    //    field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+    //    obs-fold = CRLF 1*( SP / HTAB )
+    //
     for(;;)
     {
         skip_ows(it, end);
@@ -253,16 +259,16 @@ parse(
             BOOST_HTTP_PROTO_RETURN_EC(
                 grammar::error::need_more);
         }
-        if(*it == '\r')
+        // FIXME: this should be a loop of some kind as we've detected a valid
+        // CRLF at this stage but need to account for the ABNF specifying:
+        // obs-fold = CRLF 1*( SP / HTAB )
+        if(*it != ' ' &&
+           *it != '\t')
         {
-            // empty value
+            // because we saw a CRLF and didn't see the required SP / HTAB,
+            // we know we have a zero length field value
+            v.value = core::string_view(it, 0);
             return v;
-        }
-        if( *it != ' ' &&
-            *it != '\t')
-        {
-            // start of value
-            break;
         }
         // eat obs-fold
         ++it;

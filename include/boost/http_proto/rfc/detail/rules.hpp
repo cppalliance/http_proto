@@ -87,7 +87,7 @@ struct target_chars_t
     bool
     operator()(char c) const noexcept
     {
-        return 
+        return
             (static_cast<unsigned char>(c) >= 0x21) &&
             (static_cast<unsigned char>(c) <= 0x7e);
     }
