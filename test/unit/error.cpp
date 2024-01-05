@@ -26,9 +26,12 @@ public:
         char const* name,
         error ev)
     {
-        auto const ec = make_error_code(ev);
-        auto const& cat = make_error_code(
-            static_cast<http_proto::error>(0)).category();
+        auto const ec =
+          make_error_code(ev);
+        auto const esuccess =
+          make_error_code(static_cast<error>(0));
+        auto const& cat =
+         esuccess.category();
         BOOST_TEST(std::string(ec.category().name()) == name);
         BOOST_TEST(! ec.message().empty());
         BOOST_TEST(
