@@ -38,8 +38,10 @@ operator*() const noexcept ->
     reference
 {
     BOOST_ASSERT(i_ < ph_->count);
+    auto tab =
+        ph_->tab();
     auto const& e =
-        ph_->tab()[i_];
+        tab[i_];
     auto const* p =
         ph_->cbuf + ph_->prefix;
     return {
@@ -59,8 +61,10 @@ operator*() const noexcept ->
     reference
 {
     BOOST_ASSERT(i_ > 0);
+    auto tab =
+      ph_->tab();
     auto const& e =
-        ph_->tab()[i_-1];
+        tab[i_-1];
     auto const* p =
         ph_->cbuf + ph_->prefix;
     return {
@@ -102,8 +106,10 @@ iterator::
 operator*() const noexcept ->
     reference const
 {
+    auto tab =
+        ph_->tab();
     auto const& e =
-        ph_->tab()[i_];
+        tab[i_];
     auto const p =
         ph_->cbuf + ph_->prefix;
     return core::string_view(
@@ -251,7 +257,7 @@ find(
 auto
 fields_view_base::
 find(
-    iterator from, 
+    iterator from,
     core::string_view name) const noexcept ->
         iterator
 {

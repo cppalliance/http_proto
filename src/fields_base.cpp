@@ -468,7 +468,8 @@ set(
     core::string_view value)
 {
     auto const i = it.i_;
-    auto const& e0 = h_.tab()[i];
+    auto tab = h_.tab();
+    auto const& e0 = tab[i];
     auto const pos0 = offset(i);
     auto const pos1 = offset(i + 1 );
     std::ptrdiff_t dn =
