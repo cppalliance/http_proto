@@ -11,6 +11,7 @@
 #define BOOST_HTTP_PROTO_FILE_TEST_HPP
 
 #include <boost/http_proto/file_base.hpp>
+#include <boost/config.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -23,6 +24,11 @@
 #include <vector>
 #include <type_traits>
 #include "test_suite.hpp"
+
+#if defined(BOOST_GCC) && BOOST_GCC >= 130000
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
 
 namespace boost {
 namespace http_proto {
