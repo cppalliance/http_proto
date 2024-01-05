@@ -101,8 +101,14 @@ struct parser_test
     template<class T>
     class opt
     {
-        unsigned char v_[
-            sizeof(T)];
+        union aligned_storage {
+            aligned_storage(){}
+            ~aligned_storage(){}
+
+            T v_;
+        };
+
+        aligned_storage s_;
         bool b_ = false;
 
     public:
@@ -131,12 +137,12 @@ struct parser_test
 
         T& get() noexcept
         {
-            return *reinterpret_cast<T*>(v_);
+            return s_.v_;
         }
 
         T const& get() const noexcept
         {
-            return *reinterpret_cast<T*>(v_);
+            return s_.v_;
         }
 
         T& operator*() noexcept
