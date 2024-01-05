@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/buffers/type_traits.hpp>
+#include <boost/core/ignore_unused.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -77,10 +78,10 @@ class unrolled
             buffers::mutable_buffer_span,
             buffers::const_buffer_span
                 >::type;
-    
+
     using iter_type = decltype(
         begin(std::declval<T const&>()));
-    
+
     using end_type = decltype(
         end(std::declval<T const&>()));
 
@@ -131,6 +132,7 @@ process_impl(
     bool more) ->
         results
 {
+    boost::ignore_unused(more);
     results rv;
     constexpr int N = 16;
     detail::unrolled<ConstBuffers, N> u0(in);
