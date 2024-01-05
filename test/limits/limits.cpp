@@ -27,7 +27,7 @@ namespace http_proto {
 
 // This has to be at least 19 because
 // of the default request buffer.
-static_assert(max_off_t == 20, "max_off_t != 20");
+static_assert(max_offset == 20, "max_offset != 20");
 
 class limits_test
 {
@@ -59,12 +59,12 @@ public:
             {
                 fields f;
                 BOOST_TEST_NO_THROW(
-                    f.reserve_bytes(max_off_t));
+                    f.reserve_bytes(max_offset));
             }
             {
                 fields f;
                 BOOST_TEST_NO_THROW(
-                    f.reserve_bytes(max_off_t + 1));
+                    f.reserve_bytes(max_offset + 1));
             }
             {
                 fields f;
@@ -83,7 +83,7 @@ public:
         {
             fields f;
             std::string s;
-            s.append(max_off_t, 'x');
+            s.append(max_offset, 'x');
             BOOST_TEST_THROWS(
                 f.append(s, "v"),
                 std::length_error);

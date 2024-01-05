@@ -24,7 +24,7 @@ namespace http_proto {
 
 // check for overflow
 //BOOST_STATIC_ASSERT(
-    //fields_base::max_capacity_in_bytes() >= max_off_t);
+    //fields_base::max_capacity_in_bytes() >= max_offset);
 
 struct fields_base_test
 {

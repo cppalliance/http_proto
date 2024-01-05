@@ -82,7 +82,7 @@ public:
 
     typedef reference const_reference;
     /**@}*/
- 
+
     /** A type which can represent a field as a value
 
         This type allows for making a copy of
@@ -159,7 +159,7 @@ public:
     std::size_t
     max_size() noexcept
     {
-        return max_off_t;
+        return max_offset;
     }
 
     /** Return an iterator to the beginning
@@ -257,7 +257,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     iterator
     find(
-        iterator from, 
+        iterator from,
         core::string_view name) const noexcept;
 
     /** Returns an iterator to the matching element if it exists
@@ -273,7 +273,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     iterator
     find_last(
-        iterator before, 
+        iterator before,
         core::string_view name) const noexcept;
 
     /** Return the value of a field

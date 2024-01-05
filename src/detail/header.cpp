@@ -42,10 +42,10 @@ operator+(
 {
     return {
         static_cast<
-            off_t>(np + dv),
+            offset_type>(np + dv),
         nn,
         static_cast<
-            off_t>(vp + dv),
+            offset_type>(vp + dv),
         vn,
         id };
 }
@@ -59,10 +59,10 @@ operator-(
 {
     return {
         static_cast<
-            off_t>(np - dv),
+            offset_type>(np - dv),
         nn,
         static_cast<
-            off_t>(vp - dv),
+            offset_type>(vp - dv),
         vn,
         id };
 }
@@ -1061,11 +1061,11 @@ parse_start_line(
         auto sm = std::get<0>(*rv);
         h.req.method = string_to_method(sm);
         h.req.method_len =
-            static_cast<off_t>(sm.size());
+            static_cast<offset_type>(sm.size());
         // target
         auto st = std::get<1>(*rv);
         h.req.target_len =
-            static_cast<off_t>(st.size());
+            static_cast<offset_type>(st.size());
         // version
         switch(std::get<2>(*rv))
         {
@@ -1122,7 +1122,7 @@ parse_start_line(
                 std::get<1>(*rv).v);
         h.res.status = std::get<1>(*rv).st;
     }
-    h.prefix = static_cast<off_t>(it - it0);
+    h.prefix = static_cast<offset_type>(it - it0);
     h.size = h.prefix;
     h.on_start_line();
 }
@@ -1150,7 +1150,7 @@ parse_field(
         {
             // final CRLF
             h.size = static_cast<
-                off_t>(it - h.cbuf);
+                offset_type>(it - h.cbuf);
             return;
         }
         if( ec == grammar::error::need_more &&
@@ -1174,7 +1174,7 @@ parse_field(
         remove_obs_fold(h.buf + h.size, it);
     }
     auto id = string_to_field(rv->name);
-    h.size = static_cast<off_t>(it - h.cbuf);
+    h.size = static_cast<offset_type>(it - h.cbuf);
 
     // add field table entry
     if(h.buf != nullptr)
@@ -1183,13 +1183,13 @@ parse_field(
             h.buf + h.cap)[h.count];
         auto const base =
             h.buf + h.prefix;
-        e.np = static_cast<off_t>(
+        e.np = static_cast<offset_type>(
             rv->name.data() - base);
-        e.nn = static_cast<off_t>(
+        e.nn = static_cast<offset_type>(
             rv->name.size());
-        e.vp = static_cast<off_t>(
+        e.vp = static_cast<offset_type>(
             rv->value.data() - base);
-        e.vn = static_cast<off_t>(
+        e.vn = static_cast<offset_type>(
             rv->value.size());
         e.id = id;
     }
