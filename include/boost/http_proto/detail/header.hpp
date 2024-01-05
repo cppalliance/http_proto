@@ -34,7 +34,7 @@ enum kind : unsigned char
 {
     fields = 0,
     request,
-    response, 
+    response,
 };
 
 struct empty
@@ -50,10 +50,10 @@ struct header
     // reverse order.
     struct entry
     {
-        off_t np;   // name pos
-        off_t nn;   // name size
-        off_t vp;   // value pos
-        off_t vn;   // value size
+        offset_type np;   // name pos
+        offset_type nn;   // name size
+        offset_type vp;   // value pos
+        offset_type vn;   // value size
         field id;
 
         entry operator+(
@@ -91,8 +91,8 @@ struct header
 
     struct req_t
     {
-        off_t method_len;
-        off_t target_len;
+        offset_type method_len;
+        offset_type target_len;
         http_proto::method method;
     };
 
@@ -109,9 +109,9 @@ struct header
     char* buf = nullptr;
     std::size_t cap = 0;
 
-    off_t size = 0;
-    off_t count = 0;
-    off_t prefix = 0;
+    offset_type size = 0;
+    offset_type count = 0;
+    offset_type prefix = 0;
 
     http_proto::version version =
         http_proto::version::http_1_1;

@@ -200,7 +200,7 @@ set_prefix_impl(
             static_cast<std::size_t>(
                 n - h_.prefix) >
             static_cast<std::size_t>(
-                max_off_t - h_.size))
+                max_offset - h_.size))
             detail::throw_length_error();
 
         auto n0 = detail::header::bytes_needed(
@@ -228,10 +228,10 @@ set_prefix_impl(
         h_.buf = buf;
         h_.cbuf = buf;
         h_.size = static_cast<
-            off_t>(h_.size +
+            offset_type>(h_.size +
                 n - h_.prefix);
         h_.prefix = static_cast<
-            off_t>(n);
+            offset_type>(n);
         h_.cap = n0;
         return h_.buf;
     }
@@ -242,10 +242,10 @@ set_prefix_impl(
         h_.buf + h_.prefix,
         h_.size - h_.prefix);
     h_.size = static_cast<
-        off_t>(h_.size -
+        offset_type>(h_.size -
             h_.prefix + n);
     h_.prefix = static_cast<
-        off_t>(n);
+        offset_type>(n);
     return h_.buf;
 }
 

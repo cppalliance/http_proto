@@ -75,14 +75,14 @@ namespace http_proto {
 #endif
 
 // holds any offset within headers
-using off_t = ::uint32_t; // private
+using offset_type = ::uint32_t; // private
 
 // maximum size of http header,
 // chunk header, or chunk extensions
 #ifndef BOOST_HTTP_PROTO_MAX_HEADER
-#define BOOST_HTTP_PROTO_MAX_HEADER (off_t(-1))
+#define BOOST_HTTP_PROTO_MAX_HEADER (offset_type(-1))
 #endif
-static constexpr auto max_off_t =
+static constexpr auto max_offset =
     BOOST_HTTP_PROTO_MAX_HEADER;
 
 // Add source location to error codes

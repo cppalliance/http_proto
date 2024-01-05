@@ -184,9 +184,9 @@ set_impl(
     h_.version = v;
     h_.req.method = m;
     h_.req.method_len =
-        static_cast<off_t>(ms.size());
+        static_cast<offset_type>(ms.size());
     h_.req.target_len =
-        static_cast<off_t>(t.size());
+        static_cast<offset_type>(t.size());
 
     h_.on_start_line();
 }

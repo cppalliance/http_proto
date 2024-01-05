@@ -163,16 +163,16 @@ grow(
     std::size_t extra_field)
 {
     // extra_field is naturally limited
-    // by max_off_t, since each field
+    // by max_offset, since each field
     // is at least 4 bytes: "X:\r\n"
     BOOST_ASSERT(
-        extra_field <= max_off_t &&
+        extra_field <= max_offset &&
         extra_field <= static_cast<
             std::size_t>(
-                max_off_t - self_.h_.count));
-    if( extra_char > max_off_t ||
+                max_offset - self_.h_.count));
+    if( extra_char > max_offset ||
         extra_char > static_cast<std::size_t>(
-            max_off_t - self_.h_.size))
+            max_offset - self_.h_.size))
         detail::throw_length_error();
     auto n1 = growth(
         self_.h_.cap,
@@ -545,9 +545,9 @@ set(
         e.vp = e.np + e.nn +
             1 + ! value.empty();
         e.vn = static_cast<
-            off_t>(value.size());
+            offset_type>(value.size());
         h_.size = static_cast<
-            off_t>(h_.size + dn);
+            offset_type>(h_.size + dn);
     }
     auto const id = it->id;
     if(h_.is_special(id))
@@ -742,22 +742,22 @@ insert_impl(
         }
     }
     auto& e = tab[0 - static_cast<std::ptrdiff_t>(before) - 1];
-    e.np = static_cast<off_t>(
+    e.np = static_cast<offset_type>(
         pos - h_.prefix);
     e.nn = static_cast<
-        off_t>(name.size());
-    e.vp = static_cast<off_t>(
+        offset_type>(name.size());
+    e.vp = static_cast<offset_type>(
         pos - h_.prefix +
             name.size() + 1 +
             ! value.empty());
     e.vn = static_cast<
-        off_t>(value.size());
+        offset_type>(value.size());
     e.id = id;
 
     // update container
     h_.count++;
     h_.size = static_cast<
-        off_t>(h_.size + n);
+        offset_type>(h_.size + n);
     if( id != field::unknown)
         h_.on_insert(id, value);
 }
@@ -795,7 +795,7 @@ raw_erase(
     for(;i < h_.count; ++i)
         ft[i] = ft[i + 1] - n;
     h_.size = static_cast<
-        off_t>(h_.size - n);
+        offset_type>(h_.size - n);
 }
 
 //------------------------------------------------

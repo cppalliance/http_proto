@@ -79,8 +79,8 @@ public:
     {
         using T = detail::header::entry;
         return alignof(T) *
-            (((max_off_t - 2 + sizeof(T) * (
-                    max_off_t / 4)) +
+            (((max_offset - 2 + sizeof(T) * (
+                    max_offset / 4)) +
                 alignof(T) - 1) /
             alignof(T));
     }
@@ -427,7 +427,7 @@ public:
         @endcode
 
         @par Complexity
-        
+
         @param id The field constant of the
         header to set.
 
