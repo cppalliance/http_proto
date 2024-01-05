@@ -10,9 +10,16 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_WORKSPACE_HPP
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_WORKSPACE_HPP
 
+#include <boost/config.hpp>
+
 namespace boost {
 namespace http_proto {
 namespace detail {
+
+#if defined(BOOST_MSVC)
+#pragma warning(push)
+#pragma warning(disable : 4324) /* structure was padded due to __declspec(align()) */
+#endif
 
 struct workspace::any
 {
@@ -153,6 +160,10 @@ push_array(
         unsigned char*>(p);
     return p->data();
 }
+
+#if defined(BOOST_MSVC)
+#pragma warning(pop) /* C4324 */
+#endif
 
 } // detail
 } // http_proto
