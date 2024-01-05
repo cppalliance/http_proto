@@ -20,7 +20,6 @@
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
-
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -43,10 +42,10 @@ Parser operation
 General Case
     parser pr;
     error_code ec;
-        
+
     pr.start();                 // must call first
     auto mb = pr.prepare();     // returns the input buffer
-    ... 
+    ...
     pr.commit( n );             // commit input buffer bytes
     pr.parse( ec );             // parse data
                                 // (inspect ec for special codes)
@@ -63,7 +62,7 @@ Parser-provided buffer-at-time body
 
 Caller-provided body buffers (dynamic buffer?)
 
-    pr.set_body( bb );           // 
+    pr.set_body( bb );           //
 
 Caller-provided sink
 
