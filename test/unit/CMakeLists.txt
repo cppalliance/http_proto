@@ -4,7 +4,7 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/vinniefalco/http_proto
+# Official repository: https://github.com/cppalliance/http_proto
 #
 
 set(EXTRAFILES
@@ -14,57 +14,10 @@ set(EXTRAFILES
     ./test_helpers.cpp
     )
 
-set(PFILES
+file(GLOB_RECURSE PFILES CONFIGURE_DEPENDS *.cpp *.hpp)
+list(APPEND PFILES
     CMakeLists.txt
     Jamfile
-    buffered_base.cpp
-    context.cpp
-    error.cpp
-    field.cpp
-    fields.cpp
-    fields_base.cpp
-    fields_view.cpp
-    fields_view_base.cpp
-    file.cpp
-    file_test.hpp
-    file_base.cpp
-    file_body.cpp
-    file_posix.cpp
-    file_stdio.cpp
-    file_win32.cpp
-    filter.cpp
-    header_limits.cpp
-    http_proto.cpp
-    message_base.cpp
-    message_view_base.cpp
-    metadata.cpp
-    method.cpp
-    parser.cpp
-    request.cpp
-    request_parser.cpp
-    request_view.cpp
-    response.cpp
-    response_parser.cpp
-    response_view.cpp
-    sandbox.cpp
-    serializer.cpp
-    sink.cpp
-    source.cpp
-    status.cpp
-    string_body.cpp
-    version.cpp
-    #rfc/chunk_ext_rule.cpp
-    rfc/combine_field_values.cpp
-    rfc/list_rule.cpp
-    rfc/parameter.cpp
-    rfc/quoted_token_rule.cpp
-    rfc/quoted_token_view.cpp
-    rfc/token_rule.cpp
-    rfc/transfer_encoding_rule.cpp
-    rfc/detail/rules.cpp
-    service/service.cpp
-    service/zlib_service.cpp
-    service/virtual_service.cpp
     )
 
 set(UNIT_TEST_LINK_LIBRARIES boost_http_proto)

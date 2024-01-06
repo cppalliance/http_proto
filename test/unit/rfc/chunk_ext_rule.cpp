@@ -7,6 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
+#if 0
+
 // Test that header file is self-contained.
 #include <boost/http_proto/rfc/chunk_ext_rule.hpp>
 
@@ -137,3 +139,5 @@ TEST_SUITE(
 
 } // http_proto
 } // boost
+
+#endif
