@@ -26,7 +26,7 @@ struct upgrade_rule_test
         ok(upgrade_rule, "xyz/1, abc/2");
         bad(upgrade_rule, "");
         bad(upgrade_rule, "/");
-        bad(upgrade_rule, "", grammar::error::need_more);
+        bad(upgrade_rule, "", grammar::error::mismatch);
     }
 };
 
