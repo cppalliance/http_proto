@@ -8,8 +8,11 @@
 #
 
 import ac ;
+import path ;
 
 using zlib ;
+
+path-constant HTTP_PROTO_ROOT : .. ;
 
 project boost/http_proto
     : requirements
@@ -21,13 +24,10 @@ project boost/http_proto
     : usage-requirements
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
-    : source-location ../src
+    : source-location $(HTTP_PROTO_ROOT)
     ;
 
-alias http_proto_sources
-    :
-    src.cpp
-    ;
+alias http_proto_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src : *.cpp ] ;
 
 explicit http_proto_sources ;
 
@@ -43,10 +43,7 @@ lib boost_http_proto
 
 boost-install boost_http_proto ;
 
-alias http_proto_zlib_sources
-    :
-    src_zlib.cpp
-    ;
+alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
 
 explicit http_proto_zlib_sources ;
 

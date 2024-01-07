@@ -4,15 +4,16 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/CPPAlliance/http_proto
+# Official repository: https://github.com/cppalliance/http_proto
 #
 
 set(TEST_MAIN ../../../url/extra/test_main.cpp)
 
+file(GLOB_RECURSE LIMITS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.cpp)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES limits.cpp Jamfile)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../../url/extra PREFIX "_extra" FILES ${TEST_MAIN})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../src PREFIX "_extra" FILES ../../src/src.cpp)
-add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ../../src/src.cpp)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../src PREFIX "_extra" FILES ${LIMITS_SOURCES})
+add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ${LIMITS_SOURCES})
 target_include_directories(boost_http_proto_limits PRIVATE ../../include ../../../url/extra ../../..)
 target_compile_definitions(boost_http_proto_limits PRIVATE
     BOOST_HTTP_PROTO_MAX_HEADER=20

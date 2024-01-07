@@ -4,7 +4,7 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/CPPAlliance/http_proto
+# Official repository: https://github.com/cppalliance/http_proto
 #
 
 cmake_minimum_required(VERSION 3.8...3.16)
@@ -79,10 +79,10 @@ file(GLOB_RECURSE BOOST_HTTP_PROTO_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "" FILES ${BOOST_HTTP_PROTO_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES Jamfile)
 
-add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES})
+add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES} build/Jamfile)
 add_library(Boost::http_proto ALIAS boost_http_proto)
 boost_http_proto_setup_properties(boost_http_proto)
 
@@ -108,15 +108,11 @@ endif()
 if (ZLIB_FOUND)
     file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_SOURCES CONFIGURE_DEPENDS src_zlib/*.cpp)
 
-    file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_HEADERS CONFIGURE_DEPENDS
-        include/boost/http_proto/serializer.hpp
-        include/boost/http_proto/detail/impl/zlib_codec.ipp
-    )
-    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_ZLIB_HEADERS})
-    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib PREFIX "" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/build PREFIX "" FILES build/Jamfile)
 
-    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_ZLIB_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES} build/Jamfile)
+    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES} build/Jamfile)
     add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
 
     target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
