@@ -4,11 +4,11 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/CPPAlliance/buffers
+// Official repository: https://github.com/cppalliance/buffers
 //
 
-#ifndef BOOST_BUFFERS_FILTER_HPP
-#define BOOST_BUFFERS_FILTER_HPP
+#ifndef BOOST_HTTP_PROTO_FILTER_HPP
+#define BOOST_HTTP_PROTO_FILTER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/buffered_base.hpp>
@@ -97,7 +97,6 @@ private:
         @ref init was called once before any
             calls to `process`
     */
-    BOOST_BUFFERS_DECL
     virtual
     results
     on_process(
@@ -111,7 +110,6 @@ private:
         @ref init was called once before any
             calls to `process`.
     */
-    BOOST_BUFFERS_DECL
     virtual
     results
     on_process(
