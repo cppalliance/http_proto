@@ -223,8 +223,8 @@ parser(
     , svc_(ctx.get_service<
         parser_service>())
     , h_(detail::empty{k})
-    , st_(state::reset)
     , eb_(nullptr)
+    , st_(state::reset)
 {
     auto const n =
         svc_.space_needed;
