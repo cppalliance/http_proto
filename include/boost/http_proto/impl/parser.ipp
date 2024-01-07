@@ -250,13 +250,8 @@ void
 parser::
 reset() noexcept
 {
-    if(eb_)
-    {
-        eb_->~any_dynamic_buffer();
-        eb_ = nullptr;
-    }
-
     ws_.clear();
+    eb_ = nullptr;
     st_ = state::start;
     got_eof_ = false;
 }
