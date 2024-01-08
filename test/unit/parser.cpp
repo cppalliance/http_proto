@@ -19,6 +19,8 @@
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
+#include <boost/core/ignore_unused.hpp>
+
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -960,6 +962,7 @@ struct parser_test
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
             auto dest = pr.prepare();
+            ignore_unused(dest);
             BOOST_TEST_NO_THROW(pr.commit(0));
         }
 
@@ -976,6 +979,7 @@ struct parser_test
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
             auto dest = pr.prepare();
+            ignore_unused(dest);
             BOOST_TEST_THROWS(
                 pr.commit(1),
                 std::invalid_argument);

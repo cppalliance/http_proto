@@ -379,7 +379,8 @@ test_file()
             system::error_code ec;
             f.open(path, file_mode::write, ec);
             BOOST_TEST(! ec);
-            f = std::move(f);
+            auto& f_(f);
+            f_ = std::move(f);
             BOOST_TEST(f.is_open());
         }
         remove(path);
