@@ -26,4 +26,5 @@ run limits.cpp ../../../url/extra/test_main.cpp /boost/http_proto//http_proto_so
         <define>BOOST_HTTP_PROTO_STATIC_LINK
         <library>/boost//buffers
         <library>/boost//url
+        <link>static
     ;
