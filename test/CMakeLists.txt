@@ -12,5 +12,7 @@ if(NOT TARGET tests)
     set_property(TARGET tests PROPERTY FOLDER Dependencies)
 endif()
 
-add_subdirectory(limits)
+if(NOT BUILD_SHARED_LIBS)
+    add_subdirectory(limits)
+endif()
 add_subdirectory(unit)
