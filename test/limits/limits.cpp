@@ -7,12 +7,20 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
+#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/request.hpp>
 
 #include "test_suite.hpp"
 
 #include <string>
+
+// These ensure that limits is compiled correctly
+#if \
+    defined(BOOST_HTTP_PROTO_DYN_LINK) || \
+    ( defined(BOOST_ALL_DYN_LINK) && ! defined(BOOST_HTTP_PROTO_STATIC_LINK) )
+#error "Limits should not be built with shared linking."
+#endif
 
 namespace boost {
 namespace http_proto {
