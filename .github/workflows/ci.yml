@@ -188,7 +188,6 @@ jobs:
           generator: ${{ matrix.generator }}
           generator-toolset: ${{ matrix.generator-toolset }}
           build-type: ${{ matrix.build-type }}
-          build-target: all
           run-tests: true
           install-prefix: .local
           cxxstd: ${{ matrix.latest-cxxstd }}
@@ -270,7 +269,6 @@ jobs:
           generator: ${{ matrix.generator }}
           generator-toolset: ${{ matrix.generator-toolset }}
           build-type: ${{ matrix.build-type }}
-          build-target: all
           run-tests: false
           install: false
           cxxstd: ${{ matrix.latest-cxxstd }}
