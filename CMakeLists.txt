@@ -96,6 +96,7 @@ if(BUILD_SHARED_LIBS)
 else()
     target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_STATIC_LINK=1)
 endif()
+target_compile_definitions(boost_http_proto PRIVATE BOOST_HTTP_PROTO_SOURCE)
 
 if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
     install(TARGETS boost_http_proto
@@ -118,6 +119,7 @@ if (ZLIB_FOUND)
     target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
     target_link_libraries(boost_http_proto_zlib PUBLIC ZLIB::ZLIB)
     target_compile_definitions(boost_http_proto_zlib PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
+    target_compile_definitions(boost_http_proto_zlib PRIVATE BOOST_HTTP_PROTO_ZLIB_SOURCE)
 
     if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
         install(TARGETS boost_http_proto_zlib
