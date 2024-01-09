@@ -19,7 +19,7 @@ project boost/http_proto
       $(c11-requires)
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
-      [ ac.check-library /zlib//zlib : <library>/zlib//zlib <define>BOOST_HTTP_PROTO_HAS_ZLIB :  ]
+      [ ac.check-library /zlib//zlib : <library>/zlib//zlib <define>BOOST_HTTP_PROTO_HAS_ZLIB <define>BOOST_HTTP_PROTO_ZLIB_SOURCE : ]
       <define>BOOST_HTTP_PROTO_SOURCE
     : usage-requirements
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
