@@ -24,6 +24,7 @@ project
       <include>../../../url/extra
       <warnings>extra
       <warnings-as-errors>on
+      <target-os>darwin,<undefined-sanitizer>norecover:<link>static
     ;
 
 local SOURCES =
