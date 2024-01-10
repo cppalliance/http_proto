@@ -38,6 +38,8 @@ echo '==================================> ZLIB'
 git clone --branch v1.2.13 https://github.com/madler/zlib.git !BOOST_ROOT!\zlib-src --depth 1
 set ZLIB_SOURCE=!BOOST_ROOT!\zlib-src
 
+echo using zlib : : : ^<warnings^>off ^; >> !BOOST_ROOT!\project-config.jam
+
 REM Customizations
 cd
 pushd !BOOST_ROOT!\libs
