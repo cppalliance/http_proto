@@ -1417,7 +1417,7 @@ struct parser_test
             s.data(), s.size());
 
         // one piece
-        in = { sv };
+        in = pieces{ sv };
         fn(in);
 
         for(std::size_t i = 0;
