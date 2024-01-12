@@ -163,6 +163,27 @@ jobs:
             build-type: "Release"
             build-cmake: true
 
+          - compiler: "apple-clang"
+            version: "*"
+            cxx: "clang++"
+            cc: "clang"
+            runs-on: "macos-11"
+            b2-toolset: "clang"
+            is-latest: true
+            name: "Apple-Clang (ubsan)"
+            build-type: "RelWithDebInfo"
+            ubsan: true
+
+          - compiler: "apple-clang"
+            version: "*"
+            cxx: "clang++"
+            cc: "clang"
+            runs-on: "macos-11"
+            b2-toolset: "clang"
+            is-latest: true
+            name: "Apple-Clang (asan)"
+            build-type: "RelWithDebInfo"
+            asan: true
 
           # Linux compilers
           #
