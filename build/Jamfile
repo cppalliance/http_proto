@@ -41,8 +41,6 @@ lib boost_http_proto
      <library>/boost//url
    ;
 
-boost-install boost_http_proto ;
-
 alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
 
 explicit http_proto_zlib_sources ;
@@ -58,4 +56,4 @@ lib boost_http_proto_zlib
      <library>/boost/http_proto//boost_http_proto
    ;
 
-boost-install boost_http_proto_zlib ;
+boost-install boost_http_proto boost_http_proto_zlib ;
