@@ -81,6 +81,7 @@ public:
         check(n, error::bad_expect);
         check(n, error::bad_field_name);
         check(n, error::bad_field_value);
+        check(n, error::bad_field_smuggle);
         check(n, error::bad_line_ending);
         check(n, error::bad_list);
         check(n, error::bad_method);

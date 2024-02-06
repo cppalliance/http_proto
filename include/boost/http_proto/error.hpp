@@ -64,6 +64,13 @@ enum class error
     /// Syntax error in field-name
    bad_field_name,
 
+    /// The contents of the field value are invalid.
+    /// An attempt to set the value of a field to a string containing
+    /// a terminal CRLF line ending was rejected.
+    /// This might indicate a security failure.<br/>
+    /// @par Reference
+    /// @li <a href="https://datatracker.ietf.org/doc/html/rfc9112#name-request-smuggling">Name Request Smuggling (rfc9112)</a>
+   bad_field_smuggle,
 
     /// Syntax error in field-value
    bad_field_value,
