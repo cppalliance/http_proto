@@ -211,6 +211,8 @@ public:
         exists, it is not replaced. Instead, an
         additional header with the same name is
         inserted. Names are not case-sensitive.
+        Any leading or trailing whitespace in
+        the new value is ignored.
         <br>
         All iterators that are equal to `before`
         or come after are invalidated.
@@ -229,32 +231,32 @@ public:
         Strong guarantee.
         Calls to allocate may throw.
 
-        @return An iterator to the inserted
-        element.
+        @return An iterator the newly inserted header, or
+        an error if any occurred.
 
         @param before Position to insert before.
 
         @param id The field name constant,
         which may not be @ref field::unknown.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
     */
-    iterator
+    system::result<iterator>
     insert(
         iterator before,
         field id,
         core::string_view value)
     {
+        // TODO: this should probably return an error
         BOOST_ASSERT(
             id != field::unknown);
-        insert_impl(
-            id,
-            to_string(id),
-            value,
-            before.i_);
+
+        auto rv = insert_impl(
+            id, to_string(id), value, before.i_);
+
+        if( rv.has_error() )
+            return rv.error();
         return before;
     }
 
@@ -264,6 +266,8 @@ public:
         exists, it is not replaced. Instead, an
         additional header with the same name is
         inserted. Names are not case-sensitive.
+        Any leading or trailing whitespace in
+        the new value is ignored.
         <br>
         All iterators that are equal to `before`
         or come after are invalidated.
@@ -282,30 +286,31 @@ public:
         Strong guarantee.
         Calls to allocate may throw.
 
-        @return An iterator to the inserted
-        element.
+        @return An iterator the newly inserted header, or
+        an error if any occurred.
 
         @param before Position to insert before.
 
         @param name The header name.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
     */
-    iterator
+    system::result<iterator>
     insert(
         iterator before,
         core::string_view name,
         core::string_view value)
     {
-        insert_impl(
+        auto rv = insert_impl(
             string_to_field(
                 name),
             name,
             value,
             before.i_);
+
+        if( rv.has_error() )
+            return rv.error();
         return before;
     }
 

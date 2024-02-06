@@ -506,8 +506,9 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.insert(f.find("T"),
-                    field::server, "x");
+                auto rv = f.insert(f.find("T"), field::server, "x");
+                BOOST_TEST(rv.has_value());
+                BOOST_TEST(rv.value() == f.find(field::server));
             },
             "Server: x\r\n"
             "T: 1\r\n"
@@ -519,13 +520,27 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.insert(f.find("U"),
-                    field::server, "x");
+                auto pos = f.find("T");
+                auto rv = f.insert(f.find("U"), field::server, "x");
+
+                BOOST_TEST(rv.has_value());
+                BOOST_TEST(rv.value() == f.find(field::server));
+                BOOST_TEST(pos == f.find("T"));
             },
             "T: 1\r\n"
             "Server: x\r\n"
             "U: 2\r\n"
             "\r\n");
+
+        check_error(
+            "T: 1\r\n"
+            "U: 2\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.insert(f.find("U"), field::server, "a\r\nb");
+                BOOST_TEST(rv.has_error());
+            });
 
         // insert(iterator, string_view, string_view)
 
@@ -534,8 +549,9 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.insert(f.find("T"),
-                    "Server", "x");
+                auto rv = f.insert(f.find("T"), "Server", "x");
+                BOOST_TEST(rv.has_value());
+                BOOST_TEST(rv.value() == f.find("Server"));
             },
             "Server: x\r\n"
             "T: 1\r\n"
@@ -547,13 +563,35 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.insert(f.find("U"),
-                    "Server", "x");
+                auto pos = f.find("T");
+                auto rv = f.insert(f.find("U"), "Server", "x");
+
+                BOOST_TEST(rv.has_value());
+                BOOST_TEST(rv.value() == f.find("Server"));
+                BOOST_TEST(pos == f.find("T"));
             },
             "T: 1\r\n"
             "Server: x\r\n"
             "U: 2\r\n"
             "\r\n");
+
+        check_error(
+            "T: 1\r\n"
+            "U: 2\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                system::result<typename fields_base::iterator> rv;
+
+                rv = f.insert(f.find("U"), "Ser ver", "x");
+                BOOST_TEST(rv.has_error());
+
+                rv = f.insert(f.find("U"), " Server", "x");
+                BOOST_TEST(rv.has_error());
+
+                rv = f.insert(f.find("U"), "Server ", "x");
+                BOOST_TEST(rv.has_error());
+            });
 
         // self-intersect
 
