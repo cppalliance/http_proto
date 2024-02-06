@@ -34,16 +34,16 @@ struct header_limits
         @par ABNF
         @code
         HTTP-headers   = start-line
-                         *( header-field CRLF )
+                         *( field-line CRLF )
                          CRLF
-        header-field   = field-name ":" OWS field-value OWS
+        field-line     = field-name ":" OWS field-value OWS
         @endcode
 
         @see
-            @li <a href="https://www.rfc-editor.org/rfc/rfc7230#section-3"
-                >3.  Message Format (rfc7230)</a>
-            @li <a href="https://www.rfc-editor.org/rfc/rfc7230#section-3.2"
-                >3.2.  Header Fields (rfc7230)</a>
+            @li <a href="https://datatracker.ietf.org/doc/html/rfc9112#section-2.1"
+                >2.1.  Message Format (rfc9112)</a>
+            @li <a href="https://datatracker.ietf.org/doc/html/rfc9112#section-5"
+                >5.  Field Syntax (rfc9112)</a>
     */
     std::size_t max_size = 8 * 1024;
 
@@ -101,7 +101,7 @@ struct header_limits
 
         This determines an upper bound on the
         largest number of individual header
-        fields that may appear in an HTTP message. 
+        fields that may appear in an HTTP message.
         Depending on the other  limits, the actual
         maximum number of fields might be less
         than this value.
