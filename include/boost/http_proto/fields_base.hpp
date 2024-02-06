@@ -397,10 +397,12 @@ public:
 
     /** Set a header value
 
-        This sets the value of the header
-        at `it`. The name is not changed.
-        <br>
-        No iterators are invalidated.
+        Uses the given value to overwrite the
+        current one in the header field pointed to by the
+        iterator. The value must be syntactically
+        valid or else an error is returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
 
         @par Complexity
 
@@ -408,25 +410,27 @@ public:
         Strong guarantee.
         Calls to allocate may throw.
 
+        @return The error, if any occurred.
+
         @param it An iterator to the header.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
     */
     BOOST_HTTP_PROTO_DECL
-    void
+    system::result<void>
     set(
         iterator it,
         core::string_view value);
 
     /** Set a header value
 
-        This function sets the value of the
-        header with the specified field id.
-        Other headers with the same name
-        are removed first.
+        The container is modified to contain exactly
+        one field with the specified id set to the given value,
+        which must be syntactically valid or else an error is
+        returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
 
         @par Postconditions
         @code
@@ -435,41 +439,43 @@ public:
 
         @par Complexity
 
+        @return The error, if any occurred.
+
         @param id The field constant of the
         header to set.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
     */
     BOOST_HTTP_PROTO_DECL
-    void
+    system::result<void>
     set(
         field id,
         core::string_view value);
 
     /** Set a header value
 
-        This function sets the value of the
-        header with the specified name. Other
-        headers with the same name are removed
-        first.
+        The container is modified to contain exactly
+        one field with the specified name set to the given value,
+        which must be syntactically valid or else an error is
+        returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
 
         @par Postconditions
         @code
         this->count( name ) == 1 && this->at( name ) == value
         @endcode
 
+        @return The error, if any occurred.
+
         @param name The field name.
 
-        @param value The corresponding value, which
-        @li must be syntactically valid for the field,
-        @li must be semantically valid for the message, and
-        @li may not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
     */
     BOOST_HTTP_PROTO_DECL
-    void
+    system::result<void>
     set(
         core::string_view name,
         core::string_view value);

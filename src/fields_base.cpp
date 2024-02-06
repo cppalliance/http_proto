@@ -516,17 +516,24 @@ erase(
 
 //------------------------------------------------
 
-void
+system::result<void>
 fields_base::
 set(
     iterator it,
     core::string_view value)
 {
+    auto rv = verify_field_value(value);
+    if( rv.has_error() )
+        return rv.error();
+
+    value = rv->value;
+    bool has_obs_fold = rv->has_obs_fold;
+
     auto const i = it.i_;
     auto tab = h_.tab();
     auto const& e0 = tab[i];
     auto const pos0 = offset(i);
-    auto const pos1 = offset(i + 1 );
+    auto const pos1 = offset(i + 1);
     std::ptrdiff_t dn =
         value.size() -
         it->value.size();
@@ -556,6 +563,9 @@ set(
             value.copy(
                 dest,
                 value.size());
+            if( has_obs_fold )
+                detail::remove_obs_fold(
+                    dest, dest + value.size());
             dest += value.size();
         }
         *dest++ = '\r';
@@ -581,6 +591,9 @@ set(
             value.copy(
                 dest,
                 value.size());
+            if( has_obs_fold )
+                detail::remove_obs_fold(
+                    dest, dest + value.size());
             dest += value.size();
         }
         op.move_chars(
@@ -618,11 +631,12 @@ set(
         e.id = id;
         h_.on_insert(id, it->value);
     }
+    return {};
 }
 
 // erase existing fields with id
 // and then add the field with value
-void
+system::result<void>
 fields_base::
 set(
     field id,
@@ -630,6 +644,14 @@ set(
 {
     BOOST_ASSERT(
         id != field::unknown);
+
+    auto rv = verify_field_value(value);
+    if( rv.has_error() )
+        return rv.error();
+
+    value = rv->value;
+    bool has_obs_fold = rv->has_obs_fold;
+
     auto const i0 = h_.find(id);
     if(i0 != h_.count)
     {
@@ -647,18 +669,33 @@ set(
         }
         erase_all_impl(i0, id);
     }
-    insert_impl(id, to_string(id),
-        value, h_.count);
+
+    insert_impl_unchecked(
+        id, to_string(id), value, h_.count, has_obs_fold);
+    return {};
 }
 
 // erase existing fields with name
 // and then add the field with value
-void
+system::result<void>
 fields_base::
 set(
     core::string_view name,
     core::string_view value)
 {
+    {
+        auto rv = verify_field_name(name);
+        if( rv.has_error() )
+            return rv.error();
+    }
+
+    auto rv = verify_field_value(value);
+    if( rv.has_error() )
+        return rv.error();
+
+    value = rv->value;
+    bool has_obs_fold = rv->has_obs_fold;
+
     auto const i0 = h_.find(name);
     if(i0 != h_.count)
     {
@@ -679,9 +716,10 @@ set(
         // costs one extra memmove
         erase_all_impl(i0, id);
     }
-    insert_impl(
+    insert_impl_unchecked(
         string_to_field(name),
-        name, value, h_.count);
+        name, value, h_.count, has_obs_fold);
+    return {};
 }
 
 //------------------------------------------------
