@@ -15,3 +15,8 @@ temp
 
 # Visual Studio Code
 /.vscode
+
+# clangd
+/.cache
+/.clangd
+/compile_commands.json
