@@ -10,7 +10,6 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/assert.hpp>
-#include <type_traits>
 #include <cstring>
 
 namespace boost {
@@ -52,6 +51,7 @@ message(
     case error::bad_expect: return "bad Expect";
     case error::bad_field_name: return "bad field name";
     case error::bad_field_value: return "bad field value";
+    case error::bad_field_smuggle: return "bad field smuggle";
     case error::bad_line_ending: return "bad line ending";
     case error::bad_list: return "bad list";
     case error::bad_method: return "bad method";
