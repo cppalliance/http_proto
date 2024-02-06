@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
+#include <boost/http_proto/detail/config.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/lut_chars.hpp>
@@ -229,6 +230,35 @@ status_line_rule =
 //------------------------------------------------
 
 // header-field   = field-name ":" OWS field-value OWS
+struct field_name_rule_t
+{
+    using value_type = core::string_view;
+
+    system::result<value_type>
+    parse(
+        char const *&it,
+        char const *end) const noexcept;
+};
+
+constexpr field_name_rule_t field_name_rule{};
+
+struct field_value_rule_t
+{
+    struct value_type
+    {
+        core::string_view value;
+        bool has_obs_fold = false;
+        bool has_crlf = false;
+    };
+
+    system::result<value_type>
+    parse(
+        char const *&it,
+        char const *end) const noexcept;
+};
+
+constexpr field_value_rule_t field_value_rule{};
+
 struct field_rule_t
 {
     struct value_type

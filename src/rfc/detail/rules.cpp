@@ -8,7 +8,18 @@
 //
 
 #include <boost/http_proto/rfc/detail/rules.hpp>
+
+#include <boost/http_proto/error.hpp>
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
+
+#include <boost/core/detail/string_view.hpp>
+#include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
+#include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/lut_chars.hpp>
+#include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/tuple_rule.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -176,6 +187,135 @@ parse(
 //------------------------------------------------
 
 auto
+field_name_rule_t::
+parse(
+    char const*& it,
+    char const* end) const noexcept ->
+        system::result<value_type>
+{
+    if( it == end )
+        BOOST_HTTP_PROTO_RETURN_EC(
+            grammar::error::need_more);
+
+    value_type v;
+
+    auto begin = it;
+    auto rv = grammar::parse(
+        it, end, token_rule);
+    if( rv.has_error() || (it != end) )
+    {
+        if( it != begin )
+        {
+            v = core::string_view(begin, it - begin);
+            return v;
+        }
+        return error::bad_field_name;
+    }
+
+    v = core::string_view(begin, end - begin);
+    return v;
+}
+
+auto
+field_value_rule_t::
+parse(
+    char const*& it,
+    char const* end) const noexcept ->
+        system::result<value_type>
+{
+    value_type v;
+    if( it == end )
+    {
+        v.value = core::string_view(it, 0);
+        return v;
+    }
+
+    // field-line     = field-name ":" OWS field-value OWS
+    // field-value    = *field-content
+    // field-content  = field-vchar
+    //                  [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+    // field-vchar    = VCHAR / obs-text
+    // obs-text       = %x80-FF
+    // VCHAR          = %x21-7E
+    //                       ; visible (printing) characters
+
+    auto is_field_vchar = [](unsigned char ch)
+    {
+      return (ch >= 0x21 && ch <= 0x7e) || ch >= 0x80;
+    };
+
+    char const* s0 = nullptr;
+    char const* s1 = nullptr;
+
+    bool has_crlf = false;
+    bool has_obs_fold = false;
+
+    while( it < end )
+    {
+        auto ch = *it;
+        if( ws(ch) )
+        {
+            ++it;
+            continue;
+        }
+
+        if( ch == '\r' )
+        {
+            // too short to know if we have a potential obs-fold
+            // occurrence
+            if( end - it < 2 )
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    grammar::error::need_more);
+
+            if( it[1] != '\n' )
+                goto done;
+
+            if( end - it < 3 )
+            {
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    grammar::error::need_more);
+            }
+
+            if(! ws(it[2]) )
+            {
+                has_crlf = true;
+                goto done;
+            }
+
+            has_obs_fold = true;
+            it = it + 3;
+            continue;
+        }
+
+        if(! is_field_vchar(ch) )
+        {
+            goto done;
+        }
+
+        if(! s0 )
+            s0 = it;
+
+        ++it;
+        s1 = it;
+    }
+
+done:
+    // later routines wind up doing pointer
+    // subtraction using the .data() member
+    // of the value so we need a valid 0-len range
+    if(! s0 )
+    {
+        s0 = it;
+        s1 = s0;
+    }
+
+    v.value = core::string_view(s0, s1 - s0);
+    v.has_crlf = has_crlf;
+    v.has_obs_fold = has_obs_fold;
+    return v;
+}
+
+auto
 field_rule_t::
 parse(
     char const*& it,
@@ -208,121 +348,21 @@ parse(
     }
 
     value_type v;
+    auto rv = grammar::parse(
+        it, end, grammar::tuple_rule(
+            field_name_rule,
+            grammar::delim_rule(':'),
+            field_value_rule,
+            crlf_rule));
 
-    // field name
-    {
-        auto rv = grammar::parse(
-            it, end, grammar::tuple_rule(
-                token_rule,
-                grammar::squelch(
-                    grammar::delim_rule(':'))));
-        if(! rv)
-            return rv.error();
-        v.name = rv.value();
-    }
+    if( rv.has_error() )
+        return rv.error();
 
-    // consume all obs-fold until field char or end of field:
-    //
-    //    HTTP-message = start-line *( header-field CRLF ) CRLF [ message-body ]
-    //    header-field = field-name ":" OWS field-value OWS
-    //    field-value = *( field-content / obs-fold )
-    //    field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
-    //    obs-fold = CRLF 1*( SP / HTAB )
-    //
-    for(;;)
-    {
-        skip_ows(it, end);
-        if(it == end)
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::need_more);
-        }
-        if(*it != '\r')
-        {
-            // start of value
-            break;
-        }
-        ++it;
-        if(it == end)
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::need_more);
-        }
-        if(*it != '\n')
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::mismatch);
-        }
-        ++it;
-        if(it == end)
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::need_more);
-        }
-        // FIXME: this should be a loop of some kind as we've detected a valid
-        // CRLF at this stage but need to account for the ABNF specifying:
-        // obs-fold = CRLF 1*( SP / HTAB )
-        if(*it != ' ' &&
-           *it != '\t')
-        {
-            // because we saw a CRLF and didn't see the required SP / HTAB,
-            // we know we have a zero length field value
-            v.value = core::string_view(it, 0);
-            return v;
-        }
-        // eat obs-fold
-        ++it;
-        v.has_obs_fold = true;
-    }
+    auto val = rv.value();
+    v.name = std::get<0>(val);
+    v.value = std::get<2>(val).value;
+    v.has_obs_fold = std::get<2>(val).has_obs_fold;
 
-    char const* s0 = it; // start of value
-    for(;;)
-    {
-        auto rv = grammar::parse(
-            it, end, grammar::tuple_rule(
-                grammar::token_rule(
-                    ws_vchars),
-                crlf_rule));
-        if(! rv)
-            return rv.error();
-        if(it == end)
-        {
-            BOOST_HTTP_PROTO_RETURN_EC(
-                grammar::error::need_more);
-        }
-        if( *it != ' ' &&
-            *it != '\t')
-        {
-            // end of field
-            break;
-        }
-        // *it will match field_value_rule
-        v.has_obs_fold = true;
-    }
-
-    v.value = core::string_view(s0, (it - s0) - 2);
-    BOOST_ASSERT(! v.value.empty());
-    //BOOST_ASSERT(! ws(t.v.value.front()));
-
-    // remove trailing SP,HTAB,CR,LF
-    auto p = &v.value.back();
-    for(;;)
-    {
-        switch(*p)
-        {
-        case ' ':  case '\t':
-        case '\r': case '\n':
-            --p;
-            continue;
-        default:
-            ++p;
-            goto done;
-        }
-    }
-done:
-    v.value = core::string_view(
-        v.value.data(),
-        p - v.value.data());
     return v;
 }
 

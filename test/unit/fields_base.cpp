@@ -10,14 +10,17 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_base.hpp>
 
+#include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/response.hpp>
+#include <boost/http_proto/error.hpp>
 #include <boost/static_assert.hpp>
 
 #include "test_helpers.hpp"
+#include "test_suite.hpp"
 
-#include <utility>
+#include <vector>
 
 namespace boost {
 namespace http_proto {
@@ -69,6 +72,20 @@ struct fields_base_test
             fn(res);
             BOOST_TEST_EQ(res.buffer(), m1);
             test_fields(res, s1);
+        }
+    }
+
+    static
+    void
+    check_error(
+        core::string_view s0,
+        void(*fn)(fields_base&))
+    {
+        // fields
+        {
+            fields f(s0);
+            fn(f);
+            BOOST_TEST_EQ(f.buffer(), s0);
         }
     }
 
@@ -351,6 +368,110 @@ struct fields_base_test
             "Cookie: x\r\n"
             "Server: y\r\n"
             "\r\n");
+
+        // append(string_view, string_view) rfc compliance
+        //
+        //    field-line     = field-name ":" OWS field-value OWS
+        //
+        //    field-name     = token
+        //    token          = 1*tchar
+        //    tchar          = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+        //                   / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+        //                   / DIGIT / ALPHA
+        //                   ; any VCHAR, except delimiters
+        //
+        //    field-value    = *field-content
+        //    field-content  = field-vchar
+        //                      [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+        //    field-vchar    = VCHAR / obs-text
+        //    obs-text       = %x80-FF
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.append("!#$%&'*+-.^_`|~1A", "     A \t \x80\xffZ     ");
+            },
+            "!#$%&'*+-.^_`|~1A: A \t \x80\xffZ\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.append(
+                    "!#$%&'*+-.^_`|~1A", "\r\n\t  \r\n   AB\r\n C  \r\n\t");
+
+                BOOST_TEST(rv.has_value());
+            },
+            "!#$%&'*+-.^_`|~1A: AB   C\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.append("A", "A\r\n\tB\r\n C");
+                BOOST_TEST(rv.has_value());
+            },
+            "A: A  \tB   C\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.append("A", "custom: rawr\r\n\tB\r\n C");
+                BOOST_TEST(rv.has_value());
+            },
+            "A: custom: rawr  \tB   C\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.append("A", "   \t    \r\n  \r\n\t  \t       \t   \r\n ");
+                BOOST_TEST(rv.has_value());
+            },
+            "A:\r\n"
+            "\r\n");
+
+        check_error(
+            "\r\n",
+            [](fields_base& f)
+            {
+                system::result<void> rv;
+
+                // ends with invalid obs-fold
+                rv = f.append("X", "AB\r\n C  \r\n");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_value);
+
+                // contains invalid obs-fold between {AB, C}
+                rv = f.append("X", "\r\n\x09  \r\n   AB: rawr\r\nC");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_smuggle);
+
+                rv = f.append("X", "         \r");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_value);
+
+                // empty field name
+                rv = f.append("", "ABC");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_name);
+
+                std::vector<char const *> strs = {"\r\nABC", "\rABC", "A\rBC",
+                                                  "ABC\r",   "\nABC", "A\nBC",
+                                                  "ABC\n",   "\r",    "\n"};
+
+                for (auto const str : strs)
+                {
+                    rv = f.append("X", str);
+                    BOOST_TEST(rv.has_error());
+                }
+            });
 
         // empty value should not
         // have a prepended space
