@@ -8,19 +8,74 @@
 //
 
 #include <boost/http_proto/fields_base.hpp>
+
+#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/header_limits.hpp>
+#include <boost/http_proto/rfc/detail/rules.hpp>
+#include <boost/http_proto/rfc/token_rule.hpp>
+
+#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
-#include "detail/copied_strings.hpp"
-#include "detail/move_chars.hpp"
-#include "detail/number_string.hpp"
-#include <boost/url/grammar/ci_string.hpp>
+
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
-#include <string>
+
+#include <boost/url/grammar/ci_string.hpp>
+#include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/token_rule.hpp>
+
+#include "detail/move_chars.hpp"
 
 namespace boost {
 namespace http_proto {
+
+system::result<typename detail::field_name_rule_t::value_type>
+verify_field_name(
+    core::string_view name)
+{
+    auto it = name.begin();
+    auto end = name.end();
+    auto rv =
+        grammar::parse(it, end, detail::field_name_rule);
+    if( rv.has_error() )
+    {
+        if( rv.error() == condition::need_more_input )
+            return error::bad_field_name;
+        return rv.error();
+    }
+
+    if( it != end )
+        return error::bad_field_name;
+
+    return rv.value();
+}
+
+system::result<typename detail::field_value_rule_t::value_type>
+verify_field_value(
+    core::string_view value)
+{
+    auto it = value.begin();
+    auto end = value.end();
+    auto rv =
+        grammar::parse(it, end, detail::field_value_rule);
+    if( rv.has_error() )
+    {
+        if( rv.error() == condition::need_more_input )
+            return error::bad_field_value;
+        return rv.error();
+    }
+
+    auto v = rv.value();
+    if( v.has_crlf )
+        return error::bad_field_smuggle;
+
+    if( it != end )
+        return error::bad_field_value;
+
+    return rv;
+}
 
 class fields_base::
     op_t
@@ -667,11 +722,12 @@ copy_impl(
 
 void
 fields_base::
-insert_impl(
+insert_impl_unchecked(
     field id,
     core::string_view name,
     core::string_view value,
-    std::size_t before)
+    std::size_t before,
+    bool has_obs_fold)
 {
     auto const tab0 = h_.tab_();
     auto const pos = offset(before);
@@ -720,6 +776,9 @@ insert_impl(
             *dest++ = ' ';
             value.copy(
                 dest, value.size());
+            if( has_obs_fold )
+                detail::remove_obs_fold(
+                    dest, dest + value.size());
             dest += value.size();
         }
         *dest++ = '\r';
@@ -760,6 +819,32 @@ insert_impl(
         offset_type>(h_.size + n);
     if( id != field::unknown)
         h_.on_insert(id, value);
+}
+
+system::result<void>
+fields_base::
+insert_impl(
+    field id,
+    core::string_view name,
+    core::string_view value,
+    std::size_t before)
+{
+    {
+        auto rv = verify_field_name(name);
+        if( rv.has_error() )
+            return rv.error();
+    }
+
+    auto rv = verify_field_value(value);
+    if( rv.has_error() )
+        return rv.error();
+
+    value = rv->value;
+    bool has_obs_fold = rv->has_obs_fold;
+    insert_impl_unchecked(
+        id, name, value, before, has_obs_fold);
+
+    return {};
 }
 
 // erase i and update metadata

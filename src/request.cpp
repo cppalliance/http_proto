@@ -88,10 +88,13 @@ set_expect_100_continue(bool b)
             ! h_.md.expect.ec.failed());
         BOOST_ASSERT(
             ! h_.md.expect.is_100_continue);
-        if(b)
-            return append(
+        if( b )
+        {
+            append(
                 field::expect,
                 "100-continue");
+            return;
+        }
         return;
     }
 
@@ -131,9 +134,10 @@ set_expect_100_continue(bool b)
         }
 
         erase(field::expect);
-        return append(
+        append(
             field::expect,
             "100-continue");
+        return;
     }
 
     erase(field::expect);

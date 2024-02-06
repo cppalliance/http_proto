@@ -13,6 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/core/detail/string_view.hpp>
+#include <boost/system/result.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -119,10 +120,12 @@ public:
 
     /** Append a header
 
-        This function appends a new header.
-        Existing headers with the same name are
-        not changed. Names are not case-sensitive.
-        <br>
+        This function appends a new header with the
+        specified id and value. The value must be
+        syntactically valid or else an error is returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
+        <br/>
         No iterators are invalidated.
 
         @par Example
@@ -142,31 +145,30 @@ public:
         @param id The field name constant,
         which may not be @ref field::unknown.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @return The error, if any occurred.
     */
-    void
+    system::result<void>
     append(
         field id,
         core::string_view value)
     {
         BOOST_ASSERT(
             id != field::unknown);
-        insert_impl(
-            id,
-            to_string(id),
-            value,
-            h_.count);
+        return insert_impl(
+            id, to_string(id), value, h_.count);
     }
 
     /** Append a header
 
-        This function appends a new header.
-        Existing headers with the same name are
-        not changed. Names are not case-sensitive.
-        <br>
+        This function appends a new header with the
+        specified name and value. Both values must be
+        syntactically valid or else an error is returned.
+        Any leading or trailing whitespace in the new
+        value is ignored.
+        <br/>
         No iterators are invalidated.
 
         @par Example
@@ -185,17 +187,17 @@ public:
 
         @param name The header name.
 
-        @param value A value, which
-        @li Must be syntactically valid for the header,
-        @li Must be semantically valid for the message, and
-        @li May not contain leading or trailing whitespace.
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @return The error, if any occurred.
     */
-    void
+    system::result<void>
     append(
         core::string_view name,
         core::string_view value)
     {
-        insert_impl(
+        return insert_impl(
             string_to_field(
                 name),
             name,
@@ -475,8 +477,16 @@ private:
     copy_impl(
         detail::header const&);
 
-    BOOST_HTTP_PROTO_DECL
     void
+    insert_impl_unchecked(
+        field id,
+        core::string_view name,
+        core::string_view value,
+        std::size_t before,
+        bool has_obs_fold);
+
+    BOOST_HTTP_PROTO_DECL
+    system::result<void>
     insert_impl(
         field id,
         core::string_view name,
