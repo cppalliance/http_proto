@@ -21,7 +21,7 @@ enum class error
     // VFALCO 3 space indent or
     // else Doxygen malfunctions
 
-    success = 0
+    success = 0,
 
     //
     // Partial success
@@ -29,23 +29,23 @@ enum class error
 
     /** Serialization paused for Expect
     */
-    ,expect_100_continue
+   expect_100_continue,
 
     /** The message is complete
     */
-    ,end_of_message
+   end_of_message,
 
     /** The end of input was reached
     */
-    ,end_of_stream
+   end_of_stream,
 
     /** The in_place buffer is full
     */
-    ,in_place_overflow
+   in_place_overflow,
 
     /** Additional data is required
     */
-    ,need_data
+   need_data,
 
     //--------------------------------------------
     //
@@ -53,55 +53,56 @@ enum class error
     //
 
     /// Invalid Connection field value
-    ,bad_connection
+   bad_connection,
 
     /// Invalid Content-Length field value or values
-    ,bad_content_length
+   bad_content_length,
 
     /// Invalid Expect header
-    ,bad_expect
+   bad_expect,
 
     /// Syntax error in field-name
-    ,bad_field_name
+   bad_field_name,
+
 
     /// Syntax error in field-value
-    ,bad_field_value
+   bad_field_value,
 
     /// Expected LF after CR
-    ,bad_line_ending
+   bad_line_ending,
 
     /// Syntax error in list
-    ,bad_list
+   bad_list,
 
     /// Syntax error in method
-    ,bad_method
+   bad_method,
 
     /// Syntax error in number
-    ,bad_number
+   bad_number,
 
     /// Something wrong with payload fields
-    ,bad_payload
+   bad_payload,
 
     /// Syntax error in HTTP-Version
-    ,bad_version
+   bad_version,
 
     /// Syntax error in reason-phrase
-    ,bad_reason
+   bad_reason,
 
     /// Syntax error in request-target
-    ,bad_request_target
+   bad_request_target,
 
     /// Syntax error in status-code
-    ,bad_status_code
+   bad_status_code,
 
     /// Syntax error in status-line
-    ,bad_status_line
+   bad_status_line,
 
     /// Syntax error in transfer-encoding
-    ,bad_transfer_encoding
+   bad_transfer_encoding,
 
     /// Syntax error or illegal Upgrade
-    ,bad_upgrade
+   bad_upgrade,
 
     //
     // Bad request / Bad response
@@ -113,7 +114,7 @@ enum class error
         body whose size which exceeded the
         configured limit.
     */
-    ,body_too_large
+   body_too_large,
 
     /** Headers too large.
      *
@@ -121,21 +122,21 @@ enum class error
         the header fields exceeded the maximum
         configured size.
     */
-    ,headers_limit
+   headers_limit,
 
     /** Start-line too large.
      *
         The size of the start line exceeded the
         maximum configured size.
     */
-    ,start_line_limit
+   start_line_limit,
 
     /** Field too large.
 
         The size of an individual field exceeded
         the maximum configured size.
     */
-    ,field_size_limit
+   field_size_limit,
 
     /** Too many fields.
 
@@ -143,21 +144,21 @@ enum class error
         exceeded the maximum configured number
         of allowed fields.
     */
-    ,fields_limit
+   fields_limit,
 
     /** The message is incomplete
 
         The end of the stream was encountered
         before the message could be completed.
     */
-    ,incomplete
+   incomplete,
 
     //
     // Metadata errors
     //
 
     /// A number overflowed
-    ,numeric_overflow
+   numeric_overflow,
 
     /**
      *  Multiple Content-Length fields present
@@ -166,7 +167,7 @@ enum class error
         two or more Content-Length headers
         with different field values.
     */
-    ,multiple_content_length
+   multiple_content_length,
 
     //
     // Other errors
@@ -175,7 +176,7 @@ enum class error
     /**
      *  A dynamic buffer's maximum size would be exceeded
     */
-    ,buffer_overflow
+   buffer_overflow
 };
 
 // VFALCO we need a bad_message condition?
