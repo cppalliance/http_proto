@@ -13,6 +13,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/rfc/combine_field_values.hpp>
 
+#include "boost/http_proto/parser.hpp"
 #include "test_suite.hpp"
 
 #include <algorithm>
@@ -38,9 +39,9 @@ struct request_parser_test
             std::memcpy(b.data(),
                 s.data(), n);
             pr.commit(n);
+            s.remove_prefix(n);
             system::error_code ec;
             pr.parse(ec);
-            s.remove_prefix(n);
             if(ec == error::end_of_message
                 || ! ec)
                 break;
@@ -57,11 +58,10 @@ struct request_parser_test
 
     bool
     valid(
-        context& ctx,
+        request_parser& pr,
         core::string_view s,
         std::size_t nmax)
     {
-        request_parser pr(ctx);
         pr.reset();
         pr.start();
         while(! s.empty())
@@ -75,9 +75,9 @@ struct request_parser_test
             std::memcpy(b.data(),
                 s.data(), n);
             pr.commit(n);
+            s.remove_prefix(n);
             system::error_code ec;
             pr.parse(ec);
-            s.remove_prefix(n);
             if(ec == condition::need_more_input)
                 continue;
             auto const es = ec.message();
@@ -87,11 +87,25 @@ struct request_parser_test
     }
 
     void
-    good(context& ctx, core::string_view s)
+    good(
+        context& ctx,
+        core::string_view s,
+        core::string_view expected = {})
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
-            BOOST_TEST(valid(ctx, s, nmax));
+        {
+            request_parser pr(ctx);
+            if( BOOST_TEST(valid(pr, s, nmax)) )
+            {
+                BOOST_TEST( pr.got_header() );
+                if( expected.data() )
+                {
+                    auto req_view = pr.get();
+                    BOOST_TEST_EQ(req_view.buffer(), expected);
+                }
+            }
+        }
     }
 
     void
@@ -99,7 +113,10 @@ struct request_parser_test
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
-            BOOST_TEST(! valid(ctx, s, nmax));
+        {
+            request_parser pr(ctx);
+            BOOST_TEST(! valid(pr, s, nmax));
+        }
     }
 
     void
@@ -229,6 +246,11 @@ struct request_parser_test
         bad(ctx, f("x :"));
         bad(ctx, f("x@"));
         bad(ctx, f("x@:"));
+        bad(ctx, f("\ra"));
+        bad(ctx, f("x:   \r"));
+        bad(ctx, f("x:   \ra"));
+        bad(ctx, f("x:   \r\nabcd"));
+        bad(ctx, f("x:   a\x01""bcd"));
 
         good(ctx, f(""));
         good(ctx, f("x:"));
@@ -243,11 +265,26 @@ struct request_parser_test
         good(ctx, f("x:yy "));
         good(ctx, f("x: y y "));
         good(ctx, f("x:"));
-        good(ctx, f("x: \r\n "));
-        good(ctx, f("x: \r\n x"));
-        good(ctx, f("x: \r\n \t\r\n "));
-        good(ctx, f("x: \r\n \t\r\n x"));
-        good(ctx, f("x: y \r\n "));
+        good(ctx, f("x:   \r\n"),
+                  f("x:   "));
+        good(ctx, f("x:\r\n"),
+                  f("x:"));
+
+        // obs-fold handling
+        good(ctx, f("x: \r\n "),
+                  f("x:    "));
+        good(ctx, f("x: \r\n x"),
+                  f("x:    x"));
+        good(ctx, f("x: \r\n \t\r\n \r\n\t "),
+                  f("x:    \t     \t "));
+        good(ctx, f("x: \r\n \t\r\n x"),
+                  f("x:    \t   x"));
+        good(ctx, f("x: y \r\n "),
+                  f("x: y    "));
+        good(ctx, f("x: \t\r\n abc def \r\n\t "),
+                  f("x: \t   abc def   \t "));
+        good(ctx, f("x: abc\r\n def"),
+                  f("x: abc   def"));
 
         // errata eid4189
         good(ctx, f("x: , , ,"));
@@ -262,7 +299,7 @@ struct request_parser_test
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
         request_parser pr(ctx);
-        core::string_view s = 
+        core::string_view s =
             "GET / HTTP/1.1\r\n"
             "Accept: *\r\n"
             "User-Agent: x\r\n"
@@ -330,5 +367,3 @@ TEST_SUITE(
 
 } // http_proto
 } // boost
-
-
