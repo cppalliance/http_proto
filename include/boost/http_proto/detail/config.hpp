@@ -94,9 +94,11 @@ static constexpr auto max_offset =
     ::boost::system::error_code( (ev), [] { \
     static constexpr auto loc((BOOST_CURRENT_LOCATION)); \
     return &loc; }()))
-# define BOOST_HTTP_PROTO_RETURN_EC(ev) \
-    static constexpr auto loc ## __LINE__((BOOST_CURRENT_LOCATION)); \
-    return ::boost::system::error_code((ev), &loc ## __LINE__)
+# define BOOST_HTTP_PROTO_RETURN_EC(ev)                                  \
+    do {                                                                 \
+        static constexpr auto loc ## __LINE__((BOOST_CURRENT_LOCATION)); \
+        return ::boost::system::error_code((ev), &loc ## __LINE__);      \
+    } while(0)
 #endif
 
 } // http_proto
