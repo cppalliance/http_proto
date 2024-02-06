@@ -7,10 +7,16 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
+// we need a pragma once for the circular includes required
+// clangd's intellisense
+#pragma once
+
 #ifndef BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 #define BOOST_HTTP_PROTO_IMPL_PARSER_HPP
 
-#include <cstdlib>
+#include <boost/http_proto/parser.hpp>
+#include <boost/http_proto/sink.hpp>
+#include <boost/http_proto/detail/type_traits.hpp>
 
 namespace boost {
 namespace http_proto {
