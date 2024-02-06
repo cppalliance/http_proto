@@ -836,7 +836,8 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.set(f.find("T"), "2");
+                auto rv = f.set(f.find("T"), "2");
+                BOOST_TEST(rv.has_value());
             },
             "T: 2\r\n"
             "\r\n");
@@ -861,13 +862,38 @@ struct fields_base_test
             "T: abcdefghijklmnopqrstuvwxyz\r\n"
             "\r\n");
 
+        check(
+            "T: 1\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.set(f.find("T"), "abcdefghijk\r\n lmnopqrst\r\n\tuvwxyz\r\n ");
+            },
+            "T: abcdefghijk   lmnopqrst  \tuvwxyz\r\n"
+            "\r\n");
+
+        check_error(
+            "T: abc\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.set(f.find("T"), "\r\n");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_value);
+
+                rv = f.set(f.find("T"), "abcdefghijk\r\nlmnopqrstuvwxyz");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_smuggle);
+            });
+
         // set(field, string_view)
 
         check(
             "\r\n",
             [](fields_base& f)
             {
-                f.set(field::server, "x");
+                auto rv = f.set(field::server, "x");
+                BOOST_TEST(rv.has_value());
             },
             "Server: x\r\n"
             "\r\n");
@@ -909,6 +935,31 @@ struct fields_base_test
             "T: t\r\n"
             "Server: y\r\n"
             "\r\n");
+
+        check(
+            "Server: x\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.set(field::server, "\r\n x\r\n yz \r\n \r\n\t");
+                BOOST_TEST(rv.has_value());
+            },
+            "Server: x   yz\r\n"
+            "\r\n");
+
+        check_error(
+            "Server: x\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.set(field::server, "\r\n x\r\nyz \r\n \r\n\t");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_smuggle);
+
+                rv = f.set(field::server, "yz\r\n\x01\x02\x03");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_smuggle);
+            });
 
         // set(string_view, string_view)
 
@@ -965,11 +1016,44 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                f.set(f.find("Connection"), "close");
+                f.set("Connection", "close");
             },
-            "Connection: close\r\n"
             "Server: Boost\r\n"
+            "Connection: close\r\n"
             "\r\n");
+
+        check(
+            "Connection: keep-alive\r\n"
+            "Server: Boost\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.set("Server", "\r\n hello    \r\n     world!!!!");
+            },
+            "Connection: keep-alive\r\n"
+            "Server: hello           world!!!!\r\n"
+            "\r\n");
+
+        check_error(
+            "\r\n",
+            [](fields_base& f)
+            {
+                auto rv = f.set(" invalid string", "valid string");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_name);
+
+                rv = f.set("invalid\r\n string", "valid string");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_name);
+
+                rv = f.set("valid", "\r\ninvalid string");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_smuggle);
+
+                rv = f.set("valid", "invalid\x01\x02\r\nstring");
+                BOOST_TEST(rv.has_error());
+                BOOST_TEST(rv.error() == error::bad_field_value);
+            });
     }
 
     void
