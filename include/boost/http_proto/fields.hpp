@@ -46,7 +46,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     explicit
     fields(
-        core::string_view s) noexcept;
+        core::string_view s);
 
     /** Constructor
     */

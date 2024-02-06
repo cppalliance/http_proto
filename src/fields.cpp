@@ -25,7 +25,7 @@ fields() noexcept
 
 fields::
 fields(
-    core::string_view s) noexcept
+    core::string_view s)
     : fields_view_base(
         &this->fields_base::h_)
     , fields_base(
