@@ -38,8 +38,8 @@ enum class status : unsigned short
         code.
     */
     switching_protocols                 = 101,
-
     processing                          = 102,
+    early_hints                         = 103,
 
     ok                                  = 200,
     created                             = 201,
@@ -83,13 +83,12 @@ enum class status : unsigned short
     unprocessable_entity                = 422,
     locked                              = 423,
     failed_dependency                   = 424,
+    too_early                           = 425,
     upgrade_required                    = 426,
     precondition_required               = 428,
     too_many_requests                   = 429,
     request_header_fields_too_large     = 431,
-    connection_closed_without_response  = 444,
     unavailable_for_legal_reasons       = 451,
-    client_closed_request               = 499,
 
     internal_server_error               = 500,
     not_implemented                     = 501,
@@ -101,8 +100,7 @@ enum class status : unsigned short
     insufficient_storage                = 507,
     loop_detected                       = 508,
     not_extended                        = 510,
-    network_authentication_required     = 511,
-    network_connect_timeout_error       = 599
+    network_authentication_required     = 511
 };
 
 /** Represents the class of a status-code.
