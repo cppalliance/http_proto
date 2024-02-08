@@ -21,12 +21,15 @@
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 
+#include <boost/system/result.hpp>
+
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/token_rule.hpp>
 
 #include "detail/move_chars.hpp"
+#include "rfc/detail/rules.hpp"
 
 namespace boost {
 namespace http_proto {

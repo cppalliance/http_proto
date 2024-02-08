@@ -21,6 +21,8 @@
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/tuple_rule.hpp>
 
+#include "rules.hpp"
+
 namespace boost {
 namespace http_proto {
 namespace detail {
@@ -271,10 +273,8 @@ parse(
                 goto done;
 
             if( end - it < 3 )
-            {
                 BOOST_HTTP_PROTO_RETURN_EC(
                     grammar::error::need_more);
-            }
 
             if(! ws(it[2]) )
             {
