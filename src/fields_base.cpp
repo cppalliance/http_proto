@@ -21,6 +21,8 @@
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 
+#include <boost/core/detail/string_view.hpp>
+
 #include <boost/system/result.hpp>
 
 #include <boost/url/grammar/ci_string.hpp>
@@ -34,27 +36,25 @@
 namespace boost {
 namespace http_proto {
 
-system::result<typename detail::field_name_rule_t::value_type>
+static
+system::result<core::string_view>
 verify_field_name(
     core::string_view name)
 {
-    auto it = name.begin();
-    auto end = name.end();
     auto rv =
-        grammar::parse(it, end, detail::field_name_rule);
+        grammar::parse(name, detail::field_name_rule);
     if( rv.has_error() )
     {
-        if( rv.error() == condition::need_more_input )
+        auto ec = rv.error();
+        if( ec == urls::grammar::error::leftover )
             return error::bad_field_name;
-        return rv.error();
+        if( ec == condition::need_more_input )
+            return error::bad_field_name;
     }
-
-    if( it != end )
-        return error::bad_field_name;
-
-    return rv.value();
+    return rv;
 }
 
+static
 system::result<typename detail::field_value_rule_t::value_type>
 verify_field_value(
     core::string_view value)
@@ -70,8 +70,7 @@ verify_field_value(
         return rv.error();
     }
 
-    auto v = rv.value();
-    if( v.has_crlf )
+    if( rv->has_crlf )
         return error::bad_field_smuggle;
 
     if( it != end )
@@ -880,11 +879,8 @@ insert_impl(
     if( rv.has_error() )
         return rv.error();
 
-    value = rv->value;
-    bool has_obs_fold = rv->has_obs_fold;
     insert_impl_unchecked(
-        id, name, value, before, has_obs_fold);
-
+        id, name, rv->value, before, rv->has_obs_fold);
     return {};
 }
 

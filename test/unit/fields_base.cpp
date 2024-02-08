@@ -462,9 +462,10 @@ struct fields_base_test
                 BOOST_TEST(rv.has_error());
                 BOOST_TEST(rv.error() == error::bad_field_name);
 
-                std::vector<char const *> strs = {"\r\nABC", "\rABC", "A\rBC",
-                                                  "ABC\r",   "\nABC", "A\nBC",
-                                                  "ABC\n",   "\r",    "\n"};
+                std::vector<char const *> strs = {
+                    "\r\nABC", "\rABC", "A\rBC",
+                    "ABC\r",   "\nABC", "A\nBC",
+                    "ABC\n",   "\r",    "\n"};
 
                 for (auto const str : strs)
                 {
