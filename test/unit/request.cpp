@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,9 +11,11 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/request.hpp>
 
-#include "test_helpers.hpp"
+#include <boost/http_proto/request_view.hpp>
 
 #include <utility>
+
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -244,6 +247,57 @@ struct request_test
     }
 
     void
+    testViewConstructor()
+    {
+        {
+            request req;
+            BOOST_TEST_EQ(
+                req.buffer(),
+                "GET / HTTP/1.1\r\n\r\n");
+
+            request_view req_view(req);
+            request req2(req_view);
+
+            BOOST_TEST_EQ(
+                req2.buffer(),
+                "GET / HTTP/1.1\r\n\r\n");
+
+            // default-constructed recycles the same string literal
+            BOOST_TEST_EQ(
+                req2.buffer().data(),
+                req.buffer().data());
+
+            BOOST_TEST_EQ(
+                req2.buffer().data(),
+                req_view.buffer().data());
+
+        }
+
+        {
+            request req;
+            req.set_method("POST");
+            BOOST_TEST_EQ(
+                req.buffer(),
+                "POST / HTTP/1.1\r\n\r\n");
+
+            request_view req_view(req);
+            request req2(req_view);
+
+            BOOST_TEST_EQ(
+                req2.buffer(),
+                "POST / HTTP/1.1\r\n\r\n");
+
+            BOOST_TEST_NE(
+                req2.buffer().data(),
+                req.buffer().data());
+
+            BOOST_TEST_NE(
+                req2.buffer().data(),
+                req_view.buffer().data());
+        }
+    }
+
+    void
     testObservers()
     {
     }
@@ -411,11 +465,132 @@ struct request_test
     void
     testExpect()
     {
-        request req;
-        req.set_expect_100_continue(true);
-        BOOST_TEST(req.metadata().expect.is_100_continue == true);
-        req.set_expect_100_continue(false);
-        BOOST_TEST(req.metadata().expect.is_100_continue == false);
+        {
+            request req;
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+
+            req.set_expect_100_continue(false);
+            BOOST_TEST(
+                !req.metadata().expect.is_100_continue);
+        }
+
+
+        {
+            request req;
+            req.set_expect_100_continue(false);
+            BOOST_TEST(
+                !req.metadata().expect.is_100_continue);
+        }
+
+        {
+            request req;
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+        }
+
+        {
+            request req;
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+
+            req.set("Expect", "101-dalmations");
+            BOOST_TEST(
+                req.metadata().expect.ec.failed());
+
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+        }
+
+        {
+            request req;
+            req.append("Expect", "100-continue");
+            req.append("Expect", "101-dalmations");
+
+            BOOST_TEST(
+                req.metadata().expect.ec.failed());
+            BOOST_TEST_EQ(
+                req.count("Expect"), 2);
+
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+            BOOST_TEST_EQ(
+                req.count("Expect"), 1);
+        }
+
+        {
+            request req;
+            req.append("Expect", "100-continue");
+            req.append("Content-Length", "1234");
+            req.append("Expect", "100-continue");
+
+            BOOST_TEST(
+                req.metadata().expect.ec.failed());
+            BOOST_TEST_EQ(
+                req.count("Expect"), 2);
+
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+            BOOST_TEST_EQ(
+                req.count("Expect"), 1);
+        }
+
+        {
+            request req;
+            req.append("Expect", "404-not-found");
+            req.append("Content-Length", "1234");
+            req.append("Expect", "101-dalmations");
+
+            BOOST_TEST(
+                req.metadata().expect.ec.failed());
+            BOOST_TEST_EQ(
+                req.count("Expect"), 2);
+
+            req.set_expect_100_continue(true);
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+            BOOST_TEST(
+                req.metadata().expect.is_100_continue);
+            BOOST_TEST_EQ(
+                req.count("Expect"), 1);
+        }
+
+        {
+            request req;
+            req.append("Expect", "100-continue");
+            req.append("Content-Length", "1234");
+            req.append("Expect", "100-continue");
+
+            BOOST_TEST(
+                req.metadata().expect.ec.failed());
+            BOOST_TEST_EQ(
+                req.count("Expect"), 2);
+
+            req.set_expect_100_continue(false);
+            BOOST_TEST(
+                !req.metadata().expect.ec.failed());
+            BOOST_TEST(
+                !req.metadata().expect.is_100_continue);
+            BOOST_TEST_EQ(
+                req.count("Expect"), 0);
+            BOOST_TEST_EQ(
+                req.count("Content-Length"), 1);
+        }
     }
 
     void
@@ -423,6 +598,7 @@ struct request_test
     {
         testHelpers();
         testSpecial();
+        testViewConstructor();
         testObservers();
         testModifiers();
         testExpect();
