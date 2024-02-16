@@ -751,7 +751,7 @@ on_erase_expect()
         return;
     */
     // reset and re-insert
-    auto n = md.expect.count;
+    auto n = count;
     auto const p = cbuf + prefix;
     auto const* e = &tab()[0];
     md.expect = {};
