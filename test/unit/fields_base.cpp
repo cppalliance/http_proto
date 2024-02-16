@@ -1271,7 +1271,9 @@ struct fields_base_test
                         req.count(field::expect), 1);
                 },
                 "POST / HTTP/1.1\r\n"
+                "Content-Length: 1234\r\n"
                 "Expect: 100-continue\r\n"
+                "Connection: close\r\n"
                 "Expect: 404-not-found\r\n"
                 "\r\n");
 
