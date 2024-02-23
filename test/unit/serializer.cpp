@@ -33,8 +33,8 @@ struct serializer_test
 {
     struct test_source : source
     {
-        test_source()
-            : s_("12345")
+        test_source(core::string_view s)
+            : s_(s)
         {
         }
 
@@ -42,6 +42,7 @@ struct serializer_test
         on_read(
             buffers::mutable_buffer b)
         {
+            BOOST_TEST(! is_done_);
             results rv;
             rv.bytes =
                 buffers::buffer_copy(
@@ -51,11 +52,13 @@ struct serializer_test
                         s_.size()));
             s_ = s_.substr(rv.bytes);
             rv.finished = s_.empty();
+            is_done_ = rv.finished;
             return rv;
         }
 
     private:
         core::string_view s_;
+        bool is_done_ = false;
     };
 
     template<
@@ -81,11 +84,18 @@ struct serializer_test
     {
         std::string s;
         auto cbs = sr.prepare().value();
-        s.resize(buffers::buffer_size(cbs));
+        // We limit buffer consumption to necessitate
+        // multiple calls to serializer::prepare() and
+        // serializer::consume(), allowing tests to cover
+        // state management within these functions
+        auto consumed = (std::min)(
+            std::size_t{256},
+            buffers::buffer_size(cbs));
+        s.resize(consumed);
         buffers::buffer_copy(
             buffers::mutable_buffer(
-                &s[0], s.size()), cbs);
-        sr.consume(s.size());
+                &s[0], consumed), cbs);
+        sr.consume(consumed);
         return s;
     }
 
@@ -107,6 +117,40 @@ struct serializer_test
         return t;
     }
 
+    static
+    void
+    check_chunked_body(
+        core::string_view chunked_body,
+        core::string_view expected_contents)
+    {
+        for(;;)
+        {
+            auto n = chunked_body.find_first_of("\r\n");
+            BOOST_TEST_NE(n, core::string_view::npos);
+            std::string tmp = chunked_body.substr(0, n);
+            chunked_body.remove_prefix(n + 2);
+            auto chunk_size = std::stoul(tmp, nullptr, 16);
+
+            if( chunk_size == 0 ) // last chunk
+            {
+                BOOST_TEST_EQ(chunked_body, "\r\n");
+                chunked_body.remove_prefix(2);
+                break;
+            }
+
+            BOOST_TEST_GE(expected_contents.size(), chunk_size);
+            BOOST_TEST(chunked_body.starts_with(
+                expected_contents.substr(0, chunk_size)));
+            chunked_body.remove_prefix(chunk_size);
+            expected_contents.remove_prefix(chunk_size);
+
+            BOOST_TEST(chunked_body.starts_with("\r\n"));
+            chunked_body.remove_prefix(2);
+        }
+        BOOST_TEST(chunked_body.empty());
+        BOOST_TEST(expected_contents.empty());
+    }
+
     //--------------------------------------------
 
     void
@@ -118,10 +162,10 @@ struct serializer_test
         sr.start(res);
         sr.start(res, buffers::const_buffer{});
         sr.start(res, buffers::mutable_buffer{});
-        sr.start(res, test_source{});
+        sr.start(res, test_source{"12345"});
         sr.start(res, make_const(buffers::const_buffer{}));
         sr.start(res, make_const(buffers::mutable_buffer{}));
-        sr.start(res, make_const(test_source{}));
+        sr.start(res, make_const(test_source{"12345"}));
 
         serializer(65536);
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -189,19 +233,21 @@ struct serializer_test
         BOOST_TEST(s == expected);
     };
 
-    template<class Source>
+    template<class Source, class F>
     void
     check_src(
         core::string_view headers,
         Source&& src,
-        core::string_view expected)
+        F const& f)
     {
         response res(headers);
-        serializer sr;
+        // we limit the buffer size of the serializer, requiring
+        // it to make multiple calls to source::read
+        serializer sr(1024);
         sr.start(res, std::forward<
             Source>(src));
         std::string s = read(sr);
-        BOOST_TEST(s == expected);
+        f(s);
     };
 
     void
@@ -256,15 +302,32 @@ struct serializer_test
         check_src(
             "HTTP/1.1 200 OK\r\n"
             "Server: test\r\n"
-            "Content-Length: 5\r\n"
+            "Content-Length: 2048\r\n"
             "\r\n",
-            test_source{},
-            //--------------------------
+            test_source{std::string(2048, '*')},
+            [](core::string_view s){
+                BOOST_TEST(s ==
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 2048\r\n"
+                    "\r\n" +
+                    std::string(2048, '*'));
+            });
+
+        // empty source
+        check_src(
             "HTTP/1.1 200 OK\r\n"
             "Server: test\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "12345");
+            "Content-Length: 0\r\n"
+            "\r\n",
+            test_source{""},
+            [](core::string_view s){
+                BOOST_TEST(s ==
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n");
+            });
 
         // source chunked
         check_src(
@@ -272,16 +335,35 @@ struct serializer_test
             "Server: test\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            test_source{},
-            //--------------------------
+            test_source{std::string(2048, '*')},
+            [](core::string_view s){
+                core::string_view expected_header = 
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Transfer-Encoding: chunked\r\n"
+                    "\r\n";
+                BOOST_TEST(s.starts_with(expected_header));
+                s.remove_prefix(expected_header.size());
+                check_chunked_body(s, std::string(2048, '*'));
+            });
+
+        // empty source chunked
+        check_src(
             "HTTP/1.1 200 OK\r\n"
             "Server: test\r\n"
             "Transfer-Encoding: chunked\r\n"
-            "\r\n"
-            "0000000000000005\r\n"
-            "12345"
-            "\r\n"
-            "0\r\n\r\n");
+            "\r\n",
+            test_source{""},
+            [](core::string_view s){
+                core::string_view expected_header = 
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Transfer-Encoding: chunked\r\n"
+                    "\r\n";
+                BOOST_TEST(s.starts_with(expected_header));
+                s.remove_prefix(expected_header.size());
+                check_chunked_body(s, "");
+            });
     }
 
     void
@@ -295,7 +377,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
-            sr.start(req, test_source{});
+            sr.start(req, test_source{"12345"});
             std::string s;
             system::result<
                 serializer::const_buffers_type> rv;
@@ -375,7 +457,7 @@ struct serializer_test
                 "\r\n";
             serializer sr;
             response res(sv);
-            sr.start(res, test_source{});
+            sr.start(res, test_source{"12345"});
             auto s = read(sr);
             BOOST_TEST(s ==
                 "HTTP/1.1 200 OK\r\n"

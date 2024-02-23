@@ -10,6 +10,7 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/core/ignore_unused.hpp>
@@ -138,59 +139,55 @@ prepare() ->
 
     if(st_ == style::source)
     {
-        if(! is_chunked_)
+        if(more_)
         {
-            auto rv = src_->read(
-                tmp0_.prepare(
-                    tmp0_.capacity() -
-                        tmp0_.size()));
-            tmp0_.commit(rv.bytes);
-            if(rv.ec.failed())
-                return rv.ec;
-            more_ = ! rv.finished;
-        }
-        else
-        {
-            if((tmp0_.capacity() -
-                    tmp0_.size()) >
-                chunked_overhead_)
+            if(! is_chunked_)
             {
-                auto dest = tmp0_.prepare(18);
-                write_chunk_header(dest, 0);
-                tmp0_.commit(18);
                 auto rv = src_->read(
-                    tmp0_.prepare(
-                        tmp0_.capacity() -
-                            2 - // CRLF
-                            5 - // final chunk
-                            tmp0_.size()));
+                    tmp0_.prepare(tmp0_.capacity()));
                 tmp0_.commit(rv.bytes);
-                // VFALCO FIXME!
-                //if(rv.bytes == 0)
-                    //tmp0_.uncommit(18); // undo
                 if(rv.ec.failed())
                     return rv.ec;
-                if(rv.bytes > 0)
-                {
-                    // rewrite with correct size
-                    write_chunk_header(
-                        dest, rv.bytes);
-                    // terminate chunk
-                    tmp0_.commit(
-                        buffers::buffer_copy(
-                            tmp0_.prepare(2),
-                            buffers::const_buffer(
-                                "\r\n", 2)));
-                }
-                if(rv.finished)
-                {
-                    tmp0_.commit(
-                        buffers::buffer_copy(
-                            tmp0_.prepare(5),
-                            buffers::const_buffer(
-                                "0\r\n\r\n", 5)));
-                }
                 more_ = ! rv.finished;
+            }
+            else
+            {
+                if(tmp0_.capacity() > chunked_overhead_)
+                {
+                    auto dest = tmp0_.prepare(
+                        tmp0_.capacity() -
+                        2 - // CRLF
+                        5); // final chunk
+
+                    auto rv = src_->read(
+                        buffers::sans_prefix(dest, 18));
+
+                    if(rv.ec.failed())
+                        return rv.ec;
+
+                    if(rv.bytes != 0)
+                    {
+                        write_chunk_header(
+                            buffers::prefix(dest, 18), rv.bytes);
+                        tmp0_.commit(rv.bytes + 18);
+                        // terminate chunk
+                        tmp0_.commit(
+                            buffers::buffer_copy(
+                                tmp0_.prepare(2),
+                                buffers::const_buffer(
+                                    "\r\n", 2)));
+                    }
+
+                    if(rv.finished)
+                    {
+                        tmp0_.commit(
+                            buffers::buffer_copy(
+                                tmp0_.prepare(5),
+                                buffers::const_buffer(
+                                    "0\r\n\r\n", 5)));
+                        more_ = false;
+                    }
+                }
             }
         }
 
@@ -474,6 +471,7 @@ start_source(
 
     hp_ = &out_[0];
     *hp_ = { m.ph_->cbuf, m.ph_->size };
+    more_ = true;
 }
 
 auto
