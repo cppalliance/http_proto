@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,12 +14,12 @@
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/field.hpp>
 
-#include "test_helpers.hpp"
+#include <boost/core/detail/string_view.hpp>
+
+#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
-
-#if 0
 
 class response_test
 {
@@ -29,7 +30,7 @@ public:
         response const& res,
         status sc,
         unsigned short si,
-        string_view rs,
+        core::string_view rs,
         version v)
     {
         BOOST_TEST_EQ(res.version(), v);
@@ -47,6 +48,14 @@ public:
                 response res(status::ok);
                 check(res, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(res.capacity_in_bytes() == 0);
+                BOOST_TEST_EQ(res.buffer(), "HTTP/1.1 200 OK\r\n\r\n");
+            }
+
+            {
+                response res(status::ok, version::http_1_0);
+                check(res, status::ok, 200, "OK", version::http_1_0);
+                BOOST_TEST(res.capacity_in_bytes() > 0);
+                BOOST_TEST_EQ(res.buffer(), "HTTP/1.0 200 OK\r\n\r\n");
             }
 
             {
@@ -59,7 +68,7 @@ public:
             {
                 response r1(status::ok);
                 response r2(status::ok);
-                BOOST_TEST(r1.string().data() == r2.string().data());
+                BOOST_TEST(r1.buffer().data() == r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() == 0);
             }
@@ -68,9 +77,9 @@ public:
             {
                 response r1(status::not_found);
                 response r2(status::not_found);
-                BOOST_TEST(r1.string().data() != r2.string().data());
-                BOOST_TEST(r1.capacity_in_bytes() >= 0);
-                BOOST_TEST(r2.capacity_in_bytes() >= 0);
+                BOOST_TEST(r1.buffer().data() != r2.buffer().data());
+                BOOST_TEST(r1.capacity_in_bytes() > 0);
+                BOOST_TEST(r2.capacity_in_bytes() > 0);
             }
         }
 
@@ -87,7 +96,7 @@ public:
                 response r1;
                 response r2;
                 BOOST_TEST(
-                    r1.string().data() == r2.string().data());
+                    r1.buffer().data() == r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() == 0);
             }
@@ -101,7 +110,7 @@ public:
                 check(r1, status::ok, 200, "OK", version::http_1_1);
                 check(r2, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(
-                    r1.string().data() == r2.string().data());
+                    r1.buffer().data() == r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() == 0);
             }
@@ -111,7 +120,7 @@ public:
                 check(r1, status::ok, 200, "OK", version::http_1_1);
                 check(r2, status::not_found, 404, "Not Found", version::http_1_0);
                 BOOST_TEST(
-                    r1.string().data() != r2.string().data());
+                    r1.buffer().data() != r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() != 0);
             }
@@ -125,7 +134,7 @@ public:
                 check(r1, status::ok, 200, "OK", version::http_1_1);
                 check(r2, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(
-                    r1.string().data() == r2.string().data());
+                    r1.buffer().data() == r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() == 0);
             }
@@ -135,9 +144,9 @@ public:
                 check(r1, status::not_found, 404, "Not Found", version::http_1_0);
                 check(r2, status::not_found, 404, "Not Found", version::http_1_0);
                 BOOST_TEST(
-                    r1.string().data() != r2.string().data());
-                BOOST_TEST(r1.capacity_in_bytes() >= 0);
-                BOOST_TEST(r2.capacity_in_bytes() >= 0);
+                    r1.buffer().data() != r2.buffer().data());
+                BOOST_TEST(r1.capacity_in_bytes() > 0);
+                BOOST_TEST(r2.capacity_in_bytes() > 0);
             }
         }
 
@@ -158,24 +167,25 @@ public:
             check(r1, status::not_found, 404, "Not Found", version::http_1_0);
             check(r2, status::not_found, 404, "Not Found", version::http_1_0);
             BOOST_TEST(
-                r1.string().data() != r2.string().data());
-            BOOST_TEST(r1.capacity_in_bytes() >= 0);
-            BOOST_TEST(r2.capacity_in_bytes() >= 0);
+                r1.buffer().data() != r2.buffer().data());
+            BOOST_TEST(r1.capacity_in_bytes() > 0);
+            BOOST_TEST(r2.capacity_in_bytes() > 0);
         }
 
         //----------------------------------------
 
         // response(response_view const&)
         {
-            string_view const s =
+            core::string_view const s =
                 "HTTP/1.0 404 Not Found\r\n"
                 "Server: test\r\n"
                 "\r\n";
-            response_view rv = response(s);
+            response r(s);
+            response_view rv = r;
             response res(rv);
             check(res, status::not_found, 404, "Not Found", version::http_1_0);
-            BOOST_TEST_EQ(res.string(), s);
-            BOOST_TEST(res.string().data() != s.data());
+            BOOST_TEST_EQ(res.buffer(), s);
+            BOOST_TEST(res.buffer().data() != s.data());
             BOOST_TEST(res.begin()->id == field::server);
             BOOST_TEST(res.begin()->name == "Server");
             BOOST_TEST(res.begin()->value == "test");
@@ -183,15 +193,16 @@ public:
 
         // operator=(response_view const&)
         {
-            string_view const s =
+            core::string_view const s =
                 "HTTP/1.1 101 Switching Protocols\r\n"
                 "Server: test\r\n"
                 "\r\n";
-            response_view rv = make_response(s);
+            response r(s);
+            response_view rv = r;
             response res(status::not_found);
             res = rv;
-            BOOST_TEST_EQ(res.string(), s);
-            BOOST_TEST(res.string().data() != s.data());
+            BOOST_TEST_EQ(res.buffer(), s);
+            BOOST_TEST(res.buffer().data() != s.data());
             check(res, status::switching_protocols, 101, "Switching Protocols", version::http_1_1);
             BOOST_TEST(res.begin()->id == field::server);
             BOOST_TEST(res.begin()->name == "Server");
@@ -209,8 +220,8 @@ public:
                 BOOST_TEST_EQ(rv.status(), status::ok);
                 BOOST_TEST_EQ(rv.status_int(), 200);
                 BOOST_TEST_EQ(rv.reason(), "OK");
-                BOOST_TEST_EQ(rv.string(), "HTTP/1.1 200 OK\r\n\r\n");
-                BOOST_TEST(rv.string().data() == res.string().data());
+                BOOST_TEST_EQ(rv.buffer(), "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST(rv.buffer().data() == res.buffer().data());
             }
             {
                 response res(status::not_found, version::http_1_0);
@@ -219,8 +230,8 @@ public:
                 BOOST_TEST_EQ(rv.status(), status::not_found);
                 BOOST_TEST_EQ(rv.status_int(), 404);
                 BOOST_TEST_EQ(rv.reason(), "Not Found");
-                BOOST_TEST_EQ(rv.string(), "HTTP/1.0 404 Not Found\r\n\r\n");
-                BOOST_TEST(rv.string().data() == res.string().data());
+                BOOST_TEST_EQ(rv.buffer(), "HTTP/1.0 404 Not Found\r\n\r\n");
+                BOOST_TEST(rv.buffer().data() == res.buffer().data());
             }
         }
     }
@@ -234,7 +245,7 @@ public:
                 response res;
                 BOOST_TEST(res.capacity_in_bytes() == 0);
                 res.clear();
-                BOOST_TEST(res.string() == "HTTP/1.1 200 OK\r\n\r\n");
+                BOOST_TEST(res.buffer() == "HTTP/1.1 200 OK\r\n\r\n");
             }
             {
                 response res(status::not_found, version::http_1_0);
@@ -263,12 +274,13 @@ public:
                 check(res, status::unknown, 199, "Huh", version::http_1_1);
             }
             {
-                string_view s =
+                core::string_view s =
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
                     "\r\n";
-                response_view rv = response(s);
+                response r(s);
+                response_view rv = r;
                 response res(rv);
                 check(res, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(res.size() == 2);
@@ -296,8 +308,5 @@ TEST_SUITE(
     response_test,
     "boost.http_proto.response");
 
-#endif
-
 } // http_proto
 } // boost
-
