@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +10,8 @@
 
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/response_view.hpp>
-#include "detail/copied_strings.hpp"
+#include <boost/http_proto/version.hpp>
+
 #include <utility>
 
 namespace boost {
@@ -69,6 +71,14 @@ operator=(
         std::move(other));
     temp.swap(*this);
     return *this;
+}
+
+response::
+response(
+    http_proto::status sc)
+    : response(
+        sc, http_proto::version::http_1_1)
+{
 }
 
 response::

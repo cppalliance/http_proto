@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,6 +14,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/response_view.hpp>
+#include <boost/http_proto/status.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -89,6 +91,17 @@ public:
     response(
         http_proto::status sc,
         http_proto::version v);
+
+    /** Constructor
+    *
+    * The start-line of the response will contain the standard
+    * text for the supplied status code and the HTTP version
+    * will be defaulted to 1.1.
+    */
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    response(
+        http_proto::status sc);
 
     /** Return a read-only view to the response
     */
