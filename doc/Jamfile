@@ -13,8 +13,10 @@ import boostbook ;
 import os ;
 import ../../../tools/docca/docca.jam ;
 
-path-constant broot : ../../../ ;
+# Is the library part of boost yet or still separate. Set this to "true" or "false".
+local standalonelibrary = "true" ;
 
+path-constant broot : ../../../ ;
 path-constant out : . ;
 
 docca.reference reference.qbk
@@ -76,6 +78,8 @@ install images
 
 explicit images ;
 
+if $(standalonelibrary) = "true" {
+
 install stylesheets
     :
         $(broot)/doc/src/boostbook.css
@@ -94,6 +98,7 @@ install treeimages
     ;
 
 explicit treeimages ;
+}
 
 xml http_proto_doc
     :
@@ -111,31 +116,51 @@ explicit http_proto_doc ;
 #
 #-------------------------------------------------------------------------------
 
-boostbook http_proto
-    :
-        http_proto_doc
-    :
-        <xsl:param>boost.root=../../../..
-        <xsl:param>nav.layout=none
-        <xsl:param>boost.image.src=images/doc-logo.png
-        <xsl:param>boost.image.alt="Boost.HTTP_Proto Logo"
-        <xsl:param>boost.image.w=1050
-        <xsl:param>boost.image.h=80
-        <xsl:param>boost.graphics.root=images/
-        <xsl:param>html.stylesheet=boostbook.css
-        <xsl:param>chapter.autolabel=1
-        <xsl:param>chunk.section.depth=8                # Depth to which sections should be chunked
-        <xsl:param>chunk.first.sections=1               # Chunk the first top-level section?
-        <xsl:param>toc.max.depth=8                      # How many levels should be created for each TOC?
-        <xsl:param>toc.section.depth=8                  # How deep should recursive sections appear in the TOC?
-        #<xsl:param>generate.toc=""
-        <xsl:param>generate.toc="chapter toc,title section nop reference nop part toc"
-        <include>../../../tools/boostbook/dtd
-    :
-        <dependency>stylesheets
-        <dependency>treeimages
-        <dependency>images
-    ;
+if $(standalonelibrary) = "true" {
+    boostbook http_proto
+        :
+            http_proto_doc
+        :
+            <xsl:param>boost.root=../../../..
+            <xsl:param>nav.layout=none
+            <xsl:param>boost.image.src=images/doc-logo.png
+            <xsl:param>boost.image.alt="Boost.HTTP_Proto Logo"
+            <xsl:param>boost.image.w=1050
+            <xsl:param>boost.image.h=80
+            <xsl:param>boost.graphics.root=images/
+            <xsl:param>html.stylesheet=boostbook.css
+            <xsl:param>chapter.autolabel=1
+            <xsl:param>chunk.section.depth=8                # Depth to which sections should be chunked
+            <xsl:param>chunk.first.sections=1               # Chunk the first top-level section?
+            <xsl:param>toc.max.depth=8                      # How many levels should be created for each TOC?
+            <xsl:param>toc.section.depth=8                  # How deep should recursive sections appear in the TOC?
+            #<xsl:param>generate.toc=""
+            <xsl:param>generate.toc="chapter toc,title section nop reference nop part toc"
+            <include>../../../tools/boostbook/dtd
+        :
+            <dependency>stylesheets
+            <dependency>treeimages
+            <dependency>images
+        ;
+}
+else {
+    boostbook http_proto
+        :
+            http_proto_doc
+        :
+            <xsl:param>boost.root=../../../..
+            <xsl:param>chapter.autolabel=1
+            <xsl:param>chunk.section.depth=8                # Depth to which sections should be chunked
+            <xsl:param>chunk.first.sections=1               # Chunk the first top-level section?
+            <xsl:param>toc.max.depth=8                      # How many levels should be created for each TOC?
+            <xsl:param>toc.section.depth=8                  # How deep should recursive sections appear in the TOC?
+            #<xsl:param>generate.toc=""
+            <xsl:param>generate.toc="chapter toc,title section nop reference nop part toc"
+            <include>../../../tools/boostbook/dtd
+        :
+            <dependency>images
+        ;
+}
 
 #-------------------------------------------------------------------------------
 #
