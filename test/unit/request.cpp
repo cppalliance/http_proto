@@ -383,7 +383,7 @@ struct request_test
             }
             {
                 request req(
-                    "POST /x HTTP/1.1\r\n"
+                    "POST /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
                 req.set_method("DELETE");
@@ -392,22 +392,52 @@ struct request_test
                 BOOST_TEST(
                     req.method_text() == "DELETE");
                 BOOST_TEST(req.buffer() ==
-                    "DELETE /x HTTP/1.1\r\n"
+                    "DELETE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
             }
             {
                 request req(
-                    "BOOST /x HTTP/1.1\r\n"
+                    "DELETE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
-                req.set_method("BOOST");
+                req.set_method("PUT");
+                BOOST_TEST(
+                    req.method() == method::put);
+                BOOST_TEST(
+                    req.method_text() == "PUT");
+                BOOST_TEST(req.buffer() ==
+                    "PUT /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+            }
+            {
+                request req(
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+                req.set_method("PUT");
+                BOOST_TEST(
+                    req.method() == method::put);
+                BOOST_TEST(
+                    req.method_text() == "PUT");
+                BOOST_TEST_EQ(req.buffer(),
+                    "PUT /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+            }
+            {
+                request req(
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+                req.set_method("SOMETHINGSUPERLONGHERE");
                 BOOST_TEST(
                     req.method() == method::unknown);
                 BOOST_TEST(
-                    req.method_text() == "BOOST");
+                    req.method_text() == "SOMETHINGSUPERLONGHERE");
                 BOOST_TEST(req.buffer() ==
-                    "BOOST /x HTTP/1.1\r\n"
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
             }
@@ -431,6 +461,48 @@ struct request_test
                 req.set_target("/index.htm");
                 BOOST_TEST(req.buffer() ==
                     "POST /index.htm HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+            }
+            {
+                // shrinks
+                request req(
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+                req.set_target("/abc");
+                BOOST_TEST_EQ(
+                    req.target(), "/abc");
+                BOOST_TEST_EQ(req.buffer(),
+                    "SOMETHINGSUPERLONGHERE /abc HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+            }
+            {
+                // same size
+                request req(
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+                req.set_target("/zyxwvutsrqponmlkjihgfedcba");
+                BOOST_TEST_EQ(
+                    req.target(), "/zyxwvutsrqponmlkjihgfedcba");
+                BOOST_TEST_EQ(req.buffer(),
+                    "SOMETHINGSUPERLONGHERE /zyxwvutsrqponmlkjihgfedcba HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+            }
+            {
+                // grows
+                request req(
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
+                    "User-Agent: boost\r\n"
+                    "\r\n");
+                req.set_target("/abcdefghijklmnopqrstuvwxyzzyxwvutsrqponmlkjihgfedcba");
+                BOOST_TEST_EQ(
+                    req.target(), "/abcdefghijklmnopqrstuvwxyzzyxwvutsrqponmlkjihgfedcba");
+                BOOST_TEST_EQ(req.buffer(),
+                    "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyzzyxwvutsrqponmlkjihgfedcba HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
             }
