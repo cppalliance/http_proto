@@ -27,6 +27,8 @@
 #include <string>
 #include <utility>
 
+#include "align_up.hpp"
+
 namespace boost {
 namespace http_proto {
 namespace detail {
@@ -209,9 +211,7 @@ bytes_needed(
         size = 19;
     static constexpr auto A =
         alignof(header::entry);
-    // round up to alignof(A)
-    return A * (
-        (size + A - 1) / A) +
+    return align_up(size, A) +
             (count * sizeof(
                 header::entry));
 }
