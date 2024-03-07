@@ -274,6 +274,23 @@ public:
                 check(res, status::unknown, 199, "Huh", version::http_1_1);
             }
             {
+                response res;
+                res.set_start_line(199, "Huh", version::http_1_1);
+                check(res, status::unknown, 199, "Huh", version::http_1_1);
+
+                res.set_start_line(199, "Huh", version::http_1_1);
+                check(res, status::unknown, 199, "Huh", version::http_1_1);
+
+                res.set_start_line(199, "ab", version::http_1_1);
+                check(res, status::unknown, 199, "ab", version::http_1_1);
+
+                res.set_start_line(199, "a", version::http_1_1);
+                check(res, status::unknown, 199, "a", version::http_1_1);
+
+                res.set_start_line(199, "abcdefghijklmnopqrstuvwxyz", version::http_1_1);
+                check(res, status::unknown, 199, "abcdefghijklmnopqrstuvwxyz", version::http_1_1);
+            }
+            {
                 core::string_view s =
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
