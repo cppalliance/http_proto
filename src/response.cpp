@@ -14,6 +14,8 @@
 
 #include <utility>
 
+#include "detail/header.hpp"
+
 namespace boost {
 namespace http_proto {
 
@@ -109,7 +111,9 @@ set_impl(
         3 + 1 +
         rs.size() +
         2;
-    auto dest = set_prefix_impl(n);
+
+    detail::prefix_op op(*this, n);
+    auto dest = op.prefix_.data();
 
     h_.version = v;
     vs.copy(dest, vs.size());

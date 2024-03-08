@@ -10,8 +10,11 @@
 
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/request_view.hpp>
-#include "detail/copied_strings.hpp"
+
+#include <cstring>
 #include <utility>
+
+#include "detail/header.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -145,25 +148,25 @@ set_impl(
     core::string_view t,
     http_proto::version v)
 {
-    detail::copied_strings cs(
-        this->buffer());
-    ms = cs.maybe_copy(ms);
-    t = cs.maybe_copy(t);
-
     auto const vs =
         to_string(v);
     auto const n =
+        // method SP
         ms.size() + 1 +
+        // request-target SP
         t.size() + 1 +
+        // HTTP-version CRLF
         vs.size() + 2;
-    auto dest = set_prefix_impl(n);
-    std::memcpy(
+
+    detail::prefix_op op(*this, n);
+    auto dest = op.prefix_.data();
+    std::memmove(
         dest,
         ms.data(),
         ms.size());
     dest += ms.size();
     *dest++ = ' ';
-    std::memcpy(
+    std::memmove(
         dest,
         t.data(),
         t.size());

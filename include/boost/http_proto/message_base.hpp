@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -93,9 +94,6 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     set_keep_alive(bool value);
-
-private:
-    char* set_prefix_impl(std::size_t);
 };
 
 } // http_proto
