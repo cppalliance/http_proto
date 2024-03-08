@@ -32,8 +32,7 @@ struct prefix_op;
 
     @note HTTP field names are case-insensitive.
 */
-class BOOST_SYMBOL_VISIBLE
-    fields_base
+class fields_base
     : public virtual fields_view_base
 {
     detail::header h_;
