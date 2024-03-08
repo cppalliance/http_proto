@@ -18,6 +18,10 @@
 namespace boost {
 namespace http_proto {
 
+namespace detail {
+struct prefix_op;
+} // detail
+
 /** Mixin for modifiable HTTP fields
 
     @par Iterators
@@ -46,6 +50,7 @@ class BOOST_SYMBOL_VISIBLE
     friend class serializer;
     friend class message_base;
     friend struct detail::header;
+    friend struct detail::prefix_op;
 
     BOOST_HTTP_PROTO_DECL
     explicit

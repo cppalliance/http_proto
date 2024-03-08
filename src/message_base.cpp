@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -183,70 +184,6 @@ set_keep_alive(bool value)
         }
         break;
     }
-}
-
-//------------------------------------------------
-
-char*
-message_base::
-set_prefix_impl(
-    std::size_t n)
-{
-    if( n > h_.prefix ||
-        h_.buf == nullptr)
-    {
-        // allocate or grow
-        if( n > h_.prefix &&
-            static_cast<std::size_t>(
-                n - h_.prefix) >
-            static_cast<std::size_t>(
-                max_offset - h_.size))
-            detail::throw_length_error();
-
-        auto n0 = detail::header::bytes_needed(
-            n + h_.size - h_.prefix,
-            h_.count);
-        auto buf = new char[n0];
-        if(h_.buf != nullptr)
-        {
-            std::memcpy(
-                buf + n,
-                h_.buf + h_.prefix,
-                h_.size - h_.prefix);
-            detail::header::table ft(
-                h_.buf + h_.cap);
-            h_.copy_table(buf + n0);
-            delete[] h_.buf;
-        }
-        else
-        {
-            std::memcpy(
-                buf + n,
-                h_.cbuf + h_.prefix,
-                h_.size - h_.prefix);
-        }
-        h_.buf = buf;
-        h_.cbuf = buf;
-        h_.size = static_cast<
-            offset_type>(h_.size +
-                n - h_.prefix);
-        h_.prefix = static_cast<
-            offset_type>(n);
-        h_.cap = n0;
-        return h_.buf;
-    }
-
-    // shrink
-    std::memmove(
-        h_.buf + n,
-        h_.buf + h_.prefix,
-        h_.size - h_.prefix);
-    h_.size = static_cast<
-        offset_type>(h_.size -
-            h_.prefix + n);
-    h_.prefix = static_cast<
-        offset_type>(n);
-    return h_.buf;
 }
 
 } // http_proto
