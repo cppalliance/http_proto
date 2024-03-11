@@ -27,8 +27,7 @@ namespace http_proto {
     This is a mix-in used to add common
     functionality to derived classes.
 */
-class BOOST_SYMBOL_VISIBLE
-    fields_view_base
+class fields_view_base
 {
     detail::header const* ph_;
 

@@ -21,8 +21,7 @@ namespace http_proto {
 
 /** A modifiable container of HTTP fields
 */
-class BOOST_SYMBOL_VISIBLE
-    fields
+class fields final
     : public fields_base
 {
 public:
