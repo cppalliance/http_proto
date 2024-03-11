@@ -7,8 +7,8 @@
 // Official repository: https://github.com/CPPAlliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_SRC_DETAIL_HEADER_HPP
-#define BOOST_HTTP_PROTO_SRC_DETAIL_HEADER_HPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_HEADER_IMPL_HPP
+#define BOOST_HTTP_PROTO_DETAIL_HEADER_IMPL_HPP
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/message_base.hpp>
@@ -45,10 +45,10 @@ struct prefix_op
             static_cast<std::size_t>(n - h.prefix) >
             static_cast<std::size_t>(max_offset - h.size) )
         {
-            detail::throw_length_error();
+            throw_length_error();
         }
 
-        auto n1 = detail::header::bytes_needed(
+        auto n1 = header::bytes_needed(
             n + h.size - h.prefix,
             h.count);
 
@@ -108,4 +108,4 @@ struct prefix_op
 } // http_proto
 } // boost
 
-#endif // BOOST_HTTP_PROTO_SRC_DETAIL_HEADER_HPP
+#endif // BOOST_HTTP_PROTO_DETAIL_HEADER_IMPL_HPP

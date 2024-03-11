@@ -14,7 +14,7 @@
 
 #include <utility>
 
-#include "detail/header.hpp"
+#include "detail/header_impl.hpp"
 
 namespace boost {
 namespace http_proto {
