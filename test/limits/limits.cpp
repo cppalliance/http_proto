@@ -69,12 +69,12 @@ public:
             {
                 fields f;
                 BOOST_TEST_NO_THROW(f.reserve_bytes(
-                    fields::max_capacity_in_bytes()));
+                    f.max_capacity_in_bytes()));
             }
             {
                 fields f;
                 BOOST_TEST_THROWS(f.reserve_bytes(
-                    fields::max_capacity_in_bytes() + 1),
+                    f.max_capacity_in_bytes() + 1),
                     std::length_error);
             }
         }

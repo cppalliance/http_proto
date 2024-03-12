@@ -30,6 +30,7 @@
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/token_rule.hpp>
 
+#include "detail/align_up.hpp"
 #include "detail/move_chars.hpp"
 #include "rfc/detail/rules.hpp"
 
@@ -173,9 +174,8 @@ growth(
     std::size_t n0,
     std::size_t m) noexcept
 {
-    auto const E = alignof(entry);
     auto const m1 =
-        E * ((m + E - 1) / E);
+        detail::align_up(m, alignof(entry));
     BOOST_ASSERT(m1 >= m);
     if(n0 == 0)
     {
@@ -193,7 +193,7 @@ op_t::
 reserve(
     std::size_t bytes)
 {
-    if(bytes > max_capacity_in_bytes())
+    if(bytes > self_.max_capacity_in_bytes())
     {
         // max capacity exceeded
         detail::throw_length_error();
@@ -277,8 +277,29 @@ move_chars(
 fields_base::
 fields_base(
     detail::kind k) noexcept
+    : fields_base(k, 0, max_capacity)
+{
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    std::size_t initial_size,
+    std::size_t max_size)
     : fields_view_base(&h_)
     , h_(k)
+{
+    if( initial_size > 0 )
+        reserve_bytes(initial_size);
+    h_.max_cap = max_size;
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    std::size_t initial_size)
+    : fields_base(
+        k, initial_size, initial_size)
 {
 }
 

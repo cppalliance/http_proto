@@ -35,6 +35,15 @@ fields(
 
 fields::
 fields(
+    std::size_t initial_size)
+    : fields_view_base(&this->fields_base::h_)
+    , fields_base(
+        detail::kind::fields, initial_size)
+{
+}
+
+fields::
+fields(
     fields&& other) noexcept
     : fields_view_base(
         &this->fields_base::h_)

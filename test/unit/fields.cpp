@@ -295,10 +295,24 @@ struct fields_test
     }
 
     void
+    testInitialSize()
+    {
+        {
+            std::size_t initial_size = 4096;
+            fields f(initial_size);
+            BOOST_TEST_EQ(
+                f.capacity_in_bytes(), 4096);
+            BOOST_TEST_EQ(
+                f.max_capacity_in_bytes(), f.capacity_in_bytes());
+        }
+    }
+
+    void
     run()
     {
         testSpecial();
         testObservers();
+        testInitialSize();
     }
 };
 

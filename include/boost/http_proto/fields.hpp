@@ -50,6 +50,13 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
+    explicit
+    fields(
+        std::size_t initial_size);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
     fields(fields&& other) noexcept;
 
     /** Constructor

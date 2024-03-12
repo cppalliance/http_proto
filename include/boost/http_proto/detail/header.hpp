@@ -108,6 +108,7 @@ struct header
     char const* cbuf = nullptr;
     char* buf = nullptr;
     std::size_t cap = 0;
+    std::size_t max_cap = -1;
 
     offset_type size = 0;
     offset_type count = 0;

@@ -20,6 +20,7 @@
 #include "test_helpers.hpp"
 #include "test_suite.hpp"
 
+#include <stdexcept>
 #include <vector>
 
 namespace boost {
@@ -128,6 +129,22 @@ struct fields_base_test
             }
 
             {
+                fields f("\r\n");
+                auto const n =
+                    f.capacity_in_bytes();
+                BOOST_TEST_GT(n, 0);
+                BOOST_TEST_EQ(
+                    f.buffer(),
+                    "\r\n");
+            }
+
+            {
+                BOOST_TEST_THROWS(
+                    fields("HTTP/1.1"),
+                    std::invalid_argument);
+            }
+
+            {
                 fields f(
                     "digest: ffce\r\n"
                     "type: 3\r\n"
@@ -146,6 +163,28 @@ struct fields_base_test
             {
                 request req(
                     "POST / HTTP/1.1\r\n"
+                    "\r\n");
+                auto const n =
+                    req.capacity_in_bytes();
+                BOOST_TEST_EQ(
+                    req.buffer(),
+                    "POST / HTTP/1.1\r\n\r\n");
+                BOOST_TEST_EQ(
+                    req.capacity_in_bytes(), n);
+            }
+
+            {
+                BOOST_TEST_THROWS(
+                    request(
+                        "POST / HTTP/1.1"
+                        "\r\n"),
+                    std::invalid_argument
+                );
+            }
+
+            {
+                request req(
+                    "POST / HTTP/1.1\r\n"
                     "User-Agent: test\r\n"
                     "Server: test\r\n"
                     "Content-Length: 0\r\n"
@@ -159,6 +198,27 @@ struct fields_base_test
                     "GET / HTTP/1.1\r\n\r\n");
                 BOOST_TEST_EQ(
                     req.capacity_in_bytes(), n);
+            }
+
+            {
+                response res(
+                    "HTTP/1.1 404 Not Found\r\n"
+                    "\r\n");
+                auto const n =
+                    res.capacity_in_bytes();
+                BOOST_TEST_EQ(
+                    res.buffer(),
+                    "HTTP/1.1 404 Not Found\r\n\r\n");
+                BOOST_TEST_EQ(
+                    res.capacity_in_bytes(), n);
+            }
+
+            {
+                BOOST_TEST_THROWS(
+                    response(
+                        "HTTP/1.1 404 Not Found"
+                        "\r\n"),
+                    std::invalid_argument);
             }
 
             {
