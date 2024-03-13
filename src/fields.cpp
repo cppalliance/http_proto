@@ -48,10 +48,10 @@ fields(
 fields::
 fields(
     std::size_t initial_size,
-    std::size_t max_capacity)
+    std::size_t max_size)
     : fields_view_base(&this->fields_base::h_)
     , fields_base(
-        detail::kind::fields, initial_size, max_capacity)
+        detail::kind::fields, initial_size, max_size)
 {
 }
 
