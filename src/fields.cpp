@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,8 +9,11 @@
 //
 
 #include <boost/http_proto/fields.hpp>
-#include <boost/http_proto/fields_view.hpp>
-#include <string>
+#include <boost/http_proto/fields_base.hpp>       // for fields_base
+#include <boost/http_proto/fields_view.hpp>       // for fields_view
+#include <boost/http_proto/fields_view_base.hpp>  // for fields_view_base
+#include <boost/core/detail/string_view.hpp>      // for string_view
+#include <utility>                                // for move
 
 namespace boost {
 namespace http_proto {
@@ -36,9 +40,18 @@ fields(
 fields::
 fields(
     std::size_t initial_size)
+    : fields(
+        initial_size, initial_size)
+{
+}
+
+fields::
+fields(
+    std::size_t initial_size,
+    std::size_t max_capacity)
     : fields_view_base(&this->fields_base::h_)
     , fields_base(
-        detail::kind::fields, initial_size)
+        detail::kind::fields, initial_size, max_capacity)
 {
 }
 

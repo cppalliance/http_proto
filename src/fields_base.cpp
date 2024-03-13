@@ -294,15 +294,6 @@ fields_base(
     h_.max_cap = max_size;
 }
 
-fields_base::
-fields_base(
-    detail::kind k,
-    std::size_t initial_size)
-    : fields_base(
-        k, initial_size, initial_size)
-{
-}
-
 // copy s and parse it
 fields_base::
 fields_base(

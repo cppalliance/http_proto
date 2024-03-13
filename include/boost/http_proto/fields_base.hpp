@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -60,11 +61,6 @@ class fields_base
         detail::kind,
         std::size_t initial_size,
         std::size_t max_size);
-
-    BOOST_HTTP_PROTO_DECL
-    fields_base(
-        detail::kind,
-        std::size_t initial_size);
 
     BOOST_HTTP_PROTO_DECL
     explicit
