@@ -777,6 +777,11 @@ jobs:
           cat ${toolchain}
           echo "toolchain=${toolchain}" >> $GITHUB_OUTPUT
 
+      - name: ASLR Fix
+        if: ${{ startsWith(matrix.runs-on, 'ubuntu' )}}
+        run: |
+          sysctl vm.mmap_rnd_bits=28
+
       - name: Patch Boost
         id: patch
         shell: bash
