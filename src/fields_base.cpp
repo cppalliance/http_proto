@@ -277,8 +277,19 @@ move_chars(
 fields_base::
 fields_base(
     detail::kind k) noexcept
-    : fields_base(k, 0, max_capacity)
+    : fields_base(k, 0)
 {
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    std::size_t initial_size)
+    : fields_view_base(&h_)
+    , h_(k)
+{
+    if( initial_size > 0 )
+        reserve_bytes(initial_size);
 }
 
 fields_base::
@@ -286,11 +297,8 @@ fields_base(
     detail::kind k,
     std::size_t initial_size,
     std::size_t max_size)
-    : fields_view_base(&h_)
-    , h_(k)
+    : fields_base(k, initial_size)
 {
-    if( initial_size > 0 )
-        reserve_bytes(initial_size);
     h_.max_cap = max_size;
 }
 

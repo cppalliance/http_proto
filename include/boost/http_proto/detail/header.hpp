@@ -62,6 +62,21 @@ struct header
             std::size_t dv) const noexcept;
     };
 
+    /** Returns the largest permissible capacity in bytes
+    */
+    static
+    constexpr
+    std::size_t
+    max_capacity_in_bytes() noexcept
+    {
+        using T = entry;
+        return alignof(T) *
+            (((max_offset - 2 + sizeof(T) * (
+                    max_offset / 4)) +
+                alignof(T) - 1) /
+            alignof(T));
+    }
+
     struct table
     {
         explicit
@@ -108,7 +123,7 @@ struct header
     char const* cbuf = nullptr;
     char* buf = nullptr;
     std::size_t cap = 0;
-    std::size_t max_cap = 0;
+    std::size_t max_cap = max_capacity_in_bytes();
 
     offset_type size = 0;
     offset_type count = 0;

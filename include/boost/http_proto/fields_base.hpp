@@ -38,10 +38,6 @@ class fields_base
 {
     detail::header h_;
 
-    constexpr
-    static
-    std::size_t const max_capacity = 16 * 4096;
-
     class op_t;
     using entry =
         detail::header::entry;
@@ -55,6 +51,11 @@ class fields_base
     friend class message_base;
     friend struct detail::header;
     friend struct detail::prefix_op;
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        std::size_t initial_size);
 
     BOOST_HTTP_PROTO_DECL
     fields_base(
