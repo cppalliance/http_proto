@@ -137,6 +137,7 @@ swap(header& h) noexcept
     std::swap(cbuf, h.cbuf);
     std::swap(buf, h.buf);
     std::swap(cap, h.cap);
+    std::swap(max_cap, h.max_cap);
     std::swap(size, h.size);
     std::swap(count, h.count);
     std::swap(prefix, h.prefix);

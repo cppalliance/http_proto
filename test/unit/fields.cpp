@@ -338,6 +338,34 @@ struct fields_test
             fields f(initial_size, max_capacity);
             check(f, initial_size, max_capacity);
         }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = initial_size;
+
+            fields f(initial_size);
+            check(f, initial_size, max_capacity);
+
+            fields f2(2 * initial_size);
+            check(f2, 2 * initial_size, 2 * initial_size);
+
+            f = f2;
+            check(f, initial_size, 2 * initial_size);
+        }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = initial_size;
+
+            fields f(initial_size);
+            check(f, initial_size, max_capacity);
+
+            fields f2(2 * initial_size);
+            check(f2, 2 * initial_size, 2 * initial_size);
+
+            f = std::move(f2);
+            check(f, 2 * initial_size, 2 * initial_size);
+        }
     }
 
     void
