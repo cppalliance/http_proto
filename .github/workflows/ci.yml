@@ -780,8 +780,8 @@ jobs:
       - name: ASLR Fix
         if: ${{ startsWith(matrix.runs-on, 'ubuntu' )}}
         run: |
-          sudo sysctl vm.mmap_rnd_bits=28
-
+          echo "vm.mmap_rnd_bits=28" | tee -a /etc/sysctl.conf
+          sysctl --system
 
       - name: Patch Boost
         id: patch
