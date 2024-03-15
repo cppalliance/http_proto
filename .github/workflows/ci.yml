@@ -707,7 +707,9 @@ jobs:
 
     name: ${{ matrix.name }}
     runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)[matrix.runs-on] }}
-    container: ${{ matrix.container }}
+    container:
+      image: ${{ matrix.container }}
+      options: --privileged
     timeout-minutes: 120
 
     steps:
@@ -780,8 +782,7 @@ jobs:
       - name: ASLR Fix
         if: ${{ startsWith(matrix.runs-on, 'ubuntu' )}}
         run: |
-          echo "vm.mmap_rnd_bits=28" | tee -a /etc/sysctl.conf
-          sysctl --system
+          sysctl vm.mmap_rnd_bits=28
 
       - name: Patch Boost
         id: patch
