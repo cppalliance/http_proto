@@ -299,7 +299,8 @@ fields_base(
     std::size_t max_size)
     : fields_base(k, initial_size)
 {
-    h_.max_cap = max_size;
+    if( max_size > 0 )
+        h_.max_cap = max_size;
 }
 
 // copy s and parse it
