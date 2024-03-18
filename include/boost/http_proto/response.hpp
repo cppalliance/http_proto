@@ -39,6 +39,20 @@ public:
         core::string_view s);
 
     /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    response(
+        std::size_t initial_size);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    response(
+        std::size_t initial_size,
+        std::size_t max_capacity);
+
+    /** Constructor
 
         The moved-from object will be
         left in the default-constructed

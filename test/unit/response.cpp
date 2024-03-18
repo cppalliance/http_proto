@@ -313,11 +313,114 @@ public:
         }
     }
 
+void
+    testInitialSize()
+    {
+        auto check = [](
+            message_base& f,
+            std::size_t initial_size,
+            std::size_t max_capacity)
+        {
+            auto const old = f.buffer().data();
+            f.append(field::host, "www.google.com");
+            f.append(field::connection, "close");
+            f.insert(
+                f.find(field::host),
+                field::content_length, "1234");
+
+            BOOST_TEST_EQ(
+                f.buffer().data(), old);
+            BOOST_TEST_EQ(
+                f.capacity_in_bytes(), initial_size);
+            BOOST_TEST_EQ(
+                f.max_capacity_in_bytes(), max_capacity);
+            BOOST_TEST_THROWS(
+                f.reserve_bytes(max_capacity + 1),
+                std::length_error);
+        };
+
+        {
+            std::size_t initial_size = 0;
+
+            response f(initial_size);
+            BOOST_TEST_EQ(
+                f.capacity_in_bytes(), 0);
+
+            auto const old = f.buffer().data();
+            f.append(field::host, "www.google.com");
+            f.append(field::connection, "close");
+            f.insert(
+                f.find(field::host),
+                field::content_length, "1234");
+
+            BOOST_TEST_NE(
+                f.buffer().data(), old);
+            BOOST_TEST_GT(
+                f.capacity_in_bytes(), 0);
+            BOOST_TEST_GE(
+                f.max_capacity_in_bytes(), f.capacity_in_bytes());
+        }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = initial_size;
+
+            response f(initial_size);
+            check(f, initial_size, max_capacity);
+        }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = 8192;
+
+            response f(initial_size, max_capacity);
+            check(f, initial_size, max_capacity);
+        }
+
+        {
+            std::size_t initial_size = 4096;
+
+            response f(initial_size);
+            response f2(2 * initial_size);
+            check(f, initial_size, initial_size);
+
+            f = f2;
+            check(f, initial_size, 2 * initial_size);
+            check(f2, 2 * initial_size, 2 * initial_size);
+        }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = 8192;
+
+            response f(initial_size, max_capacity);
+            response f2(2 * initial_size, 2 * max_capacity);
+            check(f, initial_size, max_capacity);
+
+            f = f2;
+            check(f, initial_size, 2 * max_capacity);
+            check(f2, 2 * initial_size, 2 * max_capacity);
+        }
+
+        {
+            std::size_t initial_size = 4096;
+            std::size_t max_capacity = 8192;
+
+            response f(initial_size, max_capacity);
+            response f2(2 * initial_size, 2 * max_capacity);
+            check(f, initial_size, max_capacity);
+
+            f = std::move(f2);
+            check(f, 2 * initial_size, 2 * max_capacity);
+        }
+    }
+
     void
     run()
     {
         testSpecial();
         testModifiers();
+        testInitialSize();
     }
 };
 
