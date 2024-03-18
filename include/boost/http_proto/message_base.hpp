@@ -21,8 +21,7 @@ namespace http_proto {
 
 /** Provides message metadata for requests and responses
 */
-class BOOST_SYMBOL_VISIBLE
-    message_base
+class message_base
     : public fields_base
     , public message_view_base
 {
@@ -35,6 +34,17 @@ class BOOST_SYMBOL_VISIBLE
         : fields_view_base(
             &this->fields_base::h_)
         , fields_base(k)
+    {
+    }
+
+    message_base(
+        detail::kind k,
+        std::size_t initial_size,
+        std::size_t max_capacity)
+        : fields_view_base(
+            &this->fields_base::h_)
+        , fields_base(
+            k, initial_size, max_capacity)
     {
     }
 

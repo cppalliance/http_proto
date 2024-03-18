@@ -19,8 +19,7 @@ namespace http_proto {
 
 /** Container for HTTP requests
 */
-class BOOST_SYMBOL_VISIBLE
-    request
+class request final
     : public message_base
 {
 public:
@@ -35,6 +34,20 @@ public:
     explicit
     request(
         core::string_view s);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    request(
+        std::size_t initial_size);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    request(
+        std::size_t initial_size,
+        std::size_t max_capacity);
 
     /** Constructor
 
