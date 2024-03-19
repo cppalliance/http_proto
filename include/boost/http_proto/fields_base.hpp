@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -32,8 +33,7 @@ struct prefix_op;
 
     @note HTTP field names are case-insensitive.
 */
-class BOOST_SYMBOL_VISIBLE
-    fields_base
+class fields_base
     : public virtual fields_view_base
 {
     detail::header h_;
@@ -51,6 +51,17 @@ class BOOST_SYMBOL_VISIBLE
     friend class message_base;
     friend struct detail::header;
     friend struct detail::prefix_op;
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        std::size_t size);
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        std::size_t size,
+        std::size_t max_size);
 
     BOOST_HTTP_PROTO_DECL
     explicit
@@ -78,17 +89,10 @@ public:
 
     /** Returns the largest permissible capacity in bytes
     */
-    static
-    constexpr
     std::size_t
     max_capacity_in_bytes() noexcept
     {
-        using T = detail::header::entry;
-        return alignof(T) *
-            (((max_offset - 2 + sizeof(T) * (
-                    max_offset / 4)) +
-                alignof(T) - 1) /
-            alignof(T));
+        return h_.max_cap;
     }
 
     /** Returns the total number of bytes allocated by the container

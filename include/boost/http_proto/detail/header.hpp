@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_HEADER_HPP
 #define BOOST_HTTP_PROTO_DETAIL_HEADER_HPP
 
+#include <boost/http_proto/detail/align_up.hpp>
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
@@ -62,6 +63,42 @@ struct header
             std::size_t dv) const noexcept;
     };
 
+    // HTTP-message = start-line CRLF *( field-line CRLF ) CRLF
+    // start-line   = request-line / status-line
+    // status-line  = HTTP-version SP status-code SP [ reason-phrase ]
+    // status-code  = 3DIGIT
+    // HTTP-name    = %x48.54.54.50 ; HTTP
+    // HTTP-version = HTTP-name "/" DIGIT "." DIGIT
+    //
+    //     => "HTTP/1.1 111 \r\n" + trailing "\r\n"
+    static
+    constexpr
+    std::size_t const min_status_line = 17;
+
+    // "X:\r\n"
+    static
+    constexpr
+    std::size_t const min_field_line = 4;
+
+    static
+    constexpr
+    std::size_t const max_field_lines =
+        (max_offset - min_status_line) / min_field_line;
+
+    /** Returns the largest permissible capacity in bytes
+    */
+    static
+    constexpr
+    std::size_t
+    max_capacity_in_bytes() noexcept
+    {
+        // the entire serialized contents of the header
+        // must fit entirely in max_offset
+        return align_up(
+            (max_offset + (max_field_lines * sizeof(entry))),
+            alignof(entry));
+    }
+
     struct table
     {
         explicit
@@ -108,6 +145,7 @@ struct header
     char const* cbuf = nullptr;
     char* buf = nullptr;
     std::size_t cap = 0;
+    std::size_t max_cap = max_capacity_in_bytes();
 
     offset_type size = 0;
     offset_type count = 0;
