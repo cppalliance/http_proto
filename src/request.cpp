@@ -36,7 +36,28 @@ request(
     , message_base(
         detail::kind::request, s)
 {
+}
 
+request::
+request(
+    std::size_t storage_size)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
+        detail::kind::request, storage_size)
+{
+}
+
+request::
+request(
+    std::size_t storage_size,
+    std::size_t max_storage_size)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
+        detail::kind::request,
+        storage_size, max_storage_size)
+{
 }
 
 request::

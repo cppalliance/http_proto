@@ -15,6 +15,7 @@
 
 #include <utility>
 
+#include "boost/http_proto/message_base.hpp"
 #include "test_suite.hpp"
 
 namespace boost {
@@ -666,6 +667,145 @@ struct request_test
     }
 
     void
+    testInitialSize()
+    {
+        auto check_default =[](request& f)
+        {
+            BOOST_TEST_EQ(
+                f.capacity_in_bytes(), 0);
+
+            auto const old = f.buffer().data();
+            f.append(field::host, "www.google.com");
+            f.append(field::connection, "close");
+            f.insert(
+                f.find(field::host),
+                field::content_length, "1234");
+
+            BOOST_TEST_NE(
+                f.buffer().data(), old);
+            // implies that the default capacity is larger than whatever is
+            // required for these simple operations
+            BOOST_TEST_GT(
+                f.capacity_in_bytes(), 0);
+            BOOST_TEST_GE(
+                f.max_capacity_in_bytes(), f.capacity_in_bytes());
+        };
+
+        auto check = [](
+            request& f,
+            std::size_t size,
+            std::size_t max_size)
+        {
+            auto const old = f.buffer().data();
+            f.append(field::host, "www.google.com");
+            f.append(field::connection, "close");
+            f.insert(
+                f.find(field::host),
+                field::content_length, "1234");
+
+            BOOST_TEST_EQ(
+                f.buffer().data(), old);
+            BOOST_TEST_EQ(
+                f.capacity_in_bytes(), size);
+            BOOST_TEST_EQ(
+                f.max_capacity_in_bytes(), max_size);
+            BOOST_TEST_THROWS(
+                f.reserve_bytes(max_size + 1),
+                std::length_error);
+        };
+
+        {
+            request f;
+            check_default(f);
+        }
+
+        {
+            request f(0);
+            check_default(f);
+        }
+
+        {
+            request f(0, 0);
+            BOOST_TEST_THROWS(
+                f.append(field::host, "www.google.com"),
+                std::length_error);
+            BOOST_TEST_EQ(
+                f.max_capacity_in_bytes(), 0);
+        }
+
+        {
+            BOOST_TEST_THROWS(
+                request(0, ~std::size_t{0}),
+                std::length_error);
+
+            BOOST_TEST_THROWS(
+                request(1024, ~std::size_t{0}),
+                std::length_error);
+        }
+
+        {
+            std::size_t init = 4096;
+            std::size_t cap = init;
+
+            request f(init);
+            check(f, init, cap);
+        }
+
+        {
+            std::size_t init = 4096;
+            std::size_t cap = 8192;
+
+            request f(init, cap);
+            check(f, init, cap);
+        }
+
+        {
+            std::size_t init = 4096;
+
+            request f(init);
+            request f2(2 * init);
+            check(f, init, init);
+
+            f = f2;
+            check(f, init, 2 * init);
+            check(f2, 2 * init, 2 * init);
+        }
+
+        {
+            std::size_t init = 4096;
+            std::size_t cap = 8192;
+
+            request f(init, cap);
+            request f2(2 * init, 2 * cap);
+            check(f, init, cap);
+
+            f = f2;
+            check(f, init, 2 * cap);
+            check(f2, 2 * init, 2 * cap);
+        }
+
+        {
+            std::size_t init = 4096;
+            std::size_t cap = 8192;
+
+            request f(init, cap);
+            request f2(2 * init, 2 * cap);
+            check(f, init, cap);
+
+            f = std::move(f2);
+            check(f, 2 * init, 2 * cap);
+        }
+
+        {
+            BOOST_TEST_THROWS(
+                request(1024, 0), std::length_error);
+
+            BOOST_TEST_THROWS(
+                request(1024, 512), std::length_error);
+        }
+    }
+
+    void
     run()
     {
         testHelpers();
@@ -674,6 +814,7 @@ struct request_test
         testObservers();
         testModifiers();
         testExpect();
+        testInitialSize();
     }
 };
 

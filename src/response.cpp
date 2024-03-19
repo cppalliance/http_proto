@@ -40,6 +40,28 @@ response(
 
 response::
 response(
+    std::size_t storage_size)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
+        detail::kind::response, storage_size)
+{
+}
+
+response::
+response(
+    std::size_t storage_size,
+    std::size_t max_storage_size)
+    : fields_view_base(
+        &this->fields_base::h_)
+    , message_base(
+        detail::kind::response,
+        storage_size, max_storage_size)
+{
+}
+
+response::
+response(
     response&& other) noexcept
     : response()
 {
