@@ -13,6 +13,7 @@
 
 #include "test_suite.hpp"
 
+#include <stdexcept>
 #include <string>
 
 // These ensure that limits is compiled correctly
@@ -63,18 +64,19 @@ public:
             }
             {
                 fields f;
-                BOOST_TEST_NO_THROW(
-                    f.reserve_bytes(max_offset + 1));
+                BOOST_TEST_NO_THROW(f.reserve_bytes(
+                    f.max_capacity_in_bytes()));
             }
             {
                 fields f;
-                BOOST_TEST_NO_THROW(f.reserve_bytes(
-                    fields::max_capacity_in_bytes()));
+                BOOST_TEST_THROWS(
+                    f.reserve_bytes(max_offset + 1),
+                    std::length_error);
             }
             {
                 fields f;
                 BOOST_TEST_THROWS(f.reserve_bytes(
-                    fields::max_capacity_in_bytes() + 1),
+                    f.max_capacity_in_bytes() + 1),
                     std::length_error);
             }
         }

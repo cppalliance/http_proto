@@ -15,8 +15,10 @@
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 
+#include <boost/http_proto/detail/align_up.hpp>
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/detail/header.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
@@ -173,9 +175,8 @@ growth(
     std::size_t n0,
     std::size_t m) noexcept
 {
-    auto const E = alignof(entry);
     auto const m1 =
-        E * ((m + E - 1) / E);
+        detail::align_up(m, alignof(entry));
     BOOST_ASSERT(m1 >= m);
     if(n0 == 0)
     {
@@ -193,7 +194,7 @@ op_t::
 reserve(
     std::size_t bytes)
 {
-    if(bytes > max_capacity_in_bytes())
+    if(bytes > self_.max_capacity_in_bytes())
     {
         // max capacity exceeded
         detail::throw_length_error();
@@ -277,9 +278,45 @@ move_chars(
 fields_base::
 fields_base(
     detail::kind k) noexcept
+    : fields_base(k, 0)
+{
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    std::size_t storage_size)
     : fields_view_base(&h_)
     , h_(k)
 {
+    if( storage_size > 0 )
+    {
+        h_.max_cap = detail::align_up(
+            storage_size, alignof(detail::header::entry));
+        reserve_bytes(storage_size);
+    }
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    std::size_t storage_size,
+    std::size_t max_storage_size)
+    : fields_view_base(&h_)
+    , h_(k)
+{
+    if( storage_size > max_storage_size )
+        detail::throw_length_error();
+
+    if( max_storage_size > h_.max_capacity_in_bytes() )
+        detail::throw_length_error();
+
+    h_.max_cap = detail::align_up(
+        max_storage_size, alignof(detail::header::entry));
+    if( storage_size > 0 )
+    {
+        reserve_bytes(storage_size);
+    }
 }
 
 // copy s and parse it
