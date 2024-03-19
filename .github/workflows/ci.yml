@@ -707,7 +707,9 @@ jobs:
 
     name: ${{ matrix.name }}
     runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)[matrix.runs-on] }}
-    container: ${{ matrix.container }}
+    container:
+      image: ${{ matrix.container }}
+      options: --privileged
     timeout-minutes: 120
 
     steps:
@@ -776,6 +778,11 @@ jobs:
           toolchain=$(echo "$GITHUB_WORKSPACE/vcpkg-root/scripts/buildsystems/vcpkg.cmake" | sed 's/\/d\//D:\//g' )
           cat ${toolchain}
           echo "toolchain=${toolchain}" >> $GITHUB_OUTPUT
+
+      - name: ASLR Fix
+        if: ${{ startsWith(matrix.runs-on, 'ubuntu' )}}
+        run: |
+          sysctl vm.mmap_rnd_bits=28
 
       - name: Patch Boost
         id: patch
