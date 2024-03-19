@@ -39,7 +39,6 @@
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/sink.hpp>
-#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/string_body.hpp>
 #include <boost/http_proto/version.hpp>

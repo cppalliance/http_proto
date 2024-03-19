@@ -50,7 +50,6 @@
           <member><link linkend="http_proto.ref.boost__http_proto__serializer">serializer</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__service">service</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__sink">sink</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__source">source</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__string_body">string_body</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Functions</bridgehead>
@@ -72,7 +71,6 @@
         <bridgehead renderas="sect3">Type Traits</bridgehead>
         <simplelist type="vert" columns="1">
           <member><link linkend="http_proto.ref.boost__http_proto__is_sink">is_sink</link></member>
-          <member><link linkend="http_proto.ref.boost__http_proto__is_source">is_source</link></member>
           <member><link linkend="http_proto.ref.boost__http_proto__is_filter">is_filter</link></member>
         </simplelist>
         <bridgehead renderas="sect3">Constants</bridgehead>
@@ -96,7 +94,6 @@
         <bridgehead renderas="sect3">Concepts</bridgehead>
         <simplelist type="vert" columns="1">
           <member><link linkend="http_proto.concepts.sink">Sink</link></member>
-          <member><link linkend="http_proto.concepts.source">Source</link></member>
           <member><link linkend="http_proto.concepts.filter">Filter</link></member>
         </simplelist>
       </entry>

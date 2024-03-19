@@ -31,7 +31,7 @@ namespace http_proto {
 
 struct serializer_test
 {
-    struct test_source : source
+    struct test_source : serializer::source
     {
         test_source(core::string_view s)
             : s_(s)

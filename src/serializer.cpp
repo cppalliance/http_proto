@@ -14,7 +14,6 @@
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <stddef.h>
 
 namespace boost {
 namespace http_proto {
@@ -517,6 +516,49 @@ start_stream(
     more_ = true;
 
     return stream{*this};
+}
+
+//------------------------------------------------
+
+auto
+serializer::
+source::
+results::
+operator+=(
+    results const& rv) noexcept ->
+        results&
+{
+    BOOST_ASSERT(! ec.failed());
+    BOOST_ASSERT(! finished);
+    ec = rv.ec;
+    bytes += rv.bytes;
+    finished = rv.finished;
+    return *this;
+}
+
+auto
+serializer::
+source::
+on_read(
+    buffers::mutable_buffer_span bs) ->
+        results
+{
+    results rv;
+    auto it = bs.begin();
+    auto const end_ = bs.end();
+    if(it == end_)
+        return rv;
+    do
+    {
+        buffers::mutable_buffer b(*it++);
+        rv += on_read(b);
+        if(rv.ec.failed())
+            return rv;
+        if(rv.finished)
+            break;
+    }
+    while(it != end_);
+    return rv;
 }
 
 //------------------------------------------------

@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/http_proto/source.hpp>
+#include <boost/http_proto/serializer.hpp>
 #include <cstdint>
 
 namespace boost {
@@ -20,7 +20,7 @@ namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
     file_body
-    : public source
+    : public serializer::source
 {
     file f_;
     std::uint64_t n_;
@@ -44,6 +44,7 @@ public:
         std::uint64_t size =
             std::uint64_t(-1)) noexcept;
 
+private:
     BOOST_HTTP_PROTO_DECL
     results
     on_read(

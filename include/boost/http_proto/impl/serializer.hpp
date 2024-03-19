@@ -12,9 +12,6 @@
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/range.hpp>
-#include <iterator>
-#include <new>
-#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -121,6 +118,44 @@ make_array(std::size_t n) ->
         ws_.push_array(n,
         buffers::const_buffer{}),
         n };
+}
+
+//------------------------------------------------
+
+template<class T>
+auto
+serializer::
+source::
+read_impl(
+    T const& bs) ->
+        results
+{
+    results rv;
+    constexpr int SmallArraySize = 16;
+    buffers::mutable_buffer tmp[SmallArraySize];
+    auto const tmp_end =
+        tmp + SmallArraySize;
+    auto it = buffers::begin(bs);
+    auto const end_ = buffers::end(bs);
+    while(it != end_)
+    {
+        auto p = tmp;
+        do
+        {
+            *p++ = *it++;
+        }
+        while(
+            p != tmp_end &&
+            it != end_);
+        rv += on_read(
+            buffers::mutable_buffer_span(
+                tmp, p - tmp));
+        if(rv.ec.failed())
+            return rv;
+        if(rv.finished)
+            break;
+    }
+    return rv;
 }
 
 } // http_proto

@@ -54,9 +54,9 @@ local SOURCES =
     response_parser.cpp
     response_view.cpp
     sandbox.cpp
+    serializer_source.cpp
     serializer.cpp
     sink.cpp
-    source.cpp
     status.cpp
     string_body.cpp
     test_helpers.cpp

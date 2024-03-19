@@ -8,16 +8,16 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/source.hpp>
+#include <boost/http_proto/serializer.hpp>
 
 #include "test_helpers.hpp"
 
 namespace boost {
 namespace http_proto {
 
-struct source_test
+struct serializer_source_test
 {
-    struct test_source : source
+    struct test_source : serializer::source
     {
         buffers::const_buffer cb_;
         std::size_t fail_;
@@ -116,8 +116,8 @@ struct source_test
 };
 
 TEST_SUITE(
-    source_test,
-    "boost.http_proto.source");
+    serializer_source_test,
+    "boost.http_proto.serializer.source");
 
 } // http_proto
 } // boost
