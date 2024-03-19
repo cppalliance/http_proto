@@ -754,7 +754,7 @@ jobs:
 
       - name: Install zlib (Windows)
         uses: alandefreitas/cpp-actions/package-install@v1.8.2
-        if: ${{ startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') }}
+        if: ${{ startsWith(matrix.runs-on, 'windows') }}
         id: zlib-install
         with:
           vcpkg: zlib
@@ -764,7 +764,7 @@ jobs:
       - name: Patch user-config.jam (Windows)
         id: patch-user-config
         shell: bash
-        if: ${{ startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') }}
+        if: ${{ startsWith(matrix.runs-on, 'windows') }}
         run: |
           set -xe
           home=$(pwd)
@@ -772,7 +772,7 @@ jobs:
           triplet=${{ matrix.x86 && 'x86-windows' || 'x64-windows' }}
           addrmdl=${{ matrix.x86 && '32' || '64' }}
 
-          echo "using zlib : : <include>\"${home}/vcpkg-root/installed/${triplet}/include\" <search>\"${home}/vcpkg-root/installed/${triplet}/lib\" : <address-model>${addrmdl} ;" | sed 's/\/d\//D:\//g' > user-config.jam
+          echo "using zlib : : <include>\"${home}/vcpkg-root/installed/${triplet}/include\" <search>\"${home}/vcpkg-root/installed/${triplet}/lib\" <name>zlib : <address-model>${addrmdl} ;" | sed 's/\/d\//D:\//g' > user-config.jam
           cat user-config.jam
 
           toolchain=$(echo "$GITHUB_WORKSPACE/vcpkg-root/scripts/buildsystems/vcpkg.cmake" | sed 's/\/d\//D:\//g' )
@@ -835,7 +835,7 @@ jobs:
           shared: ${{ matrix.shared }}
           rtti: ${{ (matrix.is-latest && 'on,off') || 'on' }}
           cxxflags: ${{ (matrix.asan && '-fsanitize=pointer-subtract') || '' }}
-          user-config: ${{ (startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') && format('{0}/user-config.jam', steps.patch.outputs.workspace_root)) || '' }}
+          user-config: ${{ (startsWith(matrix.runs-on, 'windows') && format('{0}/user-config.jam', steps.patch.outputs.workspace_root)) || '' }}
           stop-on-error: true
 
       - name: Boost CMake Workflow
@@ -864,7 +864,7 @@ jobs:
           package: false
           package-artifact: false
           ref-source-dir: boost-root/libs/http_proto
-          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') && steps.patch-user-config.outputs.toolchain) || '' }}
+          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Set Path
         if: startsWith(matrix.runs-on, 'windows') && matrix.shared
@@ -897,7 +897,7 @@ jobs:
             -D CMAKE_PREFIX_PATH=${{ steps.patch.outputs.workspace_root }}/.local
           ref-source-dir: boost-root/libs/http_proto
           trace-commands: true
-          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') && steps.patch-user-config.outputs.toolchain) || '' }}
+          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Subdirectory Integration Workflow
         uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
@@ -918,7 +918,7 @@ jobs:
           cmake-version: '>=3.15'
           extra-args: -D BOOST_CI_INSTALL_TEST=OFF
           ref-source-dir: boost-root/libs/http_proto/test/cmake_test
-          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') && steps.patch-user-config.outputs.toolchain) || '' }}
+          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Root Project CMake Workflow
         uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
@@ -942,7 +942,7 @@ jobs:
           package: false
           package-artifact: false
           ref-source-dir: boost-root
-          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && !startsWith(matrix.compiler, 'mingw') && steps.patch-user-config.outputs.toolchain) || '' }}
+          toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: FlameGraph
         uses: alandefreitas/cpp-actions/flamegraph@v1.8.2
