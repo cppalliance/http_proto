@@ -36,11 +36,12 @@ struct alignas(alignof(::max_align_t))
     U u;
 
     any_impl() = delete;
-    any_impl(any_impl&&) = default;
+    any_impl(any_impl const&) = delete;
+    any_impl(any_impl&&) = delete;
 
-    template<class U_>
-    explicit any_impl(U_&& u_)
-        : u(std::move(u_))
+    template<class... Args>
+    explicit any_impl(Args&&... args)
+        : u(std::forward<Args>(args)...)
     {
     }
 };
@@ -86,10 +87,10 @@ space_needed()
     return sizeof(any_impl<U>);
 }
 
-template<class T>
+template<class T, class... Args>
 auto
 workspace::
-push(T&& t) ->
+emplace(Args&&... args) ->
     typename std::decay<T>::type&
 {
     static_assert(
@@ -102,13 +103,22 @@ push(T&& t) ->
     undo u(*this);
     auto p = ::new(bump_down(
         sizeof(U), alignof(U))) U(
-            std::forward<T>(t));
+            std::forward<Args>(args)...);
     u.commit();
     p->next = reinterpret_cast<
         any*>(head_);
     head_ = reinterpret_cast<
         unsigned char*>(p);
     return p->u;
+}
+
+template<class T>
+auto
+workspace::
+push(T&& t) ->
+    typename std::decay<T>::type&
+{
+    return emplace<T>(std::forward<T>(t));
 }
 
 template<class T>

@@ -34,7 +34,6 @@ namespace http_proto {
 */
 struct BOOST_HTTP_PROTO_DECL
     source
-    : buffered_base
 {
     /** The results of producing data.
     */

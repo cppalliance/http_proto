@@ -130,18 +130,17 @@ public:
         undefined behavior.
     */
     template<
-        class Source
+        class Source,
+        class... Args
 #ifndef BOOST_HTTP_PROTO_DOCS
         ,class = typename std::enable_if<
             is_source<Source>::value>::type
 #endif
     >
-    auto
+    Source&
     start(
         message_view_base const& m,
-        Source&& body) ->
-            typename std::decay<
-                Source>::type&;
+        Args&&... args);
 
     //--------------------------------------------
 
@@ -191,6 +190,41 @@ private:
     auto
     make_array(std::size_t n) ->
         detail::array_of_const_buffers;
+
+    template<
+        class Source,
+        class... Args,
+        typename std::enable_if<
+            std::is_constructible<
+                Source,
+                Args...>::value>::type* = nullptr>
+    Source&
+    construct_source(Args&&... args)
+    {
+        return ws_.emplace<Source>(
+            std::forward<Args>(args)...);
+    }
+
+    template<
+        class Source,
+        class... Args,
+        typename std::enable_if<
+            std::is_constructible<
+                Source,
+                buffered_base::allocator&,
+                Args...>::value>::type* = nullptr>
+    Source&
+    construct_source(Args&&... args)
+    {
+        buffered_base::allocator a(
+            ws_.data(),
+            (ws_.size() - ws_.space_needed<Source>()) / 2,
+            false);
+        auto& src = ws_.emplace<Source>(
+            a, std::forward<Args>(args)...);
+        ws_.reserve_front(a.size_used());
+        return src;
+    }
 
     BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
     BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);

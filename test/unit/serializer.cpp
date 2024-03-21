@@ -40,7 +40,7 @@ struct serializer_test
 
         results
         on_read(
-            buffers::mutable_buffer b)
+            buffers::mutable_buffer b) override
         {
             BOOST_TEST(! is_done_);
             results rv;
@@ -162,10 +162,10 @@ struct serializer_test
         sr.start(res);
         sr.start(res, buffers::const_buffer{});
         sr.start(res, buffers::mutable_buffer{});
-        sr.start(res, test_source{"12345"});
+        sr.start<test_source>(res, "12345");
         sr.start(res, make_const(buffers::const_buffer{}));
         sr.start(res, make_const(buffers::mutable_buffer{}));
-        sr.start(res, make_const(test_source{"12345"}));
+        sr.start<test_source>(res, make_const("12345"));
 
         serializer(65536);
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -244,7 +244,7 @@ struct serializer_test
         // we limit the buffer size of the serializer, requiring
         // it to make multiple calls to source::read
         serializer sr(1024);
-        sr.start(res, std::forward<
+        sr.start<Source>(res, std::forward<
             Source>(src));
         std::string s = read(sr);
         f(s);
@@ -377,7 +377,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "Content-Length: 5\r\n"
                 "\r\n");
-            sr.start(req, test_source{"12345"});
+            sr.start<test_source>(req, "12345");
             std::string s;
             system::result<
                 serializer::const_buffers_type> rv;
@@ -457,7 +457,7 @@ struct serializer_test
                 "\r\n";
             serializer sr;
             response res(sv);
-            sr.start(res, test_source{"12345"});
+            sr.start<test_source>(res, "12345");
             auto s = read(sr);
             BOOST_TEST(s ==
                 "HTTP/1.1 200 OK\r\n"

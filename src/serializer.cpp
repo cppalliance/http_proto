@@ -435,11 +435,6 @@ start_source(
         2); // tmp
     //if(! cod_)
     {
-        buffered_base::allocator a(
-            ws_.data(), ws_.size()/2, false);
-        src->init(a);
-        ws_.reserve_front(a.size_used());
-
         tmp0_ = { ws_.data(), ws_.size() };
         if(tmp0_.capacity() <
                 18 +    // chunk size
