@@ -12,8 +12,6 @@
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/range.hpp>
-#include <iterator>
-#include <new>
 #include <utility>
 
 namespace boost {
@@ -91,21 +89,23 @@ start(
 
 template<
     class Source,
+    class... Args,
     class>
-auto
+Source&
 serializer::
 start(
     message_view_base const& m,
-    Source&& src0) ->
-        typename std::decay<
-            Source>::type&
+    Args&&... args)
 {
+    static_assert(
+        std::is_constructible<Source, Args...>::value ||
+        std::is_constructible<Source, buffered_base::allocator&, Args...>::value,
+        "The Source cannot be constructed with the given arguments");
+
     start_init(m);
-    auto& src = ws_.push(
-        std::forward<
-            Source>(src0));
-    start_source(
-        m, std::addressof(src));
+    auto& src = construct_source<Source>(
+        std::forward<Args>(args)...);
+    start_source(m, std::addressof(src));
     return src;
 }
 

@@ -128,6 +128,10 @@ public:
     reserve_front(
         std::size_t n);
 
+    template<class T, class... Args>
+    typename std::decay<T>::type&
+    emplace(Args&&... args);
+
     template<class T>
     typename std::decay<T>::type&
     push(T&& t);
