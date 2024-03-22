@@ -74,8 +74,8 @@ start(
 {
     start_init(m);
     auto const& bs =
-        ws_.push(std::forward<
-            ConstBufferSequence>(body));
+        ws_.emplace<ConstBufferSequence>(
+            std::forward<ConstBufferSequence>(body));
     std::size_t n = std::distance(
         buffers::begin(bs),
         buffers::end(bs));
