@@ -133,10 +133,6 @@ public:
     emplace(Args&&... args);
 
     template<class T>
-    typename std::decay<T>::type&
-    push(T&& t);
-
-    template<class T>
     T*
     push_array(
         std::size_t n,

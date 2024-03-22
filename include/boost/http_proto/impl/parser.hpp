@@ -52,11 +52,10 @@ set_body(
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& dyn = ws_.push(
+    auto& dyn = ws_.emplace<
         buffers::any_dynamic_buffer_impl<typename
             std::decay<ElasticBuffer>::type,
-                buffers_N>(std::forward<
-                    ElasticBuffer>(eb)));
+                buffers_N>>(std::forward<ElasticBuffer>(eb));
     eb_ = &dyn;
     how_ = how::elastic;
     on_set_body();
@@ -81,10 +80,10 @@ set_body(
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& dyn = ws_.push(
+    auto& dyn = ws_.emplace<
         buffers::any_dynamic_buffer_impl<typename
             std::decay<ElasticBuffer>::type&,
-                buffers_N>(eb));
+                buffers_N>>(eb);
     eb_ = &dyn;
     how_ = how::elastic;
     on_set_body();
@@ -109,7 +108,7 @@ set_body(
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& s = ws_.push(
+    auto& s = ws_.emplace<Sink>(
         std::forward<Sink>(sink));
     sink_ = &s;
     how_ = how::sink;

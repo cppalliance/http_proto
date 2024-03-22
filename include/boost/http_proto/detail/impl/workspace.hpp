@@ -113,15 +113,6 @@ emplace(Args&&... args) ->
 }
 
 template<class T>
-auto
-workspace::
-push(T&& t) ->
-    typename std::decay<T>::type&
-{
-    return emplace<T>(std::forward<T>(t));
-}
-
-template<class T>
 T*
 workspace::
 push_array(
