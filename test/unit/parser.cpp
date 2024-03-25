@@ -14,10 +14,10 @@
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
-#include <boost/buffers/buffer.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/flat_buffer.hpp>
+#include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <vector>
@@ -238,7 +238,7 @@ struct parser_test
             auto const n =
                 buffers::buffer_copy(
                 pr.prepare(),
-                buffers::buffer(
+                buffers::make_buffer(
                     s.data(), s.size()));
             pr.commit(n);
             s.remove_prefix(n);
@@ -304,7 +304,7 @@ struct parser_test
         auto const n =
             buffers::buffer_copy(
             pr.prepare(),
-            buffers::buffer(
+            buffers::make_buffer(
                 s.data(), s.size()));
         pr.commit(n);
         BOOST_TEST_EQ(n, s.size());
