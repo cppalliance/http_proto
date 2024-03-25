@@ -12,10 +12,10 @@
 
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
-#include <boost/buffers/buffer.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/const_buffer.hpp>
+#include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/mutable_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include "test_helpers.hpp"
@@ -47,7 +47,7 @@ struct serializer_test
             rv.bytes =
                 buffers::buffer_copy(
                     b,
-                    buffers::buffer(
+                    buffers::make_buffer(
                         s_.data(),
                         s_.size()));
             s_ = s_.substr(rv.bytes);
@@ -337,7 +337,7 @@ struct serializer_test
             "\r\n",
             test_source{std::string(2048, '*')},
             [](core::string_view s){
-                core::string_view expected_header = 
+                core::string_view expected_header =
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
                     "Transfer-Encoding: chunked\r\n"
@@ -355,7 +355,7 @@ struct serializer_test
             "\r\n",
             test_source{""},
             [](core::string_view s){
-                core::string_view expected_header = 
+                core::string_view expected_header =
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
                     "Transfer-Encoding: chunked\r\n"
