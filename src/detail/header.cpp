@@ -8,6 +8,7 @@
 //
 
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/http_proto/detail/align_up.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
@@ -26,8 +27,6 @@
 #include <boost/static_assert.hpp>
 #include <string>
 #include <utility>
-
-#include "align_up.hpp"
 
 namespace boost {
 namespace http_proto {
