@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -20,7 +21,10 @@
 #include <boost/core/ignore_unused.hpp>
 #include "test_helpers.hpp"
 
+#include <array>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 #include <zlib.h>
@@ -166,6 +170,7 @@ struct serializer_test
         sr.start(res, make_const(buffers::const_buffer{}));
         sr.start(res, make_const(buffers::mutable_buffer{}));
         sr.start<test_source>(res, make_const("12345"));
+        sr.start_stream(res);
 
         serializer(65536);
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -248,6 +253,90 @@ struct serializer_test
             Source>(src));
         std::string s = read(sr);
         f(s);
+    };
+
+    template <class F>
+    void
+    check_stream(
+        core::string_view headers,
+        core::string_view body,
+        F f)
+    {
+        response res(headers);
+
+        serializer sr(1024);
+        auto stream = sr.start_stream(res);
+
+        std::vector<char> s; // stores complete output
+        std::size_t const chunk_data_size = 100;
+
+        auto prepare_chunk = [&]
+        {
+            auto mbs = stream.prepare(chunk_data_size);
+            auto bs = buffers::buffer_size(mbs);
+            BOOST_TEST_EQ(bs, chunk_data_size);
+
+            if( bs > body.size() )
+                bs = body.size();
+
+            buffers::buffer_copy(
+                mbs, buffers::const_buffer(body.data(), bs));
+
+            stream.commit(bs);
+            body.remove_prefix(bs);
+        };
+
+        auto consume_body_buffer = [&](
+            buffers::const_buffer buf)
+        {
+            // we have the prepared buffer sequence
+            // representing the serializer's output but we
+            // wish to emulate a user consuming it using a
+            // smaller, fixed-size buffer
+            std::array<char, 16> storage{};
+            buffers::mutable_buffer out_buf(
+                storage.data(), storage.size());
+
+            while( buf.size() > 0 )
+            {
+                auto num_copied =
+                    buffers::buffer_copy(
+                        out_buf, buf);
+
+                buf += num_copied;
+
+                s.insert(
+                    s.end(),
+                    storage.begin(),
+                    storage.begin() + num_copied);
+
+                sr.consume(num_copied);
+            }
+        };
+
+        while(! sr.is_done() )
+        {
+            if(! body.empty() )
+                prepare_chunk();
+
+            if( body.empty() )
+                stream.close();
+
+            auto mcbs = sr.prepare();
+            BOOST_TEST(!mcbs.has_error());
+
+            auto cbs = mcbs.value();
+            auto end = cbs.end();
+            auto size = buffers::buffer_size(cbs);
+            BOOST_TEST_GT(size, 0);
+
+            for(auto pos = cbs.begin(); pos != end; ++pos)
+                consume_body_buffer(*pos);
+        }
+
+        BOOST_TEST_THROWS(stream.close(), std::logic_error);
+
+        f(core::string_view(s.data(), s.size()));
     };
 
     void
@@ -364,6 +453,56 @@ struct serializer_test
                 s.remove_prefix(expected_header.size());
                 check_chunked_body(s, "");
             });
+
+        check_stream(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "\r\n",
+            std::string(0, '*'),
+            [](core::string_view s){
+                core::string_view expected_header =
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "\r\n";
+                BOOST_TEST(s.starts_with(expected_header));
+                s.remove_prefix(expected_header.size());
+                BOOST_TEST_EQ(s, std::string(0, '*'));
+            });
+
+        check_stream(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "Content-Length: 2048\r\n"
+            "\r\n",
+            std::string(2048, '*'),
+            [](core::string_view s){
+                core::string_view expected_header =
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Content-Length: 2048\r\n"
+                    "\r\n";
+                BOOST_TEST(s.starts_with(expected_header));
+                s.remove_prefix(expected_header.size());
+                BOOST_TEST_EQ(s, std::string(2048, '*'));
+            });
+
+        check_stream(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n",
+            std::string(2048, '*'),
+            [](core::string_view s){
+                core::string_view expected_header =
+                    "HTTP/1.1 200 OK\r\n"
+                    "Server: test\r\n"
+                    "Transfer-Encoding: chunked\r\n"
+                    "\r\n";
+                BOOST_TEST(s.starts_with(expected_header));
+                s.remove_prefix(expected_header.size());
+                check_chunked_body(
+                    s, std::string(2048, '*'));
+            });
     }
 
     void
@@ -381,6 +520,9 @@ struct serializer_test
             std::string s;
             system::result<
                 serializer::const_buffers_type> rv;
+            BOOST_TEST_THROWS(
+                sr.consume(req.buffer().size() + 1),
+                std::invalid_argument);
             for(;;)
             {
                 rv = sr.prepare();
@@ -403,6 +545,8 @@ struct serializer_test
                 auto n = append(s, *rv);
                 sr.consume(n);
             }
+            BOOST_TEST_THROWS(
+                sr.prepare(), std::logic_error);
             BOOST_TEST(s ==
                 "GET / HTTP/1.1\r\n"
                 "Expect: 100-continue\r\n"
@@ -469,12 +613,104 @@ struct serializer_test
     }
 
     void
+    testStreamErrors()
+    {
+        {
+            core::string_view sv =
+                "HTTP/1.1 200 OK\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n";
+
+            core::string_view serialized =
+                "HTTP/1.1 200 OK\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n"
+                "0\r\n\r\n";
+
+            response res(sv);
+
+            serializer sr;
+            auto stream = sr.start_stream(res);
+            auto mbs = stream.prepare(0);
+            BOOST_TEST_EQ(
+                buffers::buffer_size(mbs), 0);
+            BOOST_TEST_THROWS(
+                stream.commit(0), std::logic_error);
+
+            auto mcbs = sr.prepare();
+            BOOST_TEST(mcbs.has_error());
+            BOOST_TEST(mcbs.error() == error::need_data);
+
+            stream.close();
+
+            mcbs = sr.prepare();
+            auto cbs = mcbs.value();
+            BOOST_TEST_EQ(
+                buffers::buffer_size(cbs),
+                serialized.size());
+
+            std::vector<char> s(
+                buffers::buffer_size(cbs), 'a');
+            buffers::buffer_copy(
+                buffers::make_buffer(
+                    s.data(), s.size()),
+                cbs);
+
+            core::string_view octets(s.data(),s.size());
+            BOOST_TEST_EQ(
+                octets, serialized);
+
+            sr.consume(s.size());
+            BOOST_TEST(sr.is_done());
+            BOOST_TEST_THROWS(
+                sr.consume(s.size()),
+                std::logic_error);
+        }
+
+        {
+            core::string_view sv =
+                "HTTP/1.1 200 OK\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n";
+
+            response res(sv);
+            serializer sr(1024);
+
+            auto stream = sr.start_stream(res);
+
+            auto push =
+                [&]
+                {
+                    std::size_t num_written = 0;
+                    std::size_t const chunk_size = 256;
+                    std::string chunk(chunk_size, 'a');
+                    while( num_written < 2048 )
+                    {
+                        auto mbs =
+                            stream.prepare(chunk_size);
+
+                        auto n = buffers::buffer_copy(
+                            mbs,
+                            buffers::const_buffer(
+                                chunk.data(), chunk.size()));
+
+                        stream.commit(n);
+                        num_written += n;
+                    }
+                };
+
+            BOOST_TEST_THROWS(push(), std::length_error);
+        }
+    }
+
+    void
     run()
     {
         testSyntax();
         testEmptyBody();
         testOutput();
         testExpect100Continue();
+        testStreamErrors();
     }
 };
 
