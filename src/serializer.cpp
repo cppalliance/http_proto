@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -69,6 +70,26 @@ write_chunk_header(
     BOOST_ASSERT(n == 18);
     BOOST_ASSERT(
         buffers::buffer_size(dest0) == n);
+}
+
+template<class DynamicBuffer>
+void
+write_chunk_close(DynamicBuffer& db)
+{
+    db.commit(
+        buffers::buffer_copy(
+            db.prepare(2),
+            buffers::const_buffer("\r\n", 2)));
+}
+
+template<class DynamicBuffer>
+void
+write_last_chunk(DynamicBuffer& db)
+{
+    db.commit(
+        buffers::buffer_copy(
+            db.prepare(5),
+            buffers::const_buffer("0\r\n\r\n", 5)));
 }
 
 //------------------------------------------------
@@ -521,7 +542,7 @@ serializer::
 stream::
 capacity() const
 {
-    auto const n = 
+    auto const n =
         chunked_overhead_ +
             2 + // CRLF
             5;  // final chunk
@@ -543,6 +564,11 @@ prepare(
     std::size_t n) const ->
         buffers_type
 {
+    if( sr_->is_chunked_ )
+        return buffers::sans_prefix(
+            sr_->tmp0_.prepare(n + chunk_header_len_),
+            chunk_header_len_);
+
     return sr_->tmp0_.prepare(n);
 }
 
@@ -551,7 +577,24 @@ serializer::
 stream::
 commit(std::size_t n) const
 {
-    sr_->tmp0_.commit(n);
+    if(! sr_->is_chunked_ )
+    {
+        sr_->tmp0_.commit(n);
+    }
+    else
+    {
+        // Zero sized chunks are not valid. Call close()
+        // if the intent is to signal the end of the body.
+        if( n == 0 )
+            detail::throw_logic_error();
+
+        auto m = n + chunk_header_len_;
+        auto dest = sr_->tmp0_.prepare(m);
+        write_chunk_header(
+            buffers::prefix(dest, chunk_header_len_), n);
+        sr_->tmp0_.commit(m);
+        write_chunk_close(sr_->tmp0_);
+    }
 }
 
 void
@@ -562,6 +605,10 @@ close() const
     // Precondition violation
     if(! sr_->more_)
         detail::throw_logic_error();
+
+    if (sr_->is_chunked_)
+        write_last_chunk(sr_->tmp0_);
+
     sr_->more_ = false;
 }
 

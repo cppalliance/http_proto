@@ -123,7 +123,7 @@ public:
     void
     start(
         message_view_base const& m,
-        ConstBufferSequence&& body);    
+        ConstBufferSequence&& body);
 
     /** Prepare the serializer for a new message
 
@@ -242,16 +242,31 @@ private:
         stream
     };
 
+    // chunked-body   = *chunk
+    //                  last-chunk
+    //                  trailer-section
+    //                  CRLF
+
+    // chunk          = chunk-size [ chunk-ext ] CRLF
+    //                  chunk-data CRLF
+    static
+    constexpr
+    std::size_t
+    chunk_header_len_ = 16 + 2; // chunk-size + CRLF
+
+    // last-chunk     = 1*("0") [ chunk-ext ] CRLF
+    static
+    constexpr
+    std::size_t
+    last_chunk_len_ = 1 + 2 + 2; // chunked-body termination requires an extra CRLF
+
     static
     constexpr
     std::size_t
     chunked_overhead_ =
-        16 +        // size
-        2 +         // CRLF
-        2 +         // CRLF
-        1 +         // "0"
-        2 +         // CRLF
-        2;          // CRLF
+        chunk_header_len_ +
+        2 + // CRLF
+        last_chunk_len_;
 
     detail::workspace ws_;
     detail::array_of_const_buffers buf_;
