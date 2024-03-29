@@ -1,2 +1,6 @@
 * xref:Message.adoc[]
+
+* Design Requirements
+** xref:design_requirements/serializer.adoc[Serializer]
+
 * xref:reference:boost/http_proto.adoc[Reference]
