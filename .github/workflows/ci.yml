@@ -822,6 +822,8 @@ jobs:
       - name: Boost B2 Workflow
         uses: alandefreitas/cpp-actions/b2-workflow@v1.8.2
         if: ${{ !matrix.coverage && !matrix.time-trace }}
+        env:
+          ASAN_OPTIONS: ${{ (startsWith(matrix.compiler, 'apple-clang') && 'detect_invalid_pointer_pairs=0') || 'detect_invalid_pointer_pairs=2' }}
         with:
           source-dir: boost-root
           modules: http_proto
