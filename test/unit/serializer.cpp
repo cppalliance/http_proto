@@ -255,26 +255,34 @@ struct serializer_test
         f(s);
     };
 
+    struct check_stream_opts
+    {
+        std::size_t sr_capacity = 1024;
+    };
+
     template <class F>
     void
     check_stream(
         core::string_view headers,
         core::string_view body,
+        check_stream_opts const& opts,
         F f)
     {
+        auto sr_capacity = opts.sr_capacity;
+
         response res(headers);
 
-        serializer sr(1024);
+        serializer sr(sr_capacity);
         auto stream = sr.start_stream(res);
 
         std::vector<char> s; // stores complete output
-        std::size_t const chunk_data_size = 100;
 
         auto prepare_chunk = [&]
         {
-            auto mbs = stream.prepare(chunk_data_size);
+            auto mbs = stream.prepare();
+
             auto bs = buffers::buffer_size(mbs);
-            BOOST_TEST_EQ(bs, chunk_data_size);
+            BOOST_TEST_GT(bs, 0);
 
             if( bs > body.size() )
                 bs = body.size();
@@ -300,8 +308,7 @@ struct serializer_test
             while( buf.size() > 0 )
             {
                 auto num_copied =
-                    buffers::buffer_copy(
-                        out_buf, buf);
+                    buffers::buffer_copy(out_buf, buf);
 
                 buf += num_copied;
 
@@ -454,55 +461,100 @@ struct serializer_test
                 check_chunked_body(s, "");
             });
 
-        check_stream(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "\r\n",
-            std::string(0, '*'),
-            [](core::string_view s){
-                core::string_view expected_header =
-                    "HTTP/1.1 200 OK\r\n"
-                    "Server: test\r\n"
-                    "\r\n";
-                BOOST_TEST(s.starts_with(expected_header));
-                s.remove_prefix(expected_header.size());
-                BOOST_TEST_EQ(s, std::string(0, '*'));
-            });
+        // empty stream
+        {
+            check_stream_opts opts;
+            check_stream(
+                "HTTP/1.1 200 OK\r\n"
+                "Server: test\r\n"
+                "\r\n",
+                std::string(0, '*'),
+                opts,
+                [](core::string_view s)
+                {
+                    core::string_view expected_header =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Server: test\r\n"
+                        "\r\n";
+                    BOOST_TEST(s.starts_with(expected_header));
+                    s.remove_prefix(expected_header.size());
+                    BOOST_TEST(s.empty());
+                });
+        }
 
-        check_stream(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "Content-Length: 2048\r\n"
-            "\r\n",
-            std::string(2048, '*'),
-            [](core::string_view s){
-                core::string_view expected_header =
-                    "HTTP/1.1 200 OK\r\n"
-                    "Server: test\r\n"
-                    "Content-Length: 2048\r\n"
-                    "\r\n";
-                BOOST_TEST(s.starts_with(expected_header));
-                s.remove_prefix(expected_header.size());
-                BOOST_TEST_EQ(s, std::string(2048, '*'));
-            });
+        // empty stream, chunked
+        {
+            check_stream_opts opts;
+            check_stream(
+                "HTTP/1.1 200 OK\r\n"
+                "Server: test\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n",
+                std::string(0, '*'),
+                opts,
+                [](core::string_view s)
+                {
+                    core::string_view expected_header =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Server: test\r\n"
+                        "Transfer-Encoding: chunked\r\n"
+                        "\r\n";
+                    BOOST_TEST(s.starts_with(expected_header));
+                    s.remove_prefix(expected_header.size());
+                    check_chunked_body(s, "");
+                });
+        }
 
-        check_stream(
-            "HTTP/1.1 200 OK\r\n"
-            "Server: test\r\n"
-            "Transfer-Encoding: chunked\r\n"
-            "\r\n",
-            std::string(2048, '*'),
-            [](core::string_view s){
-                core::string_view expected_header =
-                    "HTTP/1.1 200 OK\r\n"
-                    "Server: test\r\n"
-                    "Transfer-Encoding: chunked\r\n"
-                    "\r\n";
-                BOOST_TEST(s.starts_with(expected_header));
-                s.remove_prefix(expected_header.size());
-                check_chunked_body(
-                    s, std::string(2048, '*'));
-            });
+        // stream
+        {
+            check_stream_opts opts;
+            check_stream(
+                "HTTP/1.1 200 OK\r\n"
+                "Server: test\r\n"
+                "Content-Length: 13370\r\n"
+                "\r\n",
+                std::string(13370, '*'),
+                opts,
+                [](core::string_view s){
+                    core::string_view expected_header =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Server: test\r\n"
+                        "Content-Length: 13370\r\n"
+                        "\r\n";
+
+                    BOOST_TEST(
+                        s.starts_with(expected_header));
+
+                    s.remove_prefix(expected_header.size());
+                    BOOST_TEST_EQ(
+                        s, std::string(13370, '*'));
+                });
+        }
+
+        // stream, chunked
+        {
+            check_stream_opts opts;
+            check_stream(
+                "HTTP/1.1 200 OK\r\n"
+                "Server: test\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n",
+                std::string(13370, '*'),
+                opts,
+                [](core::string_view s)
+                {
+                    core::string_view expected_header =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Server: test\r\n"
+                        "Transfer-Encoding: chunked\r\n"
+                        "\r\n";
+                    BOOST_TEST(s.starts_with(
+                        expected_header));
+                    s.remove_prefix(expected_header.size());
+                    check_chunked_body(
+                        s, std::string(13370, '*'));
+                });
+        }
     }
 
     void
@@ -631,8 +683,8 @@ struct serializer_test
 
             serializer sr;
             auto stream = sr.start_stream(res);
-            auto mbs = stream.prepare(0);
-            BOOST_TEST_EQ(
+            auto mbs = stream.prepare();
+            BOOST_TEST_GT(
                 buffers::buffer_size(mbs), 0);
             BOOST_TEST_THROWS(
                 stream.commit(0), std::logic_error);
@@ -686,14 +738,13 @@ struct serializer_test
                     std::string chunk(chunk_size, 'a');
                     while( num_written < 2048 )
                     {
-                        auto mbs =
-                            stream.prepare(chunk_size);
-
                         auto n = buffers::buffer_copy(
-                            mbs,
+                            stream.prepare(),
                             buffers::const_buffer(
-                                chunk.data(), chunk.size()));
+                                chunk.data(),
+                                chunk.size()));
 
+                        BOOST_TEST_GT(n, 0);
                         stream.commit(n);
                         num_written += n;
                     }

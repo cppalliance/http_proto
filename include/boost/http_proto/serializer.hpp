@@ -247,25 +247,35 @@ private:
     //                  trailer-section
     //                  CRLF
 
+    static
+    constexpr
+    std::size_t
+    crlf_len_ = 2;
+
     // chunk          = chunk-size [ chunk-ext ] CRLF
     //                  chunk-data CRLF
     static
     constexpr
     std::size_t
-    chunk_header_len_ = 16 + 2; // chunk-size + CRLF
+    chunk_header_len_ =
+        16 + // 16 hex digits => 64 bit number
+        crlf_len_;
 
     // last-chunk     = 1*("0") [ chunk-ext ] CRLF
     static
     constexpr
     std::size_t
-    last_chunk_len_ = 1 + 2 + 2; // chunked-body termination requires an extra CRLF
+    last_chunk_len_ =
+        1 + // "0"
+        crlf_len_ +
+        crlf_len_; // chunked-body termination requires an extra CRLF
 
     static
     constexpr
     std::size_t
     chunked_overhead_ =
         chunk_header_len_ +
-        2 + // CRLF
+        crlf_len_ + // closing chunk data
         last_chunk_len_;
 
     detail::workspace ws_;
@@ -315,7 +325,7 @@ struct serializer::stream
 
     BOOST_HTTP_PROTO_DECL
     buffers_type
-    prepare(std::size_t n) const;
+    prepare() const;
 
     BOOST_HTTP_PROTO_DECL
     void

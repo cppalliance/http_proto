@@ -560,14 +560,29 @@ size() const
 auto
 serializer::
 stream::
-prepare(
-    std::size_t n) const ->
-        buffers_type
+prepare() const ->
+    buffers_type
 {
+    auto n = sr_->tmp0_.capacity();
     if( sr_->is_chunked_ )
+    {
+        // for chunked encoding, we want to unconditionally
+        // reserve space for the complete chunk and the
+        // last-chunk
+        // this enables users to call:
+        //
+        //     stream.commit(n); stream.close();
+        //
+        // without needing to worry about draining the
+        // serializer via `consume()` calls
+        if( n < chunked_overhead_ + 1 )
+            detail::throw_length_error();
+
+        n -= chunked_overhead_;
         return buffers::sans_prefix(
-            sr_->tmp0_.prepare(n + chunk_header_len_),
+            sr_->tmp0_.prepare(chunk_header_len_ + n),
             chunk_header_len_);
+    }
 
     return sr_->tmp0_.prepare(n);
 }
@@ -603,10 +618,10 @@ stream::
 close() const
 {
     // Precondition violation
-    if(! sr_->more_)
+    if(! sr_->more_ )
         detail::throw_logic_error();
 
-    if (sr_->is_chunked_)
+    if( sr_->is_chunked_ )
         write_last_chunk(sr_->tmp0_);
 
     sr_->more_ = false;
