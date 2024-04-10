@@ -542,11 +542,7 @@ serializer::
 stream::
 capacity() const
 {
-    auto const n =
-        chunked_overhead_ +
-            2 + // CRLF
-            5;  // final chunk
-    return sr_->tmp0_.capacity() - n; // VFALCO ?
+    return sr_->tmp0_.capacity();
 }
 
 std::size_t
