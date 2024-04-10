@@ -274,6 +274,9 @@ struct serializer_test
 
         serializer sr(sr_capacity);
         auto stream = sr.start_stream(res);
+        BOOST_TEST_EQ(stream.size(), 0);
+        BOOST_TEST_GT(stream.capacity(), 0);
+        BOOST_TEST_LE(stream.capacity(), sr_capacity);
 
         std::vector<char> s; // stores complete output
 
@@ -292,6 +295,11 @@ struct serializer_test
 
             stream.commit(bs);
             body.remove_prefix(bs);
+            if(! res.chunked() )
+                BOOST_TEST_EQ(stream.size(), bs);
+            else
+                // chunk overhead: header + \r\n
+                BOOST_TEST_EQ(stream.size(), bs + 18 + 2);
         };
 
         auto consume_body_buffer = [&](
@@ -339,6 +347,7 @@ struct serializer_test
 
             for(auto pos = cbs.begin(); pos != end; ++pos)
                 consume_body_buffer(*pos);
+            BOOST_TEST_EQ(stream.size(), 0);
         }
 
         BOOST_TEST_THROWS(stream.close(), std::logic_error);
