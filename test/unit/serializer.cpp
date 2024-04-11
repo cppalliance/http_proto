@@ -278,10 +278,18 @@ struct serializer_test
         BOOST_TEST_GT(stream.capacity(), 0);
         BOOST_TEST_LE(stream.capacity(), sr_capacity);
 
+        auto const N = stream.size() + stream.capacity();
+        auto check_N = [&]
+        {
+            BOOST_TEST_EQ(
+                stream.capacity() + stream.size(), N);
+        };
+
         std::vector<char> s; // stores complete output
 
         auto prepare_chunk = [&]
         {
+            BOOST_TEST(!stream.is_full());
             auto mbs = stream.prepare();
 
             auto bs = buffers::buffer_size(mbs);
@@ -294,12 +302,19 @@ struct serializer_test
                 mbs, buffers::const_buffer(body.data(), bs));
 
             stream.commit(bs);
+            if( bs < body.size() )
+                BOOST_TEST(stream.is_full());
+            else
+                BOOST_TEST(!stream.is_full());
+
             body.remove_prefix(bs);
             if(! res.chunked() )
                 BOOST_TEST_EQ(stream.size(), bs);
             else
                 // chunk overhead: header + \r\n
                 BOOST_TEST_EQ(stream.size(), bs + 18 + 2);
+
+            check_N();
         };
 
         auto consume_body_buffer = [&](
@@ -348,6 +363,7 @@ struct serializer_test
             for(auto pos = cbs.begin(); pos != end; ++pos)
                 consume_body_buffer(*pos);
             BOOST_TEST_EQ(stream.size(), 0);
+            check_N();
         }
 
         BOOST_TEST_THROWS(stream.close(), std::logic_error);
@@ -695,6 +711,7 @@ struct serializer_test
             auto mbs = stream.prepare();
             BOOST_TEST_GT(
                 buffers::buffer_size(mbs), 0);
+            BOOST_TEST(!stream.is_full());
             BOOST_TEST_THROWS(
                 stream.commit(0), std::logic_error);
 
@@ -752,7 +769,7 @@ struct serializer_test
                             buffers::const_buffer(
                                 chunk.data(),
                                 chunk.size()));
-
+                        BOOST_TEST(!stream.is_full());
                         BOOST_TEST_GT(n, 0);
                         stream.commit(n);
                         num_written += n;
@@ -760,6 +777,7 @@ struct serializer_test
                 };
 
             BOOST_TEST_THROWS(push(), std::length_error);
+            BOOST_TEST(stream.is_full());
         }
     }
 
