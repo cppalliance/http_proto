@@ -540,7 +540,7 @@ start_stream(
 std::size_t
 serializer::
 stream::
-capacity() const
+capacity() const noexcept
 {
     return sr_->tmp0_.capacity();
 }
@@ -548,9 +548,20 @@ capacity() const
 std::size_t
 serializer::
 stream::
-size() const
+size() const noexcept
 {
     return sr_->tmp0_.size();
+}
+
+bool
+serializer::
+stream::
+is_full() const noexcept
+{
+    if( sr_->is_chunked_ )
+        return capacity() < chunked_overhead_ + 1;
+
+    return capacity() == 0;
 }
 
 auto

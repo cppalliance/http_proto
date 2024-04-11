@@ -317,11 +317,15 @@ struct serializer::stream
 
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    capacity() const;
+    capacity() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    size() const;
+    size() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    bool
+    is_full() const noexcept;
 
     BOOST_HTTP_PROTO_DECL
     buffers_type
