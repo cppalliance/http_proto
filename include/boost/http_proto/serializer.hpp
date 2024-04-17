@@ -46,8 +46,6 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
-    /** A ConstBuffers representing the output
-    */
     class const_buffers_type;
 
     struct stream;
@@ -147,6 +145,36 @@ public:
 
     //--------------------------------------------
 
+    /** Create a new stream object associated with the
+        serializer.
+
+        The returned stream must not outlive its backing
+        serializer object.
+
+        Streams permit a user to supply input data to
+        the serializer using a bounded sequence of mutable
+        buffers.
+
+        \code{.cpp}
+        std::string msg = "Hello, world!";
+        std::size_t buf_size = 16 * 1024;
+        http_proto::serializer sr(buf_size);
+
+        auto stream = sr.start_stream();
+        auto bufs = stream.prepare();
+        auto s = buffers::buffer_size(bufs);
+        auto n = buffers::buffer_copy(
+            bufs,
+            buffers::make_buffer(
+                msg.data(),
+                std::min(s, msg.size())));
+        stream.commit(n);
+
+        auto cbs = sr.prepare().value();
+        // `cbs` contains the serialized octets corresponding
+        // to our `msg`
+        \endcode
+     */
     BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
@@ -297,44 +325,142 @@ private:
 
 //------------------------------------------------
 
+/**
+    A proxy type used to pass bounded input to the
+    associated serializer.
+*/
 struct serializer::stream
 {
-    /** Constructor.
+    /** Default constructor.
+
+        Creates a stream without an associated serializer
+        object.
     */
     stream() = default;
 
-    /** Constructor.
-    */
-    stream(stream const&) = default;
+    /** Copy constructor.
 
-    /** Constructor.
+        The constructed stream will share the same
+        serializer as `other`.
     */
-    stream& operator=
-        (stream const&) = default;
+    stream(stream const& other) = default;
 
+    /** Assignment operator
+
+        The current stream will share the same serializer
+        as `other`.
+    */
+    stream& operator= (
+        stream const& other) = default;
+
+    /**
+        A MutableBufferSequence consisting of a buffer pair.
+     */
     using buffers_type =
         buffers::mutable_buffer_pair;
 
+    /**
+        Returns the remaining available capacity.
+
+        The returned value represents the available free
+        space in the backing fixed-sized buffers used by the
+        serializer associated with this stream.
+
+        The capacity is absolute and does not do any
+        accounting for any octets required by a chunked
+        transfer encoding.
+    */
     BOOST_HTTP_PROTO_DECL
     std::size_t
     capacity() const noexcept;
 
+    /**
+        Returns the number of octets serialized by this
+        stream.
+
+        The associated serializer stores stream output in its
+        internal buffers. The stream returns the size of this
+        output.
+    */
     BOOST_HTTP_PROTO_DECL
     std::size_t
     size() const noexcept;
 
+    /**
+        Returns a boolean indicating if the stream can
+        receive more input.
+
+        The fixed-sized buffers maintained by the associated
+        serializer can be sufficiently full from previous
+        calls to \ref stream::commit.
+
+        This function can be called to determine if the user
+        should drain the serializer via \ref serializer::consume calls
+        before attempting to fill the buffer sequence
+        returned from \ref stream::prepare.
+    */
     BOOST_HTTP_PROTO_DECL
     bool
     is_full() const noexcept;
 
+    /**
+        Returns a MutableBufferSequence capable of storing
+        input from the user
+
+        The returned buffer sequence is as wide as is
+        possible. If a non-chunked transfer encoding is
+        being used than the returned sequence encompasses
+        the unused area of the serializer's fixed-sized
+        buffers.
+
+        If a chunked transer encoding is used then space is
+        reserved for the chunk header in addition to the
+        closing CRLF required for the chunk data. In
+        addition to this, space is also reserved for the
+        last-chunk.
+
+        This is done so that users can chain calls to
+        \ref stream::commit and \ref stream::close
+        without having to drain the serializer via
+        \ref serializer::consume calls.
+
+        \exception std::length_error Thrown if the stream
+        has insufficient capacity and a chunked transfer
+        encoding is being used
+    */
     BOOST_HTTP_PROTO_DECL
     buffers_type
     prepare() const;
 
+    /**
+        Serialize and commit `n` bytes.
+
+        Once the sequence returned from \ref prepare has been
+        filled, the input can be serialized and committed to the
+        associated serializer's output area via a call to `commit(n)`.
+
+        If a chunked transfer encoding is being used then commit
+        is responsible for writing the chunk-header and also the
+        closing CRLF for the chunk-data. `n` denotes the size
+        of the chunk.
+
+        \exception std::logic_error Thrown if commit is
+        called with 0. Instead, the closing chunk must be
+        written by a call to \ref stream::close.
+    */
     BOOST_HTTP_PROTO_DECL
     void
     commit(std::size_t n) const;
 
+    /**
+        Close the stream.
+
+        close() writes the last-chunk to the underlying buffers
+        of the stream's associated serializer, i.e. `0\r\n\r\n`.
+
+        \excpeption std::logic_error Thrown if the stream
+        has been previously closed.
+    */
     BOOST_HTTP_PROTO_DECL
     void
     close() const;
@@ -354,6 +480,8 @@ private:
 
 //---------------------------------------------------------
 
+/** A ConstBufferSequence representing the output
+*/
 class serializer::
     const_buffers_type
 {
