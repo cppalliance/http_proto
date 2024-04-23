@@ -1,7 +1,2 @@
-build
-html
-temp
 node_modules
-out.txt
-qbk/reference.qbk
-modules/ROOT/pages/index.html
+build

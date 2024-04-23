@@ -1,4 +1,4 @@
-http://master.http-proto.cpp.al/[image:https://raw.githubusercontent.com/CPPAlliance/http_proto/master/doc/images/repo-logo.png[Boost.Http.Proto]]
+http://master.http-proto.cpp.al/[image:doc/modules/ROOT/images/repo-logo.png[Boost.Http.Proto]]
 
 [width="100%",cols="7%,66%,27%",options="header",]
 |===
