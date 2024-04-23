@@ -1,1 +1,2 @@
-* xref:http_proto/index.adoc[]
+* xref:Message.adoc[]
+* xref:reference:boost/http_proto.adoc[Reference]
