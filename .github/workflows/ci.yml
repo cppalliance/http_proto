@@ -547,6 +547,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 16: C++17-20"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "15"
@@ -559,6 +560,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 15: C++17-20"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "14"
@@ -571,6 +573,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 14: C++17-20"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "13"
@@ -583,6 +586,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 13: C++17-20"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "12"
@@ -595,6 +599,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 12: C++17-20"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "11"
@@ -607,6 +612,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 11: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "10"
@@ -619,6 +625,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 10: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "9"
@@ -631,6 +638,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 9: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "8"
@@ -643,6 +651,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 8: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "7"
@@ -655,6 +664,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 7: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "6"
@@ -667,6 +677,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 6: C++14-17"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "5"
@@ -679,6 +690,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 5: C++11-14"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "4"
@@ -691,6 +703,7 @@ jobs:
             b2-toolset: "clang"
             name: "Clang 4: C++11-14"
             build-type: "Release"
+            install: "zlib1g-dev"
 
           - compiler: "clang"
             version: "^3.8"
@@ -704,6 +717,7 @@ jobs:
             is-earliest: true
             name: "Clang ^3.8: C++11"
             build-type: "Release"
+            install: "zlib1g-dev"
 
     name: ${{ matrix.name }}
     runs-on: ${{ fromJSON(needs.runner-selection.outputs.labelmatrix)[matrix.runs-on] }}
