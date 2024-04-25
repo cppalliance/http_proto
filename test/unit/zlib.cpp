@@ -95,7 +95,7 @@ struct zlib_test
 
         // this represents our current serializer approach
         std::vector<unsigned char> workspace(
-            input.size() / 4);
+            std::min(input.size() / 4, std::size_t{512}));
 
         buffers::circular_buffer tmp0(
             workspace.data(), workspace.size());
@@ -103,9 +103,13 @@ struct zlib_test
         // fixed-sized output buffer that'd represent out
         // zlib filter type
         std::vector<unsigned char> filter_buf(
-            input.size() / 2, 0x00);
+            16, 0x00);
 
         ret = deflateInit(pstream, Z_DEFAULT_COMPRESSION);
+        if(! BOOST_TEST_EQ(ret, Z_OK) )
+          return;
+
+        ret = deflateReset(pstream);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
           return;
 
@@ -122,6 +126,15 @@ struct zlib_test
 
         pstream->next_out = filter_buf.data();
         pstream->avail_out = filter_buf.size();
+
+        auto append = [&]
+        {
+            auto begin = filter_buf.data();
+            auto end = pstream->next_out;
+            // BOOST_ASSERT((end - begin) > 6);
+            for( auto pos = begin; pos < end; ++pos )
+                *out++ = *pos;
+        };
 
         span<unsigned char const> input_view = input;
         while(! input_view.empty() )
@@ -157,19 +170,39 @@ struct zlib_test
                 {
                     ret = deflate(pstream, Z_NO_FLUSH);
                     BOOST_ASSERT(BOOST_TEST_EQ(ret, Z_OK));
-                    BOOST_ASSERT(pstream->avail_out > 0);
-                    if( pstream->avail_out == 0 ) {
-                        auto m = static_cast<std::size_t>(
-                            pstream->next_out -
-                            filter_buf.data());
-
-                        for( std::size_t i = 0; i < m; ++i )
-                            *out++ = filter_buf[i];
-
+                    if( pstream->avail_out == 0 )
+                    {
+                        ret = deflate(pstream, Z_SYNC_FLUSH);
+                        append();
                         pstream->next_out = filter_buf.data();
                         pstream->avail_out = filter_buf.size();
+
+                        while(pstream->avail_out == 0)
+                        {
+                            pstream->next_out = filter_buf.data();
+                            pstream->avail_out = filter_buf.size();
+                            ret = deflate(pstream, Z_SYNC_FLUSH);
+                            append();
+                            pstream->next_out = filter_buf.data();
+                            pstream->avail_out = filter_buf.size();
+                        }
                     }
                 }
+            }
+
+            ret = deflate(pstream, Z_SYNC_FLUSH);
+            append();
+            pstream->next_out = filter_buf.data();
+            pstream->avail_out = filter_buf.size();
+
+            while(pstream->avail_out == 0)
+            {
+                pstream->next_out = filter_buf.data();
+                pstream->avail_out = filter_buf.size();
+                ret = deflate(pstream, Z_SYNC_FLUSH);
+                append();
+                pstream->next_out = filter_buf.data();
+                pstream->avail_out = filter_buf.size();
             }
 
             tmp0.consume(copied);
@@ -179,12 +212,7 @@ struct zlib_test
         BOOST_TEST_EQ(pstream->total_in, msg.size());
 
         if( pstream->avail_out != filter_buf.size() ) {
-            auto m = static_cast<std::size_t>(
-                pstream->next_out -
-                filter_buf.data());
-
-            for( std::size_t i = 0; i < m; ++i )
-                *out++ = filter_buf[i];
+            append();
 
             pstream->next_out = filter_buf.data();
             pstream->avail_out = filter_buf.size();
@@ -194,10 +222,7 @@ struct zlib_test
             pstream->next_out = filter_buf.data();
             pstream->avail_out = filter_buf.size();
             ret = deflate(pstream, Z_FINISH);
-            auto m = static_cast<std::size_t>(
-                pstream->next_out - filter_buf.data());
-            for( std::size_t i = 0; i < m; ++i )
-                    *out++ = filter_buf[i];
+            append();
         } while(pstream->avail_out == 0);
 
         auto n = pstream->total_out;
@@ -209,8 +234,13 @@ struct zlib_test
           return;
         }
 
-        // BOOST_TEST_EQ(n, 0);
-        // BOOST_TEST_EQ(string_to_hex(core::string_view(reinterpret_cast<char const*>(output.data()), n)), "");
+        // BOOST_TEST_EQ(
+        //     string_to_hex(
+        //         core::string_view(
+        //             reinterpret_cast<char const*>(
+        //                 output.data()),
+        //                 out - output.begin())),
+        //     "");
 
         //--------------------------------------------------
 
@@ -230,7 +260,7 @@ struct zlib_test
             return;
 
         std::vector<unsigned char> decompressed_output(
-            1024, 0x00);
+            2 * input.size(), 0x00);
 
         pstream->next_in = output.data();
         pstream->avail_in = out - output.begin();
