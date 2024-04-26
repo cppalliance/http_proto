@@ -90,8 +90,17 @@ struct zlib_test
 
         auto pstream = &stream;
 
-        std::vector<unsigned char> input(
-            msg.begin(), msg.end());
+        std::vector<unsigned char> input(msg.size(), 0x00);
+        {
+
+            auto out = input.begin();
+            for( auto pos = msg.data();
+                 pos < msg.data() + msg.size(); ++pos )
+            {
+                auto m = *pos;
+                *out++ = m;
+            }
+        }
 
         // this represents our current serializer approach
         std::vector<unsigned char> workspace(
