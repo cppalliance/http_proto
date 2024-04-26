@@ -108,8 +108,7 @@ struct zlib_test
 
         // fixed-sized output buffer that'd represent out
         // zlib filter type
-        std::vector<unsigned char> filter_buf(
-            16, 0x00);
+        std::vector<unsigned char> filter_buf(16, 0x00);
 
         ret = deflateInit(pstream, Z_DEFAULT_COMPRESSION);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
@@ -122,7 +121,7 @@ struct zlib_test
         std::vector<unsigned char> output(
             2 * deflateBound(pstream, input.size()), 0x00);
 
-        auto out = output.begin();
+        auto out = output.data();
 
         BOOST_TEST_GT(output.size(), filter_buf.size());
 
@@ -138,6 +137,10 @@ struct zlib_test
             auto begin = filter_buf.data();
             auto end = pstream->next_out;
             // BOOST_ASSERT((end - begin) > 6);
+
+            // keep this in because it suppresses a codegen bug in clang
+            std::cout << "out: " << static_cast<void*>(out) << std::endl;
+
             for( auto pos = begin; pos < end; ++pos )
                 *out++ = *pos;
         };
@@ -232,7 +235,7 @@ struct zlib_test
         } while(pstream->avail_out == 0);
 
         auto n = pstream->total_out;
-        BOOST_TEST_EQ(n, out - output.begin());
+        BOOST_TEST_EQ(n, out - output.data());
 
         ret = deflateEnd(pstream);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
@@ -269,7 +272,7 @@ struct zlib_test
             2 * input.size(), 0x00);
 
         pstream->next_in = output.data();
-        pstream->avail_in = out - output.begin();
+        pstream->avail_in = out - output.data();
 
         pstream->next_out = decompressed_output.data();
         pstream->avail_out = decompressed_output.size();
