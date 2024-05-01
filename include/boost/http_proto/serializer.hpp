@@ -17,6 +17,7 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/system/result.hpp>
@@ -24,6 +25,8 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+
+#include <zlib.h>
 
 namespace boost {
 namespace http_proto {
@@ -35,6 +38,60 @@ class request_view;
 class response_view;
 class message_view_base;
 #endif
+
+inline
+void* zalloc_impl(
+    void* /* opaque */,
+    unsigned items,
+    unsigned size)
+{
+    try {
+        return ::operator new(items * size);
+    } catch(std::bad_alloc const&) {
+        return Z_NULL;
+    }
+}
+
+inline
+void zfree_impl(void* /* opaque */, void* addr)
+{
+    ::operator delete(addr);
+}
+
+struct zlib_filter
+{
+    z_stream stream_;
+    detail::workspace ws_;
+    buffers::circular_buffer buf_;
+
+    zlib_filter()
+        : ws_(1024), buf_(ws_.data(), ws_.size())
+    {
+        int ret = -1;
+
+        stream_.zalloc = &zalloc_impl;
+        stream_.zfree = &zfree_impl;
+        stream_.opaque = nullptr;
+
+        ret = deflateInit(&stream_, Z_DEFAULT_COMPRESSION);
+        if( ret != Z_OK )
+            throw ret;
+
+        stream_.next_out = nullptr;
+        stream_.avail_out = 0;
+
+        stream_.next_in = nullptr;
+        stream_.avail_in = 0;
+    }
+
+    zlib_filter(zlib_filter const&) = delete;
+    zlib_filter& operator=(zlib_filter const&) = delete;
+
+    ~zlib_filter()
+    {
+        deflateEnd(&stream_);
+    }
+};
 
 /** A serializer for HTTP/1 messages
 
@@ -49,6 +106,9 @@ public:
     class const_buffers_type;
 
     struct stream;
+
+    bool is_compressed_ = false;
+    zlib_filter* zlib_filter_ = nullptr;
 
     /** Destructor
     */

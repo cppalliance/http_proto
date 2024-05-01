@@ -1,4 +1,6 @@
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/response.hpp>
 
 #include "test_suite.hpp"
 
@@ -12,80 +14,49 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
 
 #include <zlib.h>
 
+auto string_to_hex = [](boost::core::string_view input)
+{
+    static const char hex_digits[] = "0123456789ABCDEF";
+
+    std::string output;
+    output.reserve(input.length() * 2);
+    for (unsigned char c : input)
+    {
+        output.push_back(hex_digits[c >> 4]);
+        output.push_back(hex_digits[c & 15]);
+    }
+    return output;
+};
+
 namespace boost {
 namespace http_proto {
-
-void* zalloc(
-    void* /* opaque */,
-    unsigned items,
-    unsigned size)
-{
-    try {
-        return ::operator new(items * size);
-    } catch(...) {
-        return Z_NULL;
-    }
-}
-
-void zfree(void* /* opaque */, void* addr)
-{
-    ::operator delete(addr);
-}
-
-struct zlib_filter
-{
-    z_stream stream_;
-
-    zlib_filter()
-    {
-        int ret = -1;
-
-        stream_.zalloc = &zalloc;
-        stream_.zfree = &zfree;
-        stream_.opaque = nullptr;
-
-        ret = deflateInit(&stream_, Z_DEFAULT_COMPRESSION);
-        if( ret != Z_OK )
-            throw ret;
-    }
-
-    ~zlib_filter()
-    {
-        deflateEnd(&stream_);
-    }
-};
 
 struct zlib_test
 {
     void zlib_hello_world()
     {
-        auto string_to_hex = [](core::string_view input)
-        {
-            static const char hex_digits[] = "0123456789ABCDEF";
 
-            std::string output;
-            output.reserve(input.length() * 2);
-            for (unsigned char c : input)
-            {
-                output.push_back(hex_digits[c >> 4]);
-                output.push_back(hex_digits[c & 15]);
-            }
-            return output;
-        };
 
         (void)string_to_hex;
 
         int ret = -1;
 
-        std::string const msg =
+        // std::filesystem::path input_file("/home/exbigboss/cpp/boost-root/rfc9112");
+        // std::string msg(std::filesystem::file_size(input_file), 0x00);
+        // std::ifstream ifs(input_file);
+        // ifs.read(msg.data(), msg.size());
+
+        std::string msg =
             "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
 
         z_stream stream;
-        stream.zalloc = &zalloc;
-        stream.zfree = &zfree;
+        stream.zalloc = &zalloc_impl;
+        stream.zfree = &zfree_impl;
         stream.opaque = nullptr;
 
         auto pstream = &stream;
@@ -139,7 +110,9 @@ struct zlib_test
             // BOOST_ASSERT((end - begin) > 6);
 
             // keep this in because it suppresses a codegen bug in clang
-            std::cout << "out: " << static_cast<void*>(out) << std::endl;
+            std::cout << "out: " << static_cast<void*>( out ) << std::endl;
+            std::cout << "[" << static_cast<void*>( begin ) << ", "
+                      << static_cast<void*>( end ) << "]" << std::endl;
 
             for( auto pos = begin; pos < end; ++pos )
                 *out++ = *pos;
@@ -181,6 +154,7 @@ struct zlib_test
                     BOOST_ASSERT(BOOST_TEST_EQ(ret, Z_OK));
                     if( pstream->avail_out == 0 )
                     {
+                        // BOOST_ASSERT(false);
                         ret = deflate(pstream, Z_SYNC_FLUSH);
                         append();
                         pstream->next_out = filter_buf.data();
@@ -236,6 +210,7 @@ struct zlib_test
 
         auto n = pstream->total_out;
         BOOST_TEST_EQ(n, out - output.data());
+        // BOOST_TEST_EQ(n, 0);
 
         ret = deflateEnd(pstream);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
@@ -256,8 +231,8 @@ struct zlib_test
         // for( auto& c : input )
         //     c = 0;
 
-        stream.zalloc = &zalloc;
-        stream.zfree = &zfree;
+        stream.zalloc = &zalloc_impl;
+        stream.zfree = &zfree_impl;
         stream.opaque = nullptr;
 
         ret = inflateInit(pstream);
@@ -288,14 +263,151 @@ struct zlib_test
         core::string_view sv(reinterpret_cast<char const*>(decompressed_output.data()), n);
         BOOST_TEST_EQ(sv, msg);
 
+        // BOOST_TEST_EQ(n, 0);
+
         ret = inflateEnd(pstream);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
           return;
     }
 
+    void
+    zlib_serializer()
+    {
+        std::cout << "zlib_serializer()" << std::endl;
+
+        zlib_filter zfilter;
+
+        core::string_view str =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Encoding: deflate\r\n"
+            "\r\n";
+
+        std::string const body =
+            "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
+
+        span<char const> body_view = body;
+
+        response res(str);
+
+        std::vector<unsigned char> output(
+            str.size() + body.size(), 0x00);
+
+        buffers::mutable_buffer output_buf(
+            output.data(), output.size());
+
+        serializer sr(1024);
+        sr.is_compressed_ = true;
+        sr.zlib_filter_ = &zfilter;
+
+        auto stream = sr.start_stream(res);
+
+        while(! body_view.empty() )
+        {
+            auto mbs = stream.prepare();
+            auto n = buffers::buffer_copy(
+                mbs, buffers::const_buffer(
+                    body_view.data(),
+                    std::min(
+                        std::size_t{512},
+                        body_view.size())));
+
+            BOOST_TEST_EQ(n, body.size());
+
+            stream.commit(n);
+
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_EQ(
+                buffers::buffer_size(cbs), 0);
+
+            auto n2 = buffers::buffer_copy(
+                output_buf, cbs);
+
+            sr.consume(n2);
+            output_buf += n2;
+
+            body_view = body_view.subspan(n);
+        }
+        stream.close();
+
+        auto cbs = sr.prepare().value();
+        BOOST_TEST_EQ(
+            buffers::buffer_size(cbs), 0);
+
+        output_buf += buffers::buffer_copy(
+                output_buf, cbs);
+
+        auto m = output.size() - output_buf.size();
+        span<unsigned char> compressed(output.data(), m);
+
+        auto sv =
+            core::string_view(
+                    reinterpret_cast<char const*>(
+                        compressed.data()),
+                        compressed.size());
+
+        BOOST_TEST(sv.starts_with(str));
+
+        sv = sv.substr(str.size());
+
+        compressed = compressed.subspan(str.size());
+        BOOST_TEST_EQ(compressed.size(), 100);
+        BOOST_TEST_EQ(
+            string_to_hex(sv), "");
+
+        {
+            int ret = -1;
+
+            z_stream stream;
+            stream.zalloc = &zalloc_impl;
+            stream.zfree = &zfree_impl;
+            stream.opaque = nullptr;
+
+            auto pstream = &stream;
+
+            stream.zalloc = &zalloc_impl;
+            stream.zfree = &zfree_impl;
+            stream.opaque = nullptr;
+
+            ret = inflateInit(pstream);
+            if(! BOOST_TEST_EQ(ret, Z_OK) )
+                return;
+
+            ret = inflateReset(pstream);
+            if(! BOOST_TEST_EQ(ret, Z_OK) )
+                return;
+
+            std::vector<unsigned char> decompressed_output(
+                2 * body.size(), 0x00);
+
+            pstream->next_in = compressed.data();
+            pstream->avail_in = compressed.size();
+
+            pstream->next_out = decompressed_output.data();
+            pstream->avail_out = decompressed_output.size();
+
+            ret = inflate(pstream, Z_FINISH);
+            if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
+            {
+                std::cout << pstream->msg << std::endl;
+                // return;
+            }
+
+            auto n = pstream->next_out - decompressed_output.data();
+            core::string_view sv(reinterpret_cast<char const*>(decompressed_output.data()), n);
+            BOOST_TEST_EQ(sv, body);
+
+            // BOOST_TEST_EQ(n, 0);
+
+            ret = inflateEnd(pstream);
+            if(! BOOST_TEST_EQ(ret, Z_OK) )
+            return;
+        }
+    }
+
     void run()
     {
         zlib_hello_world();
+        zlib_serializer();
     }
 };
 

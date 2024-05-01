@@ -63,6 +63,7 @@ function(boost_http_proto_setup_properties target)
             Boost::url
             Boost::utility
             Boost::winapi
+            ZLIB::ZLIB
     )
     if (ZLIB_FOUND)
         target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)

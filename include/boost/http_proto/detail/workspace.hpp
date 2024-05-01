@@ -68,6 +68,7 @@ public:
 
     /** Destructor.
     */
+    BOOST_HTTP_PROTO_DECL
     ~workspace();
 
     /** Constructor.
@@ -75,6 +76,7 @@ public:
         @param n The number of bytes of storage
             to allocate for the internal buffer.
     */
+    BOOST_HTTP_PROTO_DECL
     explicit
     workspace(
         std::size_t n);

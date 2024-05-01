@@ -225,6 +225,82 @@ prepare() ->
 
     if(st_ == style::stream)
     {
+        if( is_compressed_ )
+        {
+            int ret = -1;
+            auto& zstream = zlib_filter_->stream_;
+            auto& zbuf = zlib_filter_->buf_;
+
+            auto b = tmp0_.prepare(tmp0_.capacity());
+            auto buf = *b.begin();
+            BOOST_ASSERT(buf.size() > 0);
+
+            zstream.next_out =
+                reinterpret_cast<unsigned char*>(
+                    buf.data());
+            zstream.avail_out = buf.size();
+
+            while( buffers::buffer_size(zbuf.data()) > 0 )
+            {
+                auto cbs = zbuf.data();
+                auto buf = *cbs.begin();
+                BOOST_ASSERT(buf.size() > 0);
+
+                zstream.next_in =
+                    reinterpret_cast<unsigned char*>(
+                        const_cast<void*>(
+                            buf.data()));
+                zstream.avail_in = buf.size();
+
+                while( zstream.avail_in > 0 )
+                {
+                    auto n1 = zstream.avail_in;
+                    auto n2 = zstream.avail_out;
+                    ret = deflate(&zstream, Z_NO_FLUSH);
+                    if( ret != Z_OK )
+                        throw ret;
+
+                    zbuf.consume(n1 - zstream.avail_in);
+                    tmp0_.commit(n2 - zstream.avail_out);
+                    auto b = tmp0_.prepare(tmp0_.capacity());
+                    auto buf = *b.begin();
+                    BOOST_ASSERT(buf.size() > 0);
+                    zstream.next_out =
+                        reinterpret_cast<unsigned char*>(
+                            buf.data());
+                    zstream.avail_out = buf.size();
+                }
+            }
+
+            if(! more_ )
+            {
+                auto n2 = zstream.avail_out;
+                ret = deflate(&zstream, Z_FINISH);
+
+                tmp0_.commit(n2 - zstream.avail_out);
+
+                auto b = tmp0_.prepare(tmp0_.capacity());
+                auto buf = *b.begin();
+                BOOST_ASSERT(buf.size() > 0);
+                zstream.next_out =
+                    reinterpret_cast<unsigned char*>(
+                        buf.data());
+                zstream.avail_out = buf.size();
+                // if( ret != Z_OK )
+                //     throw ret;
+            }
+
+            std::size_t n = 0;
+            if(out_.data() == hp_)
+                ++n;
+
+            for(buffers::const_buffer const& b : tmp0_.data())
+                out_[n++] = b;
+
+            return const_buffers_type(
+                out_.data(), out_.size());
+        }
+
         std::size_t n = 0;
         if(out_.data() == hp_)
             ++n;
@@ -570,6 +646,10 @@ stream::
 prepare() const ->
     buffers_type
 {
+    if( sr_->is_compressed_ )
+        return sr_->zlib_filter_->buf_.prepare(
+            sr_->zlib_filter_->buf_.capacity());
+
     auto n = sr_->tmp0_.capacity();
     if( sr_->is_chunked_ )
     {
@@ -599,6 +679,12 @@ serializer::
 stream::
 commit(std::size_t n) const
 {
+    if( sr_->is_compressed_ )
+    {
+        sr_->zlib_filter_->buf_.commit(n);
+        return;
+    }
+
     if(! sr_->is_chunked_ )
     {
         sr_->tmp0_.commit(n);
@@ -610,6 +696,8 @@ commit(std::size_t n) const
         if( n == 0 )
             detail::throw_logic_error();
 
+        // TODO: this needs to be relocated
+        //
         auto m = n + chunk_header_len_;
         auto dest = sr_->tmp0_.prepare(m);
         write_chunk_header(

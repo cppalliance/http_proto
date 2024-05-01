@@ -29,7 +29,8 @@ target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::system
     Boost::throw_exception
     Boost::url
-    Boost::utility)
+    Boost::utility
+    ZLIB::ZLIB)
 
 target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
 if (ZLIB_FOUND)
