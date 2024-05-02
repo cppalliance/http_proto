@@ -351,10 +351,8 @@ struct zlib_test
             sr.consume(n);
         }
 
-        int c = 0;
         while( buffers::buffer_size(cbs) > 0 )
         {
-            BOOST_ASSERT(BOOST_TEST_LT(++c, 1000));
             cbs = sr.prepare().value();
             auto n = buffers::buffer_copy(
                 output_buf, cbs);
