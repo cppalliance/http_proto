@@ -16,6 +16,7 @@
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
+#include <iostream>
 
 namespace boost {
 namespace http_proto {
@@ -231,19 +232,36 @@ prepare() ->
             auto& zstream = zlib_filter_->stream_;
             auto& zbuf = zlib_filter_->buf_;
 
-            auto b = tmp0_.prepare(tmp0_.capacity());
-            auto buf = *b.begin();
-            BOOST_ASSERT(buf.size() > 0);
+            if( tmp0_.capacity() == 0 )
+                goto end;
 
-            zstream.next_out =
-                reinterpret_cast<unsigned char*>(
-                    buf.data());
-            zstream.avail_out = buf.size();
+            {
+                auto mbs = tmp0_.prepare(tmp0_.capacity());
+                auto buf = *mbs.begin();
+                if( buf.size() == 0 )
+                {
+                    auto p = mbs.begin();
+                    ++p;
+                    buf = *p;
+                }
+                BOOST_ASSERT(buf.size() > 0);
 
-            while( buffers::buffer_size(zbuf.data()) > 0 )
+                zstream.next_out =
+                    reinterpret_cast<unsigned char*>(
+                        buf.data());
+                zstream.avail_out = buf.size();
+            }
+
+            if( zbuf.size() > 0 )
             {
                 auto cbs = zbuf.data();
                 auto buf = *cbs.begin();
+                if( buf.size() == 0 )
+                {
+                    auto p = cbs.begin();
+                    ++p;
+                    buf = *p;
+                }
                 BOOST_ASSERT(buf.size() > 0);
 
                 zstream.next_in =
@@ -251,45 +269,33 @@ prepare() ->
                         const_cast<void*>(
                             buf.data()));
                 zstream.avail_in = buf.size();
-
-                while( zstream.avail_in > 0 )
-                {
-                    auto n1 = zstream.avail_in;
-                    auto n2 = zstream.avail_out;
-                    ret = deflate(&zstream, Z_NO_FLUSH);
-                    if( ret != Z_OK )
-                        throw ret;
-
-                    zbuf.consume(n1 - zstream.avail_in);
-                    tmp0_.commit(n2 - zstream.avail_out);
-                    auto b = tmp0_.prepare(tmp0_.capacity());
-                    auto buf = *b.begin();
-                    BOOST_ASSERT(buf.size() > 0);
-                    zstream.next_out =
-                        reinterpret_cast<unsigned char*>(
-                            buf.data());
-                    zstream.avail_out = buf.size();
-                }
             }
 
-            if(! more_ )
+            if( more_ )
             {
+                auto n1 = zstream.avail_in;
+                auto n2 = zstream.avail_out;
+                ret = deflate(&zstream, Z_NO_FLUSH);
+                zbuf.consume(n1 - zstream.avail_in);
+                tmp0_.commit(n2 - zstream.avail_out);
+
+                if( ret == Z_BUF_ERROR )
+                    goto end;
+
+                if( ret != Z_OK )
+                    throw ret;
+            }
+            else
+            {
+                auto n1 = zstream.avail_in;
                 auto n2 = zstream.avail_out;
                 ret = deflate(&zstream, Z_FINISH);
 
+                zbuf.consume(n1 - zstream.avail_in);
                 tmp0_.commit(n2 - zstream.avail_out);
-
-                auto b = tmp0_.prepare(tmp0_.capacity());
-                auto buf = *b.begin();
-                BOOST_ASSERT(buf.size() > 0);
-                zstream.next_out =
-                    reinterpret_cast<unsigned char*>(
-                        buf.data());
-                zstream.avail_out = buf.size();
-                // if( ret != Z_OK )
-                //     throw ret;
             }
 
+        end:
             std::size_t n = 0;
             if(out_.data() == hp_)
                 ++n;
@@ -370,7 +376,8 @@ consume(
     case style::source:
     case style::stream:
         tmp0_.consume(n);
-        if( tmp0_.size() == 0 &&
+        if( !is_compressed_ &&
+                tmp0_.size() == 0 &&
                 ! more_)
             is_done_ = true;
         return;
