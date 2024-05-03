@@ -90,7 +90,10 @@ struct zlib_test
           return;
 
         std::vector<unsigned char> output(
-            2 * deflateBound(pstream, input.size()), 0x00);
+            2 * deflateBound(
+                pstream,
+                static_cast<unsigned long>(input.size())),
+            0x00);
 
         auto out = output.data();
 
@@ -101,7 +104,8 @@ struct zlib_test
             return;
 
         pstream->next_out = filter_buf.data();
-        pstream->avail_out = filter_buf.size();
+        pstream->avail_out =
+            static_cast<unsigned>(filter_buf.size());
 
         auto append = [&]
         {
@@ -146,7 +150,8 @@ struct zlib_test
                     reinterpret_cast<unsigned char*>(
                         const_cast<void*>(
                             buf.data()));
-                pstream->avail_in = buf.size();
+                pstream->avail_in =
+                    static_cast<unsigned>(buf.size());
 
                 while( pstream->avail_in > 0 )
                 {
@@ -158,16 +163,19 @@ struct zlib_test
                         ret = deflate(pstream, Z_SYNC_FLUSH);
                         append();
                         pstream->next_out = filter_buf.data();
-                        pstream->avail_out = filter_buf.size();
+                        pstream->avail_out =
+                            static_cast<unsigned>(filter_buf.size());
 
                         while(pstream->avail_out == 0)
                         {
                             pstream->next_out = filter_buf.data();
-                            pstream->avail_out = filter_buf.size();
+                            pstream->avail_out =
+                                static_cast<unsigned>(filter_buf.size());
                             ret = deflate(pstream, Z_SYNC_FLUSH);
                             append();
                             pstream->next_out = filter_buf.data();
-                            pstream->avail_out = filter_buf.size();
+                            pstream->avail_out =
+                                static_cast<unsigned>(filter_buf.size());
                         }
                     }
                 }
@@ -176,16 +184,19 @@ struct zlib_test
             ret = deflate(pstream, Z_SYNC_FLUSH);
             append();
             pstream->next_out = filter_buf.data();
-            pstream->avail_out = filter_buf.size();
+            pstream->avail_out =
+                static_cast<unsigned>(filter_buf.size());
 
             while(pstream->avail_out == 0)
             {
                 pstream->next_out = filter_buf.data();
-                pstream->avail_out = filter_buf.size();
+                pstream->avail_out =
+                    static_cast<unsigned>(filter_buf.size());
                 ret = deflate(pstream, Z_SYNC_FLUSH);
                 append();
                 pstream->next_out = filter_buf.data();
-                pstream->avail_out = filter_buf.size();
+                pstream->avail_out =
+                    static_cast<unsigned>(filter_buf.size());
             }
 
             tmp0.consume(copied);
@@ -198,12 +209,14 @@ struct zlib_test
             append();
 
             pstream->next_out = filter_buf.data();
-            pstream->avail_out = filter_buf.size();
+            pstream->avail_out =
+                static_cast<unsigned>(filter_buf.size());
         }
 
         do {
             pstream->next_out = filter_buf.data();
-            pstream->avail_out = filter_buf.size();
+            pstream->avail_out =
+                static_cast<unsigned>(filter_buf.size());
             ret = deflate(pstream, Z_FINISH);
             append();
         } while(pstream->avail_out == 0);
@@ -247,10 +260,12 @@ struct zlib_test
             2 * input.size(), 0x00);
 
         pstream->next_in = output.data();
-        pstream->avail_in = out - output.data();
+        pstream->avail_in =
+            static_cast<unsigned>(out - output.data());
 
         pstream->next_out = decompressed_output.data();
-        pstream->avail_out = decompressed_output.size();
+        pstream->avail_out =
+            static_cast<unsigned>(decompressed_output.size());
 
         ret = inflate(pstream, Z_FINISH);
         if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
@@ -387,16 +402,16 @@ struct zlib_test
         {
             int ret = -1;
 
-            z_stream stream;
-            stream.zalloc = &zalloc_impl;
-            stream.zfree = &zfree_impl;
-            stream.opaque = nullptr;
+            z_stream inflate_stream;
+            inflate_stream.zalloc = &zalloc_impl;
+            inflate_stream.zfree = &zfree_impl;
+            inflate_stream.opaque = nullptr;
 
-            auto pstream = &stream;
+            auto pstream = &inflate_stream;
 
-            stream.zalloc = &zalloc_impl;
-            stream.zfree = &zfree_impl;
-            stream.opaque = nullptr;
+            inflate_stream.zalloc = &zalloc_impl;
+            inflate_stream.zfree = &zfree_impl;
+            inflate_stream.opaque = nullptr;
 
             // `+ 32` => enable zlib + gzip parsing
             ret = inflateInit2(pstream, 15 + 32);
@@ -411,10 +426,12 @@ struct zlib_test
                 2 * body.size(), 0x00);
 
             pstream->next_in = compressed.data();
-            pstream->avail_in = compressed.size();
+            pstream->avail_in =
+                static_cast<unsigned>(compressed.size());
 
             pstream->next_out = decompressed_output.data();
-            pstream->avail_out = decompressed_output.size();
+            pstream->avail_out =
+                static_cast<unsigned>(decompressed_output.size());
 
             ret = inflate(pstream, Z_FINISH);
             if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
@@ -424,9 +441,11 @@ struct zlib_test
             }
 
             auto n = pstream->next_out - decompressed_output.data();
-            core::string_view sv(reinterpret_cast<char const*>(decompressed_output.data()), n);
-            BOOST_TEST_EQ(sv.size(), body.size());
-            BOOST_TEST_EQ(sv, body);
+            core::string_view sv2(
+                reinterpret_cast<char const*>(
+                    decompressed_output.data()), n);
+            BOOST_TEST_EQ(sv2.size(), body.size());
+            BOOST_TEST_EQ(sv2, body);
 
             // BOOST_TEST_EQ(n, 0);
 
