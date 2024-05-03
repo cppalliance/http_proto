@@ -101,6 +101,23 @@ public:
     {
         return ph_->md.transfer_encoding.is_chunked;
     }
+
+    /** Return true if the message uses some form of
+        compression (deflate, gzip).
+    */
+    bool
+    compressed() const noexcept
+    {
+        return
+            ph_->md.content_encoding.coding !=
+            content_coding::none;
+    }
+
+    enum content_coding
+    content_coding() const noexcept
+    {
+        return ph_->md.content_encoding.coding;
+    }
 };
 
 } // http_proto

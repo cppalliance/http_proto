@@ -63,17 +63,38 @@ struct zlib_filter
     z_stream stream_;
     detail::workspace ws_;
     buffers::circular_buffer buf_;
+    content_coding coding_ = content_coding::none;
 
     zlib_filter()
         : ws_(1024), buf_(ws_.data(), ws_.size())
     {
-        int ret = -1;
-
         stream_.zalloc = &zalloc_impl;
         stream_.zfree = &zfree_impl;
         stream_.opaque = nullptr;
+    }
 
-        ret = deflateInit(&stream_, Z_DEFAULT_COMPRESSION);
+    zlib_filter(zlib_filter const&) = delete;
+    zlib_filter& operator=(zlib_filter const&) = delete;
+
+    ~zlib_filter()
+    {
+        deflateEnd(&stream_);
+    }
+
+    void init()
+    {
+        int ret = -1;
+
+        int window_bits = 15;
+        if( coding_ == content_coding::gzip )
+            window_bits += 16;
+
+        int mem_level = 8;
+
+        ret = deflateInit2(
+            &stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+            window_bits, mem_level, Z_DEFAULT_STRATEGY);
+
         if( ret != Z_OK )
             throw ret;
 
@@ -84,12 +105,22 @@ struct zlib_filter
         stream_.avail_in = 0;
     }
 
-    zlib_filter(zlib_filter const&) = delete;
-    zlib_filter& operator=(zlib_filter const&) = delete;
-
-    ~zlib_filter()
+    void reset(enum content_coding coding)
     {
-        deflateEnd(&stream_);
+        BOOST_ASSERT(coding != content_coding::none);
+        if( coding_ == coding )
+        {
+           int ret = -1;
+            ret = deflateReset(&stream_);
+            if( ret != Z_OK )
+                throw ret;
+        }
+        else
+        {
+            deflateEnd(&stream_);
+            coding_ = coding;
+            init();
+        }
     }
 };
 
@@ -107,7 +138,6 @@ public:
 
     struct stream;
 
-    bool is_compressed_ = false;
     zlib_filter* zlib_filter_ = nullptr;
 
     /** Destructor
@@ -381,6 +411,7 @@ private:
     bool is_done_;
     bool is_chunked_;
     bool is_expect_continue_;
+    bool is_compressed_;
 };
 
 //------------------------------------------------

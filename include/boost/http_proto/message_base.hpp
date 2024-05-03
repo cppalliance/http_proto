@@ -114,6 +114,10 @@ public:
     BOOST_HTTP_PROTO_DECL
     void
     set_keep_alive(bool value);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_content_encoding(enum content_coding coding);
 };
 
 } // http_proto

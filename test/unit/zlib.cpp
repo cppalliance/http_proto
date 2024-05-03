@@ -277,11 +277,6 @@ struct zlib_test
 
         zlib_filter zfilter;
 
-        core::string_view str =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Encoding: deflate\r\n"
-            "\r\n";
-
         // std::filesystem::path input_file("/home/exbigboss/cpp/boost-root/rfc9112");
         // std::string body(std::filesystem::file_size(input_file), 0x00);
         // std::ifstream ifs(input_file);
@@ -292,7 +287,22 @@ struct zlib_test
 
         span<char const> body_view = body;
 
-        response res(str);
+        content_coding c = content_coding::gzip;
+
+        response res;
+        res.set_content_encoding(c);
+
+        core::string_view str;
+        if( c == content_coding::deflate )
+            str =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Encoding: deflate\r\n"
+                "\r\n";
+        if( c == content_coding::gzip )
+            str =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Encoding: gzip\r\n"
+                "\r\n";
 
         std::vector<unsigned char> output(
             str.size() + body.size(), 0x00);
@@ -301,7 +311,6 @@ struct zlib_test
             output.data(), output.size());
 
         serializer sr(1024);
-        sr.is_compressed_ = true;
         sr.zlib_filter_ = &zfilter;
 
         auto stream = sr.start_stream(res);
@@ -324,7 +333,6 @@ struct zlib_test
             auto cbs = sr.prepare().value();
             if( buffers::buffer_size(cbs) > 0)
             {
-                std::cout << "prepared: " << buffers::buffer_size(cbs) << " compressed octets" << std::endl;
                 BOOST_ASSERT(
                     BOOST_TEST_GT(
                         buffers::buffer_size(cbs), 0));
@@ -333,7 +341,6 @@ struct zlib_test
                     output_buf, cbs);
 
                 sr.consume(n2);
-                std::cout << "consumed: " << n2 << " octets from the serializer" << std::endl;
                 output_buf += n2;
             }
             body_view = body_view.subspan(n);
@@ -391,7 +398,8 @@ struct zlib_test
             stream.zfree = &zfree_impl;
             stream.opaque = nullptr;
 
-            ret = inflateInit(pstream);
+            // `+ 32` => enable zlib + gzip parsing
+            ret = inflateInit2(pstream, 15 + 32);
             if(! BOOST_TEST_EQ(ret, Z_OK) )
                 return;
 

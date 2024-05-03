@@ -186,5 +186,16 @@ set_keep_alive(bool value)
     }
 }
 
+void
+message_base::
+set_content_encoding(enum content_coding coding)
+{
+    h_.md.content_encoding.coding = coding;
+    if( coding == content_coding::gzip )
+        set("Content-Encoding", "gzip");
+    else if( coding == content_coding::deflate )
+        set("Content-Encoding", "deflate");
+}
+
 } // http_proto
 } // boost

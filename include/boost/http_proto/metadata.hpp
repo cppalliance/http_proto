@@ -54,6 +54,8 @@ enum class payload
     ,to_eof
 };
 
+enum class content_coding { none, gzip, deflate };
+
 //------------------------------------------------
 
 /** Metadata about a request or response
@@ -257,6 +259,15 @@ struct metadata
 
     //--------------------------------------------
 
+    struct content_encoding_t
+    {
+        system::error_code ec;
+
+        std::size_t count = 0;
+
+        content_coding coding = content_coding::none;
+    };
+
     /** True if payload is manually specified
 
         This flag is used to allow the caller
@@ -300,6 +311,8 @@ struct metadata
     /** Metadata for the Upgrade field.
     */
     upgrade_t upgrade;
+
+    content_encoding_t content_encoding;
 
     //--------------------------------------------
 

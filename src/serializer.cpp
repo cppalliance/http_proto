@@ -419,6 +419,12 @@ start_init(
             m.ph_->md.transfer_encoding;
         is_chunked_ = te.is_chunked;
     }
+
+    if( m.compressed() )
+    {
+        is_compressed_ = true;
+        zlib_filter_->reset(m.content_coding());
+    }
 }
 
 void
