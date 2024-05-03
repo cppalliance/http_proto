@@ -411,7 +411,7 @@ private:
     bool is_done_;
     bool is_chunked_;
     bool is_expect_continue_;
-    bool is_compressed_;
+    bool is_compressed_ = false;
 };
 
 //------------------------------------------------
