@@ -249,7 +249,8 @@ prepare() ->
                 zstream.next_out =
                     reinterpret_cast<unsigned char*>(
                         buf.data());
-                zstream.avail_out = buf.size();
+                zstream.avail_out =
+                    static_cast<unsigned>(buf.size());
             }
 
             if( zbuf.size() > 0 )
@@ -268,7 +269,8 @@ prepare() ->
                     reinterpret_cast<unsigned char*>(
                         const_cast<void*>(
                             buf.data()));
-                zstream.avail_in = buf.size();
+                zstream.avail_in =
+                    static_cast<unsigned>(buf.size());
             }
 
             if( more_ )
