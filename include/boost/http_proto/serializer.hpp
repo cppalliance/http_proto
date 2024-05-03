@@ -110,14 +110,15 @@ struct zlib_filter
         BOOST_ASSERT(coding != content_coding::none);
         if( coding_ == coding )
         {
-           int ret = -1;
+            int ret = -1;
             ret = deflateReset(&stream_);
             if( ret != Z_OK )
                 throw ret;
         }
         else
         {
-            deflateEnd(&stream_);
+            if( coding_ != content_coding::none )
+                deflateEnd(&stream_);
             coding_ = coding;
             init();
         }
