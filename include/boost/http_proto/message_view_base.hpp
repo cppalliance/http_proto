@@ -13,6 +13,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
+#include <boost/http_proto/metadata.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
 #include <memory>
