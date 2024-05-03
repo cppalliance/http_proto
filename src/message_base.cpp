@@ -188,12 +188,12 @@ set_keep_alive(bool value)
 
 void
 message_base::
-set_content_encoding(enum content_coding coding)
+set_content_encoding(enum content_coding_type coding)
 {
     h_.md.content_encoding.coding = coding;
-    if( coding == content_coding::gzip )
+    if( coding == content_coding_type::gzip )
         set("Content-Encoding", "gzip");
-    else if( coding == content_coding::deflate )
+    else if( coding == content_coding_type::deflate )
         set("Content-Encoding", "deflate");
 }
 

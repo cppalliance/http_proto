@@ -111,10 +111,10 @@ public:
     {
         return
             ph_->md.content_encoding.coding !=
-            content_coding::none;
+            content_coding_type::none;
     }
 
-    enum content_coding
+    enum content_coding_type
     content_coding() const noexcept
     {
         return ph_->md.content_encoding.coding;

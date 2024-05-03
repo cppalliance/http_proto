@@ -63,7 +63,7 @@ struct zlib_filter
     z_stream stream_;
     detail::workspace ws_;
     buffers::circular_buffer buf_;
-    content_coding coding_ = content_coding::none;
+    content_coding_type coding_ = content_coding_type::none;
 
     zlib_filter()
         : ws_(1024), buf_(ws_.data(), ws_.size())
@@ -86,7 +86,7 @@ struct zlib_filter
         int ret = -1;
 
         int window_bits = 15;
-        if( coding_ == content_coding::gzip )
+        if( coding_ == content_coding_type::gzip )
             window_bits += 16;
 
         int mem_level = 8;
@@ -105,7 +105,7 @@ struct zlib_filter
         stream_.avail_in = 0;
     }
 
-    void reset(enum content_coding coding)
+    void reset(enum content_coding_type coding)
     {
         BOOST_ASSERT(coding != content_coding::none);
         if( coding_ == coding )
@@ -117,7 +117,7 @@ struct zlib_filter
         }
         else
         {
-            if( coding_ != content_coding::none )
+            if( coding_ != content_coding_type::none )
                 deflateEnd(&stream_);
             coding_ = coding;
             init();

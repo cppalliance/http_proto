@@ -274,7 +274,10 @@ struct zlib_test
             // return;
         }
 
-        n = pstream->next_out - decompressed_output.data();
+        n =
+            static_cast<unsigned>(
+                pstream->next_out -
+                decompressed_output.data());
         core::string_view sv(reinterpret_cast<char const*>(decompressed_output.data()), n);
         BOOST_TEST_EQ(sv, msg);
 
@@ -302,18 +305,18 @@ struct zlib_test
 
         span<char const> body_view = body;
 
-        content_coding c = content_coding::gzip;
+        content_coding_type c = content_coding_type::gzip;
 
         response res;
         res.set_content_encoding(c);
 
         core::string_view str;
-        if( c == content_coding::deflate )
+        if( c == content_coding_type::deflate )
             str =
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Encoding: deflate\r\n"
                 "\r\n";
-        if( c == content_coding::gzip )
+        if( c == content_coding_type::gzip )
             str =
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Encoding: gzip\r\n"

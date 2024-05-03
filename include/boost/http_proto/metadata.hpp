@@ -54,7 +54,7 @@ enum class payload
     ,to_eof
 };
 
-enum class content_coding { none, gzip, deflate };
+enum class content_coding_type { none, gzip, deflate };
 
 //------------------------------------------------
 
@@ -265,7 +265,7 @@ struct metadata
 
         std::size_t count = 0;
 
-        content_coding coding = content_coding::none;
+        content_coding_type coding = content_coding_type::none;
     };
 
     /** True if payload is manually specified
