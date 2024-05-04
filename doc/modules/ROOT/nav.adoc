@@ -1,3 +1,5 @@
+* xref:sans_io_philosophy.adoc[]
+
 * xref:Message.adoc[]
 
 * Design Requirements
