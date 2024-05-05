@@ -1,9 +1,20 @@
+//
+// Copyright (c) 2024 Mohammad Nejati
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at https://www.boost.org/LICENSE_1_0.txt)
+//
+// Official repository: https://github.com/cppalliance/http_proto
+//
+
+
 = Sans-I/O Philosophy
 
 
 == What is Sans-I/O?
 
 Sans-I/O is a design philosophy for developing network protocol libraries in which the library itself does not perform any I/O operations or asynchronous flow control. Instead, it provides interfaces for consuming and producing buffers of data and events. This simple change not only facilitates the development of such libraries but also enables their use with any asynchronous or synchronous I/O runtime.
+
 
 == Why a Sans-I/O approach?
 
@@ -24,6 +35,16 @@ The following outlines how a sans-I/O approach can enhance the testability of a 
 
 One of the limiting factors in writing high-quality tests is the cognitive complexity of the tests themselves. For example, if we have to deal with I/O operations in the test, we have to set up connections, timers, and an I/O scheduler, which increases the cognitive load for both the writer and reader of the tests. Using a sans-I/O design approach eliminates all of these unnecessary setups and teardowns from the tests, making it possible to write simpler and cleaner tests.
 
+The following example demonstrates the additional setup required in an I/O-coupled design:
+
+[source,cpp]
+----
+echo_server es{log};
+net::io_context ioc;
+stream<test::stream> ws{ioc, fc};
+ws.next_layer().connect(es.stream());
+ws.handshake("localhost", "/");
+----
 
 ==== Higher code coverage
 
@@ -36,8 +57,46 @@ Most of the time, I/O operations and system calls are the slowest part of a test
 
 Moreover, testing time-sensitive logic with an I/O-coupled library requires realistic delays to cover all possibilities, which can quickly add up to a significant number (even if they are in orders of milliseconds individually). By using a sans-I/O approach, we can cover all of these combinations using synchronous interfaces, which require no delay at all.
 
+The following example demonstrates the necessity of adding delays to tests for I/O-coupled functionalities:
+
+[source,cpp]
+----
+es.async_ping();
+test::run_for(ioc_, 500ms);
+BEAST_EXPECT(!got_timeout);
+test::run_for(ioc_, 750ms);
+BEAST_EXPECT(got_timeout);
+----
 
 ==== Deterministic test results
 
 Relying on I/O operations and system calls can lead to flaky tests since we depend on resources and conditions controlled by the operating system. This issue becomes more pronounced when incorporating time-sensitive test cases, as they may fail due to the operating system scheduling other processes between tests or delaying network operations. A sans-I/O designed library can be thoroughly tested without any I/O operation, relying solely on simple function calls. In fact, a sans-I/O implementation resembles a giant state machine, allowing for deterministic and self-contained testing.
 
+The following example demonstrates the ease of testing within a sans-I/O design, without any reliance on I/O operations or system calls:
+
+[source,cpp]
+----
+response_parser pr(ctx);
+pr.reset();
+pr.start();
+core::string_view in = "HTTP/1.1 200 OK\r\n"
+                       "Content-Length: 3\r\n"
+                       "\r\n"
+                       "123";
+
+while (! in.empty())
+{
+    auto n = buffers::buffer_copy(
+        pr.prepare(),
+        buffers::make_buffer(in));
+    in.remove_prefix(n);
+    pr.commit(n);
+}
+pr.commit_eof();
+
+system::error_code ec;
+pr.parse(ec);
+BOOST_TEST(! ec.failed());
+BOOST_TEST(pr.is_complete());
+BOOST_TEST_EQ(pr.get().status(), status::ok);
+----
