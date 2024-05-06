@@ -228,13 +228,32 @@ prepare() ->
     {
         if( is_compressed_ )
         {
+            auto on_end = [&]
+            {
+                std::size_t n = 0;
+                if(out_.data() == hp_)
+                    ++n;
+
+                for(buffers::const_buffer const& b : tmp0_.data())
+                    out_[n++] = b;
+
+                auto cbs = const_buffers_type(
+                    out_.data(), out_.size());
+
+                BOOST_ASSERT(buffers::buffer_size(cbs) > 0);
+
+                return cbs;
+            };
+
             int ret = -1;
             auto& zstream = zlib_filter_->stream_;
             auto& zbuf = zlib_filter_->buf_;
 
-            if( tmp0_.capacity() == 0 )
-                goto end;
+            if( tmp0_.capacity() == 0 ||
+                zlib_filter_->is_done_ )
+                return on_end();
 
+            auto set_output = [&]
             {
                 auto mbs = tmp0_.prepare(tmp0_.capacity());
                 auto buf = *mbs.begin();
@@ -251,62 +270,96 @@ prepare() ->
                         buf.data());
                 zstream.avail_out =
                     static_cast<unsigned>(buf.size());
-            }
+            };
 
-            if( zbuf.size() > 0 )
+            auto set_input = [&]
             {
-                auto cbs = zbuf.data();
-                auto buf = *cbs.begin();
-                if( buf.size() == 0 )
+                if( zbuf.size() > 0 )
                 {
-                    auto p = cbs.begin();
-                    ++p;
-                    buf = *p;
+                    auto cbs = zbuf.data();
+                    auto buf = *cbs.begin();
+                    if( buf.size() == 0 )
+                    {
+                        auto p = cbs.begin();
+                        ++p;
+                        buf = *p;
+                    }
+                    BOOST_ASSERT(buf.size() > 0);
+
+                    zstream.next_in =
+                        reinterpret_cast<unsigned char*>(
+                            const_cast<void*>(
+                                buf.data()));
+                    zstream.avail_in =
+                        static_cast<unsigned>(buf.size());
                 }
-                BOOST_ASSERT(buf.size() > 0);
+            };
 
-                zstream.next_in =
-                    reinterpret_cast<unsigned char*>(
-                        const_cast<void*>(
-                            buf.data()));
-                zstream.avail_in =
-                    static_cast<unsigned>(buf.size());
-            }
 
-            if( more_ )
+            // set_output();
+            // set_input();
+
+            // auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
+            // auto n1 = zstream.avail_in;
+            // auto n2 = zstream.avail_out;
+            // ret = deflate(&zstream, flush);
+            // zbuf.consume(n1 - zstream.avail_in);
+            // tmp0_.commit(n2 - zstream.avail_out);
+
+            // std::cout << "produced: " << (n2 - zstream.avail_out) << " bytes of output" << std::endl;
+            // std::cout << "will we hit the magic branch???? " << (n2 == zstream.avail_out) << std::endl;
+
+            // if( ret != Z_OK &&
+            //     ret != Z_BUF_ERROR &&
+            //     ret != Z_STREAM_END )
+            //     throw ret;
+
+            // if( flush == Z_NO_FLUSH )
+            //     flush = Z_SYNC_FLUSH;
+
+            auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
+
+            while( true )
             {
+                if( tmp0_.capacity() == 0 )
+                    break;
+
+                set_input();
+                set_output();
+
                 auto n1 = zstream.avail_in;
                 auto n2 = zstream.avail_out;
-                ret = deflate(&zstream, Z_NO_FLUSH);
+                ret = deflate(&zstream, flush);
                 zbuf.consume(n1 - zstream.avail_in);
                 tmp0_.commit(n2 - zstream.avail_out);
+
+                if( ret != Z_OK &&
+                    ret != Z_BUF_ERROR &&
+                    ret != Z_STREAM_END )
+                    throw ret;
+
+                if( zbuf.size() == 0 &&
+                    n2 == zstream.avail_out &&
+                    ret == Z_OK )
+                {
+                    flush = Z_SYNC_FLUSH;
+                    continue;
+                }
+
+                if( ret == Z_STREAM_END )
+                    zlib_filter_->is_done_ = true;
 
                 if( ret == Z_BUF_ERROR )
-                    goto end;
+                    break;
 
-                if( ret != Z_OK )
-                    throw ret;
-            }
-            else
-            {
-                auto n1 = zstream.avail_in;
-                auto n2 = zstream.avail_out;
-                ret = deflate(&zstream, Z_FINISH);
-
-                zbuf.consume(n1 - zstream.avail_in);
-                tmp0_.commit(n2 - zstream.avail_out);
+                if( ret == Z_STREAM_END )
+                    break;
             }
 
-        end:
-            std::size_t n = 0;
-            if(out_.data() == hp_)
-                ++n;
-
-            for(buffers::const_buffer const& b : tmp0_.data())
-                out_[n++] = b;
-
-            return const_buffers_type(
-                out_.data(), out_.size());
+            // BOOST_ASSERT(n2 != zstream.avail_out);
+            std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
+            BOOST_ASSERT(tmp0_.size() > 0);
+            return on_end();
         }
 
         std::size_t n = 0;
@@ -379,8 +432,13 @@ consume(
     case style::stream:
         tmp0_.consume(n);
         if( !is_compressed_ &&
-                tmp0_.size() == 0 &&
-                ! more_)
+            tmp0_.size() == 0 &&
+            ! more_)
+            is_done_ = true;
+
+        if( is_compressed_ &&
+            tmp0_.size() == 0 &&
+            zlib_filter_->is_done_ )
             is_done_ = true;
         return;
     }

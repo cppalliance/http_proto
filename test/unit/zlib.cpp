@@ -343,42 +343,24 @@ struct zlib_test
                         std::size_t{512},
                         body_view.size())));
 
-            // BOOST_TEST_GT(n, 0);
-
-            if( n > 0 )
-                stream.commit(n);
+            BOOST_TEST_GT(n, 0);
+            stream.commit(n);
 
             auto cbs = sr.prepare().value();
-            if( buffers::buffer_size(cbs) > 0)
-            {
-                BOOST_ASSERT(
-                    BOOST_TEST_GT(
-                        buffers::buffer_size(cbs), 0));
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
 
-                auto n2 = buffers::buffer_copy(
-                    output_buf, cbs);
+            auto n2 = buffers::buffer_copy(
+                output_buf, cbs);
 
-                sr.consume(n2);
-                output_buf += n2;
-            }
+            sr.consume(n2);
+            output_buf += n2;
             body_view = body_view.subspan(n);
         }
         stream.close();
 
-        auto cbs = sr.prepare().value();
-        // BOOST_TEST_EQ(
-        //     buffers::buffer_size(cbs), 0);
-
+        while(! sr.is_done() )
         {
-            auto n = buffers::buffer_copy(
-                output_buf, cbs);
-            output_buf += n;
-            sr.consume(n);
-        }
-
-        while( buffers::buffer_size(cbs) > 0 )
-        {
-            cbs = sr.prepare().value();
+            auto cbs = sr.prepare().value();
             auto n = buffers::buffer_copy(
                 output_buf, cbs);
             output_buf += n;

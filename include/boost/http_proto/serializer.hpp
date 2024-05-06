@@ -64,6 +64,7 @@ struct zlib_filter
     detail::workspace ws_;
     buffers::circular_buffer buf_;
     content_coding_type coding_ = content_coding_type::none;
+    bool is_done_ = false;
 
     zlib_filter()
         : ws_(1024), buf_(ws_.data(), ws_.size())
@@ -107,7 +108,7 @@ struct zlib_filter
 
     void reset(enum content_coding_type coding)
     {
-        BOOST_ASSERT(coding != content_coding::none);
+        BOOST_ASSERT(coding != content_coding_type::none);
         if( coding_ == coding )
         {
             int ret = -1;
