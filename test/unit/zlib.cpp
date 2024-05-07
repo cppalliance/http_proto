@@ -307,23 +307,26 @@ struct zlib_test
 
         content_coding_type c = content_coding_type::gzip;
 
-        response res;
-        res.set_content_encoding(c);
-
         core::string_view str;
         if( c == content_coding_type::deflate )
             str =
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Encoding: deflate\r\n"
+                "Transfer-Encoding: chunked\r\n"
                 "\r\n";
         if( c == content_coding_type::gzip )
             str =
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Encoding: gzip\r\n"
+                "Transfer-Encoding: chunked\r\n"
                 "\r\n";
 
+        response res;
+        res.set_content_encoding(c);
+        res.set_chunked(true);
+
         std::vector<unsigned char> output(
-            str.size() + body.size(), 0x00);
+            str.size() + 2 * body.size(), 0x00);
 
         buffers::mutable_buffer output_buf(
             output.data(), output.size());
@@ -351,7 +354,7 @@ struct zlib_test
 
             auto n2 = buffers::buffer_copy(
                 output_buf, cbs);
-
+            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
             sr.consume(n2);
             output_buf += n2;
             body_view = body_view.subspan(n);
@@ -364,25 +367,71 @@ struct zlib_test
             auto n = buffers::buffer_copy(
                 output_buf, cbs);
             output_buf += n;
+            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
             sr.consume(n);
         }
 
         auto m = output.size() - output_buf.size();
-        span<unsigned char> compressed(output.data(), m);
-
         auto sv =
             core::string_view(
                     reinterpret_cast<char const*>(
-                        compressed.data()),
-                        compressed.size());
+                        output.data()),
+                    m);
 
         BOOST_TEST(sv.starts_with(str));
 
         sv = sv.substr(str.size());
 
-        compressed = compressed.subspan(str.size());
         // BOOST_TEST_EQ(
         //     string_to_hex(sv), "");
+
+        auto safe_print = [](core::string_view d)
+        {
+            for(auto c : d)
+            {
+                if( c == '\r' ) std::cout << "\\r";
+                else if( c == '\n' ) std::cout << "\\n";
+                else if( c < 31 ) std::cout << 'X';
+                else std::cout << c;
+            }
+            std::cout << std::endl;
+        };
+        (void) safe_print;
+
+        std::vector<unsigned char> compressed;
+
+        while(! sv.empty() )
+        {
+            if(! res.chunked() )
+                break;
+
+            // safe_print(sv);
+
+            core::string_view& chunk = sv;
+
+            auto pos = chunk.find_first_of("\r\n");
+            BOOST_TEST_NE(pos, core::string_view::npos);
+
+            std::string chunk_header = chunk.substr(0, pos);
+            chunk.remove_prefix(pos + 2);
+
+            auto chunk_size = std::stoul(
+                chunk_header, nullptr, 16);
+
+            if( chunk_size == 0 )
+            {
+                BOOST_TEST_EQ(chunk, "\r\n");
+            }
+            else
+            {
+                compressed.insert(
+                    compressed.end(),
+                    chunk.begin(), chunk.begin() + chunk_size);
+                chunk.remove_prefix(chunk_size);
+                BOOST_TEST(chunk.starts_with("\r\n"));
+            }
+            chunk.remove_prefix(2);
+        }
 
         {
             int ret = -1;
