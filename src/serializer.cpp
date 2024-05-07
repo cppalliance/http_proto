@@ -321,10 +321,8 @@ prepare() ->
             auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
             std::size_t num_written = 0;
 
-            int c = 0;
             while( true )
             {
-                BOOST_ASSERT(c++ < 10);
                 if( tmp0_.capacity() == 0 )
                     break;
 
