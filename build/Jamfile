@@ -9,8 +9,19 @@
 
 import ac ;
 import path ;
+import ../../config/checks/config : requires ;
 
 using zlib ;
+
+constant c11-requires :
+    [ requires
+    cxx11_constexpr
+    cxx11_decltype
+    cxx11_hdr_tuple
+    cxx11_template_aliases
+    cxx11_variadic_templates
+    ]
+    ;
 
 path-constant HTTP_PROTO_ROOT : .. ;
 
