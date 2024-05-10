@@ -145,6 +145,171 @@ prepare() ->
             error::expect_100_continue);
     }
 
+    if( is_compressed_ )
+    {
+        auto on_end = [&]
+        {
+            std::size_t n = 0;
+            if(out_.data() == hp_)
+                ++n;
+
+            for(buffers::const_buffer const& b : tmp0_.data())
+                out_[n++] = b;
+
+            auto cbs = const_buffers_type(
+                out_.data(), out_.size());
+
+            BOOST_ASSERT(buffers::buffer_size(cbs) > 0);
+
+            return cbs;
+        };
+
+        int ret = -1;
+        auto& zstream = zlib_filter_->stream_;
+        auto& zbuf = zlib_filter_->buf_;
+
+        if( st_ == style::source )
+        {
+            auto results = src_->read(
+                zbuf.prepare(zbuf.capacity()));
+            more_ = !results.finished;
+            zbuf.commit(results.bytes);
+        }
+
+        if( tmp0_.capacity() == 0 ||
+            zlib_filter_->is_done_ )
+            return on_end();
+
+        buffers::mutable_buffer chunk_header;
+        if( is_chunked_ )
+        {
+            auto mbs = tmp0_.prepare(chunk_header_len_);
+            auto buf = *mbs.begin();
+            if( buf.size() < chunk_header_len_ )
+                detail::throw_length_error();
+
+            std::memset(
+                buf.data(), 0x00, chunk_header_len_);
+            tmp0_.commit(chunk_header_len_);
+
+            chunk_header = buf;
+        }
+
+        auto set_output = [&]
+        {
+            auto n = tmp0_.capacity();
+            if( is_chunked_ )
+            {
+                if( n < crlf_len_ + last_chunk_len_ + 1 )
+                    detail::throw_length_error();
+                n -= (crlf_len_ + last_chunk_len_);
+            }
+
+            auto mbs = tmp0_.prepare(n);
+            auto buf = *mbs.begin();
+            if( buf.size() == 0 )
+            {
+                auto p = mbs.begin();
+                ++p;
+                buf = *p;
+            }
+            BOOST_ASSERT(buf.size() > 0);
+
+            zstream.next_out =
+                reinterpret_cast<unsigned char*>(
+                    buf.data());
+            zstream.avail_out =
+                static_cast<unsigned>(buf.size());
+        };
+
+        auto set_input = [&]
+        {
+            if( zbuf.size() == 0 )
+                return;
+
+            auto cbs = zbuf.data();
+            auto buf = *cbs.begin();
+            if( buf.size() == 0 )
+            {
+                auto p = cbs.begin();
+                ++p;
+                buf = *p;
+            }
+            BOOST_ASSERT(buf.size() > 0);
+
+            zstream.next_in =
+                reinterpret_cast<unsigned char*>(
+                    const_cast<void*>(
+                        buf.data()));
+            zstream.avail_in =
+                static_cast<unsigned>(buf.size());
+        };
+
+        auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
+        std::size_t num_written = 0;
+
+        while( true )
+        {
+            if( tmp0_.capacity() == 0 )
+                break;
+
+            set_input();
+            set_output();
+
+            auto n1 = zstream.avail_in;
+            auto n2 = zstream.avail_out;
+            ret = deflate(&zstream, flush);
+            zbuf.consume(n1 - zstream.avail_in);
+            tmp0_.commit(n2 - zstream.avail_out);
+            num_written += (n2 - zstream.avail_out);
+
+            if( ret != Z_OK &&
+                ret != Z_BUF_ERROR &&
+                ret != Z_STREAM_END )
+                throw ret;
+
+            if( zbuf.size() == 0 &&
+                n2 == zstream.avail_out &&
+                ret == Z_OK )
+            {
+                flush = Z_SYNC_FLUSH;
+                continue;
+            }
+
+            if( ret == Z_STREAM_END )
+                zlib_filter_->is_done_ = true;
+
+            if( ret == Z_BUF_ERROR )
+                break;
+
+            if( ret == Z_STREAM_END )
+                break;
+        }
+
+        std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
+        BOOST_ASSERT(tmp0_.size() > 0);
+        if( is_chunked_ )
+        {
+            write_chunk_header(
+                chunk_header, num_written);
+
+            buffers::buffer_copy(
+                tmp0_.prepare(2),
+                buffers::const_buffer("\r\n", 2));
+            tmp0_.commit(2);
+
+            if( zlib_filter_->is_done_ )
+            {
+                buffers::buffer_copy(
+                    tmp0_.prepare(5),
+                    buffers::const_buffer(
+                        "0\r\n\r\n", 5));
+                tmp0_.commit(5);
+            }
+        }
+        return on_end();
+    }
+
     if(st_ == style::empty)
     {
         return const_buffers_type(
@@ -226,163 +391,6 @@ prepare() ->
 
     if(st_ == style::stream)
     {
-        if( is_compressed_ )
-        {
-            auto on_end = [&]
-            {
-                std::size_t n = 0;
-                if(out_.data() == hp_)
-                    ++n;
-
-                for(buffers::const_buffer const& b : tmp0_.data())
-                    out_[n++] = b;
-
-                auto cbs = const_buffers_type(
-                    out_.data(), out_.size());
-
-                BOOST_ASSERT(buffers::buffer_size(cbs) > 0);
-
-                return cbs;
-            };
-
-            int ret = -1;
-            auto& zstream = zlib_filter_->stream_;
-            auto& zbuf = zlib_filter_->buf_;
-
-            if( tmp0_.capacity() == 0 ||
-                zlib_filter_->is_done_ )
-                return on_end();
-
-            buffers::mutable_buffer chunk_header;
-            if( is_chunked_ )
-            {
-                auto mbs = tmp0_.prepare(chunk_header_len_);
-                auto buf = *mbs.begin();
-                if( buf.size() < chunk_header_len_ )
-                    detail::throw_length_error();
-
-                std::memset(
-                    buf.data(), 0x00, chunk_header_len_);
-                tmp0_.commit(chunk_header_len_);
-
-                chunk_header = buf;
-            }
-
-            auto set_output = [&]
-            {
-                auto n = tmp0_.capacity();
-                if( is_chunked_ )
-                {
-                    if( n < crlf_len_ + last_chunk_len_ + 1 )
-                        detail::throw_length_error();
-                    n -= (crlf_len_ + last_chunk_len_);
-                }
-
-                auto mbs = tmp0_.prepare(n);
-                auto buf = *mbs.begin();
-                if( buf.size() == 0 )
-                {
-                    auto p = mbs.begin();
-                    ++p;
-                    buf = *p;
-                }
-                BOOST_ASSERT(buf.size() > 0);
-
-                zstream.next_out =
-                    reinterpret_cast<unsigned char*>(
-                        buf.data());
-                zstream.avail_out =
-                    static_cast<unsigned>(buf.size());
-            };
-
-            auto set_input = [&]
-            {
-                if( zbuf.size() == 0 )
-                    return;
-
-                auto cbs = zbuf.data();
-                auto buf = *cbs.begin();
-                if( buf.size() == 0 )
-                {
-                    auto p = cbs.begin();
-                    ++p;
-                    buf = *p;
-                }
-                BOOST_ASSERT(buf.size() > 0);
-
-                zstream.next_in =
-                    reinterpret_cast<unsigned char*>(
-                        const_cast<void*>(
-                            buf.data()));
-                zstream.avail_in =
-                    static_cast<unsigned>(buf.size());
-            };
-
-            auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
-            std::size_t num_written = 0;
-
-            while( true )
-            {
-                if( tmp0_.capacity() == 0 )
-                    break;
-
-                set_input();
-                set_output();
-
-                auto n1 = zstream.avail_in;
-                auto n2 = zstream.avail_out;
-                ret = deflate(&zstream, flush);
-                zbuf.consume(n1 - zstream.avail_in);
-                tmp0_.commit(n2 - zstream.avail_out);
-                num_written += (n2 - zstream.avail_out);
-
-                if( ret != Z_OK &&
-                    ret != Z_BUF_ERROR &&
-                    ret != Z_STREAM_END )
-                    throw ret;
-
-                if( zbuf.size() == 0 &&
-                    n2 == zstream.avail_out &&
-                    ret == Z_OK )
-                {
-                    flush = Z_SYNC_FLUSH;
-                    continue;
-                }
-
-                if( ret == Z_STREAM_END )
-                    zlib_filter_->is_done_ = true;
-
-                if( ret == Z_BUF_ERROR )
-                    break;
-
-                if( ret == Z_STREAM_END )
-                    break;
-            }
-
-            std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
-            BOOST_ASSERT(tmp0_.size() > 0);
-            if( is_chunked_ )
-            {
-                write_chunk_header(
-                    chunk_header, num_written);
-
-                buffers::buffer_copy(
-                    tmp0_.prepare(2),
-                    buffers::const_buffer("\r\n", 2));
-                tmp0_.commit(2);
-
-                if( zlib_filter_->is_done_ )
-                {
-                    buffers::buffer_copy(
-                        tmp0_.prepare(5),
-                        buffers::const_buffer(
-                            "0\r\n\r\n", 5));
-                    tmp0_.commit(5);
-                }
-            }
-            return on_end();
-        }
-
         std::size_t n = 0;
         if(out_.data() == hp_)
             ++n;

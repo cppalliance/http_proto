@@ -19,236 +19,30 @@
 
 #include <zlib.h>
 
-auto string_to_hex = [](boost::core::string_view input)
-{
-    static const char hex_digits[] = "0123456789ABCDEF";
-
-    std::string output;
-    output.reserve(input.length() * 2);
-    for (unsigned char c : input)
-    {
-        output.push_back(hex_digits[c >> 4]);
-        output.push_back(hex_digits[c & 15]);
-    }
-    return output;
-};
-
 namespace boost {
 namespace http_proto {
 
 struct zlib_test
 {
-    void zlib_hello_world()
+    void verify_compressed(
+        span<unsigned char> compressed,
+        core::string_view expected)
     {
-
-
-        (void)string_to_hex;
-
         int ret = -1;
 
-        // std::filesystem::path input_file("/home/exbigboss/cpp/boost-root/rfc9112");
-        // std::string msg(std::filesystem::file_size(input_file), 0x00);
-        // std::ifstream ifs(input_file);
-        // ifs.read(msg.data(), msg.size());
+        z_stream inflate_stream;
+        inflate_stream.zalloc = &zalloc_impl;
+        inflate_stream.zfree = &zfree_impl;
+        inflate_stream.opaque = nullptr;
 
-        std::string msg =
-            "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
+        auto pstream = &inflate_stream;
 
-        z_stream stream;
-        stream.zalloc = &zalloc_impl;
-        stream.zfree = &zfree_impl;
-        stream.opaque = nullptr;
+        inflate_stream.zalloc = &zalloc_impl;
+        inflate_stream.zfree = &zfree_impl;
+        inflate_stream.opaque = nullptr;
 
-        auto pstream = &stream;
-
-        std::vector<unsigned char> input;
-        input.reserve(4 * msg.size());
-        input.resize(msg.size(), 0x00);
-        {
-            auto out = input.begin();
-            for( auto pos = msg.data(); pos < msg.data() + msg.size(); ++pos )
-                *out++ = *pos;
-        }
-
-        // this represents our current serializer approach
-        std::vector<unsigned char> workspace(
-            std::min(input.size() / 4, std::size_t{512}));
-
-        buffers::circular_buffer tmp0(
-            workspace.data(), workspace.size());
-
-        // fixed-sized output buffer that'd represent out
-        // zlib filter type
-        std::vector<unsigned char> filter_buf(16, 0x00);
-
-        ret = deflateInit(pstream, Z_DEFAULT_COMPRESSION);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
-          return;
-
-        ret = deflateReset(pstream);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
-          return;
-
-        std::vector<unsigned char> output(
-            2 * deflateBound(
-                pstream,
-                static_cast<unsigned long>(input.size())),
-            0x00);
-
-        auto out = output.data();
-
-        BOOST_TEST_GT(output.size(), filter_buf.size());
-
-        ret = deflateReset(pstream);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
-            return;
-
-        pstream->next_out = filter_buf.data();
-        pstream->avail_out =
-            static_cast<unsigned>(filter_buf.size());
-
-        auto append = [&]
-        {
-            auto begin = filter_buf.data();
-            auto end = pstream->next_out;
-            // BOOST_ASSERT((end - begin) > 6);
-
-            // keep this in because it suppresses a codegen bug in clang
-            std::cout << "out: " << static_cast<void*>( out ) << std::endl;
-            std::cout << "[" << static_cast<void*>( begin ) << ", "
-                      << static_cast<void*>( end ) << "]" << std::endl;
-
-            for( auto pos = begin; pos < end; ++pos )
-                *out++ = *pos;
-        };
-
-        span<unsigned char const> input_view = input;
-        while(! input_view.empty() )
-        {
-            auto mbs = tmp0.prepare(tmp0.capacity());
-            auto copied =
-                buffers::buffer_copy(
-                    mbs,
-                    buffers::make_buffer(
-                        input_view.data(),
-                        input_view.size()));
-
-            tmp0.commit(copied);
-
-            BOOST_TEST_GT(copied, 0);
-
-            auto cbs = tmp0.data();
-            BOOST_TEST_EQ(
-                buffers::buffer_size(cbs), copied);
-
-            for (auto buf : cbs)
-            {
-                if( buf.size() == 0 )
-                    continue;
-
-                pstream->next_in =
-                    reinterpret_cast<unsigned char*>(
-                        const_cast<void*>(
-                            buf.data()));
-                pstream->avail_in =
-                    static_cast<unsigned>(buf.size());
-
-                while( pstream->avail_in > 0 )
-                {
-                    ret = deflate(pstream, Z_NO_FLUSH);
-                    BOOST_ASSERT(BOOST_TEST_EQ(ret, Z_OK));
-                    if( pstream->avail_out == 0 )
-                    {
-                        // BOOST_ASSERT(false);
-                        ret = deflate(pstream, Z_SYNC_FLUSH);
-                        append();
-                        pstream->next_out = filter_buf.data();
-                        pstream->avail_out =
-                            static_cast<unsigned>(filter_buf.size());
-
-                        while(pstream->avail_out == 0)
-                        {
-                            pstream->next_out = filter_buf.data();
-                            pstream->avail_out =
-                                static_cast<unsigned>(filter_buf.size());
-                            ret = deflate(pstream, Z_SYNC_FLUSH);
-                            append();
-                            pstream->next_out = filter_buf.data();
-                            pstream->avail_out =
-                                static_cast<unsigned>(filter_buf.size());
-                        }
-                    }
-                }
-            }
-
-            ret = deflate(pstream, Z_SYNC_FLUSH);
-            append();
-            pstream->next_out = filter_buf.data();
-            pstream->avail_out =
-                static_cast<unsigned>(filter_buf.size());
-
-            while(pstream->avail_out == 0)
-            {
-                pstream->next_out = filter_buf.data();
-                pstream->avail_out =
-                    static_cast<unsigned>(filter_buf.size());
-                ret = deflate(pstream, Z_SYNC_FLUSH);
-                append();
-                pstream->next_out = filter_buf.data();
-                pstream->avail_out =
-                    static_cast<unsigned>(filter_buf.size());
-            }
-
-            tmp0.consume(copied);
-            input_view = input_view.subspan(copied);
-        }
-
-        BOOST_TEST_EQ(pstream->total_in, msg.size());
-
-        if( pstream->avail_out != filter_buf.size() ) {
-            append();
-
-            pstream->next_out = filter_buf.data();
-            pstream->avail_out =
-                static_cast<unsigned>(filter_buf.size());
-        }
-
-        do {
-            pstream->next_out = filter_buf.data();
-            pstream->avail_out =
-                static_cast<unsigned>(filter_buf.size());
-            ret = deflate(pstream, Z_FINISH);
-            append();
-        } while(pstream->avail_out == 0);
-
-        auto n = pstream->total_out;
-        BOOST_TEST_EQ(n, out - output.data());
-        // BOOST_TEST_EQ(n, 0);
-
-        ret = deflateEnd(pstream);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
-        {
-          return;
-        }
-
-        // BOOST_TEST_EQ(
-        //     string_to_hex(
-        //         core::string_view(
-        //             reinterpret_cast<char const*>(
-        //                 output.data()),
-        //                 out - output.begin())),
-        //     "");
-
-        //--------------------------------------------------
-
-        // for( auto& c : input )
-        //     c = 0;
-
-        stream.zalloc = &zalloc_impl;
-        stream.zfree = &zfree_impl;
-        stream.opaque = nullptr;
-
-        ret = inflateInit(pstream);
+        // `+ 32` => enable zlib + gzip parsing
+        ret = inflateInit2(pstream, 15 + 32);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
             return;
 
@@ -257,11 +51,11 @@ struct zlib_test
             return;
 
         std::vector<unsigned char> decompressed_output(
-            2 * input.size(), 0x00);
+            2 * expected.size(), 0x00);
 
-        pstream->next_in = output.data();
+        pstream->next_in = compressed.data();
         pstream->avail_in =
-            static_cast<unsigned>(out - output.data());
+            static_cast<unsigned>(compressed.size());
 
         pstream->next_out = decompressed_output.data();
         pstream->avail_out =
@@ -274,22 +68,142 @@ struct zlib_test
             // return;
         }
 
-        n =
-            static_cast<unsigned>(
-                pstream->next_out -
-                decompressed_output.data());
-        core::string_view sv(reinterpret_cast<char const*>(decompressed_output.data()), n);
-        BOOST_TEST_EQ(sv, msg);
+        auto n = pstream->next_out - decompressed_output.data();
+        core::string_view sv2(
+            reinterpret_cast<char const*>(
+                decompressed_output.data()), n);
+        BOOST_TEST_EQ(sv2.size(), expected.size());
+        BOOST_TEST_EQ(sv2, expected);
 
         // BOOST_TEST_EQ(n, 0);
 
         ret = inflateEnd(pstream);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
-          return;
+        return;
     }
 
-    void
-    zlib_serializer()
+    static
+    buffers::mutable_buffer
+    zlib_serializer_source(
+        response_view res,
+        serializer& sr,
+        span<char const> body_view,
+        span<unsigned char> output)
+    {
+        struct sink : public source{
+            span<char const>& body_view_;
+            sink(span<char const>& bv) : body_view_(bv) {}
+
+            results on_read(buffers::mutable_buffer b) {
+                results rs;
+                auto n = buffers::buffer_copy(
+                    b,
+                    buffers::const_buffer(
+                        body_view_.data(),
+                        std::min(
+                            std::size_t{512},
+                            body_view_.size())));
+
+                body_view_ = body_view_.subspan(n);
+                rs.bytes = n;
+                rs.ec = {};
+                rs.finished = body_view_.empty();
+                return rs;
+            }
+        };
+
+        buffers::mutable_buffer output_buf(
+            output.data(), output.size());
+
+        auto& s = sr.start<sink>(res, body_view);
+        (void)s;
+
+        while(! body_view.empty() )
+        {
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+
+            auto n2 = buffers::buffer_copy(
+                output_buf, cbs);
+            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
+            sr.consume(n2);
+            output_buf += n2;
+        }
+
+        while(! sr.is_done() )
+        {
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            auto n = buffers::buffer_copy(
+                output_buf, cbs);
+            output_buf += n;
+            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
+            sr.consume(n);
+        }
+
+        return output_buf;
+    }
+
+    static
+    buffers::mutable_buffer
+    zlib_serializer_stream(
+        response_view res,
+        serializer& sr,
+        span<char const> body_view,
+        span<unsigned char> output)
+    {
+        buffers::mutable_buffer output_buf(
+            output.data(), output.size());
+
+        auto stream = sr.start_stream(res);
+
+        while(! body_view.empty() )
+        {
+            auto mbs = stream.prepare();
+            auto n = buffers::buffer_copy(
+                mbs, buffers::const_buffer(
+                    body_view.data(),
+                    std::min(
+                        std::size_t{512},
+                        body_view.size())));
+
+            BOOST_TEST_GT(n, 0);
+            stream.commit(n);
+
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+
+            auto n2 = buffers::buffer_copy(
+                output_buf, cbs);
+            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
+            sr.consume(n2);
+            output_buf += n2;
+            body_view = body_view.subspan(n);
+        }
+        stream.close();
+
+        while(! sr.is_done() )
+        {
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            auto n = buffers::buffer_copy(
+                output_buf, cbs);
+            output_buf += n;
+            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
+            sr.consume(n);
+        }
+
+        return output_buf;
+    }
+
+    using fp_type =
+        buffers::mutable_buffer(*)(
+            response_view,
+            serializer&,
+            span<char const>,
+            span<unsigned char>);
+
+    void zlib_serializer_impl(fp_type fp)
     {
         std::cout << "zlib_serializer()" << std::endl;
 
@@ -325,51 +239,14 @@ struct zlib_test
         res.set_content_encoding(c);
         res.set_chunked(true);
 
-        std::vector<unsigned char> output(
-            str.size() + 2 * body.size(), 0x00);
-
-        buffers::mutable_buffer output_buf(
-            output.data(), output.size());
-
         serializer sr(1024);
         sr.zlib_filter_ = &zfilter;
 
-        auto stream = sr.start_stream(res);
+        std::vector<unsigned char> output(
+            str.size() + 2 * body.size(), 0x00);
 
-        while(! body_view.empty() )
-        {
-            auto mbs = stream.prepare();
-            auto n = buffers::buffer_copy(
-                mbs, buffers::const_buffer(
-                    body_view.data(),
-                    std::min(
-                        std::size_t{512},
-                        body_view.size())));
-
-            BOOST_TEST_GT(n, 0);
-            stream.commit(n);
-
-            auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
-
-            auto n2 = buffers::buffer_copy(
-                output_buf, cbs);
-            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
-            sr.consume(n2);
-            output_buf += n2;
-            body_view = body_view.subspan(n);
-        }
-        stream.close();
-
-        while(! sr.is_done() )
-        {
-            auto cbs = sr.prepare().value();
-            auto n = buffers::buffer_copy(
-                output_buf, cbs);
-            output_buf += n;
-            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
-            sr.consume(n);
-        }
+        auto output_buf =
+            fp(res, sr, body_view, output);
 
         auto m = output.size() - output_buf.size();
         auto sv =
@@ -384,6 +261,21 @@ struct zlib_test
 
         // BOOST_TEST_EQ(
         //     string_to_hex(sv), "");
+
+        auto string_to_hex = [](boost::core::string_view input)
+        {
+            static const char hex_digits[] = "0123456789ABCDEF";
+
+            std::string output;
+            output.reserve(input.length() * 2);
+            for (unsigned char c : input)
+            {
+                output.push_back(hex_digits[c >> 4]);
+                output.push_back(hex_digits[c & 15]);
+            }
+            return output;
+        };
+        (void)string_to_hex;
 
         auto safe_print = [](core::string_view d)
         {
@@ -403,7 +295,11 @@ struct zlib_test
         while(! sv.empty() )
         {
             if(! res.chunked() )
+            {
+                compressed.insert(
+                    compressed.end(), sv.begin(), sv.end());
                 break;
+            }
 
             // safe_print(sv);
 
@@ -433,65 +329,18 @@ struct zlib_test
             chunk.remove_prefix(2);
         }
 
-        {
-            int ret = -1;
+        verify_compressed(compressed, body);
+    }
 
-            z_stream inflate_stream;
-            inflate_stream.zalloc = &zalloc_impl;
-            inflate_stream.zfree = &zfree_impl;
-            inflate_stream.opaque = nullptr;
-
-            auto pstream = &inflate_stream;
-
-            inflate_stream.zalloc = &zalloc_impl;
-            inflate_stream.zfree = &zfree_impl;
-            inflate_stream.opaque = nullptr;
-
-            // `+ 32` => enable zlib + gzip parsing
-            ret = inflateInit2(pstream, 15 + 32);
-            if(! BOOST_TEST_EQ(ret, Z_OK) )
-                return;
-
-            ret = inflateReset(pstream);
-            if(! BOOST_TEST_EQ(ret, Z_OK) )
-                return;
-
-            std::vector<unsigned char> decompressed_output(
-                2 * body.size(), 0x00);
-
-            pstream->next_in = compressed.data();
-            pstream->avail_in =
-                static_cast<unsigned>(compressed.size());
-
-            pstream->next_out = decompressed_output.data();
-            pstream->avail_out =
-                static_cast<unsigned>(decompressed_output.size());
-
-            ret = inflate(pstream, Z_FINISH);
-            if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
-            {
-                std::cout << pstream->msg << std::endl;
-                // return;
-            }
-
-            auto n = pstream->next_out - decompressed_output.data();
-            core::string_view sv2(
-                reinterpret_cast<char const*>(
-                    decompressed_output.data()), n);
-            BOOST_TEST_EQ(sv2.size(), body.size());
-            BOOST_TEST_EQ(sv2, body);
-
-            // BOOST_TEST_EQ(n, 0);
-
-            ret = inflateEnd(pstream);
-            if(! BOOST_TEST_EQ(ret, Z_OK) )
-            return;
-        }
+    void
+    zlib_serializer()
+    {
+        zlib_serializer_impl(zlib_serializer_stream);
+        zlib_serializer_impl(zlib_serializer_source);
     }
 
     void run()
     {
-        zlib_hello_world();
         zlib_serializer();
     }
 };
