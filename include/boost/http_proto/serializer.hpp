@@ -656,6 +656,9 @@ start(
     Args&&... args)
 {
     static_assert(
+        !std::is_abstract<Source>::value,
+        "The Source must be non-abstract, i.e. implements: `auto on_read(buffers::mutable_buffer b) -> http_proto::results;`");
+    static_assert(
         std::is_constructible<Source, Args...>::value ||
         std::is_constructible<Source, buffered_base::allocator&, Args...>::value,
         "The Source cannot be constructed with the given arguments");
