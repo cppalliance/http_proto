@@ -41,8 +41,10 @@ struct zlib_test
         inflate_stream.zfree = &zfree_impl;
         inflate_stream.opaque = nullptr;
 
-        // `+ 32` => enable zlib + gzip parsing
-        ret = inflateInit2(pstream, 15 + 32);
+        int const window_bits = 15; // default
+        int const enable_zlib_and_gzip = 32;
+        ret = inflateInit2(
+            pstream, window_bits + enable_zlib_and_gzip);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
             return;
 
@@ -90,11 +92,14 @@ struct zlib_test
         span<char const> body_view,
         span<unsigned char> output)
     {
-        struct sink : public source{
+        struct sink : public source
+        {
             span<char const>& body_view_;
             sink(span<char const>& bv) : body_view_(bv) {}
 
-            results on_read(buffers::mutable_buffer b) {
+            results
+            on_read(buffers::mutable_buffer b)
+            {
                 results rs;
                 auto n = buffers::buffer_copy(
                     b,
@@ -118,7 +123,7 @@ struct zlib_test
         auto& s = sr.start<sink>(res, body_view);
         (void)s;
 
-        while(! body_view.empty() )
+        while(! body_view.empty() || ! sr.is_done() )
         {
             auto cbs = sr.prepare().value();
             BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
@@ -126,21 +131,10 @@ struct zlib_test
             auto n2 = buffers::buffer_copy(
                 output_buf, cbs);
             BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
+
             sr.consume(n2);
             output_buf += n2;
         }
-
-        while(! sr.is_done() )
-        {
-            auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
-            auto n = buffers::buffer_copy(
-                output_buf, cbs);
-            output_buf += n;
-            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
-            sr.consume(n);
-        }
-
         return output_buf;
     }
 
@@ -196,12 +190,46 @@ struct zlib_test
         return output_buf;
     }
 
+    static
+    buffers::mutable_buffer
+    zlib_serializer_buffers(
+        response_view res,
+        serializer& sr,
+        span<char const> body_view,
+        span<unsigned char> output)
+    {
+        buffers::mutable_buffer output_buf(
+            output.data(), output.size());
+
+        buffers::const_buffer buf(
+            body_view.data(), body_view.size());
+
+        sr.start(res, buf);
+
+        while(! sr.is_done() )
+        {
+            auto cbs = sr.prepare().value();
+            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            BOOST_ASSERT(
+                BOOST_TEST_LT(
+                    buffers::buffer_size(cbs),
+                    output_buf.size()));
+
+            auto n = buffers::buffer_copy(output_buf, cbs);
+            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
+
+            output_buf += n;
+            sr.consume(n);
+        }
+        return output_buf;
+    }
+
     using fp_type =
         buffers::mutable_buffer(*)(
-            response_view,
-            serializer&,
-            span<char const>,
-            span<unsigned char>);
+            response_view res,
+            serializer& sr,
+            span<char const> body_view,
+            span<unsigned char> output);
 
     void zlib_serializer_impl(fp_type fp)
     {
@@ -209,13 +237,18 @@ struct zlib_test
 
         zlib_filter zfilter;
 
-        // std::filesystem::path input_file("/home/exbigboss/cpp/boost-root/rfc9112");
-        // std::string body(std::filesystem::file_size(input_file), 0x00);
-        // std::ifstream ifs(input_file);
-        // ifs.read(body.data(), body.size());
-
+#if 0
+        std::filesystem::path input_file(
+            "/home/exbigboss/cpp/boost-root/rfc9112");
+        std::string body(
+            std::filesystem::file_size(input_file), 0x00);
+        std::ifstream ifs(input_file);
+        ifs.read(body.data(), body.size());
+#else
         std::string const body =
             "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
+#endif
+
 
         span<char const> body_view = body;
 
@@ -337,6 +370,7 @@ struct zlib_test
     {
         zlib_serializer_impl(zlib_serializer_stream);
         zlib_serializer_impl(zlib_serializer_source);
+        zlib_serializer_impl(zlib_serializer_buffers);
     }
 
     void run()

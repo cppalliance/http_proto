@@ -314,6 +314,10 @@ private:
     make_array(std::size_t n) ->
         detail::array_of_const_buffers;
 
+    auto
+    make_array(detail::workspace& ws, std::size_t n) ->
+        detail::array_of_const_buffers;
+
     template<
         class Source,
         class... Args,
@@ -631,17 +635,21 @@ start(
     ConstBufferSequence&& body)
 {
     start_init(m);
+    auto& ws = is_compressed_ ? zlib_filter_->ws_ : ws_;
+
     auto const& bs =
-        ws_.emplace<ConstBufferSequence>(
+        ws.emplace<ConstBufferSequence>(
             std::forward<ConstBufferSequence>(body));
+
     std::size_t n = std::distance(
         buffers::begin(bs),
         buffers::end(bs));
-    buf_ = make_array(n);
+
+    buf_ = make_array(ws, n);
     auto p = buf_.data();
-    for(buffers::const_buffer b :
-            buffers::range(bs))
+    for(buffers::const_buffer b : buffers::range(bs))
         *p++ = b;
+
     start_buffers(m);
 }
 
@@ -682,6 +690,15 @@ make_array(std::size_t n) ->
         ws_.push_array(n,
         buffers::const_buffer{}),
         n };
+}
+
+inline
+auto
+serializer::
+make_array(detail::workspace& ws, std::size_t n) ->
+        detail::array_of_const_buffers
+{
+    return {ws.push_array(n, buffers::const_buffer{}), n};
 }
 
 } // http_proto

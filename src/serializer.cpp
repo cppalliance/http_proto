@@ -224,25 +224,42 @@ prepare() ->
 
         auto set_input = [&]
         {
-            if( zbuf.size() == 0 )
-                return;
-
-            auto cbs = zbuf.data();
-            auto buf = *cbs.begin();
-            if( buf.size() == 0 )
+            if( st_ == style::buffers )
             {
-                auto p = cbs.begin();
-                ++p;
-                buf = *p;
-            }
-            BOOST_ASSERT(buf.size() > 0);
+                if( buffers::buffer_size(buf_) == 0 )
+                    return;
 
-            zstream.next_in =
-                reinterpret_cast<unsigned char*>(
-                    const_cast<void*>(
-                        buf.data()));
-            zstream.avail_in =
-                static_cast<unsigned>(buf.size());
+                auto buf = *(buf_.data());
+                BOOST_ASSERT(buf.size() > 0);
+                zstream.next_in =
+                    reinterpret_cast<unsigned char*>(
+                        const_cast<void*>(
+                            buf.data()));
+                zstream.avail_in =
+                    static_cast<unsigned>(buf.size());
+            }
+            else
+            {
+                if( zbuf.size() == 0 )
+                    return;
+
+                auto cbs = zbuf.data();
+                auto buf = *cbs.begin();
+                if( buf.size() == 0 )
+                {
+                    auto p = cbs.begin();
+                    ++p;
+                    buf = *p;
+                }
+                BOOST_ASSERT(buf.size() > 0);
+
+                zstream.next_in =
+                    reinterpret_cast<unsigned char*>(
+                        const_cast<void*>(
+                            buf.data()));
+                zstream.avail_in =
+                    static_cast<unsigned>(buf.size());
+            }
         };
 
         auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
@@ -259,16 +276,29 @@ prepare() ->
             auto n1 = zstream.avail_in;
             auto n2 = zstream.avail_out;
             ret = deflate(&zstream, flush);
-            zbuf.consume(n1 - zstream.avail_in);
+            if( st_ == style::buffers )
+            {
+                buf_.consume(n1 - zstream.avail_in);
+                if( buffers::buffer_size(buf_) == 0 )
+                    more_ = false;
+            }
+            else
+                zbuf.consume(n1 - zstream.avail_in);
+
             tmp0_.commit(n2 - zstream.avail_out);
             num_written += (n2 - zstream.avail_out);
+
+            auto is_empty =
+                st_ == style::buffers ?
+                (buffers::buffer_size(buf_) == 0) :
+                (zbuf.size() == 0);
 
             if( ret != Z_OK &&
                 ret != Z_BUF_ERROR &&
                 ret != Z_STREAM_END )
                 throw ret;
 
-            if( zbuf.size() == 0 &&
+            if( is_empty &&
                 n2 == zstream.avail_out &&
                 ret == Z_OK )
             {
@@ -283,6 +313,12 @@ prepare() ->
                 break;
 
             if( ret == Z_STREAM_END )
+                break;
+
+            if( ret == Z_OK &&
+                tmp0_.capacity() <
+                    last_chunk_len_ +
+                    crlf_len_ + 1 )
                 break;
         }
 
@@ -452,6 +488,14 @@ consume(
         return;
 
     case style::buffers:
+        if( is_compressed_ )
+        {
+            tmp0_.consume(n);
+            if( tmp0_.size() == 0 &&
+                zlib_filter_->is_done_ )
+                is_done_ = true;
+            return;
+        }
         out_.consume(n);
         if(out_.empty())
             is_done_ = true;
@@ -559,6 +603,18 @@ start_buffers(
     message_view_base const& m)
 {
     st_ = style::buffers;
+    if( is_compressed_ )
+    {
+        out_ = make_array(
+            1 + // header
+            2); // tmp
+
+        hp_ = &out_[0];
+        *hp_ = { m.ph_->cbuf, m.ph_->size };
+        tmp0_ = { ws_.data(), ws_.size() };
+        more_ = true;
+        return;
+    }
 
     if(! is_chunked_)
     {
