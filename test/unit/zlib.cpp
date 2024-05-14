@@ -2,6 +2,7 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/response.hpp>
 
+#include "boost/buffers/const_buffer_span.hpp"
 #include "test_suite.hpp"
 
 #include <boost/buffers/buffer_copy.hpp>
@@ -16,8 +17,52 @@
 #include <iostream>
 // #include <filesystem>
 #include <fstream>
+#include <random>
 
 #include <zlib.h>
+
+// opt into random ascii generation as it's easier than
+// maintaing a large static asset that has to be loaded
+// at runtime
+auto generate_book = [](std::size_t size) -> std::string
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<char> distrib(32, 127);
+
+    std::string out(size, '\0');
+    for(auto& o : out)
+        o = distrib(gen);
+
+    return out;
+};
+
+auto string_to_hex = [](boost::core::string_view input)
+{
+    static const char hex_digits[] = "0123456789ABCDEF";
+
+    std::string output;
+    output.reserve(input.length() * 2);
+    for (unsigned char c : input)
+    {
+        output.push_back(hex_digits[c >> 4]);
+        output.push_back(hex_digits[c & 15]);
+    }
+    return output;
+};
+
+auto safe_print = [](boost::core::string_view d)
+{
+    for(auto c : d)
+    {
+        if( c == '\r' ) std::cout << "\\r";
+        else if( c == '\n' ) std::cout << "\\n";
+        else if( c < 31 ) std::cout << 'X';
+        else std::cout << c;
+    }
+    std::cout << std::endl;
+};
 
 namespace boost {
 namespace http_proto {
@@ -28,6 +73,9 @@ struct zlib_test
         span<unsigned char> compressed,
         core::string_view expected)
     {
+        (void) safe_print;
+        (void) string_to_hex;
+
         int ret = -1;
 
         z_stream inflate_stream;
@@ -201,10 +249,36 @@ struct zlib_test
         buffers::mutable_buffer output_buf(
             output.data(), output.size());
 
-        buffers::const_buffer buf(
-            body_view.data(), body_view.size());
+        std::vector<buffers::const_buffer> buf_seq;
+        {
+            std::size_t num_bufs = 23; // random odd number
+            std::size_t buf_size =
+                body_view.size() / num_bufs;
+            std::size_t remaining =
+                body_view.size() % num_bufs;
 
-        sr.start(res, buf);
+            for( std::size_t i = 0; i < num_bufs; ++i )
+            {
+                auto offset = i * buf_size;
+                buf_seq.push_back(
+                    {body_view.data() + offset, buf_size});
+            }
+
+            if( remaining > 0 )
+            {
+                auto offset = num_bufs * buf_size;
+                buf_seq.push_back(
+                    {body_view.data() + offset, remaining});
+            }
+
+            for( auto buf : buf_seq )
+                BOOST_TEST_GT(buf.size(), 0);
+        }
+
+        buffers::const_buffer_span bufs(
+            buf_seq.data(), buf_seq.size());
+
+        sr.start(res, bufs);
 
         while(! sr.is_done() )
         {
@@ -231,28 +305,16 @@ struct zlib_test
             span<char const> body_view,
             span<unsigned char> output);
 
-    void zlib_serializer_impl(fp_type fp)
+    void zlib_serializer_impl(
+        fp_type fp,
+        content_coding_type c,
+        std::string const& body)
     {
         std::cout << "zlib_serializer()" << std::endl;
 
         zlib_filter zfilter;
 
-#if 0
-        std::filesystem::path input_file(
-            "/home/exbigboss/cpp/boost-root/rfc9112");
-        std::string body(
-            std::filesystem::file_size(input_file), 0x00);
-        std::ifstream ifs(input_file);
-        ifs.read(body.data(), body.size());
-#else
-        std::string const body =
-            "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
-#endif
-
-
         span<char const> body_view = body;
-
-        content_coding_type c = content_coding_type::gzip;
 
         core::string_view str;
         if( c == content_coding_type::deflate )
@@ -294,34 +356,6 @@ struct zlib_test
 
         // BOOST_TEST_EQ(
         //     string_to_hex(sv), "");
-
-        auto string_to_hex = [](boost::core::string_view input)
-        {
-            static const char hex_digits[] = "0123456789ABCDEF";
-
-            std::string output;
-            output.reserve(input.length() * 2);
-            for (unsigned char c : input)
-            {
-                output.push_back(hex_digits[c >> 4]);
-                output.push_back(hex_digits[c & 15]);
-            }
-            return output;
-        };
-        (void)string_to_hex;
-
-        auto safe_print = [](core::string_view d)
-        {
-            for(auto c : d)
-            {
-                if( c == '\r' ) std::cout << "\\r";
-                else if( c == '\n' ) std::cout << "\\n";
-                else if( c < 31 ) std::cout << 'X';
-                else std::cout << c;
-            }
-            std::cout << std::endl;
-        };
-        (void) safe_print;
 
         std::vector<unsigned char> compressed;
 
@@ -368,9 +402,28 @@ struct zlib_test
     void
     zlib_serializer()
     {
-        zlib_serializer_impl(zlib_serializer_stream);
-        zlib_serializer_impl(zlib_serializer_source);
-        zlib_serializer_impl(zlib_serializer_buffers);
+        std::string const short_body =
+            "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
+
+        std::string const long_body =
+            generate_book(350000);
+
+        std::vector<std::string> bodies =
+            { short_body, long_body };
+
+        std::vector<content_coding_type> coding_types =
+            { content_coding_type::deflate,
+              content_coding_type::gzip };
+
+        std::vector<fp_type> fps =
+            { zlib_serializer_stream,
+              zlib_serializer_source,
+              zlib_serializer_buffers };
+
+        for( auto fp : fps )
+            for(auto const& body : bodies )
+                for( auto c : coding_types )
+                    zlib_serializer_impl(fp, c, body);
     }
 
     void run()
