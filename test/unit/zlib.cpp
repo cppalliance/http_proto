@@ -39,34 +39,6 @@ generate_book(std::size_t size)
     return out;
 };
 
-std::string
-string_to_hex(boost::core::string_view input)
-{
-    static const char hex_digits[] = "0123456789ABCDEF";
-
-    std::string output;
-    output.reserve(input.length() * 2);
-    for (unsigned char c : input)
-    {
-        output.push_back(hex_digits[c >> 4]);
-        output.push_back(hex_digits[c & 15]);
-    }
-    return output;
-};
-
-void
-safe_print(boost::core::string_view d)
-{
-    for(auto c : d)
-    {
-        if( c == '\r' ) std::cout << "\\r";
-        else if( c == '\n' ) std::cout << "\\n";
-        else if( c < 31 ) std::cout << 'X';
-        else std::cout << c;
-    }
-    std::cout << std::endl;
-};
-
 namespace boost {
 namespace http_proto {
 
@@ -76,9 +48,6 @@ struct zlib_test
         span<unsigned char> compressed,
         core::string_view expected)
     {
-        (void) safe_print;
-        (void) string_to_hex;
-
         int ret = -1;
 
         z_stream inflate_stream;
