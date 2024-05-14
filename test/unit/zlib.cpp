@@ -24,21 +24,23 @@
 // opt into random ascii generation as it's easier than
 // maintaing a large static asset that has to be loaded
 // at runtime
-auto generate_book = [](std::size_t size) -> std::string
+std::string
+generate_book(std::size_t size)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<char> distrib(32, 127);
+    std::uniform_int_distribution<int> distrib(32, 127);
 
     std::string out(size, '\0');
     for(auto& o : out)
-        o = distrib(gen);
+        o = static_cast<char>(distrib(gen));
 
     return out;
 };
 
-auto string_to_hex = [](boost::core::string_view input)
+std::string
+string_to_hex(boost::core::string_view input)
 {
     static const char hex_digits[] = "0123456789ABCDEF";
 
@@ -52,7 +54,8 @@ auto string_to_hex = [](boost::core::string_view input)
     return output;
 };
 
-auto safe_print = [](boost::core::string_view d)
+void
+safe_print(boost::core::string_view d)
 {
     for(auto c : d)
     {
@@ -261,7 +264,7 @@ struct zlib_test
             {
                 auto offset = i * buf_size;
                 buf_seq.push_back(
-                    {body_view.data() + offset, buf_size});
+                   {body_view.data() + offset, buf_size});
             }
 
             if( remaining > 0 )
@@ -358,6 +361,7 @@ struct zlib_test
         //     string_to_hex(sv), "");
 
         std::vector<unsigned char> compressed;
+        compressed.reserve(body_view.size());
 
         while(! sv.empty() )
         {
@@ -387,9 +391,13 @@ struct zlib_test
             }
             else
             {
-                compressed.insert(
-                    compressed.end(),
-                    chunk.begin(), chunk.begin() + chunk_size);
+                BOOST_TEST_LT(
+                    chunk.begin() + chunk_size,
+                    chunk.end());
+
+                for( std::size_t i = 0; i < chunk_size; ++i )
+                    compressed.push_back(chunk[i]);
+
                 chunk.remove_prefix(chunk_size);
                 BOOST_TEST(chunk.starts_with("\r\n"));
             }
@@ -411,14 +419,16 @@ struct zlib_test
         std::vector<std::string> bodies =
             { short_body, long_body };
 
-        std::vector<content_coding_type> coding_types =
-            { content_coding_type::deflate,
-              content_coding_type::gzip };
+        std::vector<content_coding_type> coding_types = {
+            content_coding_type::deflate,
+            content_coding_type::gzip
+        };
 
-        std::vector<fp_type> fps =
-            { zlib_serializer_stream,
-              zlib_serializer_source,
-              zlib_serializer_buffers };
+        std::vector<fp_type> fps = {
+            zlib_serializer_stream,
+            zlib_serializer_source,
+            zlib_serializer_buffers
+        };
 
         for( auto fp : fps )
             for(auto const& body : bodies )
