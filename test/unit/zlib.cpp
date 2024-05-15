@@ -280,31 +280,30 @@ struct zlib_test
     void zlib_serializer_impl(
         fp_type fp,
         content_coding_type c,
-        std::string const& body)
+        std::string const& body,
+        bool chunked_encoding)
     {
-        std::cout << "zlib_serializer()" << std::endl;
-
         zlib_filter zfilter;
-
         span<char const> body_view = body;
+        std::string header;
+        {
+            header += "HTTP/1.1 200 OK\r\n";
+            if( c == content_coding_type::deflate )
+                header += "Content-Encoding: deflate\r\n";
 
-        core::string_view str;
-        if( c == content_coding_type::deflate )
-            str =
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Encoding: deflate\r\n"
-                "Transfer-Encoding: chunked\r\n"
-                "\r\n";
-        if( c == content_coding_type::gzip )
-            str =
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Encoding: gzip\r\n"
-                "Transfer-Encoding: chunked\r\n"
-                "\r\n";
+            if( c == content_coding_type::gzip )
+                header += "Content-Encoding: gzip\r\n";
 
+            if( chunked_encoding )
+                header += "Transfer-Encoding: chunked\r\n";
+
+            header += "\r\n";
+        }
+
+        core::string_view str = header;
         response res;
         res.set_content_encoding(c);
-        res.set_chunked(true);
+        res.set_chunked(chunked_encoding);
 
         serializer sr(1024);
         sr.zlib_filter_ = &zfilter;
@@ -341,8 +340,6 @@ struct zlib_test
                 break;
             }
 
-            // safe_print(sv);
-
             core::string_view& chunk = sv;
 
             auto pos = chunk.find_first_of("\r\n");
@@ -375,20 +372,24 @@ struct zlib_test
             chunk.remove_prefix(2);
         }
 
+        BOOST_TEST_LT(compressed.size(), body.size());
+
         verify_compressed(compressed, body);
     }
 
     void
     zlib_serializer()
     {
-        std::string const short_body =
+        std::string short_body =
             "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
 
-        std::string const long_body =
+        std::string long_body =
             generate_book(350000);
 
-        std::vector<std::string> bodies =
-            { short_body, long_body };
+        std::vector<std::string> bodies = {
+            short_body,
+            long_body
+        };
 
         std::vector<content_coding_type> coding_types = {
             content_coding_type::deflate,
@@ -401,10 +402,16 @@ struct zlib_test
             zlib_serializer_buffers
         };
 
+        bool use_chunked_encoding[] = {
+            false,
+            true
+        };
+
         for( auto fp : fps )
-            for(auto const& body : bodies )
-                for( auto c : coding_types )
-                    zlib_serializer_impl(fp, c, body);
+        for( auto const& body : bodies )
+        for( auto c : coding_types )
+        for( auto b : use_chunked_encoding )
+            zlib_serializer_impl(fp, c, body, b);
     }
 
     void run()
