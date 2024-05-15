@@ -34,7 +34,6 @@ env:
   NET_RETRY_COUNT: 5
   DEFAULT_BUILD_VARIANT: debug,release
   UBSAN_OPTIONS: "print_stacktrace=1"
-  ASAN_OPTIONS: "detect_invalid_pointer_pairs=2"
 
 jobs:
   runner-selection:
@@ -845,7 +844,7 @@ jobs:
         uses: alandefreitas/cpp-actions/b2-workflow@v1.8.2
         if: ${{ !matrix.coverage && !matrix.time-trace }}
         env:
-          ASAN_OPTIONS: ${{ (startsWith(matrix.compiler, 'apple-clang') && 'detect_invalid_pointer_pairs=0') || 'detect_invalid_pointer_pairs=2' }}
+          ASAN_OPTIONS: ${{ ((matrix.compiler == 'apple-clang' || matrix.compiler == 'clang') && 'detect_invalid_pointer_pairs=0:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1') || 'detect_invalid_pointer_pairs=2:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1' }}
         with:
           source-dir: boost-root
           modules: http_proto
@@ -858,7 +857,7 @@ jobs:
           ubsan: ${{ matrix.ubsan }}
           shared: ${{ matrix.shared }}
           rtti: ${{ (matrix.is-latest && 'on,off') || 'on' }}
-          cxxflags: ${{ (matrix.asan && '-fsanitize=pointer-subtract') || '' }}
+          cxxflags: ${{ (matrix.asan && '-fsanitize-address-use-after-scope -fsanitize=pointer-subtract') || '' }}
           user-config: ${{ (startsWith(matrix.runs-on, 'windows') && format('{0}/user-config.jam', steps.patch.outputs.workspace_root)) || '' }}
           stop-on-error: true
 

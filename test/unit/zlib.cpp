@@ -364,8 +364,10 @@ struct zlib_test
                     chunk.begin() + chunk_size,
                     chunk.end());
 
-                for( std::size_t i = 0; i < chunk_size; ++i )
-                    compressed.push_back(chunk[i]);
+                compressed.insert(
+                    compressed.end(),
+                    chunk.data(),
+                    chunk.data() + chunk_size);
 
                 chunk.remove_prefix(chunk_size);
                 BOOST_TEST(chunk.starts_with("\r\n"));
