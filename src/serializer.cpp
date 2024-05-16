@@ -10,6 +10,7 @@
 
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/message_view_base.hpp>
+#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
@@ -93,6 +94,80 @@ write_last_chunk(DynamicBuffer& db)
             buffers::const_buffer("0\r\n\r\n", 5)));
 }
 
+filter::results
+on_process(
+    zlib_filter& z_filter,
+    z_stream& zstream,
+    buffers::mutable_buffer out,
+    buffers::const_buffer in,
+    bool more)
+{
+    BOOST_ASSERT(out.size() > 6);
+
+    auto flush = more ? Z_NO_FLUSH : Z_FINISH;
+    int ret = -1337;
+    filter::results results;
+
+    while( true )
+    {
+        zstream.next_in =
+            reinterpret_cast<unsigned char*>(
+                const_cast<void*>(in.data()));
+        zstream.avail_in = static_cast<unsigned>(in.size());
+
+        zstream.next_out =
+            reinterpret_cast<unsigned char*>(
+                out.data());
+        zstream.avail_out =
+            static_cast<unsigned>(out.size());
+
+        auto n1 = zstream.avail_in;
+        auto n2 = zstream.avail_out;
+        ret = deflate(&zstream, flush);
+
+        in += (n1 - zstream.avail_in);
+        out += (n2 - zstream.avail_out);
+
+        results.in_bytes += (n1 - zstream.avail_in);
+        results.out_bytes += (n2 - zstream.avail_out);
+
+        // std::cout << "results.in_bytes => " << results.in_bytes << std::endl;
+        // std::cout << "results.out_bytes => " << results.out_bytes << std::endl;
+        // std::cout << "out.size() => " << out.size() << std::endl;
+
+        auto is_empty = (in.size() == 0);
+
+        if( ret != Z_OK &&
+            ret != Z_BUF_ERROR &&
+            ret != Z_STREAM_END )
+            throw ret;
+
+        if( is_empty &&
+            n2 == zstream.avail_out &&
+            ret == Z_OK )
+        {
+            flush = Z_SYNC_FLUSH;
+            continue;
+        }
+
+        if( ret == Z_STREAM_END )
+            z_filter.is_done_ = true;
+
+        if( ret == Z_BUF_ERROR )
+            break;
+
+        if( ret == Z_STREAM_END )
+            break;
+
+        if( ret == Z_OK &&
+            out.size() <
+                detail::last_chunk_len_ +
+                detail::crlf_len_ + 1 )
+            break;
+    }
+    return results;
+}
+
 //------------------------------------------------
 
 serializer::
@@ -131,6 +206,8 @@ prepare() ->
     system::result<
         const_buffers_type>
 {
+    using namespace detail;
+
     // Precondition violation
     if(is_done_)
         detail::throw_logic_error();
@@ -164,8 +241,6 @@ prepare() ->
             return cbs;
         };
 
-        int ret = -1;
-        auto& zstream = zlib_filter_->stream_;
         auto& zbuf = zlib_filter_->buf_;
 
         if( st_ == style::source )
@@ -176,6 +251,10 @@ prepare() ->
             zbuf.commit(results.bytes);
         }
 
+        // todo: this capacity() check is suspicious
+        //       supposed to handle the case where the user
+        //       is repeatedly calling `.prepare()` without
+        //       calling `.consume()` enough
         if( tmp0_.capacity() == 0 ||
             zlib_filter_->is_done_ )
             return on_end();
@@ -185,6 +264,13 @@ prepare() ->
         {
             auto mbs = tmp0_.prepare(chunk_header_len_);
             auto buf = *mbs.begin();
+            if( buf.size() == 0 )
+            {
+                auto p = mbs.begin();
+                ++p;
+                buf = *p;
+            }
+
             if( buf.size() < chunk_header_len_ )
                 detail::throw_length_error();
 
@@ -195,17 +281,9 @@ prepare() ->
             chunk_header = buf;
         }
 
-        auto set_output = [&]
+        auto get_output = [&]() -> buffers::mutable_buffer
         {
-            auto n = tmp0_.capacity();
-            if( is_chunked_ )
-            {
-                if( n < crlf_len_ + last_chunk_len_ + 1 )
-                    detail::throw_length_error();
-                n -= (crlf_len_ + last_chunk_len_);
-            }
-
-            auto mbs = tmp0_.prepare(n);
+            auto mbs = tmp0_.prepare(tmp0_.capacity());
             auto buf = *mbs.begin();
             if( buf.size() == 0 )
             {
@@ -213,35 +291,40 @@ prepare() ->
                 ++p;
                 buf = *p;
             }
-            BOOST_ASSERT(buf.size() > 0);
 
-            zstream.next_out =
-                reinterpret_cast<unsigned char*>(
-                    buf.data());
-            zstream.avail_out =
-                static_cast<unsigned>(buf.size());
+            if( is_chunked_ )
+            {
+                if( buf.size() <
+                    crlf_len_ + last_chunk_len_ + 1 )
+                    return {};
+
+                auto n =
+                    buf.size() -
+                    crlf_len_ -
+                    last_chunk_len_;
+
+                buf = { buf.data(), n };
+            }
+
+            // BOOST_ASSERT(buf.size() > 0);
+            return buf;
         };
 
-        auto set_input = [&]
+        auto get_input = [&]() -> buffers::const_buffer
         {
             if( st_ == style::buffers )
             {
                 if( buffers::buffer_size(buf_) == 0 )
-                    return;
+                    return {};
 
                 auto buf = *(buf_.data());
                 BOOST_ASSERT(buf.size() > 0);
-                zstream.next_in =
-                    reinterpret_cast<unsigned char*>(
-                        const_cast<void*>(
-                            buf.data()));
-                zstream.avail_in =
-                    static_cast<unsigned>(buf.size());
+                return buf;
             }
             else
             {
                 if( zbuf.size() == 0 )
-                    return;
+                    return {};
 
                 auto cbs = zbuf.data();
                 auto buf = *cbs.begin();
@@ -252,77 +335,49 @@ prepare() ->
                     buf = *p;
                 }
                 BOOST_ASSERT(buf.size() > 0);
-
-                zstream.next_in =
-                    reinterpret_cast<unsigned char*>(
-                        const_cast<void*>(
-                            buf.data()));
-                zstream.avail_in =
-                    static_cast<unsigned>(buf.size());
+                return buf;
             }
         };
 
-        auto flush = more_ ? Z_NO_FLUSH : Z_FINISH;
         std::size_t num_written = 0;
-
         while( true )
         {
-            if( tmp0_.capacity() == 0 )
+            auto in = get_input();
+            auto out = get_output();
+            if( out.size() < 6 + 1 )
+            {
+                BOOST_ASSERT(tmp0_.size() > 0);
                 break;
+            }
 
-            set_input();
-            set_output();
+            auto results = zlib_filter_->on_process(
+                out, in, more_);
 
-            auto n1 = zstream.avail_in;
-            auto n2 = zstream.avail_out;
-            ret = deflate(&zstream, flush);
             if( st_ == style::buffers )
             {
-                buf_.consume(n1 - zstream.avail_in);
+                buf_.consume(results.in_bytes);
                 if( buffers::buffer_size(buf_) == 0 )
                     more_ = false;
             }
             else
-                zbuf.consume(n1 - zstream.avail_in);
+                zbuf.consume(results.in_bytes);
 
-            tmp0_.commit(n2 - zstream.avail_out);
-            num_written += (n2 - zstream.avail_out);
-
-            auto is_empty =
-                st_ == style::buffers ?
-                (buffers::buffer_size(buf_) == 0) :
-                (zbuf.size() == 0);
-
-            if( ret != Z_OK &&
-                ret != Z_BUF_ERROR &&
-                ret != Z_STREAM_END )
-                throw ret;
-
-            if( is_empty &&
-                n2 == zstream.avail_out &&
-                ret == Z_OK )
-            {
-                flush = Z_SYNC_FLUSH;
-                continue;
-            }
-
-            if( ret == Z_STREAM_END )
-                zlib_filter_->is_done_ = true;
-
-            if( ret == Z_BUF_ERROR )
+            if( results.out_bytes == 0 )
                 break;
 
-            if( ret == Z_STREAM_END )
-                break;
+            // std::cout << "zstream.total_in => " << zstream.total_in << std::endl;
+            // std::cout << "zstream.total_out => " << zstream.total_out << std::endl;
+            // std::cout << "results.out_bytes => " << results.out_bytes << std::endl;
 
-            if( ret == Z_OK &&
-                tmp0_.capacity() <
-                    last_chunk_len_ +
-                    crlf_len_ + 1 )
-                break;
+            BOOST_ASSERT(results.out_bytes > 0);
+
+            num_written += results.out_bytes;
+            tmp0_.commit(results.out_bytes);
         }
 
-        std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
+        // std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
+        // std::cout << "-------------------------" << std::endl;
+
         BOOST_ASSERT(tmp0_.size() > 0);
         if( is_chunked_ )
         {
@@ -793,7 +848,7 @@ stream::
 is_full() const noexcept
 {
     if( sr_->is_chunked_ )
-        return capacity() < chunked_overhead_ + 1;
+        return capacity() < detail::chunked_overhead_ + 1;
 
     return capacity() == 0;
 }
@@ -820,13 +875,14 @@ prepare() const ->
         //
         // without needing to worry about draining the
         // serializer via `consume()` calls
-        if( n < chunked_overhead_ + 1 )
+        if( n < detail::chunked_overhead_ + 1 )
             detail::throw_length_error();
 
-        n -= chunked_overhead_;
+        n -= detail::chunked_overhead_;
         return buffers::sans_prefix(
-            sr_->tmp0_.prepare(chunk_header_len_ + n),
-            chunk_header_len_);
+            sr_->tmp0_.prepare(
+                detail::chunk_header_len_ + n),
+            detail::chunk_header_len_);
     }
 
     return sr_->tmp0_.prepare(n);
@@ -856,10 +912,12 @@ commit(std::size_t n) const
 
         // TODO: this needs to be relocated
         //
-        auto m = n + chunk_header_len_;
+        auto m = n + detail::chunk_header_len_;
         auto dest = sr_->tmp0_.prepare(m);
         write_chunk_header(
-            buffers::prefix(dest, chunk_header_len_), n);
+            buffers::prefix(
+                dest, detail::chunk_header_len_),
+            n);
         sr_->tmp0_.commit(m);
         write_chunk_close(sr_->tmp0_);
     }

@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/source.hpp>
+#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
@@ -30,6 +31,44 @@
 
 namespace boost {
 namespace http_proto {
+namespace detail {
+// chunked-body   = *chunk
+//                  last-chunk
+//                  trailer-section
+//                  CRLF
+
+static
+constexpr
+std::size_t
+crlf_len_ = 2;
+
+// chunk          = chunk-size [ chunk-ext ] CRLF
+//                  chunk-data CRLF
+static
+constexpr
+std::size_t
+chunk_header_len_ =
+    16 + // 16 hex digits => 64 bit number
+    crlf_len_;
+
+// last-chunk     = 1*("0") [ chunk-ext ] CRLF
+static
+constexpr
+std::size_t
+last_chunk_len_ =
+    1 + // "0"
+    crlf_len_ +
+    crlf_len_; // chunked-body termination requires an extra CRLF
+
+static
+constexpr
+std::size_t
+chunked_overhead_ =
+    chunk_header_len_ +
+    crlf_len_ + // closing chunk data
+    last_chunk_len_;
+}
+
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class request;
@@ -123,6 +162,78 @@ struct zlib_filter
             coding_ = coding;
             init();
         }
+    }
+
+    filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more)
+    {
+        auto& zfilter = *this;
+        auto& zstream = stream_;
+
+        BOOST_ASSERT(out.size() > 6);
+
+        auto flush = more ? Z_NO_FLUSH : Z_FINISH;
+        int ret = -1337;
+        filter::results results;
+
+        while( true )
+        {
+            zstream.next_in =
+                reinterpret_cast<unsigned char*>(
+                    const_cast<void*>(in.data()));
+            zstream.avail_in = static_cast<unsigned>(
+                in.size());
+
+            zstream.next_out =
+                reinterpret_cast<unsigned char*>(
+                    out.data());
+            zstream.avail_out =
+                static_cast<unsigned>(out.size());
+
+            auto n1 = zstream.avail_in;
+            auto n2 = zstream.avail_out;
+            ret = deflate(&zstream, flush);
+
+            in += (n1 - zstream.avail_in);
+            out += (n2 - zstream.avail_out);
+
+            results.in_bytes += (n1 - zstream.avail_in);
+            results.out_bytes += (n2 - zstream.avail_out);
+
+            auto is_empty = (in.size() == 0);
+
+            if( ret != Z_OK &&
+                ret != Z_BUF_ERROR &&
+                ret != Z_STREAM_END )
+                throw ret;
+
+            if( is_empty &&
+                n2 == zstream.avail_out &&
+                ret == Z_OK )
+            {
+                flush = Z_SYNC_FLUSH;
+                continue;
+            }
+
+            if( ret == Z_STREAM_END )
+                zfilter.is_done_ = true;
+
+            if( ret == Z_BUF_ERROR )
+                break;
+
+            if( ret == Z_STREAM_END )
+                break;
+
+            if( ret == Z_OK &&
+                out.size() <
+                    detail::last_chunk_len_ +
+                    detail::crlf_len_ + 1 )
+                break;
+        }
+        return results;
     }
 };
 
@@ -365,42 +476,6 @@ private:
         source,
         stream
     };
-
-    // chunked-body   = *chunk
-    //                  last-chunk
-    //                  trailer-section
-    //                  CRLF
-
-    static
-    constexpr
-    std::size_t
-    crlf_len_ = 2;
-
-    // chunk          = chunk-size [ chunk-ext ] CRLF
-    //                  chunk-data CRLF
-    static
-    constexpr
-    std::size_t
-    chunk_header_len_ =
-        16 + // 16 hex digits => 64 bit number
-        crlf_len_;
-
-    // last-chunk     = 1*("0") [ chunk-ext ] CRLF
-    static
-    constexpr
-    std::size_t
-    last_chunk_len_ =
-        1 + // "0"
-        crlf_len_ +
-        crlf_len_; // chunked-body termination requires an extra CRLF
-
-    static
-    constexpr
-    std::size_t
-    chunked_overhead_ =
-        chunk_header_len_ +
-        crlf_len_ + // closing chunk data
-        last_chunk_len_;
 
     detail::workspace ws_;
     detail::array_of_const_buffers buf_;
