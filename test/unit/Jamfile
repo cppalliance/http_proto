@@ -16,7 +16,6 @@ project
     : requirements
       $(c11-requires)
       <library>/boost/http_proto//boost_http_proto
-      [ ac.check-library /zlib//zlib : <library>/zlib//zlib : ]
       [ ac.check-library /boost/http_proto//boost_http_proto_zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
       <source>../../../url/extra/test_main.cpp
       <source>./test_helpers.cpp

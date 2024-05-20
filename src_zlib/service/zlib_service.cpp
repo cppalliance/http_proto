@@ -11,13 +11,35 @@
 #define BOOST_HTTP_PROTO_SERVICE_IMPL_ZLIB_SERVICE_IPP
 
 #include <boost/http_proto/service/zlib_service.hpp>
+
+#include <boost/http_proto/metadata.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
+
+#include <boost/buffers/circular_buffer.hpp>
 #include <boost/system/result.hpp>
+
+#include <list>
+
 #include "zlib.h"
 
 namespace boost {
 namespace http_proto {
 namespace zlib {
 namespace detail {
+
+static
+constexpr
+std::size_t
+crlf_len_ = 2;
+
+// last-chunk     = 1*("0") [ chunk-ext ] CRLF
+static
+constexpr
+std::size_t
+last_chunk_len_ =
+    1 + // "0"
+    crlf_len_ +
+    crlf_len_; // chunked-body termination requires an extra CRLF
 
 /*
     DEFLATE Compressed Data Format Specification version 1.3
@@ -214,6 +236,50 @@ private:
 
 //------------------------------------------------
 
+
+namespace {
+void* zalloc_impl(
+    void* /* opaque */,
+    unsigned items,
+    unsigned size)
+{
+    try {
+        return ::operator new(items * size);
+    } catch(std::bad_alloc const&) {
+        return Z_NULL;
+    }
+}
+
+void zfree_impl(void* /* opaque */, void* addr)
+{
+    ::operator delete(addr);
+}
+} // namespace
+
+struct zlib_filter_impl
+{
+    z_stream stream_;
+    buffers::circular_buffer buf_;
+    content_coding_type coding_ = content_coding_type::none;
+    bool is_done_ = false;
+
+    zlib_filter_impl(
+        http_proto::detail::workspace& ws)
+    {
+        (void)ws;
+        stream_.zalloc = &zalloc_impl;
+        stream_.zfree = &zfree_impl;
+        stream_.opaque = nullptr;
+    }
+
+    ~zlib_filter_impl()
+    {
+        deflateEnd(&stream_);
+    }
+};
+
+//------------------------------------------------
+
 struct
     deflate_decoder_service_impl
     : deflate_decoder_service
@@ -236,6 +302,7 @@ struct
 
 private:
     config cfg_;
+    std::list<zlib_filter> filters_;
 
     config const&
     get_config() const noexcept override
@@ -250,12 +317,11 @@ private:
     }
 
     filter&
-    make_filter(http_proto::detail::workspace& ws) const override
+    make_filter(http_proto::detail::workspace& ws) override
     {
-        filter* p;
-        (void)ws;
-        p = nullptr;
-        return *p;
+        filters_.emplace_back(ws);
+        auto p_filter = &filters_.back();
+        return *p_filter;
     }
 };
 
@@ -268,6 +334,148 @@ install(context& ctx)
 {
     ctx.make_service<
         detail::deflate_decoder_service_impl>(*this);
+}
+
+zlib_filter::zlib_filter(
+    http_proto::detail::workspace& ws)
+{
+    impl_ = new detail::zlib_filter_impl(ws);
+}
+
+zlib_filter::~zlib_filter()
+{
+    delete impl_;
+}
+
+void zlib_filter::init()
+{
+    auto& coding_ = impl_->coding_;
+    auto& stream_ = impl_->stream_;
+
+    int ret = -1;
+
+    int window_bits = 15;
+    if( coding_ == content_coding_type::gzip )
+        window_bits += 16;
+
+    int mem_level = 8;
+
+    ret = deflateInit2(
+        &stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+        window_bits, mem_level, Z_DEFAULT_STRATEGY);
+
+    if( ret != Z_OK )
+        throw ret;
+
+    stream_.next_out = nullptr;
+    stream_.avail_out = 0;
+
+    stream_.next_in = nullptr;
+    stream_.avail_in = 0;
+}
+
+void
+zlib_filter::
+reset(enum content_coding_type coding)
+{
+    auto& coding_ = impl_->coding_;
+    auto& stream_ = impl_->stream_;
+
+    BOOST_ASSERT(coding != content_coding_type::none);
+    if( coding_ == coding )
+    {
+        int ret = -1;
+        ret = deflateReset(&stream_);
+        if( ret != Z_OK )
+            throw ret;
+    }
+    else
+    {
+        if( coding_ != content_coding_type::none )
+            deflateEnd(&stream_);
+        coding_ = coding;
+        init();
+    }
+}
+
+bool
+zlib_filter::
+is_done() const noexcept
+{
+    return impl_->is_done_;
+}
+
+filter::results
+zlib_filter::
+on_process(
+    buffers::mutable_buffer out,
+    buffers::const_buffer in,
+    bool more)
+{
+    auto& zfilter = *impl_;
+    auto& zstream = zfilter.stream_;
+
+    BOOST_ASSERT(out.size() > 6);
+
+    auto flush = more ? Z_NO_FLUSH : Z_FINISH;
+    int ret = -1337;
+    filter::results results;
+
+    while( true )
+    {
+        zstream.next_in =
+            reinterpret_cast<unsigned char*>(
+                const_cast<void*>(in.data()));
+        zstream.avail_in = static_cast<unsigned>(
+            in.size());
+
+        zstream.next_out =
+            reinterpret_cast<unsigned char*>(
+                out.data());
+        zstream.avail_out =
+            static_cast<unsigned>(out.size());
+
+        auto n1 = zstream.avail_in;
+        auto n2 = zstream.avail_out;
+        ret = deflate(&zstream, flush);
+
+        in += (n1 - zstream.avail_in);
+        out += (n2 - zstream.avail_out);
+
+        results.in_bytes += (n1 - zstream.avail_in);
+        results.out_bytes += (n2 - zstream.avail_out);
+
+        auto is_empty = (in.size() == 0);
+
+        if( ret != Z_OK &&
+            ret != Z_BUF_ERROR &&
+            ret != Z_STREAM_END )
+            throw ret;
+
+        if( is_empty &&
+            n2 == zstream.avail_out &&
+            ret == Z_OK )
+        {
+            flush = Z_SYNC_FLUSH;
+            continue;
+        }
+
+        if( ret == Z_STREAM_END )
+            zfilter.is_done_ = true;
+
+        if( ret == Z_BUF_ERROR )
+            break;
+
+        if( ret == Z_STREAM_END )
+            break;
+
+        if( ret == Z_OK &&
+            out.size() <
+                detail::last_chunk_len_ +
+                detail::crlf_len_ + 1 )
+            break;
+    }
+    return results;
 }
 
 } // zlib

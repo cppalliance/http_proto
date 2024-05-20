@@ -11,6 +11,7 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/filter.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
@@ -94,80 +95,6 @@ write_last_chunk(DynamicBuffer& db)
             buffers::const_buffer("0\r\n\r\n", 5)));
 }
 
-filter::results
-on_process(
-    zlib_filter& z_filter,
-    z_stream& zstream,
-    buffers::mutable_buffer out,
-    buffers::const_buffer in,
-    bool more)
-{
-    BOOST_ASSERT(out.size() > 6);
-
-    auto flush = more ? Z_NO_FLUSH : Z_FINISH;
-    int ret = -1337;
-    filter::results results;
-
-    while( true )
-    {
-        zstream.next_in =
-            reinterpret_cast<unsigned char*>(
-                const_cast<void*>(in.data()));
-        zstream.avail_in = static_cast<unsigned>(in.size());
-
-        zstream.next_out =
-            reinterpret_cast<unsigned char*>(
-                out.data());
-        zstream.avail_out =
-            static_cast<unsigned>(out.size());
-
-        auto n1 = zstream.avail_in;
-        auto n2 = zstream.avail_out;
-        ret = deflate(&zstream, flush);
-
-        in += (n1 - zstream.avail_in);
-        out += (n2 - zstream.avail_out);
-
-        results.in_bytes += (n1 - zstream.avail_in);
-        results.out_bytes += (n2 - zstream.avail_out);
-
-        // std::cout << "results.in_bytes => " << results.in_bytes << std::endl;
-        // std::cout << "results.out_bytes => " << results.out_bytes << std::endl;
-        // std::cout << "out.size() => " << out.size() << std::endl;
-
-        auto is_empty = (in.size() == 0);
-
-        if( ret != Z_OK &&
-            ret != Z_BUF_ERROR &&
-            ret != Z_STREAM_END )
-            throw ret;
-
-        if( is_empty &&
-            n2 == zstream.avail_out &&
-            ret == Z_OK )
-        {
-            flush = Z_SYNC_FLUSH;
-            continue;
-        }
-
-        if( ret == Z_STREAM_END )
-            z_filter.is_done_ = true;
-
-        if( ret == Z_BUF_ERROR )
-            break;
-
-        if( ret == Z_STREAM_END )
-            break;
-
-        if( ret == Z_OK &&
-            out.size() <
-                detail::last_chunk_len_ +
-                detail::crlf_len_ + 1 )
-            break;
-    }
-    return results;
-}
-
 //------------------------------------------------
 
 serializer::
@@ -192,6 +119,20 @@ serializer(
 {
 }
 
+serializer::
+serializer(
+    context& ctx,
+    std::size_t buffer_size)
+    : ws_(buffer_size)
+    , ctx_(&ctx)
+{
+    if( ctx_->has_service<zlib::deflate_decoder_service>() )
+    {
+        filter_ws_.allocate(1024);
+        tmp1_ = { filter_ws_.data(), filter_ws_.size() };
+    }
+}
+
 void
 serializer::
 reset() noexcept
@@ -206,8 +147,6 @@ prepare() ->
     system::result<
         const_buffers_type>
 {
-    using namespace detail;
-
     // Precondition violation
     if(is_done_)
         detail::throw_logic_error();
@@ -241,7 +180,16 @@ prepare() ->
             return cbs;
         };
 
-        auto& zbuf = zlib_filter_->buf_;
+        if(! zlib_filter_ )
+        {
+            auto& svc =
+                ctx_->get_service<
+                    zlib::deflate_decoder_service>();
+
+            zlib_filter_ = &svc.make_filter(filter_ws_);
+        }
+
+        auto& zbuf = tmp1_;
 
         if( st_ == style::source )
         {
@@ -251,18 +199,10 @@ prepare() ->
             zbuf.commit(results.bytes);
         }
 
-        // todo: this capacity() check is suspicious
-        //       supposed to handle the case where the user
-        //       is repeatedly calling `.prepare()` without
-        //       calling `.consume()` enough
-        if( tmp0_.capacity() == 0 ||
-            zlib_filter_->is_done_ )
-            return on_end();
-
         buffers::mutable_buffer chunk_header;
         if( is_chunked_ )
         {
-            auto mbs = tmp0_.prepare(chunk_header_len_);
+            auto mbs = tmp0_.prepare(detail::chunk_header_len_);
             auto buf = *mbs.begin();
             if( buf.size() == 0 )
             {
@@ -271,12 +211,12 @@ prepare() ->
                 buf = *p;
             }
 
-            if( buf.size() < chunk_header_len_ )
+            if( buf.size() < detail::chunk_header_len_ )
                 detail::throw_length_error();
 
             std::memset(
-                buf.data(), 0x00, chunk_header_len_);
-            tmp0_.commit(chunk_header_len_);
+                buf.data(), 0x00, detail::chunk_header_len_);
+            tmp0_.commit(detail::chunk_header_len_);
 
             chunk_header = buf;
         }
@@ -295,13 +235,13 @@ prepare() ->
             if( is_chunked_ )
             {
                 if( buf.size() <
-                    crlf_len_ + last_chunk_len_ + 1 )
+                    detail::crlf_len_ + detail::last_chunk_len_ + 1 )
                     return {};
 
                 auto n =
                     buf.size() -
-                    crlf_len_ -
-                    last_chunk_len_;
+                    detail::crlf_len_ -
+                    detail::last_chunk_len_;
 
                 buf = { buf.data(), n };
             }
@@ -389,7 +329,7 @@ prepare() ->
                 buffers::const_buffer("\r\n", 2));
             tmp0_.commit(2);
 
-            if( zlib_filter_->is_done_ )
+            if( static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
             {
                 buffers::buffer_copy(
                     tmp0_.prepare(5),
@@ -430,7 +370,7 @@ prepare() ->
             }
             else
             {
-                if(tmp0_.capacity() > chunked_overhead_)
+                if(tmp0_.capacity() > detail::chunked_overhead_)
                 {
                     auto dest = tmp0_.prepare(
                         tmp0_.capacity() -
@@ -547,7 +487,7 @@ consume(
         {
             tmp0_.consume(n);
             if( tmp0_.size() == 0 &&
-                zlib_filter_->is_done_ )
+                static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
                 is_done_ = true;
             return;
         }
@@ -566,7 +506,7 @@ consume(
 
         if( is_compressed_ &&
             tmp0_.size() == 0 &&
-            zlib_filter_->is_done_ )
+            static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
             is_done_ = true;
         return;
     }
@@ -611,7 +551,16 @@ start_init(
     if( m.compressed() )
     {
         is_compressed_ = true;
-        zlib_filter_->reset(m.content_coding());
+        if(! zlib_filter_ )
+        {
+            auto& svc =
+                ctx_->get_service<
+                    zlib::deflate_decoder_service>();
+
+            zlib_filter_ = &svc.make_filter(filter_ws_);
+        }
+        static_cast<zlib::zlib_filter*>(
+            zlib_filter_)->reset(m.content_coding());
     }
 }
 
@@ -860,8 +809,8 @@ prepare() const ->
     buffers_type
 {
     if( sr_->is_compressed_ )
-        return sr_->zlib_filter_->buf_.prepare(
-            sr_->zlib_filter_->buf_.capacity());
+        return sr_->tmp1_.prepare(
+            sr_->tmp1_.capacity());
 
     auto n = sr_->tmp0_.capacity();
     if( sr_->is_chunked_ )
@@ -895,7 +844,7 @@ commit(std::size_t n) const
 {
     if( sr_->is_compressed_ )
     {
-        sr_->zlib_filter_->buf_.commit(n);
+        sr_->tmp1_.commit(n);
         return;
     }
 

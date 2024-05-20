@@ -28,6 +28,8 @@ class BOOST_SYMBOL_VISIBLE
     filter
     : public buffered_base
 {
+    friend class serializer;
+
 public:
     /** The results of processing the filter.
     */

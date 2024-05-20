@@ -11,8 +11,9 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/source.hpp>
+#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/filter.hpp>
+#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
@@ -78,165 +79,6 @@ class response_view;
 class message_view_base;
 #endif
 
-inline
-void* zalloc_impl(
-    void* /* opaque */,
-    unsigned items,
-    unsigned size)
-{
-    try {
-        return ::operator new(items * size);
-    } catch(std::bad_alloc const&) {
-        return Z_NULL;
-    }
-}
-
-inline
-void zfree_impl(void* /* opaque */, void* addr)
-{
-    ::operator delete(addr);
-}
-
-struct zlib_filter
-{
-    z_stream stream_;
-    detail::workspace ws_;
-    buffers::circular_buffer buf_;
-    content_coding_type coding_ = content_coding_type::none;
-    bool is_done_ = false;
-
-    zlib_filter()
-        : ws_(1024), buf_(ws_.data(), ws_.size())
-    {
-        stream_.zalloc = &zalloc_impl;
-        stream_.zfree = &zfree_impl;
-        stream_.opaque = nullptr;
-    }
-
-    zlib_filter(zlib_filter const&) = delete;
-    zlib_filter& operator=(zlib_filter const&) = delete;
-
-    ~zlib_filter()
-    {
-        deflateEnd(&stream_);
-    }
-
-    void init()
-    {
-        int ret = -1;
-
-        int window_bits = 15;
-        if( coding_ == content_coding_type::gzip )
-            window_bits += 16;
-
-        int mem_level = 8;
-
-        ret = deflateInit2(
-            &stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-            window_bits, mem_level, Z_DEFAULT_STRATEGY);
-
-        if( ret != Z_OK )
-            throw ret;
-
-        stream_.next_out = nullptr;
-        stream_.avail_out = 0;
-
-        stream_.next_in = nullptr;
-        stream_.avail_in = 0;
-    }
-
-    void reset(enum content_coding_type coding)
-    {
-        BOOST_ASSERT(coding != content_coding_type::none);
-        if( coding_ == coding )
-        {
-            int ret = -1;
-            ret = deflateReset(&stream_);
-            if( ret != Z_OK )
-                throw ret;
-        }
-        else
-        {
-            if( coding_ != content_coding_type::none )
-                deflateEnd(&stream_);
-            coding_ = coding;
-            init();
-        }
-    }
-
-    filter::results
-    on_process(
-        buffers::mutable_buffer out,
-        buffers::const_buffer in,
-        bool more)
-    {
-        auto& zfilter = *this;
-        auto& zstream = stream_;
-
-        BOOST_ASSERT(out.size() > 6);
-
-        auto flush = more ? Z_NO_FLUSH : Z_FINISH;
-        int ret = -1337;
-        filter::results results;
-
-        while( true )
-        {
-            zstream.next_in =
-                reinterpret_cast<unsigned char*>(
-                    const_cast<void*>(in.data()));
-            zstream.avail_in = static_cast<unsigned>(
-                in.size());
-
-            zstream.next_out =
-                reinterpret_cast<unsigned char*>(
-                    out.data());
-            zstream.avail_out =
-                static_cast<unsigned>(out.size());
-
-            auto n1 = zstream.avail_in;
-            auto n2 = zstream.avail_out;
-            ret = deflate(&zstream, flush);
-
-            in += (n1 - zstream.avail_in);
-            out += (n2 - zstream.avail_out);
-
-            results.in_bytes += (n1 - zstream.avail_in);
-            results.out_bytes += (n2 - zstream.avail_out);
-
-            auto is_empty = (in.size() == 0);
-
-            if( ret != Z_OK &&
-                ret != Z_BUF_ERROR &&
-                ret != Z_STREAM_END )
-                throw ret;
-
-            if( is_empty &&
-                n2 == zstream.avail_out &&
-                ret == Z_OK )
-            {
-                flush = Z_SYNC_FLUSH;
-                continue;
-            }
-
-            if( ret == Z_STREAM_END )
-                zfilter.is_done_ = true;
-
-            if( ret == Z_BUF_ERROR )
-                break;
-
-            if( ret == Z_STREAM_END )
-                break;
-
-            if( ret == Z_OK &&
-                out.size() <
-                    detail::last_chunk_len_ +
-                    detail::crlf_len_ + 1 )
-                break;
-        }
-        return results;
-    }
-};
-
 /** A serializer for HTTP/1 messages
 
     This is used to serialize one or more complete
@@ -251,7 +93,7 @@ public:
 
     struct stream;
 
-    zlib_filter* zlib_filter_ = nullptr;
+    filter* zlib_filter_ = nullptr;
 
     /** Destructor
     */
@@ -274,6 +116,11 @@ public:
     BOOST_HTTP_PROTO_DECL
     explicit
     serializer(
+        std::size_t buffer_size);
+
+    BOOST_HTTP_PROTO_DECL
+    serializer(
+        context& ctx,
         std::size_t buffer_size);
 
     //--------------------------------------------
@@ -478,9 +325,10 @@ private:
     };
 
     detail::workspace ws_;
+    detail::workspace filter_ws_;
     detail::array_of_const_buffers buf_;
     source* src_;
-
+    context* ctx_ = nullptr;
     buffers::circular_buffer tmp0_;
     buffers::circular_buffer tmp1_;
     detail::array_of_const_buffers out_;
@@ -710,7 +558,7 @@ start(
     ConstBufferSequence&& body)
 {
     start_init(m);
-    auto& ws = is_compressed_ ? zlib_filter_->ws_ : ws_;
+    auto& ws = (is_compressed_ ? filter_ws_ : ws_);
 
     auto const& bs =
         ws.emplace<ConstBufferSequence>(

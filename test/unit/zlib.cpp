@@ -1,13 +1,15 @@
+#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
-#include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/response.hpp>
+#include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
 
-#include "boost/buffers/const_buffer_span.hpp"
 #include "test_suite.hpp"
 
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/core/span.hpp>
@@ -15,11 +17,28 @@
 #include <string>
 #include <vector>
 #include <iostream>
-// #include <filesystem>
-#include <fstream>
 #include <random>
 
 #include <zlib.h>
+
+void*
+zalloc_impl(
+    void* /* opaque */,
+    unsigned items,
+    unsigned size)
+{
+    try {
+        return ::operator new(items * size);
+    } catch(std::bad_alloc const&) {
+        return Z_NULL;
+    }
+}
+
+void
+zfree_impl(void* /* opaque */, void* addr)
+{
+    ::operator delete(addr);
+}
 
 // opt into random ascii generation as it's easier than
 // maintaing a large static asset that has to be loaded
@@ -283,7 +302,11 @@ struct zlib_test
         std::string const& body,
         bool chunked_encoding)
     {
-        zlib_filter zfilter;
+        context ctx;
+        zlib::deflate_decoder_service::config cfg;
+        cfg.install(ctx);
+
+
         span<char const> body_view = body;
         std::string header;
         {
@@ -305,8 +328,7 @@ struct zlib_test
         res.set_content_encoding(c);
         res.set_chunked(chunked_encoding);
 
-        serializer sr(1024);
-        sr.zlib_filter_ = &zfilter;
+        serializer sr(ctx, 1024);
 
         std::vector<unsigned char> output(
             str.size() + 3 * body.size(), 0x00);

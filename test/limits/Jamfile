@@ -8,6 +8,7 @@
 #
 
 import testing ;
+import ac ;
 
 project
     : requirements
@@ -27,5 +28,6 @@ run limits.cpp ../../../url/extra/test_main.cpp /boost/http_proto//http_proto_so
         <library>/zlib//zlib
         <library>/boost//buffers
         <library>/boost//url
+        [ ac.check-library /boost/http_proto//boost_http_proto_zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
         <link>static
     ;

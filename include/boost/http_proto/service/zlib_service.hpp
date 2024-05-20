@@ -15,6 +15,7 @@
 #include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/service/service.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/http_proto/metadata.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -47,10 +48,46 @@ struct deflate_decoder_service
 
     virtual
     filter&
-    make_filter(detail::workspace& ws) const = 0;
+    make_filter(detail::workspace& ws) = 0;
 };
 
 //------------------------------------------------
+
+namespace detail {
+struct zlib_filter_impl;
+}
+
+class zlib_filter final : public filter
+{
+private:
+    friend class serializer;
+
+    detail::zlib_filter_impl* impl_;
+
+    void init();
+
+
+public:
+    zlib_filter(http_proto::detail::workspace& ws);
+    ~zlib_filter();
+
+    zlib_filter(zlib_filter const&) = delete;
+    zlib_filter& operator=(zlib_filter const&) = delete;
+
+    filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override;
+
+    BOOST_HTTP_PROTO_ZLIB_DECL
+    void
+    reset(enum content_coding_type coding);
+
+    BOOST_HTTP_PROTO_ZLIB_DECL
+    bool
+    is_done() const noexcept;
+};
 
 } // zlib
 } // http_proto

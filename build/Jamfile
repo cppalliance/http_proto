@@ -38,6 +38,20 @@ project boost/http_proto
     : source-location $(HTTP_PROTO_ROOT)
     ;
 
+alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
+
+explicit http_proto_zlib_sources ;
+
+lib boost_http_proto_zlib
+   : http_proto_zlib_sources
+   : requirements
+     <library>/boost//url
+     [ ac.check-library /zlib//zlib : <library>/zlib//zlib : <build>no ]
+   : usage-requirements
+     <library>/boost//url
+     [ ac.check-library /zlib//zlib : <library>/zlib//zlib : ]
+   ;
+
 alias http_proto_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src : *.cpp ] ;
 
 explicit http_proto_sources ;
@@ -47,24 +61,11 @@ lib boost_http_proto
    : requirements
      <library>/boost//buffers
      <library>/boost//url
+     [ ac.check-library /zlib//zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
    : usage-requirements
      <library>/boost//buffers
      <library>/boost//url
-   ;
-
-alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
-
-explicit http_proto_zlib_sources ;
-
-lib boost_http_proto_zlib
-   : http_proto_zlib_sources
-   : requirements
-     <library>/boost//url
-     <library>/boost/http_proto//boost_http_proto
-     [ ac.check-library /zlib//zlib : <library>/zlib//zlib : <build>no ]
-   : usage-requirements
-     <library>/boost//url
-     <library>/boost/http_proto//boost_http_proto
+     [ ac.check-library /zlib//zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
    ;
 
 boost-install boost_http_proto boost_http_proto_zlib ;
