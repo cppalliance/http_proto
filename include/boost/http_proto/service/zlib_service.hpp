@@ -57,7 +57,8 @@ namespace detail {
 struct zlib_filter_impl;
 }
 
-class zlib_filter final : public filter
+class BOOST_HTTP_PROTO_ZLIB_DECL zlib_filter final
+    : public filter
 {
 private:
     friend class serializer;
@@ -80,11 +81,9 @@ public:
         buffers::const_buffer in,
         bool more) override;
 
-    BOOST_HTTP_PROTO_ZLIB_DECL
     void
     reset(enum content_coding_type coding);
 
-    BOOST_HTTP_PROTO_ZLIB_DECL
     bool
     is_done() const noexcept;
 };
