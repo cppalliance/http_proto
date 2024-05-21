@@ -99,7 +99,6 @@ private:
         @ref init was called once before any
             calls to `process`
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_process(
@@ -113,7 +112,6 @@ private:
         @ref init was called once before any
             calls to `process`.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_process(
