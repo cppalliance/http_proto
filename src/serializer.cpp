@@ -305,18 +305,11 @@ prepare() ->
             if( results.out_bytes == 0 )
                 break;
 
-            // std::cout << "zstream.total_in => " << zstream.total_in << std::endl;
-            // std::cout << "zstream.total_out => " << zstream.total_out << std::endl;
-            // std::cout << "results.out_bytes => " << results.out_bytes << std::endl;
-
             BOOST_ASSERT(results.out_bytes > 0);
 
             num_written += results.out_bytes;
             tmp0_.commit(results.out_bytes);
         }
-
-        // std::cout << "tmp0_.size() => " << tmp0_.size() << std::endl;
-        // std::cout << "-------------------------" << std::endl;
 
         BOOST_ASSERT(tmp0_.size() > 0);
         if( is_chunked_ )
@@ -329,7 +322,8 @@ prepare() ->
                 buffers::const_buffer("\r\n", 2));
             tmp0_.commit(2);
 
-            if( static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
+            if( static_cast<zlib::zlib_filter*>(
+                    zlib_filter_)->is_done() )
             {
                 buffers::buffer_copy(
                     tmp0_.prepare(5),

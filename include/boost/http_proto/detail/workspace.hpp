@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_WORKSPACE_HPP
 #define BOOST_HTTP_PROTO_DETAIL_WORKSPACE_HPP
 
+#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
 #include <cstdlib>
@@ -44,7 +45,7 @@ namespace detail {
         end of the reserved area and stretches
         until the beginning of the acquired area.
 */
-class workspace
+class BOOST_HTTP_PROTO_CORE_DECL workspace
 {
     unsigned char* begin_ = nullptr;
     unsigned char* front_ = nullptr;
@@ -68,7 +69,6 @@ public:
 
     /** Destructor.
     */
-    BOOST_HTTP_PROTO_DECL
     ~workspace();
 
     /** Constructor.
@@ -76,7 +76,6 @@ public:
         @param n The number of bytes of storage
             to allocate for the internal buffer.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     workspace(
         std::size_t n);
@@ -117,7 +116,6 @@ public:
 
     /** Clear the contents while preserving capacity.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     clear() noexcept;
 
@@ -125,7 +123,6 @@ public:
 
         @throws std::invalid_argument n >= this->size()
     */
-    BOOST_HTTP_PROTO_DECL
     unsigned char*
     reserve_front(
         std::size_t n);
@@ -140,13 +137,11 @@ public:
         std::size_t n,
         T const& t);
 
-    BOOST_HTTP_PROTO_DECL
     unsigned char*
     reserve_back(
         std::size_t n);
 
 private:
-    BOOST_HTTP_PROTO_DECL
     unsigned char*
     bump_down(
         std::size_t size,

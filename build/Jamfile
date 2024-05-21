@@ -31,6 +31,7 @@ project boost/http_proto
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
       <link>static:<define>BOOST_HTTP_PROTO_STATIC_LINK=1
       [ ac.check-library /zlib//zlib : <library>/zlib//zlib <define>BOOST_HTTP_PROTO_HAS_ZLIB <define>BOOST_HTTP_PROTO_ZLIB_SOURCE : ]
+      <define>BOOST_HTTP_PROTO_CORE_SOURCE
       <define>BOOST_HTTP_PROTO_SOURCE
     : usage-requirements
       <link>shared:<define>BOOST_HTTP_PROTO_DYN_LINK=1
@@ -38,17 +39,26 @@ project boost/http_proto
     : source-location $(HTTP_PROTO_ROOT)
     ;
 
-alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
+alias http_proto_core_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_core : *.cpp ] ;
+explicit http_proto_core_sources ;
+lib boost_http_proto_core
+   : http_proto_core_sources
+   : requirements
+      <library>/boost//url
+   : usage-requirements
+      <library>/boost//url
+   ;
 
+alias http_proto_zlib_sources : [ path.glob-tree $(HTTP_PROTO_ROOT)/src_zlib : *.cpp ] ;
 explicit http_proto_zlib_sources ;
 
 lib boost_http_proto_zlib
    : http_proto_zlib_sources
    : requirements
-     <library>/boost//url
+     <library>/boost/http_proto//boost_http_proto_core
      [ ac.check-library /zlib//zlib : <library>/zlib//zlib : <build>no ]
    : usage-requirements
-     <library>/boost//url
+     <library>/boost/http_proto//boost_http_proto_core
      [ ac.check-library /zlib//zlib : <library>/zlib//zlib : ]
    ;
 
@@ -61,11 +71,13 @@ lib boost_http_proto
    : requirements
      <library>/boost//buffers
      <library>/boost//url
+     <library>/boost/http_proto//boost_http_proto_core
      [ ac.check-library /zlib//zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
    : usage-requirements
      <library>/boost//buffers
      <library>/boost//url
+     <library>/boost/http_proto//boost_http_proto_core
      [ ac.check-library /zlib//zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
    ;
 
-boost-install boost_http_proto boost_http_proto_zlib ;
+boost-install boost_http_proto_core boost_http_proto_zlib boost_http_proto ;

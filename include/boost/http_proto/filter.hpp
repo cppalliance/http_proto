@@ -24,7 +24,7 @@ namespace http_proto {
 
 /** A filter for buffers
 */
-class BOOST_HTTP_PROTO_DECL
+class BOOST_HTTP_PROTO_CORE_DECL
     filter
     : public buffered_base
 {

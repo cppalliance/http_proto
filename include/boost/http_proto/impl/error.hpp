@@ -38,21 +38,24 @@ struct is_error_condition_enum<
 //-----------------------------------------------
 
 namespace http_proto {
-
 namespace detail {
 
 struct BOOST_SYMBOL_VISIBLE
     error_cat_type
     : system::error_category
 {
-    BOOST_HTTP_PROTO_DECL const char* name(
-        ) const noexcept override;
-    BOOST_HTTP_PROTO_DECL std::string message(
-        int) const override;
-    BOOST_HTTP_PROTO_DECL char const* message(
-        int, char*, std::size_t
-            ) const noexcept override;
-    BOOST_SYSTEM_CONSTEXPR error_cat_type()
+    BOOST_HTTP_PROTO_CORE_DECL
+    const char* name() const noexcept override;
+
+    BOOST_HTTP_PROTO_CORE_DECL
+    std::string message(int) const override;
+
+    BOOST_HTTP_PROTO_CORE_DECL
+    char const* message(
+        int, char*, std::size_t) const noexcept override;
+
+    BOOST_SYSTEM_CONSTEXPR
+    error_cat_type()
         : error_category(0x3663257e7585fbfd)
     {
     }
@@ -62,25 +65,31 @@ struct BOOST_SYMBOL_VISIBLE
     condition_cat_type
     : system::error_category
 {
-    BOOST_HTTP_PROTO_DECL const char* name(
-        ) const noexcept override;
-    BOOST_HTTP_PROTO_DECL std::string message(
-        int) const override;
-    BOOST_HTTP_PROTO_DECL char const* message(
-        int, char*, std::size_t
-            ) const noexcept override;
-    BOOST_HTTP_PROTO_DECL bool equivalent(
-        system::error_code const&, int
-            ) const noexcept override;
-    BOOST_SYSTEM_CONSTEXPR condition_cat_type()
+    BOOST_HTTP_PROTO_CORE_DECL
+    const char* name() const noexcept override;
+
+    BOOST_HTTP_PROTO_CORE_DECL
+    std::string message(int) const override;
+
+    BOOST_HTTP_PROTO_CORE_DECL
+    char const* message(
+        int, char*, std::size_t) const noexcept override;
+
+    BOOST_HTTP_PROTO_CORE_DECL
+    bool equivalent(
+        system::error_code const&,
+        int) const noexcept override;
+
+    BOOST_SYSTEM_CONSTEXPR
+    condition_cat_type()
         : error_category(0xa36e10f16c666a7)
     {
     }
 };
 
-BOOST_HTTP_PROTO_DECL extern
+BOOST_HTTP_PROTO_CORE_DECL extern
     error_cat_type error_cat;
-BOOST_HTTP_PROTO_DECL extern
+BOOST_HTTP_PROTO_CORE_DECL extern
     condition_cat_type condition_cat;
 
 } // detail

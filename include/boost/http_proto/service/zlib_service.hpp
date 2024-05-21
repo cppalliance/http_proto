@@ -31,7 +31,8 @@ struct decoder_config
 
 //------------------------------------------------
 
-struct deflate_decoder_service
+struct BOOST_HTTP_PROTO_ZLIB_DECL
+    deflate_decoder_service
     : service
 {
     struct config : decoder_config
@@ -60,8 +61,7 @@ namespace detail {
 struct zlib_filter_impl;
 }
 
-class BOOST_HTTP_PROTO_ZLIB_DECL zlib_filter final
-    : public filter
+class zlib_filter final : public filter
 {
 private:
     friend class ::boost::http_proto::serializer;
@@ -84,9 +84,11 @@ public:
         buffers::const_buffer in,
         bool more) override;
 
+    BOOST_HTTP_PROTO_ZLIB_DECL
     void
     reset(enum content_coding_type coding);
 
+    BOOST_HTTP_PROTO_ZLIB_DECL
     bool
     is_done() const noexcept;
 };

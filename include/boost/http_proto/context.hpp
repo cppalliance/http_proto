@@ -29,12 +29,12 @@ public:
 
     /** Destructor.
     */
-    BOOST_HTTP_PROTO_DECL
+    BOOST_HTTP_PROTO_CORE_DECL
     ~context();
 
     /** Constructor.
     */
-    BOOST_HTTP_PROTO_DECL
+    BOOST_HTTP_PROTO_CORE_DECL
     context();
 
     //--------------------------------------------
@@ -126,12 +126,12 @@ public:
     get_service() const;
 
 private:
-    BOOST_HTTP_PROTO_DECL
+    BOOST_HTTP_PROTO_CORE_DECL
     service*
     find_service_impl(
         detail::type_index ti) const noexcept;
 
-    BOOST_HTTP_PROTO_DECL
+    BOOST_HTTP_PROTO_CORE_DECL
     service&
     make_service_impl(
         detail::type_index ti,
