@@ -19,6 +19,9 @@
 
 namespace boost {
 namespace http_proto {
+
+class serializer;
+
 namespace zlib {
 
 struct decoder_config
@@ -61,7 +64,7 @@ class BOOST_HTTP_PROTO_ZLIB_DECL zlib_filter final
     : public filter
 {
 private:
-    friend class serializer;
+    friend class ::boost::http_proto::serializer;
 
     detail::zlib_filter_impl* impl_;
 
