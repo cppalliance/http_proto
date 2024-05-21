@@ -52,7 +52,16 @@ if (ZLIB_FOUND)
 
     add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES} build/Jamfile)
 
-    target_include_directories(boost_http_proto_zlib PUBLIC "${PROJECT_SOURCE_DIR}/include")
+    if(BOOST_SUPERPROJECT_VERSION)
+        target_include_directories(boost_http_proto_zlib PUBLIC "${PROJECT_SOURCE_DIR}/include")
+    else()
+        target_include_directories(boost_http_proto_zlib
+            PUBLIC
+            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        )
+    endif()
+
     target_link_libraries(boost_http_proto_zlib
     PUBLIC
         Boost::align
@@ -151,6 +160,19 @@ if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     )
+endif()
+
+if(BOOST_SUPERPROJECT_VERSION AND NOT CMAKE_VERSION VERSION_LESS 3.13)
+    if(ZLIB_FOUND)
+        set(INSTALL_TARGETS boost_http_proto boost_http_proto_zlib)
+    else()
+        set(INSTALL_TARGETS boost_http_proto)
+    endif()
+
+    boost_install(
+        TARGETS ${INSTALL_TARGETS}
+        VERSION ${BOOST_SUPERPROJECT_VERSION}
+        HEADER_DIRECTORY include)
 endif()
 
 if(BOOST_HTTP_PROTO_BUILD_TESTS)
