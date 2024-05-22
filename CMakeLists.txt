@@ -181,7 +181,6 @@ function(boost_http_proto_setup_properties target)
             Boost::http_proto_core)
 
     if (ZLIB_FOUND)
-        target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
         target_link_libraries(boost_http_proto PUBLIC Boost::http_proto_zlib)
     endif()
 endfunction()

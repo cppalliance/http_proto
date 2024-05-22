@@ -9,7 +9,22 @@
 
 set(TEST_MAIN ../../../url/extra/test_main.cpp)
 
-file(GLOB_RECURSE LIMITS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.cpp)
+if (ZLIB_FOUND)
+    file(
+        GLOB_RECURSE LIMITS_SOURCES
+        CONFIGURE_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../src_core/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../src_zlib/*.cpp)
+else()
+    file(
+        GLOB_RECURSE LIMITS_SOURCES
+        CONFIGURE_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../src/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../src_core/*.cpp)
+endif()
+
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES limits.cpp Jamfile)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../../url/extra PREFIX "_extra" FILES ${TEST_MAIN})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../src PREFIX "_extra" FILES ${LIMITS_SOURCES})
@@ -20,6 +35,12 @@ target_compile_definitions(boost_http_proto_limits PRIVATE
     BOOST_HTTP_PROTO_NO_LIB=1
     BOOST_HTTP_PROTO_STATIC_LINK
 )
+if (ZLIB_FOUND)
+    target_compile_definitions(boost_http_proto_limits PRIVATE
+        BOOST_HTTP_PROTO_HAS_ZLIB
+    )
+endif()
+
 target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::align
     Boost::assert
@@ -29,11 +50,10 @@ target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::system
     Boost::throw_exception
     Boost::url
-    Boost::utility
-    ZLIB::ZLIB)
+    Boost::utility)
 
-target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
+# target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
 if (ZLIB_FOUND)
-    target_link_libraries(boost_http_proto_limits INTERFACE ZLIB::ZLIB)
+    target_link_libraries(boost_http_proto_limits PRIVATE ZLIB::ZLIB)
 endif()
 add_test(NAME boost_http_proto_limits COMMAND boost_http_proto_limits)

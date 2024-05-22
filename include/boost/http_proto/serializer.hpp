@@ -28,8 +28,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <zlib.h>
-
 namespace boost {
 namespace http_proto {
 namespace detail {

@@ -336,18 +336,22 @@ install(context& ctx)
         detail::deflate_decoder_service_impl>(*this);
 }
 
-zlib_filter::zlib_filter(
+zlib_filter::
+zlib_filter(
     http_proto::detail::workspace& ws)
 {
     impl_ = new detail::zlib_filter_impl(ws);
 }
 
-zlib_filter::~zlib_filter()
+zlib_filter::
+~zlib_filter()
 {
     delete impl_;
 }
 
-void zlib_filter::init()
+void
+zlib_filter::
+init()
 {
     auto& coding_ = impl_->coding_;
     auto& stream_ = impl_->stream_;

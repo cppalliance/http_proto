@@ -1,10 +1,30 @@
+#include <boost/http_proto/detail/config.hpp>
+
+#include "test_suite.hpp"
+
+#ifndef BOOST_HTTP_PROTO_HAS_ZLIB
+
+#include <boost/config/pragma_message.hpp>
+
+BOOST_PRAGMA_MESSAGE("zlib not found, building dummy zlib.cpp test")
+
+struct zlib_test
+{
+    void run()
+    {}
+};
+
+TEST_SUITE(
+    zlib_test,
+    "boost.http_proto.zlib");
+
+#else
+
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
-
-#include "test_suite.hpp"
 
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
@@ -448,3 +468,5 @@ TEST_SUITE(
 
 } // namespace http_proto
 } // namespace boost
+
+#endif

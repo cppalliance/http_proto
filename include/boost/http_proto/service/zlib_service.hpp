@@ -14,6 +14,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/service/service.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/metadata.hpp>
 
@@ -69,10 +70,18 @@ private:
 
     detail::zlib_filter_impl* impl_;
 
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
     void init();
+#else
 
+    void init()
+    {
+        http_proto::detail::throw_logic_error();
+    }
+#endif
 
 public:
+#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
     zlib_filter(http_proto::detail::workspace& ws);
     ~zlib_filter();
 
@@ -87,6 +96,42 @@ public:
 
     void reset(enum content_coding_type coding);
     bool is_done() const noexcept;
+#else
+    zlib_filter(http_proto::detail::workspace& ws)
+    {
+        (void)impl_;
+        (void)ws;
+        http_proto::detail::throw_logic_error();
+    }
+
+    ~zlib_filter() = default;
+
+    zlib_filter(zlib_filter const&) = delete;
+    zlib_filter& operator=(zlib_filter const&) = delete;
+
+    filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override
+    {
+        (void)out;
+        (void)in;
+        (void)more;
+        http_proto::detail::throw_logic_error();
+    }
+
+    void reset(enum content_coding_type coding)
+    {
+        (void)coding;
+        http_proto::detail::throw_logic_error();
+    }
+
+    bool is_done() const noexcept
+    {
+        return true;
+    }
+#endif
 };
 
 } // zlib
