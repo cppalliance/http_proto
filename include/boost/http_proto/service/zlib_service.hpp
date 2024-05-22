@@ -52,7 +52,7 @@ struct BOOST_HTTP_PROTO_ZLIB_DECL
 
     virtual
     filter&
-    make_filter(detail::workspace& ws) = 0;
+    make_filter(http_proto::detail::workspace& ws) = 0;
 };
 
 //------------------------------------------------
@@ -61,7 +61,8 @@ namespace detail {
 struct zlib_filter_impl;
 }
 
-class zlib_filter final : public filter
+class BOOST_HTTP_PROTO_ZLIB_DECL
+    zlib_filter final : public filter
 {
 private:
     friend class ::boost::http_proto::serializer;
@@ -84,13 +85,8 @@ public:
         buffers::const_buffer in,
         bool more) override;
 
-    BOOST_HTTP_PROTO_ZLIB_DECL
-    void
-    reset(enum content_coding_type coding);
-
-    BOOST_HTTP_PROTO_ZLIB_DECL
-    bool
-    is_done() const noexcept;
+    void reset(enum content_coding_type coding);
+    bool is_done() const noexcept;
 };
 
 } // zlib

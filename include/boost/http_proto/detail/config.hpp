@@ -52,6 +52,10 @@ namespace http_proto {
 #  endif
 # endif // shared lib
 
+# ifndef  BOOST_HTTP_PROTO_CORE_DECL
+#  define BOOST_HTTP_PROTO_CORE_DECL
+# endif
+
 # ifndef  BOOST_HTTP_PROTO_DECL
 #  define BOOST_HTTP_PROTO_DECL
 # endif
