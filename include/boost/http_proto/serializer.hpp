@@ -91,8 +91,6 @@ public:
 
     struct stream;
 
-    filter* zlib_filter_ = nullptr;
-
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL
@@ -325,6 +323,8 @@ private:
     detail::workspace ws_;
     detail::workspace filter_ws_;
     detail::array_of_const_buffers buf_;
+    filter* zlib_filter_ = nullptr;
+    bool filter_done_ = false;
     source* src_;
     context* ctx_ = nullptr;
     buffers::circular_buffer tmp0_;

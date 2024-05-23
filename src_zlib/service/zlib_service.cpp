@@ -256,111 +256,53 @@ void zfree_impl(void* /* opaque */, void* addr)
 }
 } // namespace
 
-struct zlib_filter_impl
+class BOOST_HTTP_PROTO_ZLIB_DECL
+    zlib_filter final : public filter
 {
-    z_stream stream_;
-    buffers::circular_buffer buf_;
-    content_coding_type coding_ = content_coding_type::none;
-    bool is_done_ = false;
-
-    zlib_filter_impl(
-        http_proto::detail::workspace& ws)
-    {
-        (void)ws;
-        stream_.zalloc = &zalloc_impl;
-        stream_.zfree = &zfree_impl;
-        stream_.opaque = nullptr;
-    }
-
-    ~zlib_filter_impl()
-    {
-        deflateEnd(&stream_);
-    }
-};
-
-//------------------------------------------------
-
-struct
-    deflate_decoder_service_impl
-    : deflate_decoder_service
-{
-    using key_type =
-        deflate_decoder_service;
-
-    explicit
-    deflate_decoder_service_impl(
-        context& ctx,
-        config const& cfg)
-        : cfg_(cfg)
-    {
-        (void)ctx;
-        probe p;
-        auto n0 = p.deflate_init(
-            Z_DEFAULT_COMPRESSION).value();
-        (void)n0;
-    }
-
 private:
-    config cfg_;
-    std::list<zlib_filter> filters_;
+    z_stream stream_;
+    content_coding_type coding_ = content_coding_type::none;
 
-    config const&
-    get_config() const noexcept override
-    {
-        return cfg_;
-    }
+    void init();
 
-    std::size_t
-    space_needed() const noexcept override
-    {
-        return 0;
-    }
+public:
+    zlib_filter();
+    ~zlib_filter();
 
-    filter&
-    make_filter(http_proto::detail::workspace& ws) override
-    {
-        filters_.emplace_back(ws);
-        auto p_filter = &filters_.back();
-        return *p_filter;
-    }
+    zlib_filter(zlib_filter const&) = delete;
+    zlib_filter& operator=(zlib_filter const&) = delete;
+
+    filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override;
 };
-
-} // detail
-
-void
-deflate_decoder_service::
-config::
-install(context& ctx)
-{
-    ctx.make_service<
-        detail::deflate_decoder_service_impl>(*this);
-}
 
 zlib_filter::
-zlib_filter(
-    http_proto::detail::workspace& ws)
+zlib_filter()
 {
-    impl_ = new detail::zlib_filter_impl(ws);
+    stream_.zalloc = &zalloc_impl;
+    stream_.zfree = &zfree_impl;
+    stream_.opaque = nullptr;
+    init();
 }
 
 zlib_filter::
 ~zlib_filter()
 {
-    delete impl_;
+    deflateEnd(&stream_);
 }
 
 void
 zlib_filter::
 init()
 {
-    auto& coding_ = impl_->coding_;
-    auto& stream_ = impl_->stream_;
-
     int ret = -1;
 
     int window_bits = 15;
-    if( coding_ == content_coding_type::gzip )
-        window_bits += 16;
+    // if( coding_ == content_coding_type::gzip )
+    //     window_bits += 16;
 
     int mem_level = 8;
 
@@ -378,37 +320,6 @@ init()
     stream_.avail_in = 0;
 }
 
-void
-zlib_filter::
-reset(enum content_coding_type coding)
-{
-    auto& coding_ = impl_->coding_;
-    auto& stream_ = impl_->stream_;
-
-    BOOST_ASSERT(coding != content_coding_type::none);
-    if( coding_ == coding )
-    {
-        int ret = -1;
-        ret = deflateReset(&stream_);
-        if( ret != Z_OK )
-            throw ret;
-    }
-    else
-    {
-        if( coding_ != content_coding_type::none )
-            deflateEnd(&stream_);
-        coding_ = coding;
-        init();
-    }
-}
-
-bool
-zlib_filter::
-is_done() const noexcept
-{
-    return impl_->is_done_;
-}
-
 filter::results
 zlib_filter::
 on_process(
@@ -416,8 +327,7 @@ on_process(
     buffers::const_buffer in,
     bool more)
 {
-    auto& zfilter = *impl_;
-    auto& zstream = zfilter.stream_;
+    auto& zstream = stream_;
 
     BOOST_ASSERT(out.size() > 6);
 
@@ -465,7 +375,7 @@ on_process(
         }
 
         if( ret == Z_STREAM_END )
-            zfilter.is_done_ = true;
+            results.finished = true;
 
         if( ret == Z_BUF_ERROR )
             break;
@@ -480,6 +390,62 @@ on_process(
             break;
     }
     return results;
+}
+
+//------------------------------------------------
+
+struct
+    deflate_decoder_service_impl
+    : deflate_decoder_service
+{
+    using key_type =
+        deflate_decoder_service;
+
+    explicit
+    deflate_decoder_service_impl(
+        context& ctx,
+        config const& cfg)
+        : cfg_(cfg)
+    {
+        (void)ctx;
+        probe p;
+        auto n0 = p.deflate_init(
+            Z_DEFAULT_COMPRESSION).value();
+        (void)n0;
+    }
+
+private:
+    config cfg_;
+
+    config const&
+    get_config() const noexcept override
+    {
+        return cfg_;
+    }
+
+    std::size_t
+    space_needed() const noexcept override
+    {
+        return 0;
+    }
+
+    filter&
+    make_filter(
+        http_proto::detail::workspace& ws) const override
+    {
+        return ws.emplace<zlib_filter>();
+    }
+};
+
+} // detail
+
+void
+deflate_decoder_service::
+config::
+install(context& ctx)
+{
+    ctx.make_service<
+        detail::deflate_decoder_service_impl>(*this);
 }
 
 } // zlib

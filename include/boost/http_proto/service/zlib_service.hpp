@@ -14,15 +14,10 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/service/service.hpp>
-#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
-#include <boost/http_proto/metadata.hpp>
 
 namespace boost {
 namespace http_proto {
-
-class serializer;
-
 namespace zlib {
 
 struct decoder_config
@@ -53,85 +48,7 @@ struct BOOST_HTTP_PROTO_ZLIB_DECL
 
     virtual
     filter&
-    make_filter(http_proto::detail::workspace& ws) = 0;
-};
-
-//------------------------------------------------
-
-namespace detail {
-struct zlib_filter_impl;
-}
-
-class BOOST_HTTP_PROTO_ZLIB_DECL
-    zlib_filter final : public filter
-{
-private:
-    friend class ::boost::http_proto::serializer;
-
-    detail::zlib_filter_impl* impl_;
-
-#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
-    void init();
-#else
-
-    void init()
-    {
-        http_proto::detail::throw_logic_error();
-    }
-#endif
-
-public:
-#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
-    zlib_filter(http_proto::detail::workspace& ws);
-    ~zlib_filter();
-
-    zlib_filter(zlib_filter const&) = delete;
-    zlib_filter& operator=(zlib_filter const&) = delete;
-
-    filter::results
-    on_process(
-        buffers::mutable_buffer out,
-        buffers::const_buffer in,
-        bool more) override;
-
-    void reset(enum content_coding_type coding);
-    bool is_done() const noexcept;
-#else
-    zlib_filter(http_proto::detail::workspace& ws)
-    {
-        (void)impl_;
-        (void)ws;
-        http_proto::detail::throw_logic_error();
-    }
-
-    ~zlib_filter() = default;
-
-    zlib_filter(zlib_filter const&) = delete;
-    zlib_filter& operator=(zlib_filter const&) = delete;
-
-    filter::results
-    on_process(
-        buffers::mutable_buffer out,
-        buffers::const_buffer in,
-        bool more) override
-    {
-        (void)out;
-        (void)in;
-        (void)more;
-        http_proto::detail::throw_logic_error();
-    }
-
-    void reset(enum content_coding_type coding)
-    {
-        (void)coding;
-        http_proto::detail::throw_logic_error();
-    }
-
-    bool is_done() const noexcept
-    {
-        return true;
-    }
-#endif
+    make_filter(http_proto::detail::workspace& ws) const = 0;
 };
 
 } // zlib

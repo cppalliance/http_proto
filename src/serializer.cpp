@@ -187,6 +187,8 @@ prepare() ->
                     zlib::deflate_decoder_service>();
 
             zlib_filter_ = &svc.make_filter(filter_ws_);
+            tmp1_ =
+                { filter_ws_.data(), filter_ws_.size() };
         }
 
         auto& zbuf = tmp1_;
@@ -293,6 +295,9 @@ prepare() ->
             auto results = zlib_filter_->on_process(
                 out, in, more_);
 
+            if( results.finished )
+                filter_done_ = true;
+
             if( st_ == style::buffers )
             {
                 buf_.consume(results.in_bytes);
@@ -322,8 +327,7 @@ prepare() ->
                 buffers::const_buffer("\r\n", 2));
             tmp0_.commit(2);
 
-            if( static_cast<zlib::zlib_filter*>(
-                    zlib_filter_)->is_done() )
+            if( filter_done_ )
             {
                 buffers::buffer_copy(
                     tmp0_.prepare(5),
@@ -481,7 +485,7 @@ consume(
         {
             tmp0_.consume(n);
             if( tmp0_.size() == 0 &&
-                static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
+                filter_done_ )
                 is_done_ = true;
             return;
         }
@@ -500,7 +504,7 @@ consume(
 
         if( is_compressed_ &&
             tmp0_.size() == 0 &&
-            static_cast<zlib::zlib_filter*>(zlib_filter_)->is_done() )
+            filter_done_ )
             is_done_ = true;
         return;
     }
@@ -545,16 +549,12 @@ start_init(
     if( m.compressed() )
     {
         is_compressed_ = true;
-        if(! zlib_filter_ )
-        {
-            auto& svc =
-                ctx_->get_service<
-                    zlib::deflate_decoder_service>();
+        auto& svc =
+            ctx_->get_service<
+                zlib::deflate_decoder_service>();
 
-            zlib_filter_ = &svc.make_filter(filter_ws_);
-        }
-        static_cast<zlib::zlib_filter*>(
-            zlib_filter_)->reset(m.content_coding());
+        BOOST_ASSERT(!zlib_filter_);
+        zlib_filter_ = &svc.make_filter(filter_ws_);
     }
 }
 

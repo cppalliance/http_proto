@@ -34,7 +34,7 @@ struct alignas(alignof(::max_align_t))
 {
     U u;
 
-    any_impl() = delete;
+    any_impl() = default;
     any_impl(any_impl const&) = delete;
     any_impl(any_impl&&) = delete;
 

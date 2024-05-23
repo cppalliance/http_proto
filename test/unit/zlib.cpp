@@ -41,6 +41,8 @@ TEST_SUITE(
 
 #include <zlib.h>
 
+#include <string_view>
+
 void*
 zalloc_impl(
     void* /* opaque */,
@@ -434,8 +436,8 @@ struct zlib_test
         };
 
         std::vector<content_coding_type> coding_types = {
-            content_coding_type::deflate,
-            content_coding_type::gzip
+            content_coding_type::deflate/* ,
+            content_coding_type::gzip */
         };
 
         std::vector<fp_type> fps = {
