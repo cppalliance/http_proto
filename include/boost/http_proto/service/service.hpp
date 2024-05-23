@@ -21,7 +21,7 @@ class services;
 
 /** Base class for all context services
 */
-struct BOOST_HTTP_PROTO_CORE_DECL
+struct BOOST_HTTP_PROTO_DECL
     service
 {
     virtual

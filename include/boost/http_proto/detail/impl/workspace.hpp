@@ -21,7 +21,7 @@ namespace detail {
 #pragma warning(disable : 4324) /* structure was padded due to __declspec(align()) */
 #endif
 
-struct BOOST_HTTP_PROTO_CORE_DECL workspace::any
+struct BOOST_HTTP_PROTO_DECL workspace::any
 {
     any* next = nullptr;
 

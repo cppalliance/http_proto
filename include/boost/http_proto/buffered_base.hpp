@@ -22,7 +22,7 @@ namespace http_proto {
     @ref source, or @ref sink inherit from
     this common interface.
 */
-struct BOOST_HTTP_PROTO_CORE_DECL
+struct BOOST_HTTP_PROTO_DECL
     buffered_base
 {
     /** Allocator for buffered algorithms.
@@ -202,7 +202,7 @@ public:
 
         @param n The number of bytes.
     */
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     void*
     allocate(std::size_t n);
 

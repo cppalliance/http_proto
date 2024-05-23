@@ -17,38 +17,38 @@ namespace boost {
 namespace http_proto {
 namespace detail {
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_bad_alloc(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_bad_alloc(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_invalid_argument(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_invalid_argument(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_invalid_argument(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_invalid_argument(
     char const* what,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_length_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_length_error(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_length_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_length_error(
     char const* what,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_logic_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_logic_error(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_out_of_range(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_out_of_range(
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_runtime_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_runtime_error(
     char const* what,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_system_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_system_error(
     system::error_code const& ec,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 
-void BOOST_HTTP_PROTO_CORE_DECL BOOST_NORETURN throw_system_error(
+void BOOST_HTTP_PROTO_DECL BOOST_NORETURN throw_system_error(
     error e,
     source_location const& loc = BOOST_CURRENT_LOCATION);
 

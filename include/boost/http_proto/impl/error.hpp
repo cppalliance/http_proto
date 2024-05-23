@@ -44,13 +44,13 @@ struct BOOST_SYMBOL_VISIBLE
     error_cat_type
     : system::error_category
 {
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     const char* name() const noexcept override;
 
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     std::string message(int) const override;
 
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     char const* message(
         int, char*, std::size_t) const noexcept override;
 
@@ -65,17 +65,17 @@ struct BOOST_SYMBOL_VISIBLE
     condition_cat_type
     : system::error_category
 {
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     const char* name() const noexcept override;
 
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     std::string message(int) const override;
 
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     char const* message(
         int, char*, std::size_t) const noexcept override;
 
-    BOOST_HTTP_PROTO_CORE_DECL
+    BOOST_HTTP_PROTO_DECL
     bool equivalent(
         system::error_code const&,
         int) const noexcept override;
@@ -87,9 +87,9 @@ struct BOOST_SYMBOL_VISIBLE
     }
 };
 
-BOOST_HTTP_PROTO_CORE_DECL extern
+BOOST_HTTP_PROTO_DECL extern
     error_cat_type error_cat;
-BOOST_HTTP_PROTO_CORE_DECL extern
+BOOST_HTTP_PROTO_DECL extern
     condition_cat_type condition_cat;
 
 } // detail

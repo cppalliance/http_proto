@@ -45,7 +45,7 @@ namespace detail {
         end of the reserved area and stretches
         until the beginning of the acquired area.
 */
-class BOOST_HTTP_PROTO_CORE_DECL workspace
+class BOOST_HTTP_PROTO_DECL workspace
 {
     unsigned char* begin_ = nullptr;
     unsigned char* front_ = nullptr;

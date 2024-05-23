@@ -30,13 +30,6 @@ namespace http_proto {
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_IMPORT
 #  endif
 
-#  if defined(BOOST_HTTP_PROTO_CORE_SOURCE)
-#   define BOOST_HTTP_PROTO_CORE_DECL        BOOST_SYMBOL_EXPORT
-#   define BOOST_HTTP_PROTO_BUILD_DLL
-#  else
-#   define BOOST_HTTP_PROTO_CORE_DECL        BOOST_SYMBOL_IMPORT
-#  endif
-
 #  if defined(BOOST_HTTP_PROTO_ZLIB_SOURCE)
 #   define BOOST_HTTP_PROTO_ZLIB_DECL   BOOST_SYMBOL_EXPORT
 #   define BOOST_HTTP_PROTO_ZLIB_BUILD_DLL
@@ -51,10 +44,6 @@ namespace http_proto {
 #   define BOOST_HTTP_PROTO_EXT_DECL   BOOST_SYMBOL_IMPORT
 #  endif
 # endif // shared lib
-
-# ifndef  BOOST_HTTP_PROTO_CORE_DECL
-#  define BOOST_HTTP_PROTO_CORE_DECL
-# endif
 
 # ifndef  BOOST_HTTP_PROTO_DECL
 #  define BOOST_HTTP_PROTO_DECL

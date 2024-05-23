@@ -37,131 +37,6 @@ endif()
 
 find_package(ZLIB)
 
-source_group(
-    TREE ${CMAKE_CURRENT_SOURCE_DIR}/build
-    PREFIX ""
-    FILES build/Jamfile)
-
-file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS
-    include/boost/*.hpp
-    include/boost/*.ipp
-    include/boost/*.natvis)
-source_group(
-    TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost
-    PREFIX ""
-    FILES ${BOOST_HTTP_PROTO_HEADERS})
-
-file(GLOB_RECURSE BOOST_HTTP_PROTO_CORE_SOURCES CONFIGURE_DEPENDS src_core/*.cpp)
-source_group(
-    TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_core
-    PREFIX "http_proto"
-    FILES ${BOOST_HTTP_PROTO_CORE_SOURCES})
-
-add_library(boost_http_proto_core ${BOOST_HTTP_PROTO_CORE_SOURCES})
-
-if(BOOST_SUPERPROJECT_VERSION)
-    target_include_directories(boost_http_proto_core
-        PUBLIC
-        "${PROJECT_SOURCE_DIR}/include")
-else()
-    target_include_directories(boost_http_proto_core
-        PUBLIC
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    )
-endif()
-
-target_link_libraries(boost_http_proto_core
-    PUBLIC
-        Boost::align
-        Boost::assert
-        Boost::buffers
-        Boost::config
-        Boost::container_hash
-        Boost::system
-        Boost::throw_exception
-        Boost::url
-        Boost::utility
-        Boost::winapi
-)
-
-target_compile_definitions(boost_http_proto_core
-  PUBLIC
-  BOOST_HTTP_PROTO_NO_LIB
-)
-
-if(BUILD_SHARED_LIBS)
-    target_compile_definitions(boost_http_proto_core
-        PUBLIC BOOST_HTTP_PROTO_DYN_LINK=1)
-else()
-    target_compile_definitions(boost_http_proto_core
-        PUBLIC BOOST_HTTP_PROTO_STATIC_LINK=1)
-endif()
-
-target_compile_definitions(boost_http_proto_core
-    PRIVATE BOOST_HTTP_PROTO_CORE_SOURCE)
-
-if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
-    install(TARGETS boost_http_proto_core
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    )
-endif()
-
-add_library(Boost::http_proto_core
-    ALIAS boost_http_proto_core)
-
-if (ZLIB_FOUND)
-    file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_SOURCES CONFIGURE_DEPENDS src_zlib/*.cpp)
-
-    source_group(
-        TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib
-        PREFIX "http_proto"
-        FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
-
-
-    add_library(boost_http_proto_zlib
-        ${BOOST_HTTP_PROTO_HEADERS}
-        ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
-
-    if(BOOST_SUPERPROJECT_VERSION)
-        target_include_directories(boost_http_proto_zlib PUBLIC "${PROJECT_SOURCE_DIR}/include")
-    else()
-        target_include_directories(boost_http_proto_zlib
-            PUBLIC
-            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-        )
-    endif()
-
-    target_link_libraries(boost_http_proto_zlib
-        PUBLIC
-        Boost::http_proto_core
-        ZLIB::ZLIB)
-
-    target_compile_definitions(boost_http_proto_zlib
-        PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
-    target_compile_definitions(boost_http_proto_zlib
-        PRIVATE BOOST_HTTP_PROTO_ZLIB_SOURCE)
-
-    if(BUILD_SHARED_LIBS)
-        target_compile_definitions(boost_http_proto_zlib PRIVATE BOOST_HTTP_PROTO_DYN_LINK=1)
-    else()
-        target_compile_definitions(boost_http_proto_zlib PRIVATE BOOST_HTTP_PROTO_STATIC_LINK=1)
-    endif()
-
-    if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
-        install(TARGETS boost_http_proto_zlib
-            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        )
-    endif()
-
-    add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
-endif()
-
 function(boost_http_proto_setup_properties target)
     target_compile_features(${target} PUBLIC cxx_constexpr)
     target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_NO_LIB=1)
@@ -178,13 +53,27 @@ function(boost_http_proto_setup_properties target)
 
     target_link_libraries(${target}
         PUBLIC
-            Boost::http_proto_core)
-
+            Boost::align
+            Boost::assert
+            Boost::buffers
+            Boost::config
+            Boost::container_hash
+            Boost::system
+            Boost::throw_exception
+            Boost::url
+            Boost::utility
+            Boost::winapi
+    )
     if (ZLIB_FOUND)
-        target_link_libraries(boost_http_proto PUBLIC Boost::http_proto_zlib)
+        target_compile_definitions(${target} PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
     endif()
 endfunction()
 
+file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS
+    include/boost/*.hpp
+    include/boost/*.ipp
+    include/boost/*.natvis
+)
 file(GLOB_RECURSE BOOST_HTTP_PROTO_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.hpp)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -217,17 +106,28 @@ if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
     )
 endif()
 
-if(BOOST_SUPERPROJECT_VERSION AND NOT CMAKE_VERSION VERSION_LESS 3.13)
-    if(ZLIB_FOUND)
-        set(INSTALL_TARGETS boost_http_proto_core boost_http_proto boost_http_proto_zlib)
-    else()
-        set(INSTALL_TARGETS boost_http_proto_core boost_http_proto)
-    endif()
+if (ZLIB_FOUND)
+    file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_SOURCES CONFIGURE_DEPENDS src_zlib/*.cpp)
 
-    boost_install(
-        TARGETS ${INSTALL_TARGETS}
-        VERSION ${BOOST_SUPERPROJECT_VERSION}
-        HEADER_DIRECTORY include)
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/build PREFIX "" FILES build/Jamfile)
+
+    add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES} build/Jamfile)
+    add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
+
+    target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
+    target_link_libraries(boost_http_proto_zlib PUBLIC ZLIB::ZLIB)
+    target_compile_definitions(boost_http_proto_zlib PUBLIC BOOST_HTTP_PROTO_HAS_ZLIB)
+    target_compile_definitions(boost_http_proto_zlib PRIVATE BOOST_HTTP_PROTO_ZLIB_SOURCE)
+
+    if(BOOST_HTTP_PROTO_INSTALL AND NOT BOOST_SUPERPROJECT_VERSION)
+        install(TARGETS boost_http_proto_zlib
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        )
+    endif()
 endif()
 
 if(BOOST_HTTP_PROTO_BUILD_TESTS)
