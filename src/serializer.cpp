@@ -599,17 +599,17 @@ serializer::
 stream::
 commit(std::size_t n) const
 {
+    // the stream must make a non-zero amount of bytes
+    // available to the serializer
+    if( n == 0 )
+        detail::throw_logic_error();
+
     if(! sr_->is_chunked_ )
     {
         sr_->tmp0_.commit(n);
     }
     else
     {
-        // Zero sized chunks are not valid. Call close()
-        // if the intent is to signal the end of the body.
-        if( n == 0 )
-            detail::throw_logic_error();
-
         auto m = n + chunk_header_len_;
         auto dest = sr_->tmp0_.prepare(m);
         write_chunk_header(
