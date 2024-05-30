@@ -7,7 +7,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
+#include "transfer_encoding_rule.hpp"
+
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/url/grammar/ci_string.hpp>
@@ -28,7 +29,7 @@ namespace detail {
 struct tparam_rule_t
 {
     using value_type =
-        transfer_coding::param;
+        transfer_encoding::param;
 
     auto
     parse(
@@ -100,12 +101,10 @@ struct tparam_rule_t
 
 constexpr tparam_rule_t tparam_rule{};
 
-} // detail
-
 //------------------------------------------------
 
 auto
-transfer_coding_rule_t::
+transfer_encoding_rule_t::
 parse(
     char const*& it,
     char const* end) const noexcept ->
@@ -124,25 +123,25 @@ parse(
         if(grammar::ci_is_equal(
             t.str, "chunked"))
         {
-            t.id = transfer_coding::chunked;
+            t.id = transfer_encoding::chunked;
             return t;
         }
         if(grammar::ci_is_equal(
             t.str, "compress"))
         {
-            t.id = transfer_coding::compress;
+            t.id = transfer_encoding::compress;
             return t;
         }
         if(grammar::ci_is_equal(
             t.str, "deflate"))
         {
-            t.id = transfer_coding::deflate;
+            t.id = transfer_encoding::deflate;
             return t;
         }
         if(grammar::ci_is_equal(
             t.str, "gzip"))
         {
-            t.id = transfer_coding::gzip;
+            t.id = transfer_encoding::gzip;
             return t;
         }
     }
@@ -157,6 +156,8 @@ parse(
     }
     return t;
 }
+} // detail
+
 
 } // http_proto
 } // boost

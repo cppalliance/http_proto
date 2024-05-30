@@ -18,12 +18,13 @@
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 //------------------------------------------------
 
 /** A value of Transfer-Encoding
 */
-struct transfer_coding
+struct transfer_encoding
 {
     enum coding
     {
@@ -51,7 +52,7 @@ struct transfer_coding
 
     @par Value Type
     @code
-    using value_type = transfer_coding;
+    using value_type = transfer_encoding;
     @endcode
 
     @par Example
@@ -74,11 +75,11 @@ struct transfer_coding
         >3.3.1.  Transfer-Encoding (rfc7230)</a>
 */
 #ifdef BOOST_HTTP_PROTO_DOCS
-constexpr __implementation_defined__ transfer_coding_rule;
+constexpr __implementation_defined__ transfer_encoding_rule;
 #else
-struct transfer_coding_rule_t
+struct transfer_encoding_rule_t
 {
-    using value_type = transfer_coding;
+    using value_type = transfer_encoding;
 
     BOOST_HTTP_PROTO_DECL
     auto
@@ -88,7 +89,7 @@ struct transfer_coding_rule_t
             system::result<value_type>;
 };
 
-constexpr transfer_coding_rule_t transfer_coding_rule{};
+constexpr transfer_encoding_rule_t transfer_encoding_rule_impl{};
 #endif
 
 //------------------------------------------------
@@ -97,7 +98,7 @@ constexpr transfer_coding_rule_t transfer_coding_rule{};
 
     @par Value Type
     @code
-    using value_type = grammar::range< transfer_coding >;
+    using value_type = grammar::range< transfer_encoding >;
     @endcode
 
     @par Example
@@ -114,8 +115,9 @@ constexpr transfer_coding_rule_t transfer_coding_rule{};
         >3.3.1.  Transfer-Encoding (rfc7230)</a>
 */
 constexpr auto transfer_encoding_rule =
-    list_rule( transfer_coding_rule, 1 );
+    list_rule( transfer_encoding_rule_impl, 1 );
 
+} // detail
 } // http_proto
 } // boost
 

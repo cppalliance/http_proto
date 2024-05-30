@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
+#include "../../src/rfc/transfer_encoding_rule.hpp"
 
 #include <boost/static_assert.hpp>
 #include <type_traits>
@@ -20,15 +20,15 @@ namespace http_proto {
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
-        system::result<transfer_coding>>::value);
+        system::result<detail::transfer_encoding>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
-        grammar::range<transfer_coding::param>>::value);
+        grammar::range<detail::transfer_encoding::param>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
-        transfer_coding::param>::value);
+        detail::transfer_encoding::param>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
@@ -36,15 +36,15 @@ BOOST_STATIC_ASSERT(
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
-        system::result<transfer_coding>>::value);
+        system::result<detail::transfer_encoding>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
-        grammar::range<transfer_coding::param>>::value);
+        grammar::range<detail::transfer_encoding::param>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
-        transfer_coding::param>::value);
+        detail::transfer_encoding::param>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
@@ -56,7 +56,7 @@ struct transfer_encoding_rule_test
     run()
     {
         auto const& t =
-            transfer_encoding_rule;
+            detail::transfer_encoding_rule;
 
         bad(t, "");
         bad(t, " ");
