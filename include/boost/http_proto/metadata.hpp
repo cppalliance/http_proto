@@ -54,6 +54,27 @@ enum class payload
     ,to_eof
 };
 
+/** The effective encoding of the body octets.
+*/
+enum class
+encoding
+{
+    /**
+      * Indicates the body is not encoded.
+    */
+    identity,
+
+    /**
+      * Indicates the body has deflate applied.
+    */
+    deflate,
+
+    /**
+      * Indicates the body has gzip applied.
+    */
+    gzip
+};
+
 //------------------------------------------------
 
 /** Metadata about a request or response
@@ -201,6 +222,18 @@ struct metadata
         */
         bool is_chunked = false;
 
+        /** The effective body encoding.
+
+            This indicates the type of encoding detected on the body,
+            if the fields contain a valid encoding. Otherwise it will have
+            @ref encoding::identity if the header is invalid.
+
+            Whether or not the message entity is also chunked is set
+            in @ref metadata::is_chunked and not here.
+        */
+        http_proto::encoding encoding =
+            http_proto::encoding::identity;
+
     #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
         transfer_encoding_t() = default;
@@ -215,6 +248,8 @@ struct metadata
             , count(count_)
             , codings(codings_)
             , is_chunked(is_chunked_)
+            , encoding(
+                http_proto::encoding::identity)
         {
         }
     #endif

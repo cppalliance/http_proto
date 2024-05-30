@@ -485,6 +485,19 @@ struct metadata_test
 
         check(
             "GET / HTTP/1.1\r\n"
+            "Server: localhost\r\n"
+            "Transfer-Encoding: gzip\r\n"
+            "Transfer-Encoding: compress\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n",
+            [](message_base& f)
+            {
+                f.erase(f.find(field::transfer_encoding));
+            },
+            { error::bad_transfer_encoding, 2, 0, false });
+
+        check(
+            "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: compress\r\n"
             "\r\n",
             [](message_base&){},
@@ -571,19 +584,6 @@ struct metadata_test
                 f.erase(f.find(field::transfer_encoding));
             },
             { ok, 0, 0, false });
-
-        check(
-            "GET / HTTP/1.1\r\n"
-            "Server: localhost\r\n"
-            "Transfer-Encoding: gzip\r\n"
-            "Transfer-Encoding: compress\r\n"
-            "Transfer-Encoding: chunked\r\n"
-            "\r\n",
-            [](message_base& f)
-            {
-                f.erase(f.find(field::transfer_encoding));
-            },
-            { ok, 2, 2, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -904,7 +904,7 @@ struct metadata_test
             "\r\n",
             [](fields_base&){},
             payload::error);
- 
+
         req("GET / HTTP/1.1\r\n"
             "Content-Length: 42\r\n"
             "\r\n",
