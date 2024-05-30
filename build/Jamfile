@@ -65,6 +65,7 @@ lib boost_http_proto_zlib
    : usage-requirements
      <library>/boost//url
      <library>/boost/http_proto//boost_http_proto
+     <library>/zlib//zlib <define>BOOST_HTTP_PROTO_HAS_ZLIB
    ;
 
 boost-install boost_http_proto boost_http_proto_zlib ;
