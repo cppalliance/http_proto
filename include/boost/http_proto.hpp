@@ -50,7 +50,6 @@
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
 #include <boost/http_proto/rfc/quoted_token_view.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
-#include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
 
 #include <boost/http_proto/service/service.hpp>

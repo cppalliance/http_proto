@@ -14,7 +14,6 @@
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
-#include <boost/http_proto/rfc/transfer_encoding_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/url/grammar/ci_string.hpp>
@@ -27,6 +26,8 @@
 #include <boost/static_assert.hpp>
 #include <string>
 #include <utility>
+
+#include "../rfc/transfer_encoding_rule.hpp"
 
 namespace boost {
 namespace http_proto {
