@@ -597,13 +597,30 @@ on_insert_transfer_encoding()
         md.transfer_encoding.codings += rv->size();
         for(auto t : *rv)
         {
-            if(! md.transfer_encoding.is_chunked)
+            auto& mte = md.transfer_encoding;
+
+            if(! mte.is_chunked )
             {
-                if(t.id == transfer_coding::chunked)
-                    md.transfer_encoding.is_chunked = true;
-                continue;
+                if( t.id == transfer_encoding::chunked )
+                {
+                    mte.is_chunked = true;
+                    continue;
+                }
+
+                auto b =
+                    mte.encoding ==
+                    http_proto::encoding::identity;
+
+                if( t.id == transfer_encoding::deflate )
+                    mte.encoding = http_proto::encoding::deflate;
+
+                if( t.id == transfer_encoding::gzip )
+                    mte.encoding = http_proto::encoding::gzip;
+
+                if( b )
+                    continue;
             }
-            if(t.id == transfer_coding::chunked)
+            if(t.id == transfer_encoding::chunked)
             {
                 // chunked appears twice
                 md.transfer_encoding.ec =
@@ -611,6 +628,8 @@ on_insert_transfer_encoding()
                         error::bad_transfer_encoding);
                 md.transfer_encoding.codings = 0;
                 md.transfer_encoding.is_chunked = false;
+                md.transfer_encoding.encoding =
+                    http_proto::encoding::identity;
                 update_payload();
                 return;
             }
@@ -620,6 +639,8 @@ on_insert_transfer_encoding()
                     error::bad_transfer_encoding);
             md.transfer_encoding.codings = 0;
             md.transfer_encoding.is_chunked = false;
+            md.transfer_encoding.encoding =
+                http_proto::encoding::identity;
             update_payload();
             return;
         }
