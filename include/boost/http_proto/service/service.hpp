@@ -21,10 +21,9 @@ class services;
 
 /** Base class for all context services
 */
-struct BOOST_SYMBOL_VISIBLE
+struct BOOST_HTTP_PROTO_DECL
     service
 {
-    BOOST_HTTP_PROTO_DECL
     virtual
     ~service() = 0;
 
@@ -32,7 +31,6 @@ struct BOOST_SYMBOL_VISIBLE
 protected:
     /** Called to perform two-phase initialization
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     void
     start() = 0;

@@ -27,7 +27,8 @@ struct decoder_config
 
 //------------------------------------------------
 
-struct deflate_decoder_service
+struct BOOST_HTTP_PROTO_ZLIB_DECL
+    deflate_decoder_service
     : service
 {
     struct config : decoder_config
