@@ -25,9 +25,7 @@ struct zlib_service_test
     run()
     {
         context ctx;
-        
-        zlib::deflate_decoder_service::config cfg;
-        cfg.install(ctx);
+        zlib::install_deflate_encoder(ctx);
     }
 };
 

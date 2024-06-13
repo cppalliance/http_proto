@@ -24,10 +24,12 @@ namespace http_proto {
 
 /** A filter for buffers
 */
-class BOOST_SYMBOL_VISIBLE
+class BOOST_HTTP_PROTO_DECL
     filter
     : public buffered_base
 {
+    friend class serializer;
+
 public:
     /** The results of processing the filter.
     */
@@ -97,7 +99,6 @@ private:
         @ref init was called once before any
             calls to `process`
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_process(
@@ -111,7 +112,6 @@ private:
         @ref init was called once before any
             calls to `process`.
     */
-    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_process(

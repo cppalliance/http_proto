@@ -354,9 +354,7 @@ struct parser_test
     {
     #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
         context ctx;
-
-        zlib::deflate_decoder_service::config cfg0;
-        cfg0.install(ctx);
+        zlib::install_deflate_encoder(ctx);
 
         request_parser::config_base cfg1;
         cfg1.apply_deflate_decoder = true;
