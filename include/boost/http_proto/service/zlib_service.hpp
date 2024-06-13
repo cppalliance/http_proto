@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Christian Mazakas
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -23,35 +24,36 @@ namespace zlib {
 struct decoder_config
 {
     unsigned max_window_bits = 15;
+    unsigned mem_level = 8;
 };
 
 //------------------------------------------------
 
-struct BOOST_HTTP_PROTO_ZLIB_DECL
-    deflate_decoder_service
-    : service
+constexpr
+inline
+std::size_t
+encoding_size_hint(decoder_config cfg = {}) noexcept
 {
-    struct config : decoder_config
-    {
-        BOOST_HTTP_PROTO_ZLIB_DECL
-        void
-        install(context& ctx);
-    };
+    // from: https://www.zlib.net/zlib_tech.html
+    //
+    // Memory Footprint
+    //
+    // zlib's memory footprint can also be specified fairly
+    // precisely. It is larger for compression than for
+    // decompression, and the exact requirements depend on
+    // how the library was compiled.
+    //
+    // The memory requirements for compression depend on two
+    // parameters, windowBits and memLevel:
+    //     deflate memory usage (bytes) = (1 << (windowBits+2)) + (1 << (memLevel+9)) + 6 KB
+    return
+        (1 << (cfg.max_window_bits + 2)) +
+        (1 << (cfg.mem_level + 9)) +
+        (6 * 1024);
+}
 
-    virtual
-    config const&
-    get_config() const noexcept = 0;
-
-    virtual
-    std::size_t
-    space_needed() const noexcept = 0;
-
-    virtual
-    filter&
-    make_filter(detail::workspace& ws) const = 0;
-};
-
-//------------------------------------------------
+void BOOST_HTTP_PROTO_ZLIB_DECL
+install_deflate_encoder(context& ctx);
 
 } // zlib
 } // http_proto

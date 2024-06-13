@@ -17,6 +17,8 @@
 #include <boost/assert.hpp>
 #include <memory>
 
+#include "zlib_service.hpp"
+
 namespace boost {
 namespace http_proto {
 
@@ -111,7 +113,7 @@ public:
     parser::config_base cfg;
     std::size_t space_needed = 0;
     std::size_t max_codec = 0;
-    zlib::deflate_decoder_service const*
+    zlib::detail::deflate_decoder_service const*
         deflate_svc = nullptr;
 
     parser_service(
@@ -181,7 +183,7 @@ parser_service(
         if(cfg.apply_deflate_decoder)
         {
             deflate_svc = &ctx.get_service<
-                zlib::deflate_decoder_service>();
+                zlib::detail::deflate_decoder_service>();
             auto const n =
                 deflate_svc->space_needed();
             if( max_codec < n)

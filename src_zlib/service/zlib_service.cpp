@@ -11,8 +11,19 @@
 #define BOOST_HTTP_PROTO_SERVICE_IMPL_ZLIB_SERVICE_IPP
 
 #include <boost/http_proto/service/zlib_service.hpp>
+
+#include <boost/http_proto/metadata.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
+
+#include <boost/assert/source_location.hpp>
+#include <boost/buffers/circular_buffer.hpp>
+#include <boost/config.hpp>
 #include <boost/system/result.hpp>
-#include "zlib.h"
+#include <boost/throw_exception.hpp>
+
+#include <zlib.h>
+
+#include "../../src/zlib_service.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -110,6 +121,16 @@ make_error_code(
     return system::error_code{static_cast<
         std::underlying_type<
             error>::type>(ev), cat};
+}
+
+BOOST_NOINLINE BOOST_NORETURN
+void
+throw_zlib_error(
+    int e,
+    source_location const& loc = BOOST_CURRENT_LOCATION)
+{
+    throw_exception(
+        system::system_error(static_cast<error>(e)), loc);
 }
 
 //------------------------------------------------
@@ -214,6 +235,176 @@ private:
 
 //------------------------------------------------
 
+
+namespace {
+void* zalloc_impl(
+    void* opaque,
+    unsigned items,
+    unsigned size)
+{
+    try
+    {
+        auto n = items * size;
+        auto* ws =
+            reinterpret_cast<
+                http_proto::detail::workspace*>(opaque);
+
+        return ws->reserve_front(n);
+    }
+    catch(std::length_error const&) // represents OOM
+    {
+        return Z_NULL;
+    }
+}
+
+void zfree_impl(void* /* opaque */, void* /* addr */)
+{
+    // we call ws_.clear() before the serializer is reused
+    // so all the allocations are passively freed
+}
+
+} // namespace
+
+class BOOST_HTTP_PROTO_ZLIB_DECL
+    deflate_filter final : public filter
+{
+private:
+    z_stream stream_;
+    http_proto::detail::workspace& ws_;
+
+    void init(bool use_gzip);
+
+public:
+    deflate_filter(
+        http_proto::detail::workspace& ws,
+        bool use_gzip = false);
+    ~deflate_filter();
+
+    deflate_filter(deflate_filter const&) = delete;
+    deflate_filter& operator=(
+        deflate_filter const&) = delete;
+
+    filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override;
+};
+
+deflate_filter::
+deflate_filter(
+    http_proto::detail::workspace& ws,
+    bool use_gzip)
+    : ws_(ws)
+{
+    stream_.zalloc = &zalloc_impl;
+    stream_.zfree = &zfree_impl;
+    stream_.opaque = &ws_;
+    init(use_gzip);
+}
+
+deflate_filter::
+~deflate_filter()
+{
+    deflateEnd(&stream_);
+}
+
+void
+deflate_filter::
+init(bool use_gzip)
+{
+    int ret = -1;
+
+    int window_bits = 15;
+    if( use_gzip )
+        window_bits += 16;
+
+    int mem_level = 8;
+
+    ret = deflateInit2(
+        &stream_, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+        window_bits, mem_level, Z_DEFAULT_STRATEGY);
+
+    if( ret != Z_OK )
+        throw_zlib_error(ret);
+
+    stream_.next_out = nullptr;
+    stream_.avail_out = 0;
+
+    stream_.next_in = nullptr;
+    stream_.avail_in = 0;
+}
+
+filter::results
+deflate_filter::
+on_process(
+    buffers::mutable_buffer out,
+    buffers::const_buffer in,
+    bool more)
+{
+    auto& zstream = stream_;
+
+    auto flush = more ? Z_NO_FLUSH : Z_FINISH;
+    int ret = -1;
+    filter::results results;
+
+    for(;;)
+    {
+        zstream.next_in =
+            reinterpret_cast<unsigned char*>(
+                const_cast<void*>(in.data()));
+        zstream.avail_in = static_cast<unsigned>(
+            in.size());
+
+        zstream.next_out =
+            reinterpret_cast<unsigned char*>(
+                out.data());
+        zstream.avail_out =
+            static_cast<unsigned>(out.size());
+
+        auto n1 = zstream.avail_in;
+        auto n2 = zstream.avail_out;
+        ret = deflate(&zstream, flush);
+
+        in += (n1 - zstream.avail_in);
+        out += (n2 - zstream.avail_out);
+
+        results.in_bytes += (n1 - zstream.avail_in);
+        results.out_bytes += (n2 - zstream.avail_out);
+
+        auto is_empty = (in.size() == 0);
+
+        if( ret != Z_OK &&
+            ret != Z_BUF_ERROR &&
+            ret != Z_STREAM_END )
+            throw_zlib_error(ret);
+
+        if( is_empty &&
+            n2 == zstream.avail_out &&
+            ret == Z_OK )
+        {
+            flush = Z_SYNC_FLUSH;
+            continue;
+        }
+
+        if( ret == Z_STREAM_END )
+            results.finished = true;
+
+        if( ret == Z_BUF_ERROR )
+            break;
+
+        if( ret == Z_STREAM_END )
+            break;
+
+        if( ret == Z_OK &&
+            out.size() == 0 )
+            break;
+    }
+    return results;
+}
+
+//------------------------------------------------
+
 struct
     deflate_decoder_service_impl
     : deflate_decoder_service
@@ -250,24 +441,28 @@ private:
     }
 
     filter&
-    make_filter(http_proto::detail::workspace& ws) const override
+    make_deflate_filter(
+        http_proto::detail::workspace& ws) const override
     {
-        filter* p;
-        (void)ws;
-        p = nullptr;
-        return *p;
+        return ws.emplace<deflate_filter>(ws, false);
+    }
+
+    filter&
+    make_gzip_filter(
+        http_proto::detail::workspace& ws) const override
+    {
+        return ws.emplace<deflate_filter>(ws, true);
     }
 };
 
 } // detail
 
-void
-deflate_decoder_service::
-config::
-install(context& ctx)
+void BOOST_HTTP_PROTO_ZLIB_DECL
+install_deflate_encoder(context& ctx)
 {
+    detail::deflate_decoder_service::config cfg;
     ctx.make_service<
-        detail::deflate_decoder_service_impl>(*this);
+        detail::deflate_decoder_service_impl>(cfg);
 }
 
 } // zlib
