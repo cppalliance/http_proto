@@ -11,6 +11,8 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/context.hpp>
+#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -76,19 +78,23 @@ public:
     /** Constructor
     */
     BOOST_HTTP_PROTO_DECL
-    serializer();
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
     serializer(
         serializer&&) noexcept;
 
     /** Constructor
+
+        @param ctx The serializer will access services
+                   registered with this context.
     */
     BOOST_HTTP_PROTO_DECL
-    explicit
     serializer(
+        context& ctx);
+
+    /** Constructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    serializer(
+        context& ctx,
         std::size_t buffer_size);
 
     //--------------------------------------------
@@ -211,6 +217,28 @@ public:
     void
     consume(std::size_t n);
 
+    /** Applies deflate compression to the current message
+
+        After @ref reset is called, compression is not
+        applied to the next message.
+
+        Must be called before any calls to @ref start.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    use_deflate_encoding();
+
+    /** Applies gzip compression to the current message
+
+        After @ref reset is called, compression is not
+        applied to the next message.
+
+        Must be called before any calls to @ref start.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    use_gzip_encoding();
+
 private:
     static void copy(
         buffers::const_buffer*,
@@ -306,19 +334,30 @@ private:
 
     detail::workspace ws_;
     detail::array_of_const_buffers buf_;
+    filter* filter_ = nullptr;
     source* src_;
-
+    context& ctx_;
     buffers::circular_buffer tmp0_;
     buffers::circular_buffer tmp1_;
-    detail::array_of_const_buffers out_;
+    detail::array_of_const_buffers prepped_;
+
+    buffers::mutable_buffer chunk_header_;
+    buffers::mutable_buffer chunk_close_;
+    buffers::mutable_buffer last_chunk_;
+
+    buffers::circular_buffer* in_ = nullptr;
+    buffers::circular_buffer* out_ = nullptr;
 
     buffers::const_buffer* hp_;  // header
 
     style st_;
     bool more_;
     bool is_done_;
+    bool is_header_done_;
     bool is_chunked_;
     bool is_expect_continue_;
+    bool is_compressed_ = false;
+    bool filter_done_ = false;
 };
 
 //------------------------------------------------
@@ -529,14 +568,16 @@ start(
     auto const& bs =
         ws_.emplace<ConstBufferSequence>(
             std::forward<ConstBufferSequence>(body));
+
     std::size_t n = std::distance(
         buffers::begin(bs),
         buffers::end(bs));
+
     buf_ = make_array(n);
     auto p = buf_.data();
-    for(buffers::const_buffer b :
-            buffers::range(bs))
+    for(buffers::const_buffer b : buffers::range(bs))
         *p++ = b;
+
     start_buffers(m);
 }
 
@@ -550,6 +591,8 @@ start(
     message_view_base const& m,
     Args&&... args)
 {
+    static_assert(
+        !std::is_abstract<Source>::value, "");
     static_assert(
         std::is_constructible<Source, Args...>::value ||
         std::is_constructible<Source, buffered_base::allocator&, Args...>::value,

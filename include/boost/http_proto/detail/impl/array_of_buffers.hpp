@@ -22,8 +22,10 @@ array_of_buffers<isConst>::
 array_of_buffers(
     value_type* p,
     std::size_t n) noexcept
-    : p_(p)
+    : o_(p)
+    , p_(p)
     , n_(n)
+    , c_(n)
 {
 }
 
@@ -53,6 +55,14 @@ size() const noexcept
 }
 
 template<bool isConst>
+std::size_t
+array_of_buffers<isConst>::
+capacity() const noexcept
+{
+    return c_;
+}
+
+template<bool isConst>
 auto
 array_of_buffers<isConst>::
 begin() const noexcept ->
@@ -75,7 +85,7 @@ auto
 array_of_buffers<isConst>::
 operator[](
     std::size_t i) const noexcept ->
-        value_type& 
+        value_type&
 {
     BOOST_ASSERT(i < n_);
     return p_[i];
@@ -103,6 +113,18 @@ consume(std::size_t n)
     // n exceeded available size
     if(n > 0)
         detail::throw_logic_error();
+}
+
+template<bool isConst>
+void
+array_of_buffers<isConst>::
+reset(std::size_t n)
+{
+    BOOST_ASSERT(n <= capacity());
+    p_ = o_;
+    n_ = n;
+    for( auto p = p_; p < p_ + n; ++p )
+        *p = value_type();
 }
 
 } // detail
