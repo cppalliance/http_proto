@@ -60,6 +60,7 @@ local SOURCES =
     string_body.cpp
     test_helpers.cpp
     version.cpp
+    zlib.cpp
     rfc/combine_field_values.cpp
     rfc/list_rule.cpp
     rfc/parameter.cpp

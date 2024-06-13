@@ -41,15 +41,19 @@ public:
     bool empty() const noexcept;
     value_type* data() const noexcept;
     std::size_t size() const noexcept;
+    std::size_t capacity() const noexcept;
     value_type& operator[](std::size_t) const noexcept;
     void consume(std::size_t n);
+    void reset(std::size_t n);
 
     iterator begin() const noexcept;
     iterator end() const noexcept;
 
 private:
+    value_type* o_ = nullptr;
     value_type* p_ = nullptr;
     std::size_t n_ = 0;
+    std::size_t c_ = 0;
 };
 
 using array_of_const_buffers =
