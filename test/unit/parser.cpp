@@ -1585,6 +1585,325 @@ struct parser_test
             "Hello");
     }
 
+    void
+    testChunkedInPlace()
+    {
+        context ctx;
+        response_parser::config cfg;
+        install_parser_service(ctx, cfg);
+
+        response_parser pr(ctx);
+
+        {
+            // initial hello world parse for chunked
+            // encoding
+
+            pr.reset();
+            pr.start();
+
+            core::string_view res =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n"
+                "d\r\nhello, world!\r\n"
+                "0\r\n\r\n";
+
+            auto bs = pr.prepare();
+            auto n =
+                buffers::buffer_copy(
+                    bs,
+                    buffers::const_buffer(
+                        res.data(),
+                        res.size()));
+
+            BOOST_TEST_EQ(n, res.size());
+            pr.commit(n);
+
+            system::error_code ec;
+
+            pr.parse(ec);
+            BOOST_TEST(!ec);
+            BOOST_TEST(pr.is_complete());
+
+            auto str = pr.body();
+            BOOST_TEST_EQ(str, "hello, world!");
+        }
+
+        {
+            // split chunk-header and chunk-body w/
+            // closing chunk
+            // must be valid
+            // also test that the code accepts any arbitrary
+            // amount of leading zeroes
+
+            pr.reset();
+            pr.start();
+
+            core::string_view res =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n"
+                "00000000000000000000000000000000000d\r\n";
+
+            core::string_view body1 =
+                "hello, world!\r\n"
+                "0\r\n\r\n";
+
+            pr.commit(
+                buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            res.data(), res.size())));
+
+            system::error_code ec;
+
+            pr.parse(ec);
+            BOOST_TEST(ec == condition::need_more_input);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(!pr.is_complete());
+
+            pr.commit(
+                buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            body1.data(), body1.size())));
+
+            pr.parse(ec);
+            BOOST_TEST(!ec);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
+            BOOST_TEST_EQ(pr.body(), "hello, world!");
+        }
+
+        {
+            // chunk-size much larger, contains closing
+            // chunk in its body
+            // this must _not_ complete the parser, and we
+            // should error out with needs-more
+
+            pr.reset();
+            pr.start();
+
+            // the chunk body is an OCTET stream, thus it
+            // can contain anything
+            core::string_view res =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n"
+                "1234\r\nhello, world!\r\n"
+                "0\r\n\r\n";
+
+            pr.commit(
+                buffers::buffer_copy(
+                    pr.prepare(),
+                    buffers::const_buffer(
+                        res.data(), res.size())));
+
+            system::error_code ec;
+
+            pr.parse(ec);
+            BOOST_TEST(ec);
+            BOOST_TEST_EQ(ec, condition::need_more_input);
+            BOOST_TEST(!pr.is_complete());
+        }
+
+        {
+            // chunk-size is too small
+            // must end with an unrecoverable parsing error
+
+            pr.reset();
+            pr.start();
+
+            // the chunk body is an OCTET stream, thus it
+            // can contain anything
+            core::string_view res =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n"
+                "03\r\nhello, world!\r\n"
+                "0\r\n\r\n";
+
+            pr.commit(
+                buffers::buffer_copy(
+                    pr.prepare(),
+                    buffers::const_buffer(
+                        res.data(), res.size())));
+
+            system::error_code ec;
+
+            pr.parse(ec);
+            BOOST_TEST(ec);
+            BOOST_TEST_EQ(ec, condition::invalid_payload);
+            BOOST_TEST(!pr.is_complete());
+        }
+
+        {
+            // valid chunk, but split up oddly
+
+            pr.reset();
+            pr.start();
+            std::vector<core::string_view> pieces = {
+                "HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n",
+                "d\r\nhello, ",
+                "world!",
+                "\r\n",
+                "29\r\n",
+                " and this is a much longer ",
+                "string of text",
+                "\r\n",
+                "0\r\n\r\n"
+            };
+
+            system::error_code ec;
+            for( auto piece : pieces )
+            {
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            piece.data(), piece.size())));
+
+
+                pr.parse(ec);
+                if( ec)
+                {
+                    BOOST_TEST_EQ(
+                        ec, condition::need_more_input);
+                }
+            }
+
+            BOOST_TEST(pr.is_complete());
+            BOOST_TEST_EQ(
+                pr.body(),
+                "hello, world! and this is a much longer string of text");
+        }
+
+        {
+            // make sure we're somewhat robust against
+            // malformed input
+
+            core::string_view headers =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n";
+
+            std::vector<core::string_view> pieces = {
+                "xxxasdfasdfasd", // invalid chunk header
+                "1qwer",          // valid digit, invalid close
+                "1\rzxcv",        // invalid crlf on chunk-size close
+                "1\r\nabcd",      // invalid chunk-body close
+                "1\r\na\rqwer",   // invalid chunk-body close
+                // similar but now for the last-chunk
+                "0qwer",
+                "0\rzxcv",
+                "0\r\n1\r\nb\r\n",
+                "0\r\n\rqwer",
+                "1\r\na\r\n0\r\nqwer",
+                "1\r\na\r\n0\r\n\rabcd",
+                "0\r\nhello, world!\r\n0\r\n",
+                "fffffffffffffffff\r\n",
+                "000000001234kittycat\r\n"
+            };
+
+            for( auto piece : pieces )
+            {
+                pr.reset();
+                pr.start();
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            headers.data(),
+                            headers.size())));
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            piece.data(),
+                            piece.size())));
+
+                system::error_code ec;
+                pr.parse(ec);
+                BOOST_TEST(ec);
+                BOOST_TEST_EQ(
+                    ec, condition::invalid_payload);
+                BOOST_TEST(!pr.is_complete());
+            }
+        }
+
+        {
+            // grind it out, emulate light fuzzing
+
+            core::string_view headers =
+                "HTTP/1.1 200 OK\r\n"
+                "transfer-encoding: chunked\r\n"
+                "\r\n";
+
+            core::string_view body =
+                "d\r\nhello, world!\r\n"
+                "29\r\n and this is a much longer string of text\r\n"
+                "0\r\n\r\n";
+
+            for( std::size_t i = 0; i < body.size(); ++i )
+            {
+                auto s1 = body.substr(0, i);
+                auto s2 = body.substr(i);
+
+                pr.reset();
+                pr.start();
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            headers.data(),
+                            headers.size())));
+
+                system::error_code ec;
+                pr.parse(ec);
+                BOOST_TEST_EQ(
+                    ec, condition::need_more_input);
+                BOOST_TEST(pr.got_header());
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            s1.data(),
+                            s1.size())));
+
+                pr.parse(ec);
+                if( ec &&
+                    !BOOST_TEST_EQ(
+                        ec, condition::need_more_input) )
+                {
+                    break;
+                }
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            s2.data(),
+                            s2.size())));
+
+                pr.parse(ec);
+                if( ec &&
+                    !BOOST_TEST_EQ(
+                        ec, condition::need_more_input) )
+                {
+                    break;
+                }
+
+                BOOST_TEST(pr.is_complete());
+                BOOST_TEST_EQ(
+                    pr.body(),
+                    "hello, world! and this is a much longer string of text");
+            }
+        }
+    }
+
     //-------------------------------------------
 
     void
@@ -1599,6 +1918,7 @@ struct parser_test
         testCommit();
         testCommitEof();
         testParse();
+        testChunkedInPlace();
 #else
         // For profiling
         for(int i = 0; i < 10000; ++i )

@@ -112,6 +112,9 @@ public:
         check(n,
             condition::need_more_input,
             urls::grammar::error::need_more);
+        check(n,
+             condition::invalid_payload,
+             error::bad_payload);
     }
 };
 
