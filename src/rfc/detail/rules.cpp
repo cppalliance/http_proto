@@ -17,6 +17,7 @@
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/hexdig_chars.hpp>
 #include <boost/url/grammar/lut_chars.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/tuple_rule.hpp>
@@ -395,6 +396,68 @@ remove_obs_fold(
             ++it;
         }
     }
+}
+
+//------------------------------------------------
+
+system::result<hex_rule_t::value_type>
+hex_rule_t::
+parse(
+    char const*& it,
+    char const* end) const noexcept
+{
+    value_type v;
+
+    constexpr
+    auto const max_size =
+        (std::numeric_limits<std::size_t>::max)() >> 4;
+
+    auto const begin = it;
+    for( ; it < end; ++it )
+    {
+        auto n = grammar::hexdig_value(*it);
+        if(n < 0)
+        {
+            if( it == begin )
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    grammar::error::mismatch);
+
+            return v;
+        }
+
+        // we know that so long as we can shift the current
+        // value up 4 bits, we'll be able to fit the hex
+        // digit we've just parsed
+        if( v.v > max_size )
+            BOOST_HTTP_PROTO_RETURN_EC(
+                grammar::error::invalid);
+
+        v.v = (v.v << 4) | (std::size_t)n;
+    }
+    return v;
+}
+
+system::result<void>
+last_chunk_rule_t::
+parse(
+    char const*& it,
+    char const* end) const noexcept
+{
+    constexpr
+    std::size_t const last_chunk_len = 5; // 0\r\n\r\n
+
+    if( static_cast<std::size_t>(end - it) <
+        last_chunk_len )
+        BOOST_HTTP_PROTO_RETURN_EC(
+            grammar::error::need_more);
+
+    core::string_view str(it, end - it);
+    if( str != "0\r\n\r\n" )
+        BOOST_HTTP_PROTO_RETURN_EC(grammar::error::invalid);
+
+    it += last_chunk_len;
+
+    return {};
 }
 
 } // detail

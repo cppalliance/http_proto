@@ -391,6 +391,7 @@ private:
     std::uint64_t body_avail_;
     std::uint64_t body_total_;
     std::uint64_t payload_remain_;
+    std::size_t chunk_remain_ = 0;
     std::size_t nprepare_;
 
     buffers::flat_buffer fb_;
@@ -407,6 +408,7 @@ private:
     bool got_eof_;
 //    bool need_more_;
     bool head_response_;
+    bool needs_chunk_close_ = false;
 };
 
 //------------------------------------------------

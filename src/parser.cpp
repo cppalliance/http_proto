@@ -8,15 +8,29 @@
 //
 
 #include <boost/http_proto/parser.hpp>
+
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
+
 #include <boost/http_proto/detail/except.hpp>
+
+#include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
+#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/make_buffer.hpp>
+
 #include <boost/url/grammar/ci_string.hpp>
+#include <boost/url/grammar/parse.hpp>
+
 #include <boost/assert.hpp>
+
+#include <array>
+#include <iostream>
 #include <memory>
 
+#include "rfc/detail/rules.hpp"
 #include "zlib_service.hpp"
 
 namespace boost {
@@ -104,6 +118,298 @@ Buffer Usage
     or additional data received past the end of
     the message payload.
 */
+//-----------------------------------------------
+
+struct discontiguous_iterator
+{
+    buffers::const_buffer const* pos = nullptr;
+    buffers::const_buffer const* end = nullptr;
+    std::size_t off = 0;
+
+    discontiguous_iterator(
+        buffers::const_buffer const* pos_,
+        buffers::const_buffer const* end_)
+    : pos(pos_)
+    , end(end_)
+    {
+    }
+
+    char
+    operator*() const noexcept
+    {
+        BOOST_ASSERT(pos);
+        BOOST_ASSERT(pos->size() > 0);
+        BOOST_ASSERT(off < pos->size());
+        auto it =
+            static_cast<char const*>(pos->data()) + off;
+        return *it;
+    }
+
+    discontiguous_iterator&
+    operator++() noexcept
+    {
+        ++off;
+        if( off >= pos->size() )
+        {
+            ++pos;
+            off = 0;
+            while( pos != end && pos->size() == 0 )
+                ++pos;
+            return *this;
+        }
+        return *this;
+    }
+
+    discontiguous_iterator
+    operator++(int) noexcept
+    {
+        auto old = *this;
+        ++*this;
+        return old;
+    }
+
+    bool
+    operator==(
+        discontiguous_iterator const& rhs) const noexcept
+    {
+        return pos == rhs.pos && off == rhs.off;
+    }
+
+    bool
+    operator!=(
+        discontiguous_iterator const& rhs) const noexcept
+    {
+        return !(*this == rhs);
+    }
+
+    bool
+    done() const noexcept
+    {
+        return pos == end;
+    }
+};
+
+constexpr static
+std::size_t const max_chunk_header_len = 16 + 2;
+
+constexpr static
+std::size_t const last_chunk_len = 5;
+
+static
+void
+parse_chunk_header(
+    buffers::circular_buffer& input,
+    system::error_code& ec,
+    std::size_t& chunk_remain_)
+{
+    if( input.size() == 0 )
+    {
+        ec = error::need_data;
+        return;
+    }
+
+    char tmp[max_chunk_header_len] = {};
+    auto* p = tmp;
+    unsigned num_leading_zeros = 0;
+
+    {
+        auto cbs = input.data();
+        discontiguous_iterator pos(cbs.begin(), cbs.end());
+
+        for( ; !pos.done() && *pos == '0'; ++pos )
+            ++num_leading_zeros;
+
+        for( ; p < (tmp + max_chunk_header_len) &&
+               !pos.done(); )
+            *p++ = *pos++;
+    }
+
+    core::string_view sv(tmp, p - tmp);
+    BOOST_ASSERT(sv.size() <= input.size());
+
+    auto it = sv.begin();
+    auto rv =
+        grammar::parse(it, sv.end(), detail::hex_rule);
+
+    if( rv.has_error() )
+    {
+        ec = error::bad_payload;
+        return;
+    }
+
+    auto rv2 =
+        grammar::parse(it, sv.end(), detail::crlf_rule);
+    if( rv2.has_error() )
+    {
+        if( rv2.error() == condition::need_more_input )
+            ec = error::need_data;
+        else
+            ec = error::bad_payload;
+        return;
+    }
+
+    if( rv->v == 0 )
+    {
+        ec = error::bad_payload;
+        return;
+    }
+
+    auto n = num_leading_zeros + (it - sv.begin());
+    input.consume(n);
+    chunk_remain_ = rv->v;
+};
+
+static
+void
+parse_last_chunk(
+    buffers::circular_buffer& input,
+    system::error_code& ec)
+{
+    // chunked-body = *chunk last-chunk trailer-section CRLF
+    // last-chunk = 1*"0" [ chunk-ext ] CRLF
+    //
+    // drop support trailers/chunk-ext, use internal definition
+    //
+    // last-chunk = 1*"0" CRLF CRLF
+
+    if( buffers::buffer_size(input.data()) <
+        last_chunk_len )
+    {
+        ec = error::need_data;
+        return;
+    }
+
+    auto cbs = input.data();
+    discontiguous_iterator pos(cbs.begin(), cbs.end());
+
+    std::size_t len = 0;
+    for( ; !pos.done() && *pos == '0'; ++pos, ++len )
+    {
+    }
+
+    if( len == 0 )
+    {
+        ec = error::bad_payload;
+        return;
+    }
+
+    std::size_t const close_len = 4; // for \r\n\r\n
+    if( buffers::buffer_size(input.data()) - len <
+        close_len )
+    {
+        ec = error::need_data;
+        return;
+    }
+
+    char tmp[close_len] = {};
+    for( std::size_t i = 0; i < close_len; ++i )
+        tmp[i] = *pos++;
+
+    core::string_view s(tmp, close_len);
+    if( s != "\r\n\r\n" )
+    {
+        ec = error::bad_payload;
+        return;
+    }
+
+    input.consume(len + close_len);
+};
+
+template <class ElasticBuffer>
+bool
+parse_chunked(
+    buffers::circular_buffer& input,
+    ElasticBuffer& output,
+    system::error_code& ec,
+    std::size_t& chunk_remain_,
+    bool& needs_chunk_close_)
+{
+    if( input.size() == 0 )
+    {
+        ec = error::need_data;
+        return false;
+    }
+
+    for(;;)
+    {
+        if( chunk_remain_ == 0 )
+        {
+            if( needs_chunk_close_ )
+            {
+                if( input.size() < 2 )
+                {
+                    ec = error::need_data;
+                    return false;
+                }
+
+                std::size_t const crlf_len = 2;
+                char tmp[crlf_len] = {};
+
+                buffers::buffer_copy(
+                    buffers::mutable_buffer(
+                        tmp, crlf_len),
+                    input.data());
+
+                core::string_view str(tmp, crlf_len);
+                if( str != "\r\n" )
+                {
+                    ec = error::bad_payload;
+                    return false;
+                }
+
+                input.consume(crlf_len);
+                needs_chunk_close_ = false;
+                continue;
+            }
+
+            parse_chunk_header(input, ec, chunk_remain_);
+            if( ec )
+            {
+                system::error_code ec2;
+                parse_last_chunk(input, ec2);
+                if( ec2 )
+                {
+                    if( ec2 == condition::need_more_input )
+                        ec = ec2;
+                    return false;
+                }
+
+                // complete
+                ec.clear();
+                return true;
+            }
+
+            needs_chunk_close_ = true;
+        }
+
+        // we've successfully parsed a chunk-size and have
+        // consume()d the entire buffer
+        if( input.size() == 0 )
+        {
+            ec = error::need_data;
+            return false;
+        }
+
+        // TODO: this is an open-ended design space with no
+        // clear answer at time of writing.
+        // revisit this later
+        if( output.capacity() == 0 )
+            detail::throw_length_error();
+
+        auto n = (std::min)(chunk_remain_, input.size());
+
+        auto m = buffers::buffer_copy(
+            output.prepare(output.capacity()),
+            buffers::prefix(input.data(), n));
+
+        BOOST_ASSERT(m <= chunk_remain_);
+        chunk_remain_ -= m;
+        input.consume(m);
+        output.commit(m);
+    }
+    return false;
+}
+
 //-----------------------------------------------
 
 class parser_service
@@ -339,6 +645,8 @@ start_impl(
     how_ = how::in_place;
     st_ = state::header;
     nprepare_ = 0;
+    chunk_remain_ = 0;
+    needs_chunk_close_ = false;
 }
 
 auto
@@ -480,8 +788,6 @@ prepare() ->
 
     case state::set_body:
     {
-        BOOST_ASSERT(is_plain());
-
         if(how_ == how::elastic)
         {
             // attempt to transfer in-place
@@ -750,8 +1056,9 @@ parse(
             void const*>(ws_.data()));
         BOOST_ASSERT(h_.cbuf == static_cast<
             void const*>(ws_.data()));
-        auto const new_size = fb_.size();
-        h_.parse(new_size, svc_.cfg.headers, ec);
+
+        h_.parse(fb_.size(), svc_.cfg.headers, ec);
+
         if(ec == condition::need_more_input)
         {
             if(! got_eof_)
@@ -793,6 +1100,7 @@ parse(
             return;
         if(st_ == state::complete)
             break;
+
         BOOST_FALLTHROUGH;
     }
 
@@ -804,12 +1112,28 @@ parse(
             h_.md.payload != payload::none);
         BOOST_ASSERT(
             h_.md.payload != payload::error);
-        if(h_.md.payload == payload::chunked)
+
+        if( h_.md.payload == payload::chunked )
         {
-            // VFALCO parse chunked
-            detail::throw_logic_error();
+            auto completed = false;
+            auto& input = cb0_;
+
+            if( how_ == how::in_place )
+            {
+                completed =
+                    parse_chunked(
+                        input, cb1_, ec, chunk_remain_,
+                        needs_chunk_close_);
+            }
+            else
+                detail::throw_logic_error();
+
+            if( completed )
+                st_ = state::complete;
+
+            return;
         }
-        else if(filt_)
+        else if( filt_ )
         {
             // VFALCO TODO apply filter
             detail::throw_logic_error();
@@ -921,8 +1245,6 @@ parse(
 
     case state::set_body:
     {
-        BOOST_ASSERT(is_plain());
-
         // transfer in_place data into set body
 
         if(how_ == how::elastic)
@@ -1078,7 +1400,7 @@ body() const noexcept
         return core::string_view(
             static_cast<char const*>(
                 cbp[0].data()),
-            static_cast<std::size_t>(body_avail_));
+            cbp[0].size());
     }
 }
 
@@ -1166,7 +1488,6 @@ on_headers(
     if(is_plain())
     {
         // plain payload
-
         if(h_.md.payload == payload::size)
         {
             if(h_.md.payload_size >
@@ -1177,6 +1498,7 @@ on_headers(
                 st_ = state::reset; // unrecoverable
                 return;
             }
+
             auto n0 =
                 fb_.capacity() - h_.size +
                 svc_.cfg.min_buffer +
@@ -1214,6 +1536,18 @@ on_headers(
         body_buf_ = &cb0_;
         body_avail_ = cb0_.size();
         body_total_ = body_avail_;
+        st_ = state::body;
+        return;
+    }
+
+    if( h_.md.payload == payload::chunked  )
+    {
+        auto const n0 =
+            fb_.capacity() - fb_.size();
+
+        cb0_ = { ws_.data(), n0 / 2, overread };
+        cb1_ = { ws_.data() + n0 / 2, n0 - (n0 / 2), 0 };
+        body_buf_ = &cb1_;
         st_ = state::body;
         return;
     }

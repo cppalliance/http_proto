@@ -107,6 +107,7 @@ message(
     {
     default:
     case condition::need_more_input: return "need more input";
+    case condition::invalid_payload: return "invalid body octets received";
     }
 }
 
@@ -118,9 +119,12 @@ equivalent(
 {
     switch(static_cast<condition>(code))
     {
+    case condition::invalid_payload:
+        return (ec == error::bad_payload);
+
     case condition::need_more_input:
         if( ec == urls::grammar::error::need_more ||
-            ec == error::need_data)
+            ec == error::need_data )
             return true;
         break;
 

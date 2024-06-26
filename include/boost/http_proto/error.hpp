@@ -194,7 +194,11 @@ enum class condition
 {
     /** More input data is required.
     */
-    need_more_input
+    need_more_input,
+
+    /** The parsed body contained invalid octets
+    */
+    invalid_payload
 };
 
 } // http_proto
