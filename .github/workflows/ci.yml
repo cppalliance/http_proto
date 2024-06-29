@@ -1076,6 +1076,7 @@ jobs:
 
       - name: Build Antora Docs
         run: |
+          set -xe
           cd doc
           bash ./build_antora.sh
 
