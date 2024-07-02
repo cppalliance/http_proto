@@ -26,4 +26,3 @@ PATH="$(pwd)/node_modules/.bin:${PATH}"
 export PATH
 npx antora --clean --fetch "$PLAYBOOK"
 echo "Done"
-
