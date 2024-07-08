@@ -7,7 +7,20 @@
 # Official repository: https://github.com/boostorg/url
 #
 
-set -xe
+set -e
+
+# If CXX was not already set, then determine the newest clang.
+if [ ! -n "$CXX" ]; then
+    for i in $(seq 40 -1 18); do
+        if [ -f /usr/bin/clang++-${i} ]; then
+            export CXX="/usr/bin/clang++-$i"
+            export CC="/usr/bin/clang-$i"
+            break
+        fi
+    done
+fi
+
+set -x
 
 if [ $# -eq 0 ]
   then
