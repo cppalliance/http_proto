@@ -1077,11 +1077,6 @@ jobs:
         run: |
           set -xe
 
-          CXX="/usr/bin/clang++-18"
-          export CXX
-          CC="/usr/bin/clang-18"
-          export CC
-
           cd doc
           bash ./build_antora.sh
 
