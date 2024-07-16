@@ -322,6 +322,7 @@ parse_chunked(
     ElasticBuffer& output,
     system::error_code& ec,
     std::size_t& chunk_remain_,
+    std::uint64_t& body_avail_,
     bool& needs_chunk_close_)
 {
     if( input.size() == 0 )
@@ -406,6 +407,7 @@ parse_chunked(
         chunk_remain_ -= m;
         input.consume(m);
         output.commit(m);
+        body_avail_ += m;
     }
     return false;
 }
@@ -647,6 +649,7 @@ start_impl(
     nprepare_ = 0;
     chunk_remain_ = 0;
     needs_chunk_close_ = false;
+    body_avail_ = 0;
 }
 
 auto
@@ -1120,10 +1123,11 @@ parse(
 
             if( how_ == how::in_place )
             {
+                auto& output = cb1_;
                 completed =
                     parse_chunked(
-                        input, cb1_, ec, chunk_remain_,
-                        needs_chunk_close_);
+                        input, output, ec, chunk_remain_,
+                        body_avail_, needs_chunk_close_);
             }
             else
                 detail::throw_logic_error();
@@ -1400,7 +1404,7 @@ body() const noexcept
         return core::string_view(
             static_cast<char const*>(
                 cbp[0].data()),
-            body_avail_);
+            static_cast<std::size_t>(body_avail_));
     }
 }
 
