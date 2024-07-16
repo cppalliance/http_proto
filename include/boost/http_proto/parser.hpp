@@ -386,28 +386,30 @@ private:
 
     context& ctx_;
     parser_service& svc_;
+
     detail::workspace ws_;
     detail::header h_;
-    std::uint64_t body_avail_;
-    std::uint64_t body_total_;
-    std::uint64_t payload_remain_;
+    std::uint64_t body_avail_ = 0;
+    std::uint64_t body_total_ = 0;
+    std::uint64_t payload_remain_ = 0;
     std::size_t chunk_remain_ = 0;
-    std::size_t nprepare_;
+    std::size_t nprepare_ = 0;
 
     buffers::flat_buffer fb_;
     buffers::circular_buffer cb0_;
     buffers::circular_buffer cb1_;
-    buffers::circular_buffer* body_buf_;
     buffers::mutable_buffer_pair mbp_;
-    buffers::any_dynamic_buffer* eb_;
-    filter* filt_;
-    sink* sink_;
 
-    state st_;
-    how how_;
-    bool got_eof_;
+    buffers::circular_buffer* body_buf_ = nullptr;
+    buffers::any_dynamic_buffer* eb_ = nullptr;
+    filter* filt_ = nullptr;
+    sink* sink_ = nullptr;
+
+    state st_ = state::start;
+    how how_ = how::in_place;
+    bool got_eof_ = false;
 //    bool need_more_;
-    bool head_response_;
+    bool head_response_ = false;;
     bool needs_chunk_close_ = false;
 };
 
