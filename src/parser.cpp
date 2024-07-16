@@ -1396,11 +1396,11 @@ body() const noexcept
         }
         auto cbp = body_buf_->data();
         BOOST_ASSERT(cbp[1].size() == 0);
-        BOOST_ASSERT(cbp[0].size() >= body_avail_);
+        BOOST_ASSERT(cbp[0].size() == body_avail_);
         return core::string_view(
             static_cast<char const*>(
                 cbp[0].data()),
-            cbp[0].size());
+            body_avail_);
     }
 }
 
