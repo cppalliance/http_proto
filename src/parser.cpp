@@ -607,6 +607,12 @@ start_impl(
             BOOST_ASSERT(h_.size > 0);
             fb_.consume(h_.size);
             leftover = fb_.size();
+            // possible aliasing violation here if these two
+            // ranges overlap
+            // need to examine if this is problematic in
+            // practice or not
+            //
+            //
             // move unused octets to front
             buffers::buffer_copy(
                 buffers::mutable_buffer(
@@ -1443,15 +1449,21 @@ is_plain() const noexcept
             payload::chunked;
 }
 
-// Called immediately after complete headers
-// are received. We leave fb_ as-is to indicate
-// whether any data was received before eof.
+// Called immediately after complete headers are received
+// to setup the circular buffers for subsequent operations.
+// We leave fb_ as-is to indicate whether any data was
+// received before eof.
 //
 void
 parser::
 on_headers(
     system::error_code& ec)
 {
+    // overread currently includes any and all octets that
+    // extend beyond the current end of the header
+    // this can include associated body octets for the
+    // current message or octets of the next message in the
+    // stream, e.g. pipelining is being used
     auto const overread = fb_.size() - h_.size;
     BOOST_ASSERT(
         overread <= svc_.max_overread());
@@ -1472,12 +1484,12 @@ on_headers(
 
     // no payload
     if( h_.md.payload == payload::none ||
-        head_response_)
+        head_response_ )
     {
         // set cb0_ to overread
         cb0_ = {
             ws_.data(),
-            fb_.capacity() - h_.size,
+            overread + fb_.capacity(),
             overread };
         body_avail_ = 0;
         body_total_ = 0;
@@ -1503,27 +1515,48 @@ on_headers(
                 return;
             }
 
-            auto n0 =
-                fb_.capacity() - h_.size +
-                svc_.cfg.min_buffer +
-                svc_.max_codec;
-            // limit the capacity of cb0_ so
-            // that going over max_overread
-            // is impossible.
-            if( n0 > h_.md.payload_size &&
-                n0 - h_.md.payload_size >=
-                    svc_.max_overread())
-                n0 = static_cast<std::size_t>(h_.md.payload_size) +
+            // for plain messages with a known size,, we can
+            // get away with only using cb0_ as our input
+            // area and leaving cb1_ blank
+
+            BOOST_ASSERT(fb_.max_size() >= h_.size);
+            BOOST_ASSERT(
+                fb_.max_size() - h_.size ==
+                overread + fb_.capacity());
+            BOOST_ASSERT(fb_.data().data() == h_.buf);
+            BOOST_ASSERT(svc_.max_codec == 0);
+
+            auto cap =
+                (overread + fb_.capacity()) + // reuse previously designated storage
+                svc_.cfg.min_buffer +         // minimum buffer size for prepare() calls
+                svc_.max_codec;               // tentatively we can delete this
+
+            if( cap > h_.md.payload_size &&
+                cap - h_.md.payload_size >= svc_.max_overread() )
+            {
+                // we eagerly process octets as they arrive,
+                // so it's important to limit potential
+                // overread as applying a transformation algo
+                // can be prohibitively expensive
+                cap =
+                    static_cast<std::size_t>(h_.md.payload_size) +
                     svc_.max_overread();
-            BOOST_ASSERT(n0 <= ws_.size());
-            cb0_ = { ws_.data(), n0, overread };
+            }
+
+            BOOST_ASSERT(cap <= ws_.size());
+
+            cb0_ = { ws_.data(), cap, overread };
+            cb1_ = {};
+
             body_buf_ = &cb0_;
             body_avail_ = cb0_.size();
             if( body_avail_ >= h_.md.payload_size)
                 body_avail_ = h_.md.payload_size;
+
             body_total_ = body_avail_;
             payload_remain_ =
                 h_.md.payload_size - body_total_;
+
             st_ = state::body;
             return;
         }
