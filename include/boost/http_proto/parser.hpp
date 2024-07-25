@@ -395,9 +395,18 @@ private:
     std::size_t chunk_remain_ = 0;
     std::size_t nprepare_ = 0;
 
+    // used to store initial headers + any potential overread
     buffers::flat_buffer fb_;
+
+    // used for raw input once headers are read
     buffers::circular_buffer cb0_;
+
+    // used for transformed output, if applicable
+    // can be empty/null
     buffers::circular_buffer cb1_;
+
+    // used to provide stable storage when returning
+    // `mutable_buffers_type` from relevant functions
     buffers::mutable_buffer_pair mbp_;
 
     buffers::circular_buffer* body_buf_ = nullptr;
