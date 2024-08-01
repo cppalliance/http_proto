@@ -26,6 +26,7 @@
 
 #include <boost/assert.hpp>
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <memory>
@@ -597,28 +598,53 @@ start_impl(
 
     case state::complete:
     {
-        // remove partial body.
-        if(body_buf_ == &cb0_)
-            cb0_.consume(static_cast<std::size_t>(body_avail_));
+        auto& input = cb0_;
 
-        if(cb0_.size() > 0)
+        // remove partial body.
+        if( is_plain() && (how_ == how::in_place) )
+            input.consume(
+                static_cast<std::size_t>(body_avail_));
+
+        if( input.size() > 0 )
         {
-            // headers with no body
-            BOOST_ASSERT(h_.size > 0);
-            fb_.consume(h_.size);
-            leftover = fb_.size();
-            // possible aliasing violation here if these two
-            // ranges overlap
-            // need to examine if this is problematic in
-            // practice or not
-            //
-            //
             // move unused octets to front
-            buffers::buffer_copy(
-                buffers::mutable_buffer(
-                    ws_.data(),
-                    leftover),
-                fb_.data());
+
+            ws_.clear();
+            leftover = input.size();
+
+            auto cbp = input.data();
+
+            if( cbp[1].size() == 0 )
+            {
+                auto cb = cbp[0];
+                std::memmove(
+                    ws_.data(), cb.data(), cb.size());
+                break;
+            }
+
+            BOOST_ASSERT(cbp[0].size() > 0);
+
+            auto cb1 = cbp[0]; // always to the right of cb2
+            auto cb2 = cbp[1];
+
+            auto off = input.capacity();
+
+            auto* base =
+                reinterpret_cast<unsigned char*>(
+                    const_cast<void*>(cb2.data()));
+
+            // TODO: rotating the entire buffer here touches
+            // the unused bytes in the `prepare()` area
+            // maybe come up with a cleaner solution here
+            std::rotate(
+                base,
+                base + cb2.size(),
+                base + input.max_size());
+
+            std::memmove(
+                ws_.data(),
+                base + off,
+                cb1.size() + cb2.size());
         }
         else
         {
@@ -635,8 +661,8 @@ start_impl(
         svc_.cfg.headers.max_size +
             svc_.cfg.min_buffer,
         leftover };
-    BOOST_ASSERT(fb_.capacity() ==
-        svc_.max_overread());
+    // BOOST_ASSERT(fb_.capacity() ==
+    //     svc_.max_overread());
 
     h_ = detail::header(
         detail::empty{h_.kind});
@@ -712,12 +738,11 @@ prepare() ->
 
         if(how_ == how::in_place)
         {
-            auto n =
-                body_buf_->capacity() -
-                body_buf_->size();
+            auto& input = cb0_;
+            auto n = input.capacity();
             if( n > svc_.cfg.max_prepare)
                 n = svc_.cfg.max_prepare;
-            mbp_ = body_buf_->prepare(n);
+            mbp_ = input.prepare(n);
             nprepare_ = n;
             return mutable_buffers_type(mbp_);
         }
@@ -1151,8 +1176,8 @@ parse(
 
         if(how_ == how::in_place)
         {
-            BOOST_ASSERT(body_avail_ ==
-                body_buf_->size());
+            // BOOST_ASSERT(body_avail_ ==
+            //     body_buf_->size());
             if(h_.md.payload == payload::size)
             {
                 if(body_avail_ <
@@ -1518,14 +1543,12 @@ on_headers(
             // for plain messages with a known size,, we can
             // get away with only using cb0_ as our input
             // area and leaving cb1_ blank
-
             BOOST_ASSERT(fb_.max_size() >= h_.size);
             BOOST_ASSERT(
                 fb_.max_size() - h_.size ==
                 overread + fb_.capacity());
             BOOST_ASSERT(fb_.data().data() == h_.buf);
             BOOST_ASSERT(svc_.max_codec == 0);
-
             auto cap =
                 (overread + fb_.capacity()) + // reuse previously designated storage
                 svc_.cfg.min_buffer +         // minimum buffer size for prepare() calls
@@ -1577,28 +1600,28 @@ on_headers(
         return;
     }
 
-    if( h_.md.payload == payload::chunked  )
-    {
-        auto const n0 =
-            fb_.capacity() - fb_.size();
-
-        cb0_ = { ws_.data(), n0 / 2, overread };
-        cb1_ = { ws_.data() + n0 / 2, n0 - (n0 / 2), 0 };
-        body_buf_ = &cb1_;
-        st_ = state::body;
-        return;
-    }
-
     // buffered payload
-    auto const n0 = fb_.capacity() - h_.size;
-    BOOST_ASSERT(n0 <= svc_.max_overread());
-    auto n1 = svc_.cfg.min_buffer;
-    if(! filt_)
-        n1 += svc_.max_codec;
+
+    // TODO: need to handle the case where we have so much
+    // overread or such an initially large chunk that we
+    // don't have enough room in cb1_ for the output
+    // perhaps we just return with an error and ask the user
+    // to attach a body style
+    auto size = ws_.size();
+
+    auto n0 = (std::max)(svc_.cfg.min_buffer, overread);
+    n0 = (std::max)(n0, size / 2);
+    if( filt_)
+        n0 += svc_.max_codec;
+
+    auto n1 = size - n0;
+
+    // BOOST_ASSERT(n0 <= svc_.max_overread());
     BOOST_ASSERT(n0 + n1 <= ws_.size());
     cb0_ = { ws_.data(), n0, overread };
     cb1_ = { ws_.data() + n0, n1 };
     body_buf_ = &cb1_;
+    // body_buf_ = nullptr;
     body_avail_ = 0;
     body_total_ = 0;
     st_ = state::body;
