@@ -20,6 +20,7 @@
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <iostream>
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -1904,6 +1905,189 @@ struct parser_test
         }
     }
 
+    void
+    testMultipleMessageInPlace()
+    {
+        request_parser::config cfg;
+        context ctx;
+
+        cfg.min_buffer = 1000;
+
+        install_parser_service(ctx, cfg);
+        system::error_code ec;
+
+        request_parser pr(ctx);
+
+        {
+            pr.reset();
+
+            core::string_view headers =
+                "GET / HTTP/1.1\r\n"
+                "content-length: 256\r\n"
+                "\r\n";
+
+            core::string_view headers2 =
+                "GET / HTTP/1.1\r\n"
+                "content-length: 256\r\n"
+                "host: www.google.com\r\n"
+                "connection: keep-alive\r\n"
+                "\r\n";
+
+            std::string octets = headers;
+
+
+            octets += std::string(256, 'a');
+            octets += headers2;
+            octets += std::string(256, 'a');
+
+            for( int i = 0; i < 100; ++i )
+            {
+                pr.start();
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            octets.data(), octets.size())));
+
+                pr.parse(ec);
+                BOOST_TEST(!ec);
+                BOOST_TEST(pr.got_header());
+                BOOST_TEST(pr.is_complete());
+
+                pr.start();
+                pr.parse(ec);
+                BOOST_TEST(!ec);
+                BOOST_TEST(pr.got_header());
+                BOOST_TEST(pr.is_complete());
+            }
+        }
+    }
+
+    void
+    testMultipleMessageInPlaceChunked()
+    {
+        core::string_view headers =
+            "GET / HTTP/1.1\r\n"
+            "transfer-encoding: chunked\r\n"
+            "\r\n";
+
+        core::string_view headers2 =
+            "GET / HTTP/1.1\r\n"
+            "transfer-encoding: chunked\r\n"
+            "host: www.google.com\r\n"
+            "connection: keep-alive\r\n"
+            "\r\n";
+
+        auto to_hex = [](std::size_t n)
+        {
+            std::string header(18, '0');
+            auto c = std::snprintf(&header[0], 18, "%zx", n);
+            header.erase(c);
+            return header;
+        };
+
+        auto make_chunk = [=](std::size_t n)
+        {
+            auto header = to_hex(n);
+            header += "\r\n";
+            header += std::string(n, 'a');
+            header += "\r\n";
+            return header;
+        };
+
+        auto const min_buffer = 1000;
+
+        request_parser::config cfg;
+        context ctx;
+
+        cfg.min_buffer = min_buffer;
+
+        install_parser_service(ctx, cfg);
+        system::error_code ec;
+
+        request_parser pr(ctx);
+
+        pr.reset();
+        auto const chunked_overhead = 18;
+        auto const closing_chunk_len = 5;
+
+        auto s =
+            min_buffer -
+            (2 * (chunked_overhead + closing_chunk_len)) -
+            headers.size() -
+            headers2.size();
+
+        for( std::size_t i = 1; i < (s - 1); ++i )
+        {
+            pr.start();
+
+            auto mbs = pr.prepare();
+            auto size = buffers::buffer_size(mbs);
+
+            pr.commit(
+                buffers::buffer_copy(
+                    mbs,
+                    buffers::const_buffer(
+                        headers.data(), headers.size())));
+
+
+            auto n1 = size / 2;
+            auto n2 = 18;
+            auto n3 = size - n1 - n2;
+
+            {
+                std::string octets = make_chunk(n1);
+
+                // deliberately leave this incomplete
+                // so the parser doesn't `consume()`
+                // beyond this spot in the buffer
+                octets += to_hex(n2);
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            octets.data(),
+                            octets.size())));
+
+                pr.parse(ec);
+                BOOST_TEST(pr.got_header());
+                BOOST_TEST_EQ(
+                    ec, condition::need_more_input);
+            }
+            {
+                std::string octets = "\r\n";
+                octets += std::string(n2, 'a');
+                octets += "\r\n";
+                octets += "0\r\n\r\n";
+                octets += headers2;
+                octets += make_chunk(n3);
+                octets += "0\r\n\r\n";
+
+                pr.commit(
+                    buffers::buffer_copy(
+                        pr.prepare(),
+                        buffers::const_buffer(
+                            octets.data(),
+                            octets.size())));
+
+                pr.parse(ec);
+                BOOST_TEST(pr.got_header());
+                BOOST_TEST(pr.is_complete());
+                BOOST_TEST(!ec);
+            }
+
+            pr.start();
+            BOOST_TEST(!pr.got_header());
+            BOOST_TEST(!pr.is_complete());
+
+            pr.parse(ec);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
+            BOOST_TEST(!ec);
+        }
+    }
+
     //-------------------------------------------
 
     void
@@ -1919,6 +2103,8 @@ struct parser_test
         testCommitEof();
         testParse();
         testChunkedInPlace();
+        testMultipleMessageInPlace();
+        testMultipleMessageInPlaceChunked();
 #else
         // For profiling
         for(int i = 0; i < 10000; ++i )
