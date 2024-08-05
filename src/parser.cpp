@@ -26,7 +26,6 @@
 
 #include <boost/assert.hpp>
 
-#include <algorithm>
 #include <array>
 #include <iostream>
 #include <memory>
@@ -598,53 +597,52 @@ start_impl(
 
     case state::complete:
     {
-        auto& input = cb0_;
-
         // remove partial body.
-        if( is_plain() && (how_ == how::in_place) )
-            input.consume(
+        if(is_plain() && (how_ == how::in_place))
+            cb0_.consume(
                 static_cast<std::size_t>(body_avail_));
 
-        if( input.size() > 0 )
+        if(cb0_.size() > 0)
         {
             // move unused octets to front
 
             ws_.clear();
-            leftover = input.size();
+            leftover = cb0_.size();
 
-            auto cbp = input.data();
+            auto* dest = reinterpret_cast<char*>(ws_.data());
+            auto cbp   = cb0_.data();
+            auto* a    = static_cast<char const*>(cbp[0].data());
+            auto* b    = static_cast<char const*>(cbp[1].data());
+            auto an    = cbp[0].size();
+            auto bn    = cbp[1].size();
 
-            if( cbp[1].size() == 0 )
+            if(bn == 0)
             {
-                auto cb = cbp[0];
-                std::memmove(
-                    ws_.data(), cb.data(), cb.size());
-                break;
+                std::memmove(dest, a, an);
             }
+            else
+            {
+                // if `a` can fit between `dest` and `b`, shift `b` to the left
+                // and copy `a` to its position. if `a` fits perfectly, the
+                // shift will be of size 0.
+                // if `a` requires more space, shift `b` to the right and
+                // copy `a` to its position. this process may require multiple
+                // iterations and should be done chunk by chunk to prevent `b`
+                // from overlapping with `a`.
+                do
+                {
+                    // clamp right shifts to prevent overlap with `a`
+                    auto* bp = (std::min)(dest + an, const_cast<char*>(a) - bn);
+                    b = static_cast<char const*>(std::memmove(bp, b, bn));
 
-            BOOST_ASSERT(cbp[0].size() > 0);
-
-            auto cb1 = cbp[0]; // always to the right of cb2
-            auto cb2 = cbp[1];
-
-            auto off = input.capacity();
-
-            auto* base =
-                reinterpret_cast<unsigned char*>(
-                    const_cast<void*>(cb2.data()));
-
-            // TODO: rotating the entire buffer here touches
-            // the unused bytes in the `prepare()` area
-            // maybe come up with a cleaner solution here
-            std::rotate(
-                base,
-                base + cb2.size(),
-                base + input.max_size());
-
-            std::memmove(
-                ws_.data(),
-                base + off,
-                cb1.size() + cb2.size());
+                    // a chunk or all of `a` based on available space
+                    auto chunk_a = static_cast<std::size_t>(b - dest);
+                    std::memcpy(dest, a, chunk_a); // never overlap
+                    an   -= chunk_a;
+                    dest += chunk_a;
+                    a    += chunk_a;
+                } while(an);
+            }
         }
         else
         {
@@ -661,8 +659,8 @@ start_impl(
         svc_.cfg.headers.max_size +
             svc_.cfg.min_buffer,
         leftover };
-    // BOOST_ASSERT(fb_.capacity() ==
-    //     svc_.max_overread());
+    BOOST_ASSERT(fb_.capacity() ==
+        svc_.max_overread() - leftover);
 
     h_ = detail::header(
         detail::empty{h_.kind});
@@ -738,11 +736,10 @@ prepare() ->
 
         if(how_ == how::in_place)
         {
-            auto& input = cb0_;
-            auto n = input.capacity();
+            auto n = cb0_.capacity();
             if( n > svc_.cfg.max_prepare)
                 n = svc_.cfg.max_prepare;
-            mbp_ = input.prepare(n);
+            mbp_ = cb0_.prepare(n);
             nprepare_ = n;
             return mutable_buffers_type(mbp_);
         }
@@ -926,14 +923,13 @@ commit(
             cb0_.commit(n);
             if(h_.md.payload == payload::size)
             {
-                if(cb0_.size() <
-                    h_.md.payload_size)
+                if(n < payload_remain_)
                 {
                     body_avail_ += n;
                     payload_remain_ -= n;
                     break;
                 }
-                body_avail_ = h_.md.payload_size;
+                body_avail_ += payload_remain_;
                 payload_remain_ = 0;
                 st_ = state::complete;
                 break;
@@ -1176,8 +1172,6 @@ parse(
 
         if(how_ == how::in_place)
         {
-            // BOOST_ASSERT(body_avail_ ==
-            //     body_buf_->size());
             if(h_.md.payload == payload::size)
             {
                 if(body_avail_ <
@@ -1402,10 +1396,40 @@ parse(
 
 auto
 parser::
-pull_some() ->
+pull_body() ->
     const_buffers_type
 {
-    return {};
+    switch(st_)
+    {
+    case state::body:
+    case state::complete:
+        if(how_ != how::in_place)
+            detail::throw_logic_error();
+        cbp_ = buffers::prefix(body_buf_->data(),
+            static_cast<std::size_t>(body_avail_));
+        return const_buffers_type{ cbp_ };
+    default:
+        detail::throw_logic_error();
+    }
+}
+
+void
+parser::
+consume_body(std::size_t n)
+{
+    switch(st_)
+    {
+    case state::body:
+    case state::complete:
+        if(how_ != how::in_place)
+            detail::throw_logic_error();
+        BOOST_ASSERT(n <= body_avail_);
+        body_buf_->consume(n);
+        body_avail_ -= n;
+        return;
+    default:
+        detail::throw_logic_error();
+    }
 }
 
 core::string_view

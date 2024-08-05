@@ -20,7 +20,6 @@
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <iostream>
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -1911,56 +1910,78 @@ struct parser_test
         request_parser::config cfg;
         context ctx;
 
-        cfg.min_buffer = 1000;
+        cfg.headers.max_size = 500;
+        cfg.min_buffer = 500;
 
         install_parser_service(ctx, cfg);
         system::error_code ec;
 
         request_parser pr(ctx);
 
+        auto make_header = [](std::size_t n) -> std::string
         {
-            pr.reset();
-
-            core::string_view headers =
+            return
                 "GET / HTTP/1.1\r\n"
-                "content-length: 256\r\n"
+                "content-length: " + std::to_string(n) + "\r\n"
                 "\r\n";
+        };
 
-            core::string_view headers2 =
-                "GET / HTTP/1.1\r\n"
-                "content-length: 256\r\n"
-                "host: www.google.com\r\n"
-                "connection: keep-alive\r\n"
-                "\r\n";
+        pr.reset();
 
-            std::string octets = headers;
+        for( std::size_t i = 0; i < 2000; i += 1 )
+        {
+            pr.start();
 
+            auto octets = make_header(i);
+            auto remaining = i;
 
-            octets += std::string(256, 'a');
-            octets += headers2;
-            octets += std::string(256, 'a');
-
-            for( int i = 0; i < 100; ++i )
+            while( remaining > 100 )
             {
-                pr.start();
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            octets.data(), octets.size())));
+                octets += std::string(100, 'a');
+                remaining -= 100;
+
+                pr.commit(buffers::buffer_copy(
+                    pr.prepare(),
+                    buffers::const_buffer(octets.data(), octets.size())));
 
                 pr.parse(ec);
-                BOOST_TEST(!ec);
+                BOOST_TEST_EQ(ec, condition::need_more_input);
                 BOOST_TEST(pr.got_header());
-                BOOST_TEST(pr.is_complete());
+                BOOST_TEST(!pr.is_complete());
 
-                pr.start();
-                pr.parse(ec);
-                BOOST_TEST(!ec);
-                BOOST_TEST(pr.got_header());
-                BOOST_TEST(pr.is_complete());
+                pr.consume_body(
+                    buffers::buffer_size(pr.pull_body())
+                    - 1); // left one byte so the circular buffer doesn't reset
+
+                octets.clear();
             }
+
+            // finalize the first message
+            octets += std::string(remaining, 'a');
+            // append second message
+            octets += make_header(i % 100);
+            octets += std::string(i % 100, 'a');
+
+            pr.commit(buffers::buffer_copy(
+                pr.prepare(),
+                buffers::const_buffer(octets.data(), octets.size())));
+
+            // first message
+            pr.parse(ec);
+            BOOST_TEST(!ec);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
+
+            // second message
+            pr.start();
+            BOOST_TEST(!pr.got_header());
+            BOOST_TEST(!pr.is_complete());
+            pr.parse(ec);
+            BOOST_TEST(!ec);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
         }
+        
     }
 
     void
@@ -1969,13 +1990,6 @@ struct parser_test
         core::string_view headers =
             "GET / HTTP/1.1\r\n"
             "transfer-encoding: chunked\r\n"
-            "\r\n";
-
-        core::string_view headers2 =
-            "GET / HTTP/1.1\r\n"
-            "transfer-encoding: chunked\r\n"
-            "host: www.google.com\r\n"
-            "connection: keep-alive\r\n"
             "\r\n";
 
         auto to_hex = [](std::size_t n)
@@ -1995,96 +2009,73 @@ struct parser_test
             return header;
         };
 
-        auto const min_buffer = 1000;
-
         request_parser::config cfg;
         context ctx;
 
-        cfg.min_buffer = min_buffer;
+        cfg.min_buffer = 500;
+        cfg.headers.max_size = 500;
 
         install_parser_service(ctx, cfg);
         system::error_code ec;
-
         request_parser pr(ctx);
-
         pr.reset();
-        auto const chunked_overhead = 18;
-        auto const closing_chunk_len = 5;
 
-        auto s =
-            min_buffer -
-            (2 * (chunked_overhead + closing_chunk_len)) -
-            headers.size() -
-            headers2.size();
-
-        for( std::size_t i = 1; i < (s - 1); ++i )
+        for( size_t i = 0; i < 2000  ; i += 1 )
         {
             pr.start();
 
-            auto mbs = pr.prepare();
-            auto size = buffers::buffer_size(mbs);
+            std::string octets = headers;
+            octets += to_hex(1);
+            auto remaining = i;
 
-            pr.commit(
-                buffers::buffer_copy(
-                    mbs,
-                    buffers::const_buffer(
-                        headers.data(), headers.size())));
-
-
-            auto n1 = size / 2;
-            auto n2 = 18;
-            auto n3 = size - n1 - n2;
-
+            while( remaining > 100 )
             {
-                std::string octets = make_chunk(n1);
+                octets += "\r\na\r\n";
+                octets += make_chunk(100);
+                octets += to_hex(1);
+                remaining -= 100;
 
-                // deliberately leave this incomplete
-                // so the parser doesn't `consume()`
-                // beyond this spot in the buffer
-                octets += to_hex(n2);
-
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            octets.data(),
-                            octets.size())));
+                pr.commit(buffers::buffer_copy(
+                    pr.prepare(),
+                    buffers::const_buffer(octets.data(), octets.size())));
 
                 pr.parse(ec);
+                BOOST_TEST_EQ(ec, condition::need_more_input);
                 BOOST_TEST(pr.got_header());
-                BOOST_TEST_EQ(
-                    ec, condition::need_more_input);
-            }
-            {
-                std::string octets = "\r\n";
-                octets += std::string(n2, 'a');
-                octets += "\r\n";
-                octets += "0\r\n\r\n";
-                octets += headers2;
-                octets += make_chunk(n3);
-                octets += "0\r\n\r\n";
+                BOOST_TEST(!pr.is_complete());
 
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            octets.data(),
-                            octets.size())));
+                pr.consume_body(
+                    buffers::buffer_size(pr.pull_body()));
 
-                pr.parse(ec);
-                BOOST_TEST(pr.got_header());
-                BOOST_TEST(pr.is_complete());
-                BOOST_TEST(!ec);
+                octets.clear();
             }
 
+            // finalize the first message
+            octets += "\r\na\r\n";
+            octets += make_chunk(0);
+            // append second message
+            octets += headers;
+            octets += make_chunk(i % 100 + 1);
+            octets += make_chunk(0);
+
+            pr.commit(buffers::buffer_copy(
+                pr.prepare(),
+                buffers::const_buffer(octets.data(), octets.size())));
+
+            // first message
+            pr.parse(ec);
+            BOOST_TEST(!ec);
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
+
+            // second message
             pr.start();
             BOOST_TEST(!pr.got_header());
             BOOST_TEST(!pr.is_complete());
-
             pr.parse(ec);
+            BOOST_TEST(!ec);
             BOOST_TEST(pr.got_header());
             BOOST_TEST(pr.is_complete());
-            BOOST_TEST(!ec);
         }
     }
 

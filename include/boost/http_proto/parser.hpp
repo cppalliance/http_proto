@@ -321,15 +321,20 @@ public:
 #endif
     set_body(Sink&& sink);
 
-    /** Return the available body data and consume it.
+    /** Return the available body data.
 
-        The buffer referenced by the string view
-        will be invalidated if any member function
-        of the parser is called.
+        The returned buffer span will be invalidated if any member
+        function of the parser is subsequently called.
     */
     BOOST_HTTP_PROTO_DECL
     const_buffers_type
-    pull_some();
+    pull_body();
+
+    /** Consumes bytes from the available body data.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    consume_body(std::size_t n);
 
     /** Return the complete body as a contiguous character buffer.
     */
@@ -408,6 +413,10 @@ private:
     // used to provide stable storage when returning
     // `mutable_buffers_type` from relevant functions
     buffers::mutable_buffer_pair mbp_;
+
+    // used to provide stable storage when returning
+    // `const_buffers_type` from relevant functions
+    buffers::const_buffer_pair cbp_;
 
     buffers::circular_buffer* body_buf_ = nullptr;
     buffers::any_dynamic_buffer* eb_ = nullptr;
