@@ -385,8 +385,7 @@ private:
     {
         in_place,
         elastic,
-        sink,
-        pull
+        sink
     };
 
     context& ctx_;

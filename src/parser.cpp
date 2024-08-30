@@ -810,10 +810,6 @@ prepare() ->
         }
 
         // VFALCO TODO
-        if(how_ == how::pull)
-            detail::throw_logic_error();
-
-        // VFALCO TODO
         detail::throw_logic_error();
     }
 
@@ -975,12 +971,6 @@ commit(
         {
             cb0_.commit(n);
             break;
-        }
-
-        if(how_ == how::pull)
-        {
-            // VFALCO TODO
-            detail::throw_logic_error();
         }
         break;
     }
@@ -1383,10 +1373,6 @@ parse(
             }
             break;
         }
-
-        case how::pull:
-            // VFALCO TODO
-            detail::throw_logic_error();
         }
     }
     }
