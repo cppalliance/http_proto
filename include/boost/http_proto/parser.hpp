@@ -396,7 +396,7 @@ private:
     std::uint64_t body_avail_ = 0;
     std::uint64_t body_total_ = 0;
     std::uint64_t payload_remain_ = 0;
-    std::size_t chunk_remain_ = 0;
+    std::uint64_t chunk_remain_ = 0;
     std::size_t nprepare_ = 0;
 
     // used to store initial headers + any potential overread
@@ -426,8 +426,9 @@ private:
     how how_ = how::in_place;
     bool got_eof_ = false;
 //    bool need_more_;
-    bool head_response_ = false;;
+    bool head_response_ = false;
     bool needs_chunk_close_ = false;
+    bool trailer_headers_ = false;
 };
 
 //------------------------------------------------

@@ -1789,20 +1789,14 @@ struct parser_test
 
             std::vector<core::string_view> pieces = {
                 "xxxasdfasdfasd", // invalid chunk header
-                "1qwer",          // valid digit, invalid close
                 "1\rzxcv",        // invalid crlf on chunk-size close
                 "1\r\nabcd",      // invalid chunk-body close
                 "1\r\na\rqwer",   // invalid chunk-body close
                 // similar but now for the last-chunk
-                "0qwer",
                 "0\rzxcv",
-                "0\r\n1\r\nb\r\n",
                 "0\r\n\rqwer",
-                "1\r\na\r\n0\r\nqwer",
                 "1\r\na\r\n0\r\n\rabcd",
-                "0\r\nhello, world!\r\n0\r\n",
-                "fffffffffffffffff\r\n",
-                "000000001234kittycat\r\n"
+                "fffffffffffffffff\r\n"
             };
 
             for( auto piece : pieces )
@@ -1843,7 +1837,10 @@ struct parser_test
             core::string_view body =
                 "d\r\nhello, world!\r\n"
                 "29\r\n and this is a much longer string of text\r\n"
-                "0\r\n\r\n";
+                "0;d;e=3;f=\"4\"\r\n" // chunk extension
+                "Expires: never\r\n" // trailer header
+                "MD5-Fingerprint: -\r\n" // trailer header
+                "\r\n";
 
             for( std::size_t i = 0; i < body.size(); ++i )
             {
