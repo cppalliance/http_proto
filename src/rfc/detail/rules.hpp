@@ -52,33 +52,6 @@ struct field_value_rule_t
 
 constexpr field_value_rule_t field_value_rule{};
 
-struct hex_rule_t
-{
-    struct value_type
-    {
-        std::size_t v = 0;
-    };
-
-    system::result<value_type>
-    parse(
-        char const*& it,
-        char const* end) const noexcept;
-};
-
-constexpr hex_rule_t hex_rule{};
-
-struct last_chunk_rule_t
-{
-    using value_type = void;
-
-    system::result<void>
-    parse(
-        char const*& it,
-        char const* end) const noexcept;
-};
-
-constexpr last_chunk_rule_t last_chunk_rule{};
-
 } // namespace detail
 } // namespace http_proto
 } // namespace boost

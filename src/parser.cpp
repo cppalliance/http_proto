@@ -22,7 +22,7 @@
 #include <boost/buffers/make_buffer.hpp>
 
 #include <boost/url/grammar/ci_string.hpp>
-#include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/hexdig_chars.hpp>
 
 #include <boost/assert.hpp>
 
@@ -120,276 +120,218 @@ Buffer Usage
 */
 //-----------------------------------------------
 
-struct discontiguous_iterator
+class chained_sequence
 {
-    buffers::const_buffer const* pos = nullptr;
-    buffers::const_buffer const* end = nullptr;
-    std::size_t off = 0;
+    char const* pos_;
+    char const* end_;
+    char const* begin_b_;
+    char const* end_b_;
 
-    discontiguous_iterator(
-        buffers::const_buffer const* pos_,
-        buffers::const_buffer const* end_)
-    : pos(pos_)
-    , end(end_)
+public:
+    chained_sequence(buffers::const_buffer_pair const& cbp)
+        : pos_(static_cast<char const*>(cbp[0].data()))
+        , end_(pos_ + cbp[0].size())
+        , begin_b_(static_cast<char const*>(cbp[1].data()))
+        , end_b_(begin_b_ + cbp[1].size())
     {
+    }
+
+    char const*
+    next() noexcept
+    {
+        ++pos_;
+        // most frequently taken branch
+        if(pos_ < end_)
+            return pos_;
+
+        // swap with the second range
+        if(begin_b_ != end_b_)
+        {
+            pos_ = begin_b_;
+            end_ = end_b_;
+            begin_b_ = end_b_;
+            return pos_;
+        }
+
+        // undo the increament
+        pos_ = end_;
+        return nullptr;
+    }
+
+    bool
+    empty() const noexcept
+    {
+        return pos_ == end_;
     }
 
     char
-    operator*() const noexcept
+    value() const noexcept
     {
-        BOOST_ASSERT(pos);
-        BOOST_ASSERT(pos->size() > 0);
-        BOOST_ASSERT(off < pos->size());
-        auto it =
-            static_cast<char const*>(pos->data()) + off;
-        return *it;
+        return *pos_;
     }
 
-    discontiguous_iterator&
-    operator++() noexcept
+    std::size_t
+    size() const noexcept
     {
-        ++off;
-        if( off >= pos->size() )
+        return (end_ - pos_) + (end_b_ - begin_b_);
+    }
+};
+
+static
+system::result<std::uint64_t>
+parse_hex(chained_sequence& cs)
+{
+    std::uint64_t v   = 0;
+    std::size_t init_size = cs.size();
+    while(!cs.empty())
+    {
+        auto n = grammar::hexdig_value(cs.value());
+        if(n < 0)
         {
-            ++pos;
-            off = 0;
-            while( pos != end && pos->size() == 0 )
-                ++pos;
-            return *this;
+            if(init_size == cs.size())
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    error::bad_payload);
+            return v;
         }
-        return *this;
+
+        // at least 4 significant bits are free
+        if(v > (std::numeric_limits<std::uint64_t>::max)() >> 4)
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::bad_payload);
+
+        v = (v << 4) | static_cast<std::uint64_t>(n);
+        cs.next();
     }
-
-    discontiguous_iterator
-    operator++(int) noexcept
-    {
-        auto old = *this;
-        ++*this;
-        return old;
-    }
-
-    bool
-    operator==(
-        discontiguous_iterator const& rhs) const noexcept
-    {
-        return pos == rhs.pos && off == rhs.off;
-    }
-
-    bool
-    operator!=(
-        discontiguous_iterator const& rhs) const noexcept
-    {
-        return !(*this == rhs);
-    }
-
-    bool
-    done() const noexcept
-    {
-        return pos == end;
-    }
-};
-
-constexpr static
-std::size_t const max_chunk_header_len = 16 + 2;
-
-constexpr static
-std::size_t const last_chunk_len = 5;
+    BOOST_HTTP_PROTO_RETURN_EC(
+        error::need_data);
+}
 
 static
-void
-parse_chunk_header(
-    buffers::circular_buffer& input,
-    system::error_code& ec,
-    std::size_t& chunk_remain_)
+system::result<void>
+find_eol(chained_sequence& cs)
 {
-    if( input.size() == 0 )
+    while(!cs.empty())
     {
-        ec = error::need_data;
-        return;
+        if(cs.value() == '\r')
+        {
+            if(!cs.next())
+                break;
+            if(cs.value() != '\n')
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    error::bad_payload);
+            cs.next();
+            return {};
+        }
+        cs.next();
     }
-
-    char tmp[max_chunk_header_len] = {};
-    auto* p = tmp;
-    unsigned num_leading_zeros = 0;
-
-    {
-        auto cbs = input.data();
-        discontiguous_iterator pos(cbs.begin(), cbs.end());
-
-        for( ; !pos.done() && *pos == '0'; ++pos )
-            ++num_leading_zeros;
-
-        for( ; p < (tmp + max_chunk_header_len) &&
-               !pos.done(); )
-            *p++ = *pos++;
-    }
-
-    core::string_view sv(tmp, p - tmp);
-    BOOST_ASSERT(sv.size() <= input.size());
-
-    auto it = sv.begin();
-    auto rv =
-        grammar::parse(it, sv.end(), detail::hex_rule);
-
-    if( rv.has_error() )
-    {
-        ec = error::bad_payload;
-        return;
-    }
-
-    auto rv2 =
-        grammar::parse(it, sv.end(), detail::crlf_rule);
-    if( rv2.has_error() )
-    {
-        if( rv2.error() == condition::need_more_input )
-            ec = error::need_data;
-        else
-            ec = error::bad_payload;
-        return;
-    }
-
-    if( rv->v == 0 )
-    {
-        ec = error::bad_payload;
-        return;
-    }
-
-    auto n = num_leading_zeros + (it - sv.begin());
-    input.consume(n);
-    chunk_remain_ = rv->v;
-};
+    BOOST_HTTP_PROTO_RETURN_EC(
+        error::need_data);
+}
 
 static
-void
-parse_last_chunk(
-    buffers::circular_buffer& input,
-    system::error_code& ec)
+system::result<void>
+parse_eol(chained_sequence& cs)
 {
-    // chunked-body = *chunk last-chunk trailer-section CRLF
-    // last-chunk = 1*"0" [ chunk-ext ] CRLF
-    //
-    // drop support trailers/chunk-ext, use internal definition
-    //
-    // last-chunk = 1*"0" CRLF CRLF
-
-    if( buffers::buffer_size(input.data()) <
-        last_chunk_len )
+    if(cs.size() >= 2)
     {
-        ec = error::need_data;
-        return;
+        // we are sure size is at least 2
+        if(cs.value() == '\r' && *cs.next() == '\n')
+        {
+            cs.next();
+            return {};
+        }
+        BOOST_HTTP_PROTO_RETURN_EC(
+            error::bad_payload);
     }
+    BOOST_HTTP_PROTO_RETURN_EC(
+        error::need_data);
+}
 
-    auto cbs = input.data();
-    discontiguous_iterator pos(cbs.begin(), cbs.end());
-
-    std::size_t len = 0;
-    for( ; !pos.done() && *pos == '0'; ++pos, ++len )
+static
+system::result<void>
+skip_trailer_headers(chained_sequence& cs)
+{
+    while(!cs.empty())
     {
+        if(cs.value() == '\r')
+        {
+            if(!cs.next())
+                break;
+            if(cs.value() != '\n')
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    error::bad_payload);
+            cs.next();
+            return {};
+        }
+        // skip to the end of field
+        auto rv = find_eol(cs);
+        if(rv.has_error())
+            return rv.error();
     }
-
-    if( len == 0 )
-    {
-        ec = error::bad_payload;
-        return;
-    }
-
-    std::size_t const close_len = 4; // for \r\n\r\n
-    if( buffers::buffer_size(input.data()) - len <
-        close_len )
-    {
-        ec = error::need_data;
-        return;
-    }
-
-    char tmp[close_len] = {};
-    for( std::size_t i = 0; i < close_len; ++i )
-        tmp[i] = *pos++;
-
-    core::string_view s(tmp, close_len);
-    if( s != "\r\n\r\n" )
-    {
-        ec = error::bad_payload;
-        return;
-    }
-
-    input.consume(len + close_len);
-};
+    BOOST_HTTP_PROTO_RETURN_EC(
+        error::need_data);
+}
 
 template <class ElasticBuffer>
-bool
+system::result<void>
 parse_chunked(
     buffers::circular_buffer& input,
     ElasticBuffer& output,
-    system::error_code& ec,
-    std::size_t& chunk_remain_,
+    std::uint64_t& chunk_remain_,
     std::uint64_t& body_avail_,
-    bool& needs_chunk_close_)
+    bool& needs_chunk_close_,
+    bool& trailer_headers_)
 {
-    if( input.size() == 0 )
-    {
-        ec = error::need_data;
-        return false;
-    }
-
     for(;;)
     {
-        if( chunk_remain_ == 0 )
+        if(chunk_remain_ == 0)
         {
-            if( needs_chunk_close_ )
+            auto cs = chained_sequence(input.data());
+
+            if(trailer_headers_)
             {
-                if( input.size() < 2 )
-                {
-                    ec = error::need_data;
-                    return false;
-                }
+                auto rv = skip_trailer_headers(cs);
+                if(rv.has_error())
+                    return rv;
+                input.consume(input.size() - cs.size());
+                return {};
+            }
 
-                std::size_t const crlf_len = 2;
-                char tmp[crlf_len] = {};
-
-                buffers::buffer_copy(
-                    buffers::mutable_buffer(
-                        tmp, crlf_len),
-                    input.data());
-
-                core::string_view str(tmp, crlf_len);
-                if( str != "\r\n" )
-                {
-                    ec = error::bad_payload;
-                    return false;
-                }
-
-                input.consume(crlf_len);
+            if(needs_chunk_close_)
+            {
+                auto rv = parse_eol(cs);
+                if(rv.has_error())
+                    return rv;
+                input.consume(input.size() - cs.size());
                 needs_chunk_close_ = false;
                 continue;
             }
 
-            parse_chunk_header(input, ec, chunk_remain_);
-            if( ec )
-            {
-                system::error_code ec2;
-                parse_last_chunk(input, ec2);
-                if( ec2 )
-                {
-                    if( ec2 == condition::need_more_input )
-                        ec = ec2;
-                    return false;
-                }
+            auto chunk_size = parse_hex(cs);
+            if(chunk_size.has_error())
+                return chunk_size.error();
 
-                // complete
-                ec.clear();
-                return true;
-            }
+            // chunk extensions are skipped
+            auto rv = find_eol(cs);
+            if(rv.has_error())
+                return rv;
+
+            input.consume(input.size() - cs.size());
+            chunk_remain_ = chunk_size.value();
 
             needs_chunk_close_ = true;
+            if(chunk_remain_ == 0)
+            {
+                trailer_headers_ = true;
+                continue;
+            }
         }
 
         // we've successfully parsed a chunk-size and have
         // consume()d the entire buffer
         if( input.size() == 0 )
-        {
-            ec = error::need_data;
-            return false;
-        }
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::need_data);
 
         // TODO: this is an open-ended design space with no
         // clear answer at time of writing.
@@ -397,11 +339,13 @@ parse_chunked(
         if( output.capacity() == 0 )
             detail::throw_length_error();
 
-        auto n = (std::min)(chunk_remain_, input.size());
+        auto n = (std::min)(
+            chunk_remain_,
+            static_cast<std::uint64_t>(input.size()));
 
         auto m = buffers::buffer_copy(
             output.prepare(output.capacity()),
-            buffers::prefix(input.data(), n));
+            buffers::prefix(input.data(), static_cast<std::size_t>(n)));
 
         BOOST_ASSERT(m <= chunk_remain_);
         chunk_remain_ -= m;
@@ -409,7 +353,6 @@ parse_chunked(
         output.commit(m);
         body_avail_ += m;
     }
-    return false;
 }
 
 //-----------------------------------------------
@@ -679,6 +622,7 @@ start_impl(
     nprepare_ = 0;
     chunk_remain_ = 0;
     needs_chunk_close_ = false;
+    trailer_headers_ = false;
     body_avail_ = 0;
 }
 
@@ -1135,24 +1079,22 @@ parse(
 
         if( h_.md.payload == payload::chunked )
         {
-            auto completed = false;
-            auto& input = cb0_;
-
             if( how_ == how::in_place )
             {
+                auto& input = cb0_;
                 auto& output = cb1_;
-                completed =
-                    parse_chunked(
-                        input, output, ec, chunk_remain_,
-                        body_avail_, needs_chunk_close_);
+                auto rv = parse_chunked(
+                    input, output, chunk_remain_, body_avail_,
+                    needs_chunk_close_, trailer_headers_);
+                if(rv.has_error())
+                    ec = rv.error();
+                else
+                    st_ = state::complete;
+                return;
             }
             else
                 detail::throw_logic_error();
 
-            if( completed )
-                st_ = state::complete;
-
-            return;
         }
         else if( filt_ )
         {
