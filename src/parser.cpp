@@ -302,9 +302,6 @@ parse_chunked(
                 auto rv = parse_eol(cs);
                 if(rv.has_error())
                     return rv;
-                input.consume(input.size() - cs.size());
-                needs_chunk_close_ = false;
-                continue;
             }
 
             auto chunk_size = parse_hex(cs);
