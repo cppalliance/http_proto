@@ -25,7 +25,6 @@
 #include <boost/http_proto/file_posix.hpp>
 #include <boost/http_proto/file_win32.hpp>
 #include <boost/http_proto/file_stdio.hpp>
-#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/message_view_base.hpp>

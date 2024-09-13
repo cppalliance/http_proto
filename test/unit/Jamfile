@@ -38,7 +38,6 @@ local SOURCES =
     file.cpp
     file_base.cpp
     file_body.cpp
-    filter.cpp
     header_limits.cpp
     http_proto.cpp
     message_base.cpp

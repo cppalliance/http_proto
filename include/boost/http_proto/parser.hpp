@@ -35,11 +35,12 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class parser_service;
-class filter;
 class request_parser;
 class response_parser;
 class context;
-
+namespace detail {
+class filter;
+} // detail
 #endif
 
 /** A parser for HTTP/1 messages.
@@ -419,7 +420,7 @@ private:
 
     buffers::circular_buffer* body_buf_ = nullptr;
     buffers::any_dynamic_buffer* eb_ = nullptr;
-    filter* filt_ = nullptr;
+    detail::filter* filt_ = nullptr;
     sink* sink_ = nullptr;
 
     state st_ = state::start;

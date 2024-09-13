@@ -10,7 +10,6 @@
 
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/message_view_base.hpp>
-#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
@@ -18,6 +17,7 @@
 #include <boost/core/ignore_unused.hpp>
 #include <stddef.h>
 
+#include "detail/filter.hpp"
 #include "zlib_service.hpp"
 
 namespace boost {
@@ -271,7 +271,7 @@ prepare() ->
                 break;
             }
 
-            auto rs = filter_->on_process(
+            auto rs = filter_->process(
                 out, in, more_);
 
             if( rs.finished )

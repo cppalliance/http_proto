@@ -7,11 +7,10 @@
 // Official repository: https://github.com/cppalliance/buffers
 //
 
-#ifndef BOOST_HTTP_PROTO_FILTER_HPP
-#define BOOST_HTTP_PROTO_FILTER_HPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
+#define BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffered_base.hpp>
 #include <boost/buffers/const_buffer.hpp>
 #include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
@@ -21,14 +20,17 @@
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 /** A filter for buffers
 */
 class BOOST_HTTP_PROTO_DECL
     filter
-    : public buffered_base
 {
-    friend class serializer;
+    template<
+        class T,
+        std::size_t N>
+    class unrolled;
 
 public:
     /** The results of processing the filter.
@@ -148,27 +150,10 @@ private:
         bool more);
 };
 
-//------------------------------------------------
-
-/** Metafunction which determines if T is a filter
-
-    @see
-        @ref source.
-*/
-#ifdef BOOST_BUFFERS_DOCS
-template<class T>
-using is_filter = __see_below__;
-#else
-template<class T>
-using is_filter =
-    std::is_convertible<
-        typename std::decay<T>::type*,
-        filter*>;
-#endif
-
+} // detail
 } // http_proto
 } // boost
 
-#include <boost/http_proto/impl/filter.hpp>
+#include "impl/filter.hpp"
 
 #endif

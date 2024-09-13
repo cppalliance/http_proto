@@ -12,7 +12,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/source.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -36,6 +35,9 @@ class response;
 class request_view;
 class response_view;
 class message_view_base;
+namespace detail {
+class filter;
+} // detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -334,7 +336,7 @@ private:
 
     detail::workspace ws_;
     detail::array_of_const_buffers buf_;
-    filter* filter_ = nullptr;
+    detail::filter* filter_ = nullptr;
     source* src_;
     context& ctx_;
     buffers::circular_buffer tmp0_;
