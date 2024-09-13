@@ -7,11 +7,13 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/filter.hpp>
 #include <boost/buffers/range.hpp>
+
+#include "filter.hpp"
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 auto
 filter::
@@ -38,5 +40,6 @@ on_process(
     return rv;
 }
 
+} // detail
 } // http_proto
 } // boost

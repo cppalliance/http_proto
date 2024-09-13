@@ -13,9 +13,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/filter.hpp>
 #include <boost/http_proto/service/service.hpp>
-#include <boost/http_proto/detail/workspace.hpp>
 
 namespace boost {
 namespace http_proto {

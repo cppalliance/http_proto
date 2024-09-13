@@ -14,6 +14,8 @@
 #include <boost/http_proto/service/zlib_service.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 
+#include "detail/filter.hpp"
+
 namespace boost {
 namespace http_proto {
 namespace zlib {
@@ -36,12 +38,12 @@ struct BOOST_HTTP_PROTO_ZLIB_DECL
     space_needed() const noexcept = 0;
 
     virtual
-    filter&
+    http_proto::detail::filter&
     make_deflate_filter(
         http_proto::detail::workspace& ws) const = 0;
 
     virtual
-    filter&
+    http_proto::detail::filter&
     make_gzip_filter(
         http_proto::detail::workspace& ws) const = 0;
 };

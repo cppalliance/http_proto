@@ -7,8 +7,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#ifndef BOOST_BUFFERS_IMPL_FILTER_HPP
-#define BOOST_BUFFERS_IMPL_FILTER_HPP
+#ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_FILTER_HPP
+#define BOOST_HTTP_PROTO_DETAIL_IMPL_FILTER_HPP
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/buffers/range.hpp>
@@ -17,53 +17,12 @@
 
 namespace boost {
 namespace http_proto {
-
-/*
-namespace detail {
-
-template<
-    class Buffers,
-    class = void>
-struct buffer_traits
-{
-};
-
-template<class T>
-struct buffer_traits<T, void_t<
-    typename std::enable_if<
-        is_mutable_buffer_sequence<T>::value
-            >::type
-    > >
-{
-    using value_type = mutable_buffer;
-    using pair_type = mutable_buffer_pair;
-    using span_type = mutable_buffer_span;
-    using subspan_type = mutable_buffer_subspan;
-};
-
-template<class T>
-struct buffer_traits<T, void_t<
-    typename std::enable_if<
-        is_const_buffer_sequence<T>::value &&
-        ! is_mutable_buffer_sequence<T>::value
-            >::type
-    > >
-{
-    using value_type = const_buffer;
-    using pair_type = const_buffer_pair;
-    using span_type = const_buffer_span;
-    using subspan_type = const_buffer_subspan;
-};
-
-} // detail
-*/
-
 namespace detail {
 
 template<
     class T,
     std::size_t N>
-class unrolled
+class filter::unrolled
 {
     using value_type = typename
         std::conditional<
@@ -119,8 +78,6 @@ public:
     }
 };
 
-} // detail
-
 template<
     class MutableBuffers,
     class ConstBuffers>
@@ -135,12 +92,13 @@ process_impl(
     boost::ignore_unused(more);
     results rv;
     constexpr int N = 16;
-    detail::unrolled<ConstBuffers, N> u0(in);
-    detail::unrolled<MutableBuffers, N> u1(out);
+    unrolled<ConstBuffers, N> u0(in);
+    unrolled<MutableBuffers, N> u1(out);
 
     return rv;
 }
 
+} // detail
 } // http_proto
 } // boost
 

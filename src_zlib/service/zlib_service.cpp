@@ -13,7 +13,6 @@
 #include <boost/http_proto/service/zlib_service.hpp>
 
 #include <boost/http_proto/metadata.hpp>
-#include <boost/http_proto/detail/workspace.hpp>
 
 #include <boost/assert/source_location.hpp>
 #include <boost/buffers/circular_buffer.hpp>
@@ -265,8 +264,8 @@ void zfree_impl(void* /* opaque */, void* /* addr */)
 
 } // namespace
 
-class BOOST_HTTP_PROTO_ZLIB_DECL
-    deflate_filter final : public filter
+class deflate_filter final
+    : public http_proto::detail::filter
 {
 private:
     z_stream stream_;
@@ -335,7 +334,7 @@ init(bool use_gzip)
     stream_.avail_in = 0;
 }
 
-filter::results
+http_proto::detail::filter::results
 deflate_filter::
 on_process(
     buffers::mutable_buffer out,
@@ -440,14 +439,14 @@ private:
         return 0;
     }
 
-    filter&
+    http_proto::detail::filter&
     make_deflate_filter(
         http_proto::detail::workspace& ws) const override
     {
         return ws.emplace<deflate_filter>(ws, false);
     }
 
-    filter&
+    http_proto::detail::filter&
     make_gzip_filter(
         http_proto::detail::workspace& ws) const override
     {
