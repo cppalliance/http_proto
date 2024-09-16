@@ -101,14 +101,13 @@ emplace(Args&&... args) ->
         std::decay<T>::type>;
 
     undo u(*this);
-    auto p = ::new(bump_down(
-        sizeof(U), alignof(U))) U(
-            std::forward<Args>(args)...);
+    auto prev_head = head_;
+    head_ = bump_down(sizeof(U), alignof(U));
+    auto p = ::new(head_) U(
+        std::forward<Args>(args)...);
     u.commit();
     p->next = reinterpret_cast<
-        any*>(head_);
-    head_ = reinterpret_cast<
-        unsigned char*>(p);
+        any*>(prev_head);
     return p->u;
 }
 
@@ -151,14 +150,14 @@ push_array(
     };
 
     undo u(*this);
-    auto p = ::new(bump_down(
+    auto prev_head = head_;
+    head_ = bump_down(
         sizeof(U) + n * sizeof(T),
-            alignof(::max_align_t))) U(n, t);
+        alignof(::max_align_t));
+    auto p = ::new(head_) U(n, t);
     u.commit();
     p->next = reinterpret_cast<
-        any*>(head_);
-    head_ = reinterpret_cast<
-        unsigned char*>(p);
+        any*>(prev_head);
     return p->data();
 }
 
