@@ -322,7 +322,7 @@ struct zlib_test
         bool chunked_encoding)
     {
         context ctx;
-        zlib::install_deflate_encoder(ctx);
+        zlib::install_service(ctx);
         serializer sr(
             ctx,
             zlib::encoding_size_hint() + (2 * 1024));

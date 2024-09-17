@@ -8,9 +8,10 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/message_view_base.hpp>
+#include <boost/http_proto/serializer.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
@@ -18,12 +19,68 @@
 #include <stddef.h>
 
 #include "detail/filter.hpp"
-#include "zlib_service.hpp"
-
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
+namespace {
+class deflator_filter
+    : public http_proto::detail::filter
+{
+    using stream_t = zlib::service::stream;
+    stream_t& deflator_;
+
+public:
+    deflator_filter(
+        context& ctx,
+        http_proto::detail::workspace& ws,
+        bool use_gzip)
+        : deflator_{ ctx.get_service<zlib::service>()
+            .make_deflator(ws, -1, use_gzip ? 31 : 15, 8) }
+    {
+    }
+
+    virtual filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override
+    {
+        auto flush =
+            more ? stream_t::flush::none : stream_t::flush::finish;
+        filter::results results;
+
+        for(;;)
+        {
+            auto params = stream_t::params{ in.data(), in.size(),
+                out.data(), out.size() };
+
+            results.finished =
+                deflator_.write(params, flush, results.ec);
+
+            results.in_bytes  += (in.size() - params.avail_in);
+            results.out_bytes += (out.size() - params.avail_out);
+
+            if(results.ec || results.finished)
+                return results;
+
+            auto prev_out_size = out.size();
+            in  = buffers::suffix(in, params.avail_in);
+            out = buffers::suffix(out, params.avail_out);
+
+            if(in.size() == 0)
+            {
+                // TODO: is this necessary?
+                if(prev_out_size == params.avail_out)
+                {
+                    flush = stream_t::flush::sync;
+                    continue;
+                }
+                return results;
+            }
+        }
+    }
+};
+} // namespace
 
 void
 consume_buffers(
@@ -385,16 +442,11 @@ serializer::
 use_deflate_encoding()
 {
     // can only apply one encoding
-    if( filter_ )
+    if(filter_)
         detail::throw_logic_error();
 
-    BOOST_ASSERT(!filter_);
-
     is_compressed_ = true;
-    auto& svc =
-        ctx_.get_service<
-            zlib::detail::deflate_decoder_service>();
-    filter_ = &svc.make_deflate_filter(ws_);
+    filter_ = &ws_.emplace<deflator_filter>(ctx_, ws_, false);
 }
 
 void
@@ -405,13 +457,8 @@ use_gzip_encoding()
     if( filter_ )
         detail::throw_logic_error();
 
-    BOOST_ASSERT(!filter_);
-
     is_compressed_ = true;
-    auto& svc =
-        ctx_.get_service<
-            zlib::detail::deflate_decoder_service>();
-    filter_ = &svc.make_gzip_filter(ws_);
+    filter_ = &ws_.emplace<deflator_filter>(ctx_, ws_, true);
 }
 
 //------------------------------------------------
