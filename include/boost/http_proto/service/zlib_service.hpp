@@ -11,8 +11,9 @@
 #ifndef BOOST_HTTP_PROTO_SERVICE_ZLIB_SERVICE_HPP
 #define BOOST_HTTP_PROTO_SERVICE_ZLIB_SERVICE_HPP
 
-#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/service/service.hpp>
 
 namespace boost {
@@ -50,8 +51,57 @@ encoding_size_hint(decoder_config cfg = {}) noexcept
         (6 * 1024);
 }
 
+struct BOOST_HTTP_PROTO_ZLIB_DECL
+    service
+    : http_proto::service
+{
+    struct stream
+    {
+        enum class flush
+        {
+            none,
+            partial,
+            sync,
+            full,
+            finish,
+            block,
+            trees
+        };
+
+        struct params
+        {
+            void const* next_in;
+            std::size_t avail_in;
+            void* next_out;
+            std::size_t avail_out;
+        };
+
+        virtual bool
+        write(
+            params&,
+            flush,
+            system::error_code& ec) noexcept = 0;
+    };
+
+    virtual
+    std::size_t
+    space_needed() const noexcept = 0;
+
+    virtual stream&
+    make_deflator(
+        http_proto::detail::workspace& ws,
+        int level,
+        int window_bits,
+        int mem_level) const = 0;
+
+    virtual stream&
+    make_inflator(
+        http_proto::detail::workspace& ws,
+        int window_bits) const = 0;
+};
+
 void BOOST_HTTP_PROTO_ZLIB_DECL
-install_deflate_encoder(context& ctx);
+install_service(context& ctx);
 
 } // zlib
 } // http_proto
