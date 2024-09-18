@@ -1,6 +1,7 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
 // Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,13 +13,16 @@
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
+
+#include "detail/filter.hpp"
+
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/core/ignore_unused.hpp>
+
 #include <stddef.h>
 
-#include "detail/filter.hpp"
 namespace boost {
 namespace http_proto {
 
@@ -26,8 +30,7 @@ namespace {
 class deflator_filter
     : public http_proto::detail::filter
 {
-    using stream_t = zlib::service::stream;
-    stream_t& deflator_;
+    zlib::stream& deflator_;
 
 public:
     deflator_filter(
@@ -46,30 +49,36 @@ public:
         bool more) override
     {
         auto flush =
-            more ? stream_t::flush::none : stream_t::flush::finish;
+            more ? zlib::flush::none : zlib::flush::finish;
         filter::results results;
 
         for(;;)
         {
-            auto r = deflator_.write(out, in, flush);
+            auto params = zlib::params{in.data(), in.size(),
+                out.data(), out.size() };
+            results.ec = deflator_.write(params, flush);
 
-            results.out_bytes += r.out_bytes;
-            results.in_bytes  += r.in_bytes;
-            results.ec         = r.ec;
-            results.finished   = r.finished;
+            results.in_bytes  += in.size() - params.avail_in;
+            results.out_bytes += out.size() - params.avail_out;
 
-            if(r.ec || r.finished)
+            if(results.ec.failed())
                 return results;
 
-            out = buffers::sans_prefix(out, r.out_bytes);
-            in  = buffers::sans_prefix(in, r.in_bytes);
+            if(results.ec == zlib::error::stream_end)
+            {
+                results.finished = true;
+                return results;
+            }
+
+            in  = buffers::suffix(in, params.avail_in);
+            out = buffers::suffix(out, params.avail_out);
 
             if(in.size() == 0)
             {
-                if(r.out_bytes == 0)
+                // TODO: is this necessary?
+                if(results.out_bytes == 0)
                 {
-                    // TODO: is this necessary?
-                    flush = stream_t::flush::sync;
+                    flush = zlib::flush::sync;
                     continue;
                 }
                 return results;
