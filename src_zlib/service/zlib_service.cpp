@@ -254,55 +254,41 @@ struct service_impl
 {
     using key_type = service;
 
-    class BOOST_ATTRIBUTE_NODISCARD
-        adapter
+    static ::uInt
+    clamp(std::size_t x) noexcept
     {
-        static constexpr auto uint_max =
-            (std::numeric_limits<::uInt>::max)();
-        z_stream* zs_;
-        stream::params* params_;
+        if(x >= (std::numeric_limits<::uInt>::max)())
+            return (std::numeric_limits<::uInt>::max)();
+        return static_cast<::uInt>(x);
+    }
 
-    public:
-        adapter(
-            z_stream* zs,
-            stream::params* params) noexcept
-            : zs_{ zs }
-            , params_{ params }
-        {
-            zs->next_in   = reinterpret_cast<unsigned char*>(
-                const_cast<void*>(params->next_in));
-            zs->avail_in  = clamp(params->avail_in);
-            zs->next_out  = reinterpret_cast<unsigned char*>(
-                params->next_out);
-            zs->avail_out = clamp(params->avail_out);
-        }
+    static void
+    sync(
+        z_stream* zs,
+        buffers::mutable_buffer const& out,
+        buffers::const_buffer const& in) noexcept
+    {
+        zs->next_in   = reinterpret_cast<
+            unsigned char*>(const_cast<void*>(in.data()));
+        zs->avail_in  = clamp(in.size());
+        zs->next_out  = reinterpret_cast<
+            unsigned char*>(out.data());
+        zs->avail_out = clamp(out.size());
+    }
 
-        static ::uInt
-        clamp(std::size_t x) noexcept
-        {
-            if(x >= uint_max)
-                return uint_max;
-            return static_cast<::uInt>(x);
-        }
-
-        static std::size_t
-        unclamp(std::size_t org, ::uInt x) noexcept
-        {
-            if(org >= uint_max)
-                return org - uint_max + x;
-            return x;
-        }
-
-        ~adapter()
-        {
-            *params_ = {
-                zs_->next_in,
-                unclamp(params_->avail_in, zs_->avail_in),
-                zs_->next_out,
-                unclamp(params_->avail_out, zs_->avail_out)
-            };
-        }
-    };
+    static stream::results
+    make_results(
+        z_stream const& zs,
+        buffers::mutable_buffer const& out,
+        buffers::const_buffer const& in,
+        int ret) noexcept
+    {
+        return {
+            clamp(out.size()) - zs.avail_out,
+            clamp(in.size()) - zs.avail_in,
+            ret < 0 ? static_cast<error>(ret) : system::error_code{},
+            ret == Z_STREAM_END };
+    }
 
     class deflator
         : public stream
@@ -326,19 +312,15 @@ struct service_impl
                 throw_zlib_error(ret);
         }
 
-        virtual bool
+        virtual results
         write(
-            params& params,
-            flush flush,
-            system::error_code& ec) noexcept override
+            buffers::mutable_buffer out,
+            buffers::const_buffer in,
+            flush flush) noexcept override
         {
-            auto adp = adapter{ &zs_, &params };
-            auto ret = deflate(&zs_, static_cast<int>(flush));
-            if(ret == Z_STREAM_END)
-                return true;
-            if(ret != Z_OK)
-                ec = static_cast<error>(ret);
-            return false;
+            sync(&zs_, out, in);
+            return make_results(zs_, out, in,
+                deflate(&zs_, static_cast<int>(flush)));
         }
     };
 
@@ -361,19 +343,15 @@ struct service_impl
                 throw_zlib_error(ret);
         }
 
-        virtual bool
+        virtual results
         write(
-            params& params,
-            flush flush,
-            system::error_code& ec) noexcept override
+            buffers::mutable_buffer out,
+            buffers::const_buffer in,
+            flush flush) noexcept override
         {
-            auto adp = adapter{ &zs_, &params };
-            auto ret = inflate(&zs_, static_cast<int>(flush));
-            if(ret == Z_STREAM_END)
-                return true;
-            if(ret != Z_OK)
-                ec = static_cast<error>(ret);
-            return false;
+            sync(&zs_, out, in);
+            return make_results(zs_, out, in,
+                inflate(&zs_, static_cast<int>(flush)));
         }
     };
 
