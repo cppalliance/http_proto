@@ -16,6 +16,9 @@
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/service/service.hpp>
 
+#include <boost/buffers/const_buffer.hpp>
+#include <boost/buffers/mutable_buffer.hpp>
+
 namespace boost {
 namespace http_proto {
 namespace zlib {
@@ -68,19 +71,19 @@ struct BOOST_HTTP_PROTO_ZLIB_DECL
             trees
         };
 
-        struct params
+        struct results
         {
-            void const* next_in;
-            std::size_t avail_in;
-            void* next_out;
-            std::size_t avail_out;
+            std::size_t out_bytes;
+            std::size_t in_bytes;
+            system::error_code ec;
+            bool finished;
         };
 
-        virtual bool
+        virtual results
         write(
-            params&,
-            flush,
-            system::error_code& ec) noexcept = 0;
+            buffers::mutable_buffer out,
+            buffers::const_buffer in,
+            flush) noexcept = 0;
     };
 
     virtual

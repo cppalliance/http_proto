@@ -51,27 +51,24 @@ public:
 
         for(;;)
         {
-            auto params = stream_t::params{ in.data(), in.size(),
-                out.data(), out.size() };
+            auto r = deflator_.write(out, in, flush);
 
-            results.finished =
-                deflator_.write(params, flush, results.ec);
+            results.out_bytes += r.out_bytes;
+            results.in_bytes  += r.in_bytes;
+            results.ec         = r.ec;
+            results.finished   = r.finished;
 
-            results.in_bytes  += (in.size() - params.avail_in);
-            results.out_bytes += (out.size() - params.avail_out);
-
-            if(results.ec || results.finished)
+            if(r.ec || r.finished)
                 return results;
 
-            auto prev_out_size = out.size();
-            in  = buffers::suffix(in, params.avail_in);
-            out = buffers::suffix(out, params.avail_out);
+            out = buffers::sans_prefix(out, r.out_bytes);
+            in  = buffers::sans_prefix(in, r.in_bytes);
 
             if(in.size() == 0)
             {
-                // TODO: is this necessary?
-                if(prev_out_size == params.avail_out)
+                if(r.out_bytes == 0)
                 {
+                    // TODO: is this necessary?
                     flush = stream_t::flush::sync;
                     continue;
                 }
