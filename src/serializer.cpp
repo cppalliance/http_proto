@@ -75,10 +75,12 @@ public:
 
             if(in.size() == 0)
             {
-                // TODO: is this necessary?
                 if(results.out_bytes == 0)
                 {
-                    flush = zlib::flush::sync;
+                    // TODO: Is flush::block the right choice?
+                    // We might need a filter::flush() interface
+                    // so that the caller can decide when to flush.
+                    flush = zlib::flush::block;
                     continue;
                 }
                 return results;
