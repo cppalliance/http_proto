@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2023 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -108,19 +109,6 @@ private:
         buffers::const_buffer in,
         bool more) = 0;
 
-    /** Called to process the filter.
-
-        @par Preconditions
-        @ref init was called once before any
-            calls to `process`.
-    */
-    virtual
-    results
-    on_process(
-        buffers::mutable_buffer_span out,
-        buffers::const_buffer_span in,
-        bool more);
-
 private:
     results
     process_impl(
@@ -131,22 +119,13 @@ private:
         return on_process(out, in, more);
     }
 
-    results
-    process_impl(
-        buffers::mutable_buffer_span const& out,
-        buffers::const_buffer_span const& in,
-        bool more)
-    {
-        return on_process(out, in, more);
-    }
-
     template<
-        class MutableBuffers,
-        class ConstBuffers>
+        class MutableBufferSequence,
+        class ConstBufferSequence>
     results
     process_impl(
-        MutableBuffers const& out,
-        ConstBuffers const& in,
+        MutableBufferSequence const& out,
+        ConstBufferSequence const& in,
         bool more);
 };
 
