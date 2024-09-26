@@ -256,9 +256,35 @@ struct service_impl
     }
 
     std::size_t
-    space_needed() const noexcept override
+    deflator_space_needed(
+        int window_bits,
+        int mem_level) const noexcept override
     {
-        return 0; // TODO
+        // TODO: Account for the number of allocations and
+        // their overhead in the workspace.
+
+        // https://www.zlib.net/zlib_tech.html
+        return
+            (1 << (window_bits + 2)) +
+            (1 << (mem_level + 9)) +
+            (6 * 1024) +
+            http_proto::detail::
+                workspace::space_needed<deflator>();
+    }
+
+    std::size_t
+    inflator_space_needed(
+        int window_bits) const noexcept override
+    {
+        // TODO: Account for the number of allocations and
+        // their overhead in the workspace.
+
+        // https://www.zlib.net/zlib_tech.html
+        return
+            (1 << window_bits) +
+            (7 * 1024) +
+            http_proto::detail::
+                workspace::space_needed<inflator>();
     }
 
     stream&

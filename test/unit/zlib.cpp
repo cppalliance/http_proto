@@ -325,7 +325,8 @@ struct zlib_test
         zlib::install_service(ctx);
         serializer sr(
             ctx,
-            zlib::encoding_size_hint() + (2 * 1024));
+            ctx.get_service<
+                zlib::service>().deflator_space_needed(15, 8) + (2 * 1024));
 
         // prove we can reuse the serializer successfully
         for( int i = 0; i < 2; ++i )

@@ -428,9 +428,8 @@ parser_service(
     {
         if(cfg.apply_deflate_decoder)
         {
-            zlib_svc = &ctx.get_service<
-                zlib::service>();
-            auto const n = zlib_svc->space_needed();
+            auto const n = ctx.get_service<
+                zlib::service>().inflator_space_needed(15);
             if( max_codec < n)
                 max_codec = n;
         }
