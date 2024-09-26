@@ -21,35 +21,6 @@ namespace boost {
 namespace http_proto {
 namespace zlib {
 
-struct decoder_config
-{
-    unsigned max_window_bits = 15;
-    unsigned mem_level = 8;
-};
-
-constexpr
-inline
-std::size_t
-encoding_size_hint(decoder_config cfg = {}) noexcept
-{
-    // from: https://www.zlib.net/zlib_tech.html
-    //
-    // Memory Footprint
-    //
-    // zlib's memory footprint can also be specified fairly
-    // precisely. It is larger for compression than for
-    // decompression, and the exact requirements depend on
-    // how the library was compiled.
-    //
-    // The memory requirements for compression depend on two
-    // parameters, windowBits and memLevel:
-    //     deflate memory usage (bytes) = (1 << (windowBits+2)) + (1 << (memLevel+9)) + 6 KB
-    return
-        (1 << (cfg.max_window_bits + 2)) +
-        (1 << (cfg.mem_level + 9)) +
-        (6 * 1024);
-}
-
 /** Error codes returned from compression/decompression functions.
 
     Negative values are errors, positive values are used
@@ -124,9 +95,30 @@ struct BOOST_HTTP_PROTO_DECL
     service
     : http_proto::service
 {
+    /** The memory requirements for deflator.
+
+        @param window_bits The window size.
+
+        @param mem_level The memory level.
+
+        @return The memory requirements in bytes.
+    */
     virtual
     std::size_t
-    space_needed() const noexcept = 0;
+    deflator_space_needed(
+        int window_bits,
+        int mem_level) const noexcept = 0;
+
+    /** The memory requirements for inflator.
+
+        @param window_bits The window size.
+
+        @return The memory requirements in bytes.
+    */
+    virtual
+    std::size_t
+    inflator_space_needed(
+        int window_bits) const noexcept = 0;
 
     /** Create a deflator stream by calling zlib `deflateInit2()`.
 
