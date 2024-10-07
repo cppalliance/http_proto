@@ -915,6 +915,7 @@ jobs:
           cp -r "$workspace_root"/buffers-root libs/buffers
 
           python3 tools/boostdep/depinst/depinst.py buffers
+          python3 tools/boostdep/depinst/depinst.py $module
 
       - name: Boost B2 Workflow
         uses: alandefreitas/cpp-actions/b2-workflow@v1.8.2

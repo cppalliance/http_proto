@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -77,17 +78,19 @@ public:
 
         /** True if parser can decode deflate transfer and content encodings.
 
-            The deflate decoder must already be
+            The zlib service must already be
             installed thusly, or else an exception
             is thrown.
-
-            @par Install Deflate Decoder
-            @code
-            deflate_decoder_service::config cfg;
-            cfg.install( ctx );
-            @endcode
         */
         bool apply_deflate_decoder = false;
+
+        /** True if parser can decode gzip transfer and content encodings.
+
+            The zlib service must already be
+            installed thusly, or else an exception
+            is thrown.
+        */
+        bool apply_gzip_decoder = false;
 
         /** Minimum space for payload buffering.
 
@@ -420,7 +423,7 @@ private:
 
     buffers::circular_buffer* body_buf_ = nullptr;
     buffers::any_dynamic_buffer* eb_ = nullptr;
-    detail::filter* filt_ = nullptr;
+    detail::filter* filter_ = nullptr;
     sink* sink_ = nullptr;
 
     state st_ = state::start;

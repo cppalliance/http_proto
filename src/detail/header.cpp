@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -357,6 +358,8 @@ maybe_count(
     {
     case field::connection:
         return md.connection.count;
+    case field::content_encoding:
+        return md.content_encoding.count;
     case field::content_length:
         return md.content_length.count;
     case field::expect:
@@ -381,6 +384,7 @@ is_special(
     switch(id)
     {
     case field::connection:
+    case field::content_encoding:
     case field::content_length:
     case field::expect:
     case field::transfer_encoding:
@@ -419,6 +423,8 @@ on_insert(
         return;
     switch(id)
     {
+    case field::content_encoding:
+        return on_insert_content_encoding(v);
     case field::content_length:
         return on_insert_content_length(v);
     case field::connection:
@@ -445,6 +451,8 @@ on_erase(field id)
     {
     case field::connection:
         return on_erase_connection();
+    case field::content_encoding:
+        return on_erase_content_encoding();
     case field::content_length:
         return on_erase_content_length();
     case field::expect:
@@ -650,6 +658,52 @@ on_insert_transfer_encoding()
 
 void
 header::
+on_insert_content_encoding(
+    core::string_view v)
+{
+    ++md.content_encoding.count;
+    if( md.content_encoding.ec.failed() )
+        return;
+
+    auto rv = grammar::parse(
+        v, list_rule(token_rule, 1));
+    if( !rv )
+    {
+        md.content_encoding.ec =
+            BOOST_HTTP_PROTO_ERR(
+                error::bad_content_encoding);
+        return;
+    }
+
+    if( rv->size() > 1 ||
+        md.content_encoding.count > 1)
+    {
+        md.content_encoding.encoding =
+            encoding::unsupported;
+        return;
+    }
+
+    if( grammar::ci_is_equal(*(rv->begin()),
+        "deflate") )
+    {
+        md.content_encoding.encoding =
+            encoding::deflate;
+    }
+    else if( grammar::ci_is_equal(*(rv->begin()),
+        "gzip") )
+    {
+        md.content_encoding.encoding =
+            encoding::gzip;
+    }
+    else
+    {
+        md.content_encoding.encoding =
+            encoding::unsupported;
+    }
+}
+
+void
+header::
 on_insert_upgrade(
     core::string_view v)
 {
@@ -805,6 +859,25 @@ on_erase_transfer_encoding()
     // re-insert everything
     --md.transfer_encoding.count;
     on_insert_transfer_encoding();
+}
+
+void
+header::
+on_erase_content_encoding()
+{
+    BOOST_ASSERT(
+        md.content_encoding.count > 0);
+    --md.content_encoding.count;
+    if(md.content_encoding.count == 0)
+    {
+        // no Content-Encoding
+        md.content_encoding = {};
+        return;
+    }
+    // re-insert everything
+    --md.content_encoding.count;
+    // TODO
+    // on_insert_content_encoding();
 }
 
 // called when Upgrade is erased

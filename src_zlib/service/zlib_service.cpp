@@ -157,7 +157,7 @@ void zfree(void* /* opaque */, void* /* addr */)
     // so all the allocations are passively freed
 }
 
-static ::uInt
+::uInt
 clamp(std::size_t x) noexcept
 {
     if(x >= (std::numeric_limits<::uInt>::max)())

@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -65,6 +66,11 @@ encoding
     identity,
 
     /**
+      * Indicates the body encoding is unsupported.
+    */
+    unsupported,
+
+    /**
       * Indicates the body has deflate applied.
     */
     deflate,
@@ -121,6 +127,42 @@ struct metadata
             , close(close_)
             , keep_alive(keep_alive_)
             , upgrade(upgrade_)
+        {
+        }
+    #endif
+    };
+
+    //--------------------------------------------
+
+    /** Metadata for the Content-Encoding field
+    */
+    struct content_encoding_t
+    {
+        /** Error status of Content-Encoding
+        */
+        system::error_code ec;
+
+        /** The total number of fields
+        */
+        std::size_t count = 0;
+
+        /** The body encoding.
+        */
+        http_proto::encoding encoding =
+            http_proto::encoding::identity;
+
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
+        constexpr
+        content_encoding_t() = default;
+
+        constexpr
+        content_encoding_t(
+            system::error_code ec_,
+            std::size_t count_) noexcept
+            : ec(ec_)
+            , count(count_)
+            , encoding(
+                http_proto::encoding::identity)
         {
         }
     #endif
@@ -319,6 +361,10 @@ struct metadata
     /** Metadata for the Connection field.
     */
     connection_t connection;
+
+    /** Metadata for the Content-Encoding field.
+    */
+    content_encoding_t content_encoding;
 
     /** Metadata for the Content-Length field.
     */

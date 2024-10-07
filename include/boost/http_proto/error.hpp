@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -54,6 +55,9 @@ enum class error
 
     /// Invalid Connection field value
    bad_connection,
+
+    /// Syntax error in content-encoding
+   bad_content_encoding,
 
     /// Invalid Content-Length field value or values
    bad_content_length,

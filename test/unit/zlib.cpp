@@ -1,3 +1,13 @@
+//
+// Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2024 Mohammad Nejati
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+// Official repository: https://github.com/cppalliance/http_proto
+//
+
 #include <boost/http_proto/detail/config.hpp>
 
 #include "test_suite.hpp"
@@ -22,15 +32,19 @@ TEST_SUITE(
 
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/request_parser.hpp>
+#include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
 
+#include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/make_buffer.hpp>
+#include <boost/buffers/string_buffer.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/core/span.hpp>
 
@@ -83,6 +97,40 @@ namespace http_proto {
 
 struct zlib_test
 {
+    std::string
+    deflate(
+        int window_bits,
+        int mem_level,
+        core::string_view str)
+    {
+        z_stream zs{};
+
+        if( deflateInit2(&zs, -1, Z_DEFLATED, window_bits,
+            mem_level, Z_DEFAULT_STRATEGY) != Z_OK )
+            throw std::runtime_error{ "deflateInit2" };
+
+        zs.next_in  = reinterpret_cast<Bytef*>(
+            const_cast<char *>(str.data()));
+        zs.avail_in = static_cast<uInt>(str.size());
+
+        std::string result;
+        for(;;)
+        {
+            constexpr auto chunk_size = 2048;
+            result.resize(result.size() + chunk_size);
+            auto it = result.begin() + result.size() - chunk_size;
+            zs.next_out  = reinterpret_cast<Bytef*>(&*it);
+            zs.avail_out = chunk_size;
+            auto ret = ::deflate(&zs, Z_FINISH);
+            result.erase(
+                it + chunk_size - zs.avail_out, result.end());
+            if(ret != Z_OK)
+                break;
+        }
+        deflateEnd(&zs);
+        return result;
+    }
+
     void verify_compressed(
         span<unsigned char> compressed,
         core::string_view expected)
@@ -427,7 +475,7 @@ struct zlib_test
     }
 
     void
-    zlib_serializer()
+    test_serializer()
     {
         std::string short_body =
             "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
@@ -463,9 +511,111 @@ struct zlib_test
             zlib_serializer_impl(fp, c, body, b);
     }
 
+    void
+    test_parser()
+    {
+        context ctx;
+        zlib::install_service(ctx);
+
+        auto append_chunked = [](
+            std::string& msg,
+            core::string_view body)
+        {
+            for(;;)
+            {
+                auto chunk = body.substr(0,
+                    std::min(size_t{ 100 }, body.size()));
+                body.remove_prefix(chunk.size());
+                msg.append(8, '0');
+                auto it = msg.begin() + msg.size() - 8;
+                auto c = std::snprintf(&*it, 8, "%zx", chunk.size());
+                msg.erase(it + c, msg.end());
+                msg += "\r\n";
+                msg += chunk;
+                msg += "\r\n";
+                if(chunk.size() == 0)
+                    break;
+            }
+        };
+
+        response_parser::config cfg;
+        cfg.apply_deflate_decoder = true;
+        cfg.apply_gzip_decoder = true;
+        cfg.body_limit = 8 * 1024 * 1024;
+        install_parser_service(ctx, cfg);
+        response_parser pr(ctx);
+
+        for(auto gzip : { false, true })
+        for(auto chunked : { false, true })
+        for(auto body_size : { 0, 7, 64 * 1024, 1024 * 1024 })
+        {
+            std::string msg = "HTTP/1.1 200 OK\r\n";
+
+            if(gzip)
+                msg += "Content-Encoding: gzip\r\n";
+            else
+                msg += "Content-Encoding: deflate\r\n";
+
+            if(chunked)
+                msg += "Transfer-Encoding: chunked\r\n";
+
+            msg += "\r\n";
+
+            auto const body = generate_book(body_size);
+            auto const deflated = deflate(15 + (gzip ? 16 : 0), 8, body);
+
+            if(chunked)
+                append_chunked(msg, deflated);
+            else
+                msg += deflated;
+
+            pr.reset();
+            pr.start();
+
+            auto msg_buf =
+                buffers::const_buffer{ msg.data(), msg.size() };
+            
+            std::string parsed_body;
+            buffers::string_buffer parsed_body_buf{
+                &parsed_body };
+            for(;;)
+            {
+                auto n1 = buffers::buffer_copy(
+                    pr.prepare(), msg_buf);
+                pr.commit(n1);
+                msg_buf = buffers::sans_prefix(msg_buf, n1);
+
+                boost::system::error_code ec;
+                pr.parse(ec);
+                if( ec )
+                    BOOST_TEST(ec == error::in_place_overflow
+                        || ec == error::need_data);
+
+                // consume in_place body
+                auto n2 = buffers::buffer_copy(
+                    parsed_body_buf.prepare(
+                        buffers::buffer_size(pr.pull_body())),
+                    pr.pull_body());
+                parsed_body_buf.commit(n2);
+                pr.consume_body(n2);
+
+                if( msg_buf.size() == 0 && ec == error::need_data )
+                {
+                    pr.commit_eof();
+                    pr.parse(ec);
+                    BOOST_TEST(!ec || ec == error::in_place_overflow);
+                }
+                if( pr.is_complete() )
+                    break;
+            }
+            BOOST_TEST(parsed_body == body);
+        }
+    }
+
     void run()
     {
-        zlib_serializer();
+        test_serializer();
+        test_parser();
     }
 };
 
