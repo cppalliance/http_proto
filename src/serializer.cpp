@@ -56,15 +56,18 @@ public:
         {
             auto params = zlib::params{in.data(), in.size(),
                 out.data(), out.size() };
-            results.ec = deflator_.write(params, flush);
+            auto ec = deflator_.write(params, flush);
 
             results.in_bytes  += in.size() - params.avail_in;
             results.out_bytes += out.size() - params.avail_out;
 
-            if(results.ec.failed())
+            if(ec.failed())
+            {
+                results.ec = ec;
                 return results;
+            }
 
-            if(results.ec == zlib::error::stream_end)
+            if(ec == zlib::error::stream_end)
             {
                 results.finished = true;
                 return results;

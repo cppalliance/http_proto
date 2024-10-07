@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,14 +8,14 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/parser.hpp>
-
 #include <boost/http_proto/context.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/error.hpp>
+#include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
 
-#include <boost/http_proto/detail/except.hpp>
+#include "detail/filter.hpp"
 
 #include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
@@ -29,8 +30,6 @@
 #include <array>
 #include <iostream>
 #include <memory>
-
-#include "rfc/detail/rules.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -117,7 +116,64 @@ Buffer Usage
     or additional data received past the end of
     the message payload.
 */
-//-----------------------------------------------
+
+namespace {
+class inflator_filter
+    : public http_proto::detail::filter
+{
+    zlib::stream& inflator_;
+
+public:
+    inflator_filter(
+        context& ctx,
+        http_proto::detail::workspace& ws,
+        bool use_gzip)
+        : inflator_{ ctx.get_service<zlib::service>()
+            .make_inflator(ws, use_gzip ? 31 : 15) }
+    {
+    }
+
+    virtual filter::results
+    on_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        bool more) override
+    {
+        auto flush =
+            more ? zlib::flush::none : zlib::flush::finish;
+        filter::results results;
+
+        for(;;)
+        {
+            auto params = zlib::params{in.data(), in.size(),
+                out.data(), out.size() };
+            auto ec = inflator_.write(params, flush);
+
+            results.in_bytes  += in.size() - params.avail_in;
+            results.out_bytes += out.size() - params.avail_out;
+
+            // TODO: limit the cases where buf_err is valid
+            if( ec.failed() &&
+                ec != zlib::error::buf_err )
+            {
+                results.ec = ec;
+                return results;
+            }
+
+            if( ec == zlib::error::stream_end )
+            {
+                results.finished = true;
+                return results;
+            }
+
+            in  = buffers::suffix(in, params.avail_in);
+            out = buffers::suffix(out, params.avail_out);
+
+            if( in.size() == 0 || out.size() == 0)
+                return results;
+        }
+    }
+};
 
 class chained_sequence
 {
@@ -178,7 +234,7 @@ public:
 
 static
 system::result<std::uint64_t>
-parse_hex(chained_sequence& cs)
+parse_hex(chained_sequence& cs) noexcept
 {
     std::uint64_t v   = 0;
     std::size_t init_size = cs.size();
@@ -207,7 +263,7 @@ parse_hex(chained_sequence& cs)
 
 static
 system::result<void>
-find_eol(chained_sequence& cs)
+find_eol(chained_sequence& cs) noexcept
 {
     while(!cs.empty())
     {
@@ -229,7 +285,7 @@ find_eol(chained_sequence& cs)
 
 static
 system::result<void>
-parse_eol(chained_sequence& cs)
+parse_eol(chained_sequence& cs) noexcept
 {
     if(cs.size() >= 2)
     {
@@ -248,7 +304,7 @@ parse_eol(chained_sequence& cs)
 
 static
 system::result<void>
-skip_trailer_headers(chained_sequence& cs)
+skip_trailer_headers(chained_sequence& cs) noexcept
 {
     while(!cs.empty())
     {
@@ -271,15 +327,25 @@ skip_trailer_headers(chained_sequence& cs)
         error::need_data);
 }
 
+template<class UInt>
+std::size_t
+clamp(UInt x, std::size_t limit) noexcept
+{
+    if(x >= limit)
+        return limit;
+    return static_cast<std::size_t>(x);
+}
+
 template <class ElasticBuffer>
 system::result<void>
 parse_chunked(
+    detail::filter* filter,
     buffers::circular_buffer& input,
     ElasticBuffer& output,
     std::uint64_t& chunk_remain_,
     std::uint64_t& body_avail_,
     bool& needs_chunk_close_,
-    bool& trailer_headers_)
+    bool& trailer_headers_) noexcept
 {
     for(;;)
     {
@@ -289,18 +355,18 @@ parse_chunked(
 
             if(trailer_headers_)
             {
-                auto rv = skip_trailer_headers(cs);
-                if(rv.has_error())
-                    return rv;
+                auto rs = skip_trailer_headers(cs);
+                if(rs.has_error())
+                    return rs;
                 input.consume(input.size() - cs.size());
                 return {};
             }
 
             if(needs_chunk_close_)
             {
-                auto rv = parse_eol(cs);
-                if(rv.has_error())
-                    return rv;
+                auto rs = parse_eol(cs);
+                if(rs.has_error())
+                    return rs;
             }
 
             auto chunk_size = parse_hex(cs);
@@ -308,9 +374,9 @@ parse_chunked(
                 return chunk_size.error();
 
             // chunk extensions are skipped
-            auto rv = find_eol(cs);
-            if(rv.has_error())
-                return rv;
+            auto rs = find_eol(cs);
+            if(rs.has_error())
+                return rs;
 
             input.consume(input.size() - cs.size());
             chunk_remain_ = chunk_size.value();
@@ -323,35 +389,50 @@ parse_chunked(
             }
         }
 
-        // we've successfully parsed a chunk-size and have
-        // consume()d the entire buffer
         if( input.size() == 0 )
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
 
-        // TODO: this is an open-ended design space with no
-        // clear answer at time of writing.
-        // revisit this later
         if( output.capacity() == 0 )
-            detail::throw_length_error();
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::in_place_overflow);
 
-        auto n = (std::min)(
-            chunk_remain_,
-            static_cast<std::uint64_t>(input.size()));
+        auto chunk = buffers::prefix(input.data(),
+            clamp(chunk_remain_, input.size()));
 
-        auto m = buffers::buffer_copy(
-            output.prepare(output.capacity()),
-            buffers::prefix(input.data(), static_cast<std::size_t>(n)));
+        if( filter )
+        {
+            // TODO: gather available chunks and provide
+            // them as a const_buffer_span
+            auto rs = filter->process(
+                output.prepare(output.capacity()),
+                chunk,
+                !trailer_headers_);
 
-        BOOST_ASSERT(m <= chunk_remain_);
-        chunk_remain_ -= m;
-        input.consume(m);
-        output.commit(m);
-        body_avail_ += m;
+            if( rs.ec.failed() )
+                return rs.ec;
+
+            chunk_remain_ -= rs.in_bytes;
+            input.consume(rs.in_bytes);
+            output.commit(rs.out_bytes);
+            body_avail_ += rs.out_bytes;
+
+            if( rs.finished && chunk_remain_ != 0 )
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    error::bad_payload);
+        }
+        else
+        {
+            auto copied = buffers::buffer_copy(
+                output.prepare(output.capacity()), chunk);
+            chunk_remain_ -= copied;
+            input.consume(copied);
+            output.commit(copied);
+            body_avail_ += copied;
+        }
     }
 }
-
-//-----------------------------------------------
+} // namespace
 
 class parser_service
     : public service
@@ -616,7 +697,9 @@ start_impl(
     chunk_remain_ = 0;
     needs_chunk_close_ = false;
     trailer_headers_ = false;
+    filter_ = nullptr;
     body_avail_ = 0;
+    body_total_ = 0;
 }
 
 auto
@@ -660,8 +743,7 @@ prepare() ->
         if(! is_plain())
         {
             // buffered payload
-            auto n = cb0_.capacity() -
-                cb0_.size();
+            auto n = cb0_.capacity();
             if( n > svc_.cfg.max_prepare)
                 n = svc_.cfg.max_prepare;
             mbp_ = cb0_.prepare(n);
@@ -676,6 +758,13 @@ prepare() ->
             auto n = cb0_.capacity();
             if( n > svc_.cfg.max_prepare)
                 n = svc_.cfg.max_prepare;
+
+            // TODO: payload_remain_ + svc_.max_overread() might overflow
+            if( h_.md.payload == payload::size &&
+                n > payload_remain_ + svc_.max_overread())
+                n = static_cast<size_t>(
+                    payload_remain_ + svc_.max_overread());
+
             mbp_ = cb0_.prepare(n);
             nprepare_ = n;
             return mutable_buffers_type(mbp_);
@@ -859,10 +948,12 @@ commit(
                 if(n < payload_remain_)
                 {
                     body_avail_ += n;
+                    body_total_ += n;
                     payload_remain_ -= n;
                     break;
                 }
                 body_avail_ += payload_remain_;
+                body_total_ += payload_remain_;
                 payload_remain_ = 0;
                 st_ = state::complete;
                 break;
@@ -871,6 +962,7 @@ commit(
             BOOST_ASSERT(
                 h_.md.payload == payload::to_eof);
             body_avail_ += n;
+            body_total_ += n;
             break;
         }
 
@@ -1074,25 +1166,114 @@ parse(
         {
             if( how_ == how::in_place )
             {
-                auto& input = cb0_;
-                auto& output = cb1_;
+                // TODO: parse_chunked should be a member function
                 auto rv = parse_chunked(
-                    input, output, chunk_remain_, body_avail_,
-                    needs_chunk_close_, trailer_headers_);
-                if(rv.has_error())
+                    filter_, cb0_, cb1_, chunk_remain_,
+                    body_avail_, needs_chunk_close_, trailer_headers_);
+
+                // TODO: check for body_limit
+
+                if(rv.has_error()) // including error::need_data
                     ec = rv.error();
                 else
                     st_ = state::complete;
                 return;
             }
             else
+            {
+                // TODO
                 detail::throw_logic_error();
-
+            }
         }
-        else if( filt_ )
+        else if( filter_ )
         {
-            // VFALCO TODO apply filter
-            detail::throw_logic_error();
+            if( how_ == how::in_place )
+            {
+                if( body_buf_->capacity() == 0 )
+                {
+                    // in_place buffer limit
+                    ec = BOOST_HTTP_PROTO_ERR(
+                        error::in_place_overflow);
+                    return;
+                }
+
+                auto rs = [&]() -> detail::filter::results
+                {
+                    if( h_.md.payload == payload::size )
+                    {
+                        auto rv = filter_->process(
+                            body_buf_->prepare(body_buf_->capacity()),
+                            buffers::prefix(cb0_.data(), clamp(
+                                payload_remain_, cb0_.size())),
+                            cb0_.size() < payload_remain_);
+
+                        payload_remain_ -= rv.in_bytes;
+                        return rv;
+                    }
+                    BOOST_ASSERT(h_.md.payload == payload::to_eof);
+                    return filter_->process(
+                        body_buf_->prepare(body_buf_->capacity()),
+                        cb0_.data(),
+                        !got_eof_);
+                }();
+
+                ec           = rs.ec;
+                body_avail_ += rs.out_bytes;
+                body_total_ += rs.out_bytes;
+                cb0_.consume(rs.in_bytes);
+                body_buf_->commit(rs.out_bytes);
+
+                if( body_avail_ > svc_.cfg.body_limit )
+                {
+                    ec  = BOOST_HTTP_PROTO_ERR(
+                        error::body_too_large);
+                    st_ = state::reset; // unrecoverable
+                    return;
+                }
+
+                if( ec.failed() )
+                {
+                    st_ = state::reset; // unrecoverable
+                    return;
+                }
+
+                if( rs.finished )
+                {
+                    if( !got_eof_ &&
+                        h_.md.payload == payload::to_eof )
+                    {
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::need_data);
+                        return;
+                    }
+
+                    st_ = state::complete;
+                    return;
+                }
+
+                if( got_eof_ )
+                {
+                    if( body_buf_->capacity() == 0 )
+                    {
+                        ec  = BOOST_HTTP_PROTO_ERR(
+                            error::in_place_overflow);
+                        return;
+                    }
+                    ec  = BOOST_HTTP_PROTO_ERR(
+                        error::incomplete);
+                    st_ = state::reset; // unrecoverable
+                    return;
+                }
+
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::need_data);
+                return;
+            }
+            else
+            {
+                // TODO
+                detail::throw_logic_error();
+            }
         }
 
         if(how_ == how::in_place)
@@ -1125,15 +1306,14 @@ parse(
                 st_ = state::complete;
                 break;
             }
-            if(body_avail_ > svc_.cfg.body_limit)
+            if( body_total_ > svc_.cfg.body_limit )
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::body_too_large);
                 st_ = state::reset; // unrecoverable
                 return;
             }
-            if( h_.md.payload == payload::chunked ||
-                ! got_eof_)
+            if( ! got_eof_ )
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::need_data);
@@ -1414,7 +1594,7 @@ bool
 parser::
 is_plain() const noexcept
 {
-    return ! filt_ &&
+    return ! filter_ &&
         h_.md.payload !=
             payload::chunked;
 }
@@ -1461,23 +1641,47 @@ on_headers(
             ws_.data(),
             overread + fb_.capacity(),
             overread };
-        body_avail_ = 0;
-        body_total_ = 0;
         body_buf_ = &cb0_;
         st_ = state::complete;
         return;
     }
 
-    // calculate filter
-    filt_ = nullptr; // VFALCO TODO
+    auto cap = fb_.capacity() + overread +
+        svc_.cfg.min_buffer;
 
-    if(is_plain())
+    // reserve body buffers first, as the decoder
+    // must be installed after them.
+    auto const p = ws_.reserve_front(cap);
+
+    if( svc_.cfg.apply_deflate_decoder &&
+        h_.md.content_encoding.encoding == encoding::deflate )
     {
-        // plain payload
-        if(h_.md.payload == payload::size)
+        filter_ = &ws_.emplace<inflator_filter>(
+            ctx_, ws_, false);
+    }
+    else if( svc_.cfg.apply_gzip_decoder &&
+        h_.md.content_encoding.encoding == encoding::gzip )
+    {
+        filter_ = &ws_.emplace<inflator_filter>(
+            ctx_, ws_, true);
+    }
+    else
+    {
+        cap += svc_.max_codec;
+        ws_.reserve_front(svc_.max_codec);
+    }
+
+    if( !filter_ &&
+        h_.md.payload != payload::chunked )
+    {
+        cb0_ = { p, cap, overread };
+        body_buf_ = &cb0_;
+        body_avail_ = cb0_.size();
+
+        if( h_.md.payload == payload::size )
         {
-            if(h_.md.payload_size >
-                svc_.cfg.body_limit)
+            if( h_.md.payload_size >
+                svc_.cfg.body_limit )
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::body_too_large);
@@ -1485,90 +1689,29 @@ on_headers(
                 return;
             }
 
-            // for plain messages with a known size,, we can
-            // get away with only using cb0_ as our input
-            // area and leaving cb1_ blank
-            BOOST_ASSERT(fb_.max_size() >= h_.size);
-            BOOST_ASSERT(
-                fb_.max_size() - h_.size ==
-                overread + fb_.capacity());
-            BOOST_ASSERT(fb_.data().data() == h_.buf);
-            BOOST_ASSERT(svc_.max_codec == 0);
-            auto cap =
-                (overread + fb_.capacity()) + // reuse previously designated storage
-                svc_.cfg.min_buffer +         // minimum buffer size for prepare() calls
-                svc_.max_codec;               // tentatively we can delete this
-
-            if( cap > h_.md.payload_size &&
-                cap - h_.md.payload_size >= svc_.max_overread() )
-            {
-                // we eagerly process octets as they arrive,
-                // so it's important to limit potential
-                // overread as applying a transformation algo
-                // can be prohibitively expensive
-                cap =
-                    static_cast<std::size_t>(h_.md.payload_size) +
-                    svc_.max_overread();
-            }
-
-            BOOST_ASSERT(cap <= ws_.size());
-
-            cb0_ = { ws_.data(), cap, overread };
-            cb1_ = {};
-
-            body_buf_ = &cb0_;
-            body_avail_ = cb0_.size();
-            if( body_avail_ >= h_.md.payload_size)
+            if( body_avail_ >= h_.md.payload_size )
                 body_avail_ = h_.md.payload_size;
 
-            body_total_ = body_avail_;
             payload_remain_ =
-                h_.md.payload_size - body_total_;
-
-            st_ = state::body;
-            return;
+                h_.md.payload_size - body_avail_;
         }
 
-        // overread is not applicable
-        BOOST_ASSERT(
-            h_.md.payload == payload::to_eof);
-        auto const n0 =
-            fb_.capacity() - h_.size +
-            svc_.cfg.min_buffer +
-            svc_.max_codec;
-        BOOST_ASSERT(n0 <= ws_.size());
-        cb0_ = { ws_.data(), n0, overread };
-        body_buf_ = &cb0_;
-        body_avail_ = cb0_.size();
         body_total_ = body_avail_;
         st_ = state::body;
         return;
     }
 
-    // buffered payload
+    if( h_.md.payload == payload::size )
+        payload_remain_ = h_.md.payload_size;
 
-    // TODO: need to handle the case where we have so much
-    // overread or such an initially large chunk that we
-    // don't have enough room in cb1_ for the output
-    // perhaps we just return with an error and ask the user
-    // to attach a body style
-    auto size = ws_.size();
+    auto const n0 = overread > svc_.cfg.min_buffer ?
+        overread : svc_.cfg.min_buffer;
+    auto const n1 = cap - n0;
 
-    auto n0 = (std::max)(svc_.cfg.min_buffer, overread);
-    n0 = (std::max)(n0, size / 2);
-    if( filt_)
-        n0 += svc_.max_codec;
-
-    auto n1 = size - n0;
-
-    // BOOST_ASSERT(n0 <= svc_.max_overread());
-    BOOST_ASSERT(n0 + n1 <= ws_.size());
-    cb0_ = { ws_.data(), n0, overread };
-    cb1_ = { ws_.data() + n0, n1 };
+    cb0_ = { p      , n0, overread };
+    cb1_ = { p + n0 , n1 };
     body_buf_ = &cb1_;
-    // body_buf_ = nullptr;
-    body_avail_ = 0;
-    body_total_ = 0;
+
     st_ = state::body;
 }
 
@@ -1627,53 +1770,17 @@ init_dynamic(
         body_avail_ == body_buf_->size());
     BOOST_ASSERT(
         body_total_ == body_avail_);
+
     auto const space_left =
         eb_->max_size() - eb_->size();
 
-    if(h_.md.payload == payload::size)
-    {
-        if(space_left < h_.md.payload_size)
-        {
-            ec = BOOST_HTTP_PROTO_ERR(
-                error::buffer_overflow);
-            return;
-        }
-        // reserve the full size
-        eb_->prepare(static_cast<std::size_t>(h_.md.payload_size));
-        // transfer in-place body
-        auto n = static_cast<std::size_t>(body_avail_);
-        if( n > h_.md.payload_size)
-            n = static_cast<std::size_t>(h_.md.payload_size);
-        eb_->commit(
-            buffers::buffer_copy(
-                eb_->prepare(n),
-                body_buf_->data()));
-        BOOST_ASSERT(body_avail_ == n);
-        BOOST_ASSERT(body_total_ == n);
-        BOOST_ASSERT(payload_remain_ ==
-            h_.md.payload_size - n);
-        body_buf_->consume(n);
-        body_avail_ = 0;
-        if(n < h_.md.payload_size)
-        {
-            BOOST_ASSERT(
-                body_buf_->size() == 0);
-            st_ = state::body;
-            return;
-        }
-        // complete
-        st_ = state::complete;
-        return;
-    }
-
-    BOOST_ASSERT(h_.md.payload ==
-        payload::to_eof);
     if(space_left < body_avail_)
     {
         ec = BOOST_HTTP_PROTO_ERR(
             error::buffer_overflow);
         return;
     }
+
     eb_->commit(
         buffers::buffer_copy(
             eb_->prepare(static_cast<std::size_t>(body_avail_)),
@@ -1682,6 +1789,18 @@ init_dynamic(
     body_avail_ = 0;
     BOOST_ASSERT(
         body_buf_->size() == 0);
+
+    // TODO: expand cb_0?
+
+    // TODO: we need a better way to recover the state.
+    if( !filter_ &&
+        h_.md.payload == payload::size &&
+        body_total_ == h_.md.payload_size)
+    {
+        st_ = state::complete;
+        return;
+    }
+
     st_ = state::body;
 }
 

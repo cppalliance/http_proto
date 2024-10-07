@@ -39,19 +39,6 @@ process_impl(
     auto ib = *it_i;
     for(;;)
     {
-        results rs = process_impl(ob, ib, more);
-
-        rv.out_bytes += rs.out_bytes;
-        rv.in_bytes  += rs.in_bytes;
-        rv.ec         = rs.ec;
-        rv.finished   = rs.finished;
-
-        if(rv.finished || rv.ec)
-            return rv;
-
-        ob = buffers::sans_prefix(ob, rs.out_bytes);
-        ib = buffers::sans_prefix(ib, rs.in_bytes);
-
         if(ob.size() == 0)
         {
             if(++it_o == buffers::end(out))
@@ -65,6 +52,19 @@ process_impl(
                 return rv;
             ib = *it_i;
         }
+
+        results rs = process_impl(ob, ib, more);
+
+        rv.out_bytes += rs.out_bytes;
+        rv.in_bytes  += rs.in_bytes;
+        rv.ec         = rs.ec;
+        rv.finished   = rs.finished;
+
+        if(rv.finished || rv.ec)
+            return rv;
+
+        ob = buffers::sans_prefix(ob, rs.out_bytes);
+        ib = buffers::sans_prefix(ib, rs.in_bytes);
     }
 }
 

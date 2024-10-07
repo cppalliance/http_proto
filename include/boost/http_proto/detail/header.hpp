@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2024 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -211,11 +212,13 @@ public:
     void on_insert_content_length(core::string_view);
     void on_insert_expect(core::string_view);
     void on_insert_transfer_encoding();
+    void on_insert_content_encoding(core::string_view);
     void on_insert_upgrade(core::string_view);
     void on_erase_connection();
     void on_erase_content_length();
     void on_erase_expect();
     void on_erase_transfer_encoding();
+    void on_erase_content_encoding();
     void on_erase_upgrade();
     void on_erase_all(field);
     void update_payload() noexcept;
