@@ -152,7 +152,6 @@ public:
             results.in_bytes  += in.size() - params.avail_in;
             results.out_bytes += out.size() - params.avail_out;
 
-            // TODO: limit the cases where buf_err is valid
             if( ec.failed() &&
                 ec != zlib::error::buf_err )
             {
@@ -169,7 +168,7 @@ public:
             in  = buffers::suffix(in, params.avail_in);
             out = buffers::suffix(out, params.avail_out);
 
-            if( in.size() == 0 || out.size() == 0)
+            if( in.size() == 0 || out.size() == 0 )
                 return results;
         }
     }
@@ -393,10 +392,6 @@ parse_chunked(
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
 
-        if( output.capacity() == 0 )
-            BOOST_HTTP_PROTO_RETURN_EC(
-                error::in_place_overflow);
-
         auto chunk = buffers::prefix(input.data(),
             clamp(chunk_remain_, input.size()));
 
@@ -420,6 +415,10 @@ parse_chunked(
             if( rs.finished && chunk_remain_ != 0 )
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::bad_payload);
+
+            if( output.capacity() == 0 )
+                BOOST_HTTP_PROTO_RETURN_EC(
+                    error::in_place_overflow);
         }
         else
         {
@@ -1189,14 +1188,6 @@ parse(
         {
             if( how_ == how::in_place )
             {
-                if( body_buf_->capacity() == 0 )
-                {
-                    // in_place buffer limit
-                    ec = BOOST_HTTP_PROTO_ERR(
-                        error::in_place_overflow);
-                    return;
-                }
-
                 auto rs = [&]() -> detail::filter::results
                 {
                     if( h_.md.payload == payload::size )
@@ -1251,14 +1242,15 @@ parse(
                     return;
                 }
 
+                if( body_buf_->capacity() == 0 )
+                {
+                    ec = BOOST_HTTP_PROTO_ERR(
+                        error::in_place_overflow);
+                    return;
+                }
+
                 if( got_eof_ )
                 {
-                    if( body_buf_->capacity() == 0 )
-                    {
-                        ec  = BOOST_HTTP_PROTO_ERR(
-                            error::in_place_overflow);
-                        return;
-                    }
                     ec  = BOOST_HTTP_PROTO_ERR(
                         error::incomplete);
                     st_ = state::reset; // unrecoverable
@@ -1706,7 +1698,7 @@ on_headers(
 
     auto const n0 = overread > svc_.cfg.min_buffer ?
         overread : svc_.cfg.min_buffer;
-    auto const n1 = cap - n0;
+    auto const n1 = svc_.cfg.min_buffer;
 
     cb0_ = { p      , n0, overread };
     cb1_ = { p + n0 , n1 };

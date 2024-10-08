@@ -32,27 +32,16 @@ process_impl(
     auto it_o = buffers::begin(out);
     auto it_i = buffers::begin(in);
 
-    if(it_o == buffers::end(out) || it_i == buffers::end(in))
+    if( it_o == buffers::end(out) ||
+        it_i == buffers::end(in) )
         return rv;
 
-    auto ob = *it_o;
-    auto ib = *it_i;
+    auto ob = *it_o++;
+    auto ib = *it_i++;
     for(;;)
     {
-        if(ob.size() == 0)
-        {
-            if(++it_o == buffers::end(out))
-                return rv;
-            ob = *it_o;
-        }
-
-        if(ib.size() == 0)
-        {
-            if(++it_i == buffers::end(in))
-                return rv;
-            ib = *it_i;
-        }
-
+        // empty buffers may be passed, and this is
+        // intentional and valid.
         results rs = process_impl(ob, ib, more);
 
         rv.out_bytes += rs.out_bytes;
@@ -60,11 +49,33 @@ process_impl(
         rv.ec         = rs.ec;
         rv.finished   = rs.finished;
 
-        if(rv.finished || rv.ec)
+        if( rv.finished || rv.ec )
             return rv;
 
         ob = buffers::sans_prefix(ob, rs.out_bytes);
         ib = buffers::sans_prefix(ib, rs.in_bytes);
+
+        if( ob.size() == 0 )
+        {
+            if( it_o == buffers::end(out) )
+                return rv;
+            ob = *it_o++;
+        }
+
+        if( ib.size() == 0 )
+        {
+            if( it_i == buffers::end(in) )
+            {
+                // if `more == false` we return only
+                // when `out` buffers are full.
+                if( more )
+                    return rv;
+            }
+            else
+            {
+                ib = *it_i++;
+            }
+        }
     }
 }
 
