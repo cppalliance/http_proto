@@ -61,13 +61,14 @@ public:
             results.in_bytes  += in.size() - params.avail_in;
             results.out_bytes += out.size() - params.avail_out;
 
-            if(ec.failed())
+            if( ec.failed() &&
+                ec != zlib::error::buf_err)
             {
                 results.ec = ec;
                 return results;
             }
 
-            if(ec == zlib::error::stream_end)
+            if( ec == zlib::error::stream_end )
             {
                 results.finished = true;
                 return results;
@@ -76,9 +77,13 @@ public:
             in  = buffers::suffix(in, params.avail_in);
             out = buffers::suffix(out, params.avail_out);
 
-            if(in.size() == 0)
+            if( out.size() == 0 )
+                return results;
+
+            if( in.size() == 0 )
             {
-                if(results.out_bytes == 0)
+                if( results.out_bytes == 0 &&
+                    flush == zlib::flush::none )
                 {
                     // TODO: Is flush::block the right choice?
                     // We might need a filter::flush() interface
