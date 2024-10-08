@@ -55,25 +55,6 @@ TEST_SUITE(
 
 #include <zlib.h>
 
-void*
-zalloc_impl(
-    void* /* opaque */,
-    unsigned items,
-    unsigned size)
-{
-    try {
-        return ::operator new(items * size);
-    } catch(std::bad_alloc const&) {
-        return Z_NULL;
-    }
-}
-
-void
-zfree_impl(void* /* opaque */, void* addr)
-{
-    ::operator delete(addr);
-}
-
 // opt into random ascii generation as it's easier than
 // maintaing a large static asset that has to be loaded
 // at runtime
@@ -103,11 +84,15 @@ struct zlib_test
         int mem_level,
         core::string_view str)
     {
-        z_stream zs{};
+        ::z_stream zs{};
 
-        if( deflateInit2(&zs, -1, Z_DEFLATED, window_bits,
-            mem_level, Z_DEFAULT_STRATEGY) != Z_OK )
-            throw std::runtime_error{ "deflateInit2" };
+        if(!BOOST_TEST_EQ(
+               deflateInit2(&zs, -1, Z_DEFLATED, window_bits,
+               mem_level, Z_DEFAULT_STRATEGY), Z_OK))
+        {
+            ::deflateEnd(&zs);
+            return {};
+        }
 
         zs.next_in  = reinterpret_cast<Bytef*>(
             const_cast<char *>(str.data()));
@@ -124,10 +109,10 @@ struct zlib_test
             auto ret = ::deflate(&zs, Z_FINISH);
             result.erase(
                 it + chunk_size - zs.avail_out, result.end());
-            if(ret != Z_OK)
+            if( ret != Z_OK )
                 break;
         }
-        deflateEnd(&zs);
+        ::deflateEnd(&zs);
         return result;
     }
 
@@ -137,57 +122,43 @@ struct zlib_test
     {
         int ret = -1;
 
-        z_stream inflate_stream;
-        inflate_stream.zalloc = &zalloc_impl;
-        inflate_stream.zfree = &zfree_impl;
-        inflate_stream.opaque = nullptr;
-
-        auto pstream = &inflate_stream;
-
-        inflate_stream.zalloc = &zalloc_impl;
-        inflate_stream.zfree = &zfree_impl;
-        inflate_stream.opaque = nullptr;
+        ::z_stream zs{};
 
         int const window_bits = 15; // default
         int const enable_zlib_and_gzip = 32;
-        ret = inflateInit2(
-            pstream, window_bits + enable_zlib_and_gzip);
+        ret = ::inflateInit2(
+            &zs, window_bits + enable_zlib_and_gzip);
         if(! BOOST_TEST_EQ(ret, Z_OK) )
+        {
+            ::inflateEnd(&zs);
             return;
-
-        ret = inflateReset(pstream);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
-            return;
+        }
 
         std::vector<unsigned char> decompressed_output(
             2 * expected.size(), 0x00);
 
-        pstream->next_in = compressed.data();
-        pstream->avail_in =
+        zs.next_in = compressed.data();
+        zs.avail_in =
             static_cast<unsigned>(compressed.size());
 
-        pstream->next_out = decompressed_output.data();
-        pstream->avail_out =
+        zs.next_out = decompressed_output.data();
+        zs.avail_out =
             static_cast<unsigned>(decompressed_output.size());
 
-        ret = inflate(pstream, Z_FINISH);
+        ret = ::inflate(&zs, Z_FINISH);
         if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
         {
-            std::cout << pstream->msg << std::endl;
-            // return;
+            ::inflateEnd(&zs);
+            return;
         }
 
-        auto n = pstream->next_out - decompressed_output.data();
+        auto n = zs.next_out - decompressed_output.data();
         core::string_view sv2(
             reinterpret_cast<char const*>(
                 decompressed_output.data()), n);
-        BOOST_TEST_EQ(sv2.size(), expected.size());
-        // BOOST_TEST_EQ(sv2, expected);
+        BOOST_TEST_EQ(sv2, expected);
 
-        // BOOST_TEST_EQ(n, 0);
-
-        ret = inflateEnd(pstream);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
+        ::inflateEnd(&zs);
         return;
     }
 
