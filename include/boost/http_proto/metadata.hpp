@@ -158,11 +158,11 @@ struct metadata
         constexpr
         content_encoding_t(
             system::error_code ec_,
-            std::size_t count_) noexcept
+            std::size_t count_,
+            http_proto::encoding encoding_) noexcept
             : ec(ec_)
             , count(count_)
-            , encoding(
-                http_proto::encoding::identity)
+            , encoding(encoding_)
         {
         }
     #endif

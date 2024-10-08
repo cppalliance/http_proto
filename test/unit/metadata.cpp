@@ -273,6 +273,59 @@ struct metadata_test
     }
 
     void
+    testContentEncoding()
+    {
+        auto const check = [](
+            core::string_view s,
+            void(*f)(message_base&),
+            metadata::content_encoding_t ce)
+        {
+            request req(s);
+            f(req);
+            auto const t =
+                req.metadata().content_encoding;
+            BOOST_TEST_EQ(t.ec, ce.ec);
+            BOOST_TEST_EQ(t.count, ce.count);
+            BOOST_TEST_EQ(t.encoding, ce.encoding);
+        };
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "\r\n",
+            [](message_base&){},
+            { ok, 0, encoding::identity });
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Encoding: gzip\r\n"
+            "\r\n",
+            [](message_base&){},
+            { ok, 1, encoding::gzip });
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Encoding: gzip, deflate\r\n"
+            "\r\n",
+            [](message_base&){},
+            { ok, 1, encoding::unsupported });
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Encoding: gzip\r\n"
+            "Content-Encoding: deflate\r\n"
+            "\r\n",
+            [](message_base&){},
+            { ok, 2, encoding::unsupported });
+
+        check(
+            "GET / HTTP/1.1\r\n"
+            "Content-Encoding: bad;\r\n"
+            "\r\n",
+            [](message_base&){},
+            { error::bad_content_encoding, 1, encoding::identity});
+    }
+
+    void
     testContentLength()
     {
         auto const check = [](
@@ -1200,6 +1253,7 @@ struct metadata_test
     {
         testSubrange();
         testConnection();
+        testContentEncoding();
         testContentLength();
         testTransferEncoding();
         testUpgrade();
