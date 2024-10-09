@@ -268,6 +268,9 @@ struct service_impl
             (1 << (window_bits + 2)) +
             (1 << (mem_level + 9)) +
             (6 * 1024) +
+            #ifdef __s390x__
+            5768 +
+            #endif
             http_proto::detail::
                 workspace::space_needed<deflator>();
     }
@@ -283,6 +286,9 @@ struct service_impl
         return
             (1 << window_bits) +
             (7 * 1024) +
+            #ifdef __s390x__
+            5768 +
+            #endif
             http_proto::detail::
                 workspace::space_needed<inflator>();
     }
