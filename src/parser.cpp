@@ -343,6 +343,7 @@ parse_chunked(
     ElasticBuffer& output,
     std::uint64_t& chunk_remain_,
     std::uint64_t& body_avail_,
+    std::uint64_t& body_total_,
     bool& needs_chunk_close_,
     bool& trailer_headers_) noexcept
 {
@@ -392,6 +393,10 @@ parse_chunked(
             BOOST_HTTP_PROTO_RETURN_EC(
                 error::need_data);
 
+        if( output.capacity() == 0 )
+            BOOST_HTTP_PROTO_RETURN_EC(
+                error::in_place_overflow);
+
         auto chunk = buffers::prefix(input.data(),
             clamp(chunk_remain_, input.size()));
 
@@ -408,26 +413,24 @@ parse_chunked(
                 return rs.ec;
 
             chunk_remain_ -= rs.in_bytes;
+            body_avail_   += rs.out_bytes;
+            body_total_   += rs.out_bytes;
             input.consume(rs.in_bytes);
             output.commit(rs.out_bytes);
-            body_avail_ += rs.out_bytes;
 
             if( rs.finished && chunk_remain_ != 0 )
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::bad_payload);
-
-            if( output.capacity() == 0 )
-                BOOST_HTTP_PROTO_RETURN_EC(
-                    error::in_place_overflow);
         }
         else
         {
             auto copied = buffers::buffer_copy(
                 output.prepare(output.capacity()), chunk);
             chunk_remain_ -= copied;
+            body_avail_   += copied;
+            body_total_   += copied;
             input.consume(copied);
             output.commit(copied);
-            body_avail_ += copied;
         }
     }
 }
@@ -1167,10 +1170,16 @@ parse(
             {
                 // TODO: parse_chunked should be a member function
                 auto rv = parse_chunked(
-                    filter_, cb0_, cb1_, chunk_remain_,
-                    body_avail_, needs_chunk_close_, trailer_headers_);
+                    filter_, cb0_, cb1_, chunk_remain_, body_avail_,
+                    body_total_, needs_chunk_close_, trailer_headers_);
 
-                // TODO: check for body_limit
+                if( body_total_ > svc_.cfg.body_limit )
+                {
+                    ec = BOOST_HTTP_PROTO_ERR(
+                        error::body_too_large);
+                    st_ = state::reset; // unrecoverable
+                    return;
+                }
 
                 if(rv.has_error()) // including error::need_data
                     ec = rv.error();
@@ -1214,7 +1223,7 @@ parse(
                 cb0_.consume(rs.in_bytes);
                 body_buf_->commit(rs.out_bytes);
 
-                if( body_avail_ > svc_.cfg.body_limit )
+                if( body_total_ > svc_.cfg.body_limit )
                 {
                     ec  = BOOST_HTTP_PROTO_ERR(
                         error::body_too_large);
