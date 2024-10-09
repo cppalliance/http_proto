@@ -231,9 +231,10 @@ public:
     }
 };
 
-static
-system::result<std::uint64_t>
-parse_hex(chained_sequence& cs) noexcept
+std::uint64_t
+parse_hex(
+    chained_sequence& cs,
+    system::error_code& ec) noexcept
 {
     std::uint64_t v   = 0;
     std::size_t init_size = cs.size();
@@ -243,26 +244,34 @@ parse_hex(chained_sequence& cs) noexcept
         if(n < 0)
         {
             if(init_size == cs.size())
-                BOOST_HTTP_PROTO_RETURN_EC(
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
                     error::bad_payload);
+                return 0;
+            }
             return v;
         }
 
         // at least 4 significant bits are free
         if(v > (std::numeric_limits<std::uint64_t>::max)() >> 4)
-            BOOST_HTTP_PROTO_RETURN_EC(
+        {
+            ec = BOOST_HTTP_PROTO_ERR(
                 error::bad_payload);
+            return 0;
+        }
 
         v = (v << 4) | static_cast<std::uint64_t>(n);
         cs.next();
     }
-    BOOST_HTTP_PROTO_RETURN_EC(
+    ec = BOOST_HTTP_PROTO_ERR(
         error::need_data);
+    return 0;
 }
 
-static
-system::result<void>
-find_eol(chained_sequence& cs) noexcept
+void
+find_eol(
+    chained_sequence& cs,
+    system::error_code& ec) noexcept
 {
     while(!cs.empty())
     {
@@ -271,20 +280,24 @@ find_eol(chained_sequence& cs) noexcept
             if(!cs.next())
                 break;
             if(cs.value() != '\n')
-                BOOST_HTTP_PROTO_RETURN_EC(
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
                     error::bad_payload);
+                return;
+            }
             cs.next();
-            return {};
+            return;
         }
         cs.next();
     }
-    BOOST_HTTP_PROTO_RETURN_EC(
+    ec = BOOST_HTTP_PROTO_ERR(
         error::need_data);
 }
 
-static
-system::result<void>
-parse_eol(chained_sequence& cs) noexcept
+void
+parse_eol(
+    chained_sequence& cs,
+    system::error_code& ec) noexcept
 {
     if(cs.size() >= 2)
     {
@@ -292,18 +305,20 @@ parse_eol(chained_sequence& cs) noexcept
         if(cs.value() == '\r' && *cs.next() == '\n')
         {
             cs.next();
-            return {};
+            return;
         }
-        BOOST_HTTP_PROTO_RETURN_EC(
+        ec = BOOST_HTTP_PROTO_ERR(
             error::bad_payload);
+        return;
     }
-    BOOST_HTTP_PROTO_RETURN_EC(
+    ec = BOOST_HTTP_PROTO_ERR(
         error::need_data);
 }
 
-static
-system::result<void>
-skip_trailer_headers(chained_sequence& cs) noexcept
+void
+skip_trailer_headers(
+    chained_sequence& cs,
+    system::error_code& ec) noexcept
 {
     while(!cs.empty())
     {
@@ -312,17 +327,20 @@ skip_trailer_headers(chained_sequence& cs) noexcept
             if(!cs.next())
                 break;
             if(cs.value() != '\n')
-                BOOST_HTTP_PROTO_RETURN_EC(
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
                     error::bad_payload);
+                return;
+            }
             cs.next();
-            return {};
+            return;
         }
         // skip to the end of field
-        auto rv = find_eol(cs);
-        if(rv.has_error())
-            return rv.error();
+        find_eol(cs, ec);
+        if(ec)
+            return;
     }
-    BOOST_HTTP_PROTO_RETURN_EC(
+    ec = BOOST_HTTP_PROTO_ERR(
         error::need_data);
 }
 
@@ -333,106 +351,6 @@ clamp(UInt x, std::size_t limit) noexcept
     if(x >= limit)
         return limit;
     return static_cast<std::size_t>(x);
-}
-
-template <class ElasticBuffer>
-system::result<void>
-parse_chunked(
-    detail::filter* filter,
-    buffers::circular_buffer& input,
-    ElasticBuffer& output,
-    std::uint64_t& chunk_remain_,
-    std::uint64_t& body_avail_,
-    std::uint64_t& body_total_,
-    bool& needs_chunk_close_,
-    bool& trailer_headers_) noexcept
-{
-    for(;;)
-    {
-        if(chunk_remain_ == 0)
-        {
-            auto cs = chained_sequence(input.data());
-
-            if(trailer_headers_)
-            {
-                auto rs = skip_trailer_headers(cs);
-                if(rs.has_error())
-                    return rs;
-                input.consume(input.size() - cs.size());
-                return {};
-            }
-
-            if(needs_chunk_close_)
-            {
-                auto rs = parse_eol(cs);
-                if(rs.has_error())
-                    return rs;
-            }
-
-            auto chunk_size = parse_hex(cs);
-            if(chunk_size.has_error())
-                return chunk_size.error();
-
-            // chunk extensions are skipped
-            auto rs = find_eol(cs);
-            if(rs.has_error())
-                return rs;
-
-            input.consume(input.size() - cs.size());
-            chunk_remain_ = chunk_size.value();
-
-            needs_chunk_close_ = true;
-            if(chunk_remain_ == 0)
-            {
-                trailer_headers_ = true;
-                continue;
-            }
-        }
-
-        if( input.size() == 0 )
-            BOOST_HTTP_PROTO_RETURN_EC(
-                error::need_data);
-
-        if( output.capacity() == 0 )
-            BOOST_HTTP_PROTO_RETURN_EC(
-                error::in_place_overflow);
-
-        auto chunk = buffers::prefix(input.data(),
-            clamp(chunk_remain_, input.size()));
-
-        if( filter )
-        {
-            // TODO: gather available chunks and provide
-            // them as a const_buffer_span
-            auto rs = filter->process(
-                output.prepare(output.capacity()),
-                chunk,
-                !trailer_headers_);
-
-            if( rs.ec.failed() )
-                return rs.ec;
-
-            chunk_remain_ -= rs.in_bytes;
-            body_avail_   += rs.out_bytes;
-            body_total_   += rs.out_bytes;
-            input.consume(rs.in_bytes);
-            output.commit(rs.out_bytes);
-
-            if( rs.finished && chunk_remain_ != 0 )
-                BOOST_HTTP_PROTO_RETURN_EC(
-                    error::bad_payload);
-        }
-        else
-        {
-            auto copied = buffers::buffer_copy(
-                output.prepare(output.capacity()), chunk);
-            chunk_remain_ -= copied;
-            body_avail_   += copied;
-            body_total_   += copied;
-            input.consume(copied);
-            output.commit(copied);
-        }
-    }
 }
 } // namespace
 
@@ -1168,24 +1086,108 @@ parse(
         {
             if( how_ == how::in_place )
             {
-                // TODO: parse_chunked should be a member function
-                auto rv = parse_chunked(
-                    filter_, cb0_, cb1_, chunk_remain_, body_avail_,
-                    body_total_, needs_chunk_close_, trailer_headers_);
-
-                if( body_total_ > svc_.cfg.body_limit )
+                for(;;)
                 {
-                    ec = BOOST_HTTP_PROTO_ERR(
-                        error::body_too_large);
-                    st_ = state::reset; // unrecoverable
-                    return;
-                }
+                    if( chunk_remain_ == 0 )
+                    {
+                        auto cs = chained_sequence(cb0_.data());
 
-                if(rv.has_error()) // including error::need_data
-                    ec = rv.error();
-                else
-                    st_ = state::complete;
-                return;
+                        if( needs_chunk_close_ )
+                        {
+                            parse_eol(cs, ec);
+                            if(ec)
+                                return;
+                        }
+                        else if( trailer_headers_ )
+                        {
+                            skip_trailer_headers(cs, ec);
+                            if(ec)
+                                return;
+                            cb0_.consume(cb0_.size() - cs.size());
+                            st_ = state::complete;
+                            return;
+                        }
+
+                        auto chunk_size = parse_hex(cs, ec);
+                        if(ec)
+                            return;
+
+                        // chunk extensions are skipped
+                        find_eol(cs, ec);
+                        if(ec)
+                            return;
+
+                        cb0_.consume(cb0_.size() - cs.size());
+                        chunk_remain_ = chunk_size;
+
+                        needs_chunk_close_ = true;
+                        if( chunk_remain_ == 0 )
+                        {
+                            needs_chunk_close_ = false;
+                            trailer_headers_ = true;
+                            continue;
+                        }
+                    }
+
+                    if( cb0_.size() == 0 )
+                    {
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::need_data);
+                        return;
+                    }
+
+                    if( cb1_.capacity() == 0 )
+                    {
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::in_place_overflow);
+                        return;
+                    }
+
+                    auto chunk = buffers::prefix(cb0_.data(),
+                        clamp(chunk_remain_, cb0_.size()));
+
+                    if( filter_ )
+                    {
+                        // TODO: gather available chunks and provide
+                        // them as a const_buffer_span
+                        auto rs = filter_->process(
+                            cb1_.prepare(cb1_.capacity()),
+                            chunk,
+                            !trailer_headers_);
+
+                        chunk_remain_ -= rs.in_bytes;
+                        body_avail_   += rs.out_bytes;
+                        body_total_   += rs.out_bytes;
+                        cb0_.consume(rs.in_bytes);
+                        cb1_.commit(rs.out_bytes);
+
+                        if( rs.ec.failed() ||
+                            (rs.finished && chunk_remain_ != 0) )
+                        {
+                            ec = BOOST_HTTP_PROTO_ERR(
+                                error::bad_payload);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        auto copied = buffers::buffer_copy(
+                            cb1_.prepare(cb1_.capacity()), chunk);
+                        chunk_remain_ -= copied;
+                        body_avail_   += copied;
+                        body_total_   += copied;
+                        cb0_.consume(copied);
+                        cb1_.commit(copied);
+                    }
+
+                    if( body_total_ > svc_.cfg.body_limit )
+                    {
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::body_too_large);
+                        st_ = state::reset; // unrecoverable
+                        return;
+                    }
+                }
             }
             else
             {
