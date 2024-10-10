@@ -190,6 +190,20 @@ parse(
 //------------------------------------------------
 
 auto
+reason_phrase_rule_t::
+parse(
+    char const*& it,
+    char const* end) const noexcept ->
+        system::result<value_type>
+{
+    auto begin = it;
+    it = grammar::find_if_not(it, end, ws_vchars);
+    return core::string_view(begin, it);
+}
+
+//------------------------------------------------
+
+auto
 field_name_rule_t::
 parse(
     char const*& it,
