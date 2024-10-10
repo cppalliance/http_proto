@@ -214,6 +214,21 @@ constexpr status_code_rule_t status_code_rule{};
 
 //------------------------------------------------
 
+// status-code     = *( HTAB / SP / VCHAR / obs-text )
+struct reason_phrase_rule_t
+{
+    using value_type = core::string_view;
+
+    system::result<value_type>
+    parse(
+        char const*& it,
+        char const* end) const noexcept;
+};
+
+constexpr reason_phrase_rule_t reason_phrase_rule{};
+
+//------------------------------------------------
+
 // status-line     = HTTP-version SP status-code SP reason-phrase CRLF
 constexpr auto
 status_line_rule =
@@ -224,7 +239,7 @@ status_line_rule =
         status_code_rule,
         grammar::squelch(
             grammar::delim_rule(' ') ),
-        grammar::token_rule(ws_vchars),
+        reason_phrase_rule,
         crlf_rule);
 
 //------------------------------------------------
