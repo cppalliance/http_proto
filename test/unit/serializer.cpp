@@ -66,6 +66,28 @@ struct serializer_test
         bool is_done_ = false;
     };
 
+    struct faulty_source : source
+    {
+        faulty_source(system::error_code ec)
+            : ec_{ ec }
+        {
+        }
+
+        results
+        on_read(buffers::mutable_buffer) override
+        {
+            BOOST_TEST(!is_done_);
+            is_done_ = true;
+            results rv;
+            rv.ec = ec_;
+            return rv;
+        }
+
+    private:
+        system::error_code ec_;
+        bool is_done_ = false;
+    };
+
     template<
         class ConstBuffers>
     static
@@ -267,7 +289,7 @@ struct serializer_test
             Source>(src));
         std::string s = read(sr);
         f(s);
-    };
+    }
 
     struct check_stream_opts
     {
@@ -388,7 +410,7 @@ struct serializer_test
         BOOST_TEST_THROWS(stream.close(), std::logic_error);
 
         f(core::string_view(s.data(), s.size()));
-    };
+    }
 
     void
     testOutput()
@@ -476,6 +498,22 @@ struct serializer_test
                     "Content-Length: 0\r\n"
                     "\r\n");
             });
+
+        // faulty source
+        {
+            response res(
+                "HTTP/1.1 200 OK\r\n"
+                "\r\n");
+            context ctx;
+            serializer sr(ctx);
+
+            sr.start<faulty_source>(
+                res, system::error_code(4224, system::system_category()));
+
+            auto rs = sr.prepare();
+            BOOST_TEST(rs.has_error());
+            BOOST_TEST_EQ(rs.error().value(), 4224);
+        }
 
         // source chunked
         check_src(

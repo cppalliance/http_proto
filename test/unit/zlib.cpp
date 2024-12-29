@@ -78,6 +78,59 @@ namespace http_proto {
 
 struct zlib_test
 {
+    struct faulty_zlib_service
+        : public zlib::service
+    {
+        using key_type = service;
+
+        struct faulty_stream : zlib::stream
+        {
+            system::error_code
+            write(zlib::params&, zlib::flush) noexcept override
+            {
+                return zlib::error::version_err;
+            }
+        };
+
+        explicit
+        faulty_zlib_service(context&) noexcept
+        {
+        }
+
+        std::size_t
+        deflator_space_needed(
+            int,
+            int) const noexcept override
+        {
+            return 1;
+        }
+
+        std::size_t
+        inflator_space_needed(
+            int) const noexcept override
+        {
+            return 1;
+        }
+
+        zlib::stream&
+        make_deflator(
+            http_proto::detail::workspace& ws,
+            int,
+            int,
+            int) const override
+        {
+            return ws.emplace<faulty_stream>();
+        }
+
+        zlib::stream&
+        make_inflator(
+            http_proto::detail::workspace& ws,
+            int) const override
+        {
+            return ws.emplace<faulty_stream>();
+        }
+    };
+
     std::string
     deflate(
         int window_bits,
@@ -583,10 +636,61 @@ struct zlib_test
         }
     }
 
+    void
+    test_serializer_reports_zlib_errors()
+    {
+        context ctx;
+        ctx.make_service<faulty_zlib_service>();
+        serializer sr{ ctx };
+
+        response res{
+            "HTTP/1.1 200 OK\r\n"
+            "\r\n" };
+        std::string buf(1024, '*');
+        sr.use_gzip_encoding();
+        sr.start(res, buffers::const_buffer{ buf.data(), buf.size() });
+
+        auto rs = sr.prepare();
+        BOOST_TEST(rs.has_error());
+        BOOST_TEST_EQ(rs.error(), zlib::error::version_err);
+    }
+
+    void
+    test_parser_reports_zlib_errors()
+    {
+        context ctx;
+        ctx.make_service<faulty_zlib_service>();
+
+        response_parser::config cfg;
+        cfg.apply_deflate_decoder = true;
+        install_parser_service(ctx, cfg);
+
+        response_parser pr{ ctx };
+        pr.reset();
+        pr.start();
+
+        std::string msg{
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Encoding: deflate\r\n"
+            "\r\n" };
+        auto n = buffers::buffer_copy(
+            pr.prepare(),
+            buffers::const_buffer{ msg.data(), msg.size() });
+
+        BOOST_TEST_EQ(n, msg.size());
+        pr.commit(n);
+
+        boost::system::error_code ec;
+        pr.parse(ec);
+        BOOST_TEST_EQ(ec, zlib::error::version_err);
+    }
+
     void run()
     {
         test_serializer();
+        test_serializer_reports_zlib_errors();
         test_parser();
+        test_parser_reports_zlib_errors();
     }
 };
 

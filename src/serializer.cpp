@@ -256,6 +256,11 @@ prepare() ->
     {
         auto results = src_->read(
             input.prepare(input.capacity()));
+        if(results.ec.failed())
+        {
+            is_done_ = true;
+            return results.ec;
+        }
         more_ = !results.finished;
         input.commit(results.bytes);
     }
@@ -342,6 +347,12 @@ prepare() ->
 
             auto rs = filter_->process(
                 out, in, more_);
+
+            if(rs.ec.failed())
+            {
+                is_done_ = true;
+                return rs.ec;
+            }
 
             if( rs.finished )
                 filter_done_ = true;
