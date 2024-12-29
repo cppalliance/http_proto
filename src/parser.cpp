@@ -397,10 +397,6 @@ parser_service(
     //if(cfg.min_prepare > cfg.max_prepare)
         //detail::throw_invalid_argument();
 
-    if( cfg.min_buffer < 1 ||
-        cfg.min_buffer > cfg.body_limit)
-        detail::throw_invalid_argument();
-
     if(cfg.max_prepare < 1)
         detail::throw_invalid_argument();
 
