@@ -10,14 +10,15 @@
 #ifndef BOOST_HTTP_PROTO_SERIALIZER_HPP
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
-#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/source.hpp>
 #include <boost/http_proto/detail/array_of_buffers.hpp>
+#include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/http_proto/source.hpp>
 #include <boost/buffers/circular_buffer.hpp>
+#include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/system/result.hpp>
@@ -68,7 +69,7 @@ class BOOST_SYMBOL_VISIBLE
     serializer
 {
 public:
-    class const_buffers_type;
+    using const_buffers_type = buffers::const_buffer_span;
 
     struct stream;
 
@@ -508,54 +509,6 @@ private:
 };
 
 //---------------------------------------------------------
-
-/** A ConstBufferSequence representing the output
-*/
-class serializer::
-    const_buffers_type
-{
-    std::size_t n_ = 0;
-    buffers::const_buffer const* p_ = nullptr;
-
-    friend class serializer;
-
-    const_buffers_type(
-        buffers::const_buffer const* p,
-        std::size_t n) noexcept
-        : n_(n)
-        , p_(p)
-    {
-    }
-
-public:
-    using iterator = buffers::const_buffer const*;
-    using const_iterator = iterator;
-    using value_type = buffers::const_buffer;
-    using reference = buffers::const_buffer;
-    using const_reference = buffers::const_buffer;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-
-    const_buffers_type() = default;
-    const_buffers_type(
-        const_buffers_type const&) = default;
-    const_buffers_type& operator=(
-        const_buffers_type const&) = default;
-
-    iterator
-    begin() const noexcept
-    {
-        return p_;
-    }
-
-    iterator
-    end() const noexcept
-    {
-        return p_ + n_;
-    }
-};
-
-//------------------------------------------------
 
 template<
     class ConstBufferSequence,
