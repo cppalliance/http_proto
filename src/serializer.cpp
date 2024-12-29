@@ -244,15 +244,11 @@ prepare() ->
         return const_buffers_type(
             prepped_.data(), prepped_.size());
 
-    // callers must consume() everything before invoking
-    // prepare() again
-    if( !is_header_done_ &&
-        buffers::buffer_size(prepped_) != prepped_[0].size() )
-        detail::throw_logic_error();
-
-    if( is_header_done_ &&
-        buffers::buffer_size(prepped_) > 0 )
-        detail::throw_logic_error();
+    // TODO: This is a temporary solution until we refactor
+    // the implementation for efficient partial buffer consumption.
+    if( is_chunked_ && buffers::buffer_size(prepped_) && is_header_done_ )
+        return const_buffers_type(
+            prepped_.data(), prepped_.size());
 
     auto& input = *in_;
     auto& output = *out_;
@@ -407,7 +403,7 @@ consume(
     std::size_t n)
 {
     // Precondition violation
-    if( is_done_ )
+    if( is_done_ && n != 0 )
         detail::throw_logic_error();
 
     if( is_expect_continue_ )
@@ -432,6 +428,11 @@ consume(
     }
 
     prepped_.consume(n);
+    if( out_ )
+    {
+        BOOST_ASSERT(st_ != style::empty);
+        out_->consume(n);
+    }
     auto is_empty = (buffers::buffer_size(prepped_) == 0);
 
     if( st_ == style::buffers && !filter_ && is_empty )
@@ -443,14 +444,7 @@ consume(
         more_ = false;
 
     if( is_empty )
-    {
-        if( out_ && out_->size() )
-        {
-            BOOST_ASSERT(st_ != style::empty);
-            out_->consume(out_->size());
-        }
         is_done_ = filter_ ? filter_done_ : !more_;
-    }
 }
 
 void

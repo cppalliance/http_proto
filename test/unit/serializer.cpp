@@ -13,6 +13,7 @@
 
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
+#include <boost/buffers/algorithm.hpp>
 #include <boost/buffers/buffer_copy.hpp>
 #include <boost/buffers/buffer_size.hpp>
 #include <boost/buffers/const_buffer.hpp>
@@ -92,20 +93,13 @@ struct serializer_test
         // multiple calls to serializer::prepare() and
         // serializer::consume(), allowing tests to cover
         // state management within these functions
-
         std::string s;
-        for( auto buf : cbs )
+        for( auto buf : buffers::prefix(cbs, 256) )
         {
-            while( buf.size() > 0 )
-            {
-                std::size_t c =
-                    (std::min)(std::size_t{256}, buf.size());
-                auto* p =
-                    reinterpret_cast<char const*>(buf.data());
-                s.insert(s.end(), p, p + c);
-                buf += c;
-                sr.consume(c);
-            }
+            s.append(
+                reinterpret_cast<char const*>(buf.data()),
+                buf.size());
+            sr.consume(buf.size());
         }
         return s;
     }
