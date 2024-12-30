@@ -169,10 +169,10 @@ jobs:
             version: "*"
             cxx: "clang++"
             cc: "clang"
-            runs-on: "macos-14"
+            runs-on: "macos-15"
             b2-toolset: "clang"
             is-latest: true
-            name: "Apple-Clang (macOS 14)"
+            name: "Apple-Clang (macOS 15)"
             build-type: "Release"
             build-cmake: true
 
@@ -180,10 +180,10 @@ jobs:
             version: "*"
             cxx: "clang++"
             cc: "clang"
-            runs-on: "macos-14"
+            runs-on: "macos-15"
             b2-toolset: "clang"
             is-latest: true
-            name: "Apple-Clang (macOS 14, ubsan)"
+            name: "Apple-Clang (macOS 15, ubsan)"
             build-type: "RelWithDebInfo"
             ubsan: true
 
@@ -191,12 +191,22 @@ jobs:
             version: "*"
             cxx: "clang++"
             cc: "clang"
-            runs-on: "macos-14"
+            runs-on: "macos-15"
             b2-toolset: "clang"
             is-latest: true
-            name: "Apple-Clang (macOS 14, asan)"
+            name: "Apple-Clang (macOS 15, asan)"
             build-type: "RelWithDebInfo"
             asan: true
+
+          - compiler: "apple-clang"
+            version: "*"
+            cxx: "clang++"
+            cc: "clang"
+            runs-on: "macos-14"
+            b2-toolset: "clang"
+            name: "Apple-Clang (macOS 14)"
+            build-type: "Release"
+            build-cmake: true
 
           - compiler: "apple-clang"
             version: "*"
@@ -206,15 +216,7 @@ jobs:
             b2-toolset: "clang"
             name: "Apple-Clang (macOS 13)"
             build-type: "Release"
-
-          - compiler: "apple-clang"
-            version: "*"
-            cxx: "clang++"
-            cc: "clang"
-            runs-on: "macos-12"
-            b2-toolset: "clang"
-            name: "Apple-Clang (macOS 12)"
-            build-type: "Release"
+            build-cmake: true
 
           # Linux compilers
           #
@@ -364,8 +366,7 @@ jobs:
             latest-cxxstd: "20"
             cxx: "g++-13"
             cc: "gcc-13"
-            runs-on: "ubuntu-latest"
-            container: "ubuntu:23.04"
+            runs-on: "ubuntu-24.04"
             b2-toolset: "gcc"
             name: "GCC 13: C++17-20"
             build-type: "Release"
@@ -377,8 +378,7 @@ jobs:
             latest-cxxstd: "20"
             cxx: "g++-13"
             cc: "gcc-13"
-            runs-on: "ubuntu-latest"
-            container: "ubuntu:23.04"
+            runs-on: "ubuntu-24.04"
             b2-toolset: "gcc"
             is-latest: true
             name: "GCC 13: C++17-20 (coverage)"
@@ -608,8 +608,7 @@ jobs:
             latest-cxxstd: "20"
             cxx: "clang++-17"
             cc: "clang-17"
-            runs-on: "ubuntu-latest"
-            container: "ubuntu:23.10"
+            runs-on: "ubuntu-24.04"
             b2-toolset: "clang"
             name: "Clang 17: C++17-20"
             build-type: "Release"
@@ -621,8 +620,7 @@ jobs:
             latest-cxxstd: "20"
             cxx: "clang++-16"
             cc: "clang-16"
-            runs-on: "ubuntu-latest"
-            container: "ubuntu:23.04"
+            runs-on: "ubuntu-24.04"
             b2-toolset: "clang"
             name: "Clang 16: C++17-20"
             build-type: "Release"
@@ -803,12 +801,20 @@ jobs:
     container:
       image: ${{ matrix.container }}
       options: --privileged
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - ${{ startsWith(matrix.container, 'ubuntu:1') && '/node20217:/__e/node20:ro,rshared' || ' ' }}
     timeout-minutes: 120
 
     steps:
-      - name: Enable Node 16
+      - name: install nodejs20glibc2.17
+        if: ${{ startsWith( matrix.container, 'ubuntu:1' ) }}
         run: |
-          echo "ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true" >> $GITHUB_ENV
+          apt-get update
+          apt-get -yqq install xz-utils curl
+          curl -LO https://archives.boost.io/misc/node/node-v20.9.0-linux-x64-glibc-217.tar.xz
+          tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
+          ldd /__e/node20/bin/node
 
       - name: Clone Boost.HTTP.Proto
         uses: actions/checkout@v3
@@ -823,7 +829,7 @@ jobs:
           ref: develop
 
       - name: Setup C++
-        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.2
+        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.7
         id: setup-cpp
         with:
           compiler: ${{ matrix.compiler }}
@@ -832,7 +838,7 @@ jobs:
           trace-commands: true
 
       - name: Install packages
-        uses: alandefreitas/cpp-actions/package-install@v1.8.2
+        uses: alandefreitas/cpp-actions/package-install@v1.8.7
         id: package-install
         with:
           apt-get-add-architecture: 'i386'
@@ -841,7 +847,7 @@ jobs:
             build-essential
 
       - name: Clone Boost
-        uses: alandefreitas/cpp-actions/boost-clone@v1.8.2
+        uses: alandefreitas/cpp-actions/boost-clone@v1.8.7
         id: boost-clone
         with:
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
@@ -850,7 +856,7 @@ jobs:
           scan-modules-ignore: http_proto
 
       - name: Install zlib (Windows)
-        uses: alandefreitas/cpp-actions/package-install@v1.8.2
+        uses: alandefreitas/cpp-actions/package-install@v1.8.7
         if: ${{ startsWith(matrix.runs-on, 'windows') && !matrix.skip-zlib }}
         id: zlib-install
         with:
@@ -918,7 +924,7 @@ jobs:
           python3 tools/boostdep/depinst/depinst.py $module
 
       - name: Boost B2 Workflow
-        uses: alandefreitas/cpp-actions/b2-workflow@v1.8.2
+        uses: alandefreitas/cpp-actions/b2-workflow@v1.8.7
         if: ${{ !matrix.coverage && !matrix.time-trace }}
         env:
           ASAN_OPTIONS: ${{ ((matrix.compiler == 'apple-clang' || matrix.compiler == 'clang') && 'detect_invalid_pointer_pairs=0:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1') || 'detect_invalid_pointer_pairs=2:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1' }}
@@ -940,7 +946,7 @@ jobs:
           extra-args: ${{ (matrix.valgrind && 'testing.launcher=valgrind' || '' )}}
 
       - name: Boost CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.7
         if: ${{ matrix.coverage || matrix.time-trace || matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root
@@ -977,7 +983,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/.local/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
       - name: Find Package Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.7
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -1001,7 +1007,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Subdirectory Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.7
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -1022,7 +1028,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Root Project CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.2
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.7
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}
@@ -1046,7 +1052,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: FlameGraph
-        uses: alandefreitas/cpp-actions/flamegraph@v1.8.2
+        uses: alandefreitas/cpp-actions/flamegraph@v1.8.7
         if: matrix.time-trace
         with:
           source-dir: boost-root/libs/http_proto
@@ -1099,7 +1105,7 @@ jobs:
           fetch-depth: 100
 
       - name: Changelog
-        uses: alandefreitas/cpp-actions/create-changelog@v1.8.2
+        uses: alandefreitas/cpp-actions/create-changelog@v1.8.7
         with:
           thank-non-regular: ${{ startsWith(github.ref, 'refs/tags/') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -1118,7 +1124,7 @@ jobs:
           node-version: 18
 
       - name: Setup C++
-        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.2
+        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.7
         id: setup-cpp
         with:
           compiler: clang
