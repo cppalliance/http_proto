@@ -34,9 +34,9 @@ auto
 file_body::
 on_read(
     buffers::mutable_buffer b) ->
-        results
+        source::results
 {
-    results rv;
+    source::results rv;
     if(n_ > 0)
     {
         std::size_t n;
@@ -50,6 +50,28 @@ on_read(
         n_ -= n;
     }
     rv.finished = n_ == 0;
+    return rv;
+}
+
+auto
+file_body::
+on_write(
+    buffers::const_buffer b, bool) ->
+        sink::results
+{
+    sink::results rv;
+    if(n_ > 0)
+    {
+        std::size_t n;
+        if( n_ >= b.size())
+            n = b.size();
+        else
+            n = static_cast<std::size_t>(n_);
+        n = f_.write(
+            b.data(), n, rv.ec);
+        rv.bytes = n;
+        n_ -= n;
+    }
     return rv;
 }
 

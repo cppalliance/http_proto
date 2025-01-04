@@ -12,6 +12,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/file.hpp>
+#include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/source.hpp>
 #include <cstdint>
 
@@ -20,7 +21,7 @@ namespace http_proto {
 
 class BOOST_SYMBOL_VISIBLE
     file_body
-    : public source
+    : public source, sink
 {
     file f_;
     std::uint64_t n_;
@@ -45,9 +46,14 @@ public:
             std::uint64_t(-1)) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    results
+    source::results
     on_read(
         buffers::mutable_buffer b) override;
+
+    BOOST_HTTP_PROTO_DECL
+    sink::results
+    on_write(
+        buffers::const_buffer b, bool more) override;
 };
 
 } // http_proto
