@@ -12,24 +12,23 @@
 #define BOOST_HTTP_PROTO_PARSER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error.hpp>
-#include <boost/http_proto/header_limits.hpp>
-#include <boost/http_proto/sink.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/type_traits.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/http_proto/error.hpp>
+#include <boost/http_proto/header_limits.hpp>
+#include <boost/http_proto/sink.hpp>
+
+#include <boost/buffers/any_dynamic_buffer.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
-#include <boost/buffers/any_dynamic_buffer.hpp>
 #include <boost/url/grammar/error.hpp>
+
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <memory>
-#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -185,7 +184,7 @@ public:
     bool
     is_complete() const noexcept
     {
-        return st_ == state::complete;
+        return st_ >= state::complete_in_place;
     }
 
     /** Returns `true` if the end of the stream was reached.
@@ -209,8 +208,7 @@ public:
     {
         return
             st_ == state::reset ||
-            (   st_ == state::complete &&
-                got_eof_);
+            (st_ >= state::complete_in_place && got_eof_);
     }
 
     //--------------------------------------------
@@ -366,30 +364,42 @@ private:
     friend class response_parser;
 
     detail::header const*
-        safe_get_header() const;
-    bool is_plain() const noexcept;
-    void on_headers(system::error_code&);
-    BOOST_HTTP_PROTO_DECL void on_set_body();
-    void init_dynamic(system::error_code&);
+    safe_get_header() const;
+
+    bool
+    is_plain() const noexcept;
+
+    void
+    on_headers(system::error_code&);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    on_set_body();
+
+    std::size_t
+    apply_filter(
+        system::error_code&,
+        std::size_t,
+        bool);
 
     static constexpr unsigned buffers_N = 8;
 
     enum class state
     {
-        // order matters
         reset,
         start,
         header,
         body,
         set_body,
+        complete_in_place,
         complete
     };
 
     enum class how
     {
         in_place,
+        sink,
         elastic,
-        sink
     };
 
     context& ctx_;
@@ -397,7 +407,7 @@ private:
 
     detail::workspace ws_;
     detail::header h_;
-    std::uint64_t body_avail_ = 0;
+    std::size_t body_avail_ = 0;
     std::uint64_t body_total_ = 0;
     std::uint64_t payload_remain_ = 0;
     std::uint64_t chunk_remain_ = 0;
@@ -421,7 +431,6 @@ private:
     // `const_buffers_type` from relevant functions
     buffers::const_buffer_pair cbp_;
 
-    buffers::circular_buffer* body_buf_ = nullptr;
     buffers::any_dynamic_buffer* eb_ = nullptr;
     detail::filter* filter_ = nullptr;
     sink* sink_ = nullptr;
@@ -429,10 +438,10 @@ private:
     state st_ = state::start;
     how how_ = how::in_place;
     bool got_eof_ = false;
-//    bool need_more_;
     bool head_response_ = false;
     bool needs_chunk_close_ = false;
     bool trailer_headers_ = false;
+    bool chunked_body_ended = false;
 };
 
 //------------------------------------------------

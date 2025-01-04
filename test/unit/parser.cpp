@@ -542,7 +542,8 @@ struct parser_test
         auto const check_dynamic = [&](
             request_parser::config const& cfg,
             std::size_t n,
-            core::string_view s)
+            core::string_view s,
+            system::error_code ex = error::need_data)
         {
             context ctx;
             install_parser_service(ctx, cfg);
@@ -579,11 +580,16 @@ struct parser_test
             buffers::string_buffer sb(
                 &tmp, dynamic_max_size);
             pr->set_body(std::move(sb));
-            parser::mutable_buffers_type dest;
-            BOOST_TEST_NO_THROW(
-                dest = pr->prepare());
-            BOOST_TEST_EQ(
-                buffers::buffer_size(dest), n);
+            pr->parse(ec);
+            BOOST_TEST(ec == ex);
+            if(! ec.failed())
+            {
+                parser::mutable_buffers_type dest;
+                BOOST_TEST_NO_THROW(
+                    dest = pr->prepare());
+                BOOST_TEST_EQ(
+                    buffers::buffer_size(dest), n);
+            }
 
             // the parser must be manually reset() to clear its inner workspace
             // otherwise, ~workspace itself will wind up clearing the registered
@@ -673,6 +679,8 @@ struct parser_test
             BOOST_TEST_GT(s.capacity(), 0);
             BOOST_TEST_LT(s.capacity(), 5000);
             pr.set_body(buffers::string_buffer(&s));
+            pr.parse(ec);
+            BOOST_TEST(ec == error::need_data);
             auto dest = pr.prepare();
             BOOST_TEST_LE(
                 buffers::buffer_size(dest),
@@ -690,7 +698,8 @@ struct parser_test
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Length: 10\r\n"
                 "\r\n"
-                "1234567890");
+                "1234567890",
+                error::buffer_overflow);
         }
 
         // prepare when complete
@@ -708,10 +717,9 @@ struct parser_test
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
             parser::mutable_buffers_type dest;
-            BOOST_TEST_NO_THROW(
-                dest = pr.prepare());
-            BOOST_TEST_EQ(
-                buffers::buffer_size(dest), 0);
+            BOOST_TEST_THROWS(
+                dest = pr.prepare(),
+                std::logic_error);
         }
     }
 
@@ -916,7 +924,8 @@ struct parser_test
             auto &s = *ps;
             pr.set_body(
                 buffers::string_buffer(&s));
-            pr.commit(0);
+            pr.parse(ec);
+            BOOST_TEST(! ec);
             pr.reset();
         }
 
@@ -960,10 +969,11 @@ struct parser_test
             system::error_code ec;
             pieces in = {
                 "GET / HTTP/1.1\r\n"
+                "Content-Length: 1\r\n"
                 "\r\n" };
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
-            BOOST_TEST(pr.is_complete());
+            BOOST_TEST(!pr.is_complete());
             auto dest = pr.prepare();
             ignore_unused(dest);
             BOOST_TEST_NO_THROW(pr.commit(0));
@@ -977,14 +987,16 @@ struct parser_test
             system::error_code ec;
             pieces in = {
                 "GET / HTTP/1.1\r\n"
+                "Content-Length: 1\r\n"
                 "\r\n" };
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
-            BOOST_TEST(pr.is_complete());
+            BOOST_TEST(!pr.is_complete());
             auto dest = pr.prepare();
             ignore_unused(dest);
             BOOST_TEST_THROWS(
-                pr.commit(1),
+                pr.commit(
+                    buffers::buffer_size(dest) + 1),
                 std::invalid_argument);
         }
     }
@@ -1051,6 +1063,8 @@ struct parser_test
             auto &s = *ps;
             pr.set_body(
                 buffers::string_buffer(&s));
+            pr.parse(ec);
+            BOOST_TEST(ec == error::need_data);
             BOOST_TEST_NO_THROW(
                 pr.commit_eof());
             pr.reset();
@@ -1190,9 +1204,15 @@ struct parser_test
                 "12345" });
         }
 
-#if 0
-        // chunked, need data
-#endif
+        {
+            // chunked, need data
+            response_parser::config cfg;
+            check_in_place(cfg, true,
+                error::need_data, false, {
+                "HTTP/1.1 200 OK\r\n"
+                "Transfer-Encoding: chunked\r\n"
+                "\r\n"});
+        }
 
         {
             // to_eof, complete
@@ -1279,6 +1299,7 @@ struct parser_test
         }
         buffers::flat_buffer fb(buf, sizeof(buf));
         pr_->set_body(std::ref(fb));
+        pr_->parse(ec);
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
@@ -1316,6 +1337,7 @@ struct parser_test
             return;
         }
         auto& ts = pr_->set_body(test_sink{});
+        pr_->parse(ec);
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
@@ -1355,12 +1377,10 @@ struct parser_test
         }
 
         // sink
-#if 0
         {
             auto in = in0;
             check_sink(in, ex);
         }
-#endif
     }
 
     void
@@ -1381,13 +1401,10 @@ struct parser_test
         }
 
         // sink
-#if 0
         {
             auto in = in0;
-            check_sink(
-                res_pr_, in, ex);
+            check_sink(in, ex);
         }
-#endif
     }
 
     // void Fn( pieces& )

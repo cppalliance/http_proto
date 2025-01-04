@@ -50,7 +50,6 @@ TEST_SUITE(
 
 #include <string>
 #include <vector>
-#include <iostream>
 #include <random>
 
 #include <zlib.h>
@@ -223,10 +222,10 @@ struct zlib_test
         span<char const> body_view,
         span<unsigned char> output)
     {
-        struct sink : public source
+        struct source_t : public source
         {
             span<char const>& body_view_;
-            sink(span<char const>& bv) : body_view_(bv) {}
+            source_t(span<char const>& bv) : body_view_(bv) {}
 
             results
             on_read(buffers::mutable_buffer b)
@@ -251,7 +250,7 @@ struct zlib_test
         buffers::mutable_buffer output_buf(
             output.data(), output.size());
 
-        auto& s = sr.start<sink>(res, body_view);
+        auto& s = sr.start<source_t>(res, body_view);
         (void)s;
 
         while(! body_view.empty() || ! sr.is_done() )
@@ -535,6 +534,142 @@ struct zlib_test
             zlib_serializer_impl(fp, c, body, b);
     }
 
+    static
+    std::string
+    pull_body(
+        response_parser& pr,
+        buffers::const_buffer input)
+    {
+        std::string rs;
+        buffers::string_buffer buf(&rs);
+        for(;;)
+        {
+            auto n1 = buffers::buffer_copy(
+                pr.prepare(), input);
+            pr.commit(n1);
+            input = buffers::sans_prefix(input, n1);
+
+            boost::system::error_code ec;
+            pr.parse(ec);
+            if( ec )
+                BOOST_TEST(ec == error::in_place_overflow
+                    || ec == error::need_data);
+
+            // consume in_place body
+            auto n2 = buffers::buffer_copy(
+                buf.prepare(buffers::buffer_size(pr.pull_body())),
+                pr.pull_body());
+            buf.commit(n2);
+            pr.consume_body(n2);
+
+            if( input.size() == 0 && ec == error::need_data )
+            {
+                pr.commit_eof();
+                pr.parse(ec);
+                BOOST_TEST(!ec || ec == error::in_place_overflow);
+            }
+            if( pr.is_complete() )
+                break;
+        }
+        return rs;
+    }
+
+    static
+    std::string
+    elastic_body(
+        response_parser& pr,
+        buffers::const_buffer input)
+    {
+        std::string rs;
+        std::size_t n1 = buffers::buffer_copy(
+                pr.prepare(), input);
+        input = buffers::sans_prefix(input, n1);
+        pr.commit(n1);
+        system::error_code ec;
+        pr.parse(ec);
+        BOOST_TEST(pr.got_header());
+
+        buffers::string_buffer buf(&rs);
+        pr.set_body(std::ref(buf));
+        pr.parse(ec);
+
+        while(ec == error::need_data)
+        {
+            std::size_t n2 = buffers::buffer_copy(
+                    pr.prepare(), input);
+            input = buffers::sans_prefix(input, n2);
+            pr.commit(n2);
+            pr.parse(ec);
+            if(n2 == 0)
+            {
+                pr.commit_eof();
+                pr.parse(ec);
+                break;
+            }
+        }
+        return rs;
+    }
+
+    static
+    std::string
+    sink_body(
+        response_parser& pr,
+        buffers::const_buffer input)
+    {
+        std::string rs;
+        std::size_t n1 = buffers::buffer_copy(
+                pr.prepare(), input);
+        input = buffers::sans_prefix(input, n1);
+        pr.commit(n1);
+        system::error_code ec;
+        pr.parse(ec);
+        BOOST_TEST(pr.got_header());
+
+        class sink_t : public sink
+        {
+            std::string* body_;
+
+        public:
+            sink_t(std::string* body)
+                : body_{ body }
+            {
+            }
+
+            results
+            on_write(
+                buffers::const_buffer b,
+                bool) override
+            {
+                body_->append(
+                    static_cast<
+                        const char*>(b.data()),
+                    b.size());
+                results rv;
+                rv.bytes = b.size();
+                return rv;
+            }
+        };
+
+        pr.set_body<sink_t>(&rs);
+        pr.parse(ec);
+
+        while(ec == error::need_data)
+        {
+            std::size_t n2 = buffers::buffer_copy(
+                    pr.prepare(), input);
+            input = buffers::sans_prefix(input, n2);
+            pr.commit(n2);
+            pr.parse(ec);
+            if(n2 == 0)
+            {
+                pr.commit_eof();
+                pr.parse(ec);
+                break;
+            }
+        }
+        return rs;
+    }
+
     void
     test_parser()
     {
@@ -565,74 +700,56 @@ struct zlib_test
         response_parser::config cfg;
         cfg.apply_deflate_decoder = true;
         cfg.apply_gzip_decoder = true;
-        cfg.body_limit = 8 * 1024 * 1024;
+        cfg.body_limit = 1024 * 1024;
         install_parser_service(ctx, cfg);
         response_parser pr(ctx);
+        pr.reset();
 
-        for(auto gzip : { false, true })
-        for(auto chunked : { false, true })
+        for(std::string encoding : { "gzip", "deflate" })
+        for(std::string transfer : { "chunked", "sized", "to_eof" })
         for(auto body_size : { 0, 7, 64 * 1024, 1024 * 1024 })
+        for(auto receiver : { pull_body, sink_body, elastic_body })
         {
-            std::string msg = "HTTP/1.1 200 OK\r\n";
+            std::string msg =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Encoding: " + encoding + "\r\n";
 
-            if(gzip)
-                msg += "Content-Encoding: gzip\r\n";
-            else
-                msg += "Content-Encoding: deflate\r\n";
+            auto body = generate_book(body_size);
+            auto deflated_body = deflate(
+                15 + (encoding == "gzip" ? 16 : 0),
+                8,
+                body);
 
-            if(chunked)
+            if(transfer == "chunked")
+            {
                 msg += "Transfer-Encoding: chunked\r\n";
+                msg += "\r\n";
+                append_chunked(msg, deflated_body);
+            }
+            else if(transfer == "sized")
+            {
+                msg += "Content-Length: " +
+                    std::to_string(deflated_body.size()) + "\r\n";
+                msg += "\r\n";
+                msg += deflated_body;
+            }
+            else // to_eof
+            {
+                msg += "\r\n";
+                msg += deflated_body;
+            }
 
-            msg += "\r\n";
-
-            auto const body = generate_book(body_size);
-            auto const deflated = deflate(15 + (gzip ? 16 : 0), 8, body);
-
-            if(chunked)
-                append_chunked(msg, deflated);
-            else
-                msg += deflated;
-
-            pr.reset();
             pr.start();
 
-            auto msg_buf =
-                buffers::const_buffer{ msg.data(), msg.size() };
-            
-            std::string parsed_body;
-            buffers::string_buffer parsed_body_buf{
-                &parsed_body };
-            for(;;)
-            {
-                auto n1 = buffers::buffer_copy(
-                    pr.prepare(), msg_buf);
-                pr.commit(n1);
-                msg_buf = buffers::sans_prefix(msg_buf, n1);
+            auto rs = receiver(
+                pr,
+                buffers::const_buffer(
+                    msg.data(), msg.size()));
 
-                boost::system::error_code ec;
-                pr.parse(ec);
-                if( ec )
-                    BOOST_TEST(ec == error::in_place_overflow
-                        || ec == error::need_data);
+            BOOST_TEST(rs == body);
 
-                // consume in_place body
-                auto n2 = buffers::buffer_copy(
-                    parsed_body_buf.prepare(
-                        buffers::buffer_size(pr.pull_body())),
-                    pr.pull_body());
-                parsed_body_buf.commit(n2);
-                pr.consume_body(n2);
-
-                if( msg_buf.size() == 0 && ec == error::need_data )
-                {
-                    pr.commit_eof();
-                    pr.parse(ec);
-                    BOOST_TEST(!ec || ec == error::in_place_overflow);
-                }
-                if( pr.is_complete() )
-                    break;
-            }
-            BOOST_TEST(parsed_body == body);
+            if(transfer == "to_eof")
+                pr.reset();
         }
     }
 
@@ -679,6 +796,7 @@ struct zlib_test
 
         BOOST_TEST_EQ(n, msg.size());
         pr.commit(n);
+        pr.commit_eof();
 
         boost::system::error_code ec;
         pr.parse(ec);
