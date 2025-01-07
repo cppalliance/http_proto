@@ -1336,7 +1336,7 @@ struct parser_test
             BOOST_TEST_EQ(ec, ex);
             return;
         }
-        auto& ts = pr_->set_body(test_sink{});
+        auto& ts = pr_->set_body<test_sink>();
         pr_->parse(ec);
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
