@@ -1492,24 +1492,16 @@ on_headers(
 // Called at the end of set_body
 void
 parser::
-on_set_body()
+on_set_body() noexcept
 {
-    // This function is called after all
-    // limit checking and calculation of
-    // chunked or filter.
-
-    BOOST_ASSERT(got_header());
+    BOOST_ASSERT(
+        st_ == state::complete_in_place ||
+        st_ == state::body);
 
     nprepare_ = 0; // invalidate
 
     if(st_ == state::body)
-    {
         st_ = state::set_body;
-        return;
-    }
-
-    BOOST_ASSERT(
-        st_ == state::complete_in_place);
 }
 
 std::size_t

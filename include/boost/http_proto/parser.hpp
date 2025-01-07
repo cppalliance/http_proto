@@ -312,16 +312,16 @@ public:
 
     /** Attach a body
     */
-    template<class Sink>
+    template<
+        class Sink,
+        class... Args
 #ifndef BOOST_HTTP_PROTO_DOCS
-    typename std::enable_if<
-            is_sink<Sink>::value,
-        typename std::decay<Sink>::type
-            >::type&
-#else
-    typename std::decay<Sink>::type&
+        ,class = typename std::enable_if<
+            is_sink<Sink>::value>::type
 #endif
-    set_body(Sink&& sink);
+    >
+    Sink&
+    set_body(Args&&... args);
 
     /** Return the available body data.
 
@@ -374,7 +374,7 @@ private:
 
     BOOST_HTTP_PROTO_DECL
     void
-    on_set_body();
+    on_set_body() noexcept;
 
     std::size_t
     apply_filter(

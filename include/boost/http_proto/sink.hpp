@@ -34,7 +34,6 @@ namespace http_proto {
 */
 struct BOOST_HTTP_PROTO_DECL
     sink
-    : buffered_base
 {
     /** The results of consuming data.
     */

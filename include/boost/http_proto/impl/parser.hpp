@@ -91,14 +91,13 @@ set_body(
 
 //------------------------------------------------
 
-template<class Sink>
-typename std::enable_if<
-    is_sink<Sink>::value,
-    typename std::decay<Sink>::type
-        >::type&
+template<
+    class Sink,
+    class... Args,
+    class>
+Sink&
 parser::
-set_body(
-    Sink&& sink)
+set_body(Args&&... args)
 {
     // body must not be set already
     if(how_ != how::in_place)
@@ -109,7 +108,7 @@ set_body(
         detail::throw_logic_error();
 
     auto& s = ws_.emplace<Sink>(
-        std::forward<Sink>(sink));
+        std::forward<Args>(args)...);
     sink_ = &s;
     how_ = how::sink;
     on_set_body();

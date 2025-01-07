@@ -616,7 +616,6 @@ struct zlib_test
         response_parser& pr,
         buffers::const_buffer input)
     {
-        std::string rs;
         std::size_t n1 = buffers::buffer_copy(
                 pr.prepare(), input);
         input = buffers::sans_prefix(input, n1);
@@ -627,12 +626,13 @@ struct zlib_test
 
         class sink_t : public sink
         {
-            std::string* body_;
+            std::string body_;
 
         public:
-            sink_t(std::string* body)
-                : body_{ body }
+            std::string
+            get_body()
             {
+                return body_;
             }
 
             results
@@ -640,9 +640,8 @@ struct zlib_test
                 buffers::const_buffer b,
                 bool) override
             {
-                body_->append(
-                    static_cast<
-                        const char*>(b.data()),
+                body_.append(
+                    static_cast<const char*>(b.data()),
                     b.size());
                 results rv;
                 rv.bytes = b.size();
@@ -650,7 +649,7 @@ struct zlib_test
             }
         };
 
-        pr.set_body<sink_t>(&rs);
+        auto& sink = pr.set_body<sink_t>();
         pr.parse(ec);
 
         while(ec == error::need_data)
@@ -667,7 +666,7 @@ struct zlib_test
                 break;
             }
         }
-        return rs;
+        return sink.get_body();
     }
 
     void
