@@ -488,7 +488,6 @@ parser::
 reset() noexcept
 {
     ws_.clear();
-    eb_ = nullptr;
     st_ = state::start;
     got_eof_ = false;
 }
@@ -520,6 +519,7 @@ start_impl(
         }
         BOOST_FALLTHROUGH;
 
+    case state::header_done:
     case state::body:
     case state::set_body:
         // current message is incomplete
@@ -599,6 +599,7 @@ start_impl(
     // begin with in_place mode
     how_ = how::in_place;
     st_ = state::header;
+    body_limit_ = svc_.cfg.body_limit;
     nprepare_ = 0;
     chunk_remain_ = 0;
     needs_chunk_close_ = false;
@@ -606,6 +607,7 @@ start_impl(
     chunked_body_ended = false;
     filter_ = nullptr;
     sink_ = nullptr;
+    eb_ = nullptr;
     body_avail_ = 0;
     body_total_ = 0;
 }
@@ -639,6 +641,10 @@ prepare() ->
         nprepare_ = n;
         return mutable_buffers_type(&mbp_[0], 1);
     }
+
+    case state::header_done:
+        // forgot to call parse()
+        detail::throw_logic_error();
 
     case state::body:
     {
@@ -683,9 +689,7 @@ prepare() ->
                 {
                     BOOST_ASSERT(
                         h_.md.payload == payload::to_eof);
-
-                    n = clamp(
-                        svc_.cfg.body_limit - body_total_ + 1, n);
+                    n = clamp(body_limit_remain() + 1, n);
                 }
 
                 nprepare_ = n;
@@ -710,10 +714,8 @@ prepare() ->
                 {
                     BOOST_ASSERT(
                         h_.md.payload == payload::to_eof);
-                    n = clamp(
-                        svc_.cfg.body_limit - body_total_, n);
-                    n = clamp(
-                        n, eb_->max_size() - eb_->size());
+                    n = clamp(body_limit_remain() + 1, n);
+                    n = clamp(n, eb_->max_size() - eb_->size());
                     // fill capacity first to avoid an allocation
                     std::size_t avail =
                         eb_->capacity() - eb_->size();
@@ -791,6 +793,12 @@ commit(
         break;
     }
 
+    case state::header_done:
+    {
+        // forgot to call parse()
+        detail::throw_logic_error();
+    }
+
     case state::body:
     {
         nprepare_ = 0; // invalidate
@@ -798,14 +806,17 @@ commit(
         {
             if(eb_->max_size() == eb_->size())
             {
-                // borrowed 1 byte from cb0_
+                // borrowed 1 byte from
+                // cb0_ in prepare()
                 BOOST_ASSERT(n <= 1);
                 cb0_.commit(n);
-                break;
             }
-            eb_->commit(n);
-            payload_remain_ -= n;
-            body_total_     += n;
+            else
+            {
+                eb_->commit(n);
+                payload_remain_ -= n;
+                body_total_     += n;
+            }
         }
         else
         {
@@ -849,6 +860,10 @@ commit_eof()
     case state::header:
         got_eof_ = true;
         break;
+
+    case state::header_done:
+        // forgot to call parse()
+        detail::throw_logic_error();
 
     case state::body:
         got_eof_ = true;
@@ -919,7 +934,7 @@ parse(
                 error::incomplete);
             return;
         }
-        if(ec.failed())
+        else if(ec.failed())
         {
             // other error,
             //
@@ -930,13 +945,100 @@ parse(
             return;
         }
 
-        // headers are complete
-        on_headers(ec);
-        if(ec.failed())
-            return;
-        if(st_ == state::complete_in_place)
-            break;
+        // reserve headers + table
+        ws_.reserve_front(h_.size);
+        ws_.reserve_back(h_.table_space());
 
+        // no payload
+        if(h_.md.payload == payload::none ||
+            head_response_)
+        {
+            // octets of the next message
+            auto overread = fb_.size() - h_.size;
+            cb0_ = { ws_.data(), overread, overread };
+            ws_.reserve_front(overread);
+            st_ = state::complete_in_place;
+            return;
+        }
+
+        st_ = state::header_done;
+        break;
+    }
+
+    case state::header_done:
+    {
+        // metadata error
+        if(h_.md.payload == payload::error)
+        {
+            // VFALCO This needs looking at
+            ec = BOOST_HTTP_PROTO_ERR(
+                error::bad_payload);
+            st_ = state::reset; // unrecoverable
+            return;
+        }
+
+        // overread currently includes any and all octets that
+        // extend beyond the current end of the header
+        // this can include associated body octets for the
+        // current message or octets of the next message in the
+        // stream, e.g. pipelining is being used
+        auto const overread = fb_.size() - h_.size;
+        BOOST_ASSERT(overread <= svc_.max_overread());
+
+        auto cap = fb_.capacity() + overread +
+            svc_.cfg.min_buffer;
+
+        // reserve body buffers first, as the decoder
+        // must be installed after them.
+        auto const p = ws_.reserve_front(cap);
+
+        if(svc_.cfg.apply_deflate_decoder &&
+            h_.md.content_encoding.encoding == encoding::deflate)
+        {
+            filter_ = &ws_.emplace<inflator_filter>(ctx_, ws_, false);
+        }
+        else if(svc_.cfg.apply_gzip_decoder &&
+            h_.md.content_encoding.encoding == encoding::gzip)
+        {
+            filter_ = &ws_.emplace<inflator_filter>(ctx_, ws_, true);
+        }
+        else
+        {
+            cap += svc_.max_codec;
+            ws_.reserve_front(svc_.max_codec);
+        }
+
+        if(is_plain() || how_ == how::elastic)
+        {
+            cb0_ = { p, cap, overread };
+            cb1_ = {};
+        }
+        else
+        {
+            // buffered payload
+            std::size_t n0 = (overread > svc_.cfg.min_buffer)
+                ? overread
+                : svc_.cfg.min_buffer;
+            std::size_t n1 = svc_.cfg.min_buffer;
+
+            cb0_ = { p      , n0, overread };
+            cb1_ = { p + n0 , n1 };
+        }
+
+        if(h_.md.payload == payload::size)
+        {
+            if(!filter_ &&
+                body_limit_ < h_.md.payload_size)
+            {
+                ec = BOOST_HTTP_PROTO_ERR(
+                    error::body_too_large);
+                st_ = state::reset;
+                return;
+            }
+            payload_remain_ = h_.md.payload_size;
+        }
+
+        st_ = state::body;
         BOOST_FALLTHROUGH;
     }
 
@@ -1042,8 +1144,7 @@ parse(
                     const auto chunk =
                         buffers::prefix(cb0_.data(), chunk_avail);
 
-                    if(svc_.cfg.body_limit - body_total_
-                        < chunk_avail)
+                    if(body_limit_remain() < chunk_avail)
                     {
                         ec = BOOST_HTTP_PROTO_ERR(
                             error::body_too_large);
@@ -1150,6 +1251,19 @@ parse(
             }
             else
             {
+                // plain body
+
+                if(h_.md.payload == payload::to_eof)
+                {
+                    if(body_limit_remain() < payload_avail)
+                    {
+                        ec = BOOST_HTTP_PROTO_ERR(
+                            error::body_too_large);
+                        st_ = state::reset;
+                        return;
+                    }
+                }
+
                 switch(how_)
                 {
                 case how::in_place:
@@ -1190,25 +1304,29 @@ parse(
                     // payload_remain_ and body_total_
                     // are already updated in commit()
 
-                    if(cb0_.size() != 0)
+                    // cb0_ contains data 
+                    if(payload_avail != 0)
                     {
-                        // a non-empty cb0_ indicates that
-                        // the elastic buffer ran out of space
-                        ec  = BOOST_HTTP_PROTO_ERR(
-                            error::buffer_overflow);
-                        st_ = state::reset;
-                        return;
+                        if(eb_->max_size() - eb_->size()
+                            < payload_avail)
+                        {
+                            ec = BOOST_HTTP_PROTO_ERR(
+                                error::buffer_overflow);
+                            st_ = state::reset;
+                            return;
+                        }
+                        // only happens when an elastic body
+                        // is attached in header_done state
+                        buffers::buffer_copy(
+                            eb_->prepare(payload_avail),
+                            cb0_.data());
+                        cb0_.consume(payload_avail);
+                        eb_->commit(payload_avail);
+                        payload_remain_ -= payload_avail;
+                        body_total_ += payload_avail;
                     }
                     break;
                 }
-                }
-
-                if(body_total_ > svc_.cfg.body_limit)
-                {
-                    ec  = BOOST_HTTP_PROTO_ERR(
-                        error::body_too_large);
-                    st_ = state::reset;
-                    return;
                 }
 
                 if(is_complete)
@@ -1238,9 +1356,6 @@ parse(
     case state::complete_in_place:
     {
         auto& body_buf = is_plain() ? cb0_ : cb1_;
-
-        BOOST_ASSERT(body_avail_ == body_buf.size());
-        BOOST_ASSERT(body_total_ == body_avail_);
 
         switch(how_)
         {
@@ -1307,6 +1422,8 @@ pull_body() ->
 {
     switch(st_)
     {
+    case state::header_done:
+        return {};
     case state::body:
     case state::complete_in_place:
         cbp_ = buffers::prefix(
@@ -1324,6 +1441,8 @@ consume_body(std::size_t n)
 {
     switch(st_)
     {
+    case state::header_done:
+        return;
     case state::body:
     case state::complete_in_place:
         n = clamp(n, body_avail_);
@@ -1358,6 +1477,27 @@ release_buffered_data() noexcept
     return {};
 }
 
+void
+parser::
+set_body_limit(std::uint64_t n)
+{
+    switch(st_)
+    {
+    case state::header:
+    case state::header_done:
+        body_limit_ = n;
+        break;
+    case state::complete_in_place:
+        // only allowed for empty bodies
+        if(body_total_ == 0)
+            break;
+        BOOST_FALLTHROUGH;
+    default:
+        // set body_limit before parsing the body
+        detail::throw_logic_error();
+    }
+}
+
 //------------------------------------------------
 //
 // Implementation
@@ -1385,118 +1525,15 @@ is_plain() const noexcept
         h_.md.payload != payload::chunked;
 }
 
-// Called immediately after complete headers are received
-// to setup the circular buffers for subsequent operations.
-// We leave fb_ as-is to indicate whether any data was
-// received before eof.
-//
-void
-parser::
-on_headers(
-    system::error_code& ec)
-{
-    // overread currently includes any and all octets that
-    // extend beyond the current end of the header
-    // this can include associated body octets for the
-    // current message or octets of the next message in the
-    // stream, e.g. pipelining is being used
-    auto const overread = fb_.size() - h_.size;
-    BOOST_ASSERT(
-        overread <= svc_.max_overread());
-
-    // metadata error
-    if(h_.md.payload == payload::error)
-    {
-        // VFALCO This needs looking at
-        ec = BOOST_HTTP_PROTO_ERR(
-            error::bad_payload);
-        st_ = state::reset; // unrecoverable
-        return;
-    }
-
-    // reserve headers + table
-    ws_.reserve_front(h_.size);
-    ws_.reserve_back(h_.table_space());
-
-    // no payload
-    if( h_.md.payload == payload::none ||
-        head_response_ )
-    {
-        // set cb0_ to overread
-        cb0_ = {
-            ws_.data(),
-            overread + fb_.capacity(),
-            overread };
-        st_ = state::complete_in_place;
-        return;
-    }
-
-    auto cap = fb_.capacity() + overread +
-        svc_.cfg.min_buffer;
-
-    // reserve body buffers first, as the decoder
-    // must be installed after them.
-    auto const p = ws_.reserve_front(cap);
-
-    if( svc_.cfg.apply_deflate_decoder &&
-        h_.md.content_encoding.encoding == encoding::deflate )
-    {
-        filter_ = &ws_.emplace<inflator_filter>(
-            ctx_, ws_, false);
-    }
-    else if( svc_.cfg.apply_gzip_decoder &&
-        h_.md.content_encoding.encoding == encoding::gzip )
-    {
-        filter_ = &ws_.emplace<inflator_filter>(
-            ctx_, ws_, true);
-    }
-    else
-    {
-        cap += svc_.max_codec;
-        ws_.reserve_front(svc_.max_codec);
-    }
-
-    if(h_.md.payload == payload::size )
-        payload_remain_ = h_.md.payload_size;
-
-    if(is_plain())
-    {
-        cb0_ = { p, cap, overread };
-        if(h_.md.payload == payload::size)
-        {
-            if(h_.md.payload_size >
-                svc_.cfg.body_limit)
-            {
-                ec = BOOST_HTTP_PROTO_ERR(
-                    error::body_too_large);
-                st_ = state::reset;
-                return;
-            }
-        }
-        st_ = state::body;
-        return;
-    }
-
-    // buffered payload
-
-    const auto n0 = (overread > svc_.cfg.min_buffer)
-        ? overread
-        : svc_.cfg.min_buffer;
-    const auto n1 = svc_.cfg.min_buffer;
-
-    cb0_ = { p      , n0, overread };
-    cb1_ = { p + n0 , n1 };
-    st_  = state::body;
-}
-
 // Called at the end of set_body
 void
 parser::
 on_set_body() noexcept
 {
     BOOST_ASSERT(
-        st_ == state::complete_in_place ||
-        st_ == state::body);
+        st_ == state::header_done ||
+        st_ == state::body ||
+        st_ == state::complete_in_place);
 
     nprepare_ = 0; // invalidate
 
@@ -1512,17 +1549,15 @@ apply_filter(
     bool more)
 {
     std::size_t p0 = payload_avail;
-
     for(;;)
     {
         if(payload_avail == 0 && more)
-            return p0 - payload_avail;
+            break;
 
         auto f_rs = [&](){
             if(how_ == how::elastic)
             {
-                std::size_t n = clamp(
-                    svc_.cfg.body_limit - body_total_);
+                std::size_t n = clamp(body_limit_remain());
                 n = clamp(n, svc_.cfg.min_buffer);
                 n = clamp(n, eb_->max_size() - eb_->size());
 
@@ -1542,8 +1577,7 @@ apply_filter(
             }
             else // in-place and sink 
             {
-                std::size_t n = clamp(
-                    svc_.cfg.body_limit - body_total_);
+                std::size_t n = clamp(body_limit_remain());
                 n = clamp(n, cb1_.capacity());
 
                 return filter_->process(
@@ -1568,12 +1602,12 @@ apply_filter(
         {
             cb1_.commit(f_rs.out_bytes);
             body_avail_ += f_rs.out_bytes;
-            if( cb1_.capacity() == 0 &&
+            if(cb1_.capacity() == 0 &&
                 needs_more_space)
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::in_place_overflow);
-                return p0 - payload_avail;
+                goto done;
             }
             break;
         }
@@ -1587,20 +1621,20 @@ apply_filter(
             {
                 ec  = sink_rs.ec;
                 st_ = state::reset;
-                return p0 - payload_avail;
+                goto done;
             }
             break;
         }
         case how::elastic:
         {
             eb_->commit(f_rs.out_bytes);
-            if( eb_->max_size() - eb_->size() == 0 &&
+            if(eb_->max_size() - eb_->size() == 0 &&
                 needs_more_space)
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::buffer_overflow);
                 st_ = state::reset;
-                return p0 - payload_avail;
+                goto done;
             }
             break;
         }
@@ -1610,16 +1644,16 @@ apply_filter(
         {
             ec = f_rs.ec;
             st_ = state::reset;
-            return p0 - payload_avail;
+            break;
         }
 
-        if( svc_.cfg.body_limit == body_total_ &&
+        if(body_limit_remain() == 0 &&
             needs_more_space)
         {
-            ec  = BOOST_HTTP_PROTO_ERR(
+            ec = BOOST_HTTP_PROTO_ERR(
                 error::body_too_large);
             st_ = state::reset;
-            return p0 - payload_avail;
+            break;
         }
 
         if(f_rs.finished)
@@ -1630,10 +1664,19 @@ apply_filter(
                     ? state::complete_in_place
                     : state::complete;
             }
-
-            return p0 - payload_avail;
+            break;
         }
     }
+
+done:
+    return p0 - payload_avail;
+}
+
+std::uint64_t
+parser::
+body_limit_remain() const noexcept
+{
+    return body_limit_ - body_total_;
 }
 
 } // http_proto
