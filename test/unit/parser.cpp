@@ -232,6 +232,9 @@ struct parser_test
         pieces& in,
         system::error_code& ec)
     {
+        pr.parse(ec);
+        if(ec != condition::need_more_input)
+            return;
         if(! in.empty())
         {
             core::string_view& s = in[0];
@@ -259,7 +262,7 @@ struct parser_test
         pieces& in,
         system::error_code& ec)
     {
-        while(! pr.got_header())
+        do
         {
             read_some(pr, in, ec);
             if(ec == condition::need_more_input)
@@ -267,7 +270,7 @@ struct parser_test
             if(ec.failed())
                 return;
         }
-        ec = {};
+        while(! pr.got_header());
     }
 
     static
@@ -277,11 +280,6 @@ struct parser_test
         pieces& in,
         system::error_code& ec)
     {
-        if(pr.is_complete())
-        {
-            pr.parse(ec);
-            return;
-        }
         do
         {
             read_some(pr, in, ec);
@@ -506,6 +504,8 @@ struct parser_test
                 ! BOOST_TEST(pr.got_header()) ||
                 ! BOOST_TEST(! pr.is_complete()))
                 return;
+            pr.parse(ec);
+            BOOST_TEST_EQ(ec, error::need_data);
             parser::mutable_buffers_type dest;
             BOOST_TEST_NO_THROW(
                 dest = pr.prepare());
@@ -581,7 +581,7 @@ struct parser_test
                 &tmp, dynamic_max_size);
             pr->set_body(std::move(sb));
             pr->parse(ec);
-            BOOST_TEST(ec == ex);
+            BOOST_TEST_EQ(ec, ex);
             if(! ec.failed())
             {
                 parser::mutable_buffers_type dest;
@@ -807,6 +807,7 @@ struct parser_test
                 "\r\n" };
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
+            pr.parse(ec);
             auto dest = pr.prepare();
             BOOST_TEST_THROWS(
                 pr.commit(
@@ -917,7 +918,7 @@ struct parser_test
                 "Content-Length: 3\r\n"
                 "\r\n"
                 "123" };
-            read_header(pr, in, ec);
+            read(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
             std::unique_ptr<std::string> ps(new std::string());
@@ -925,7 +926,7 @@ struct parser_test
             pr.set_body(
                 buffers::string_buffer(&s));
             pr.parse(ec);
-            BOOST_TEST(! ec);
+            BOOST_TEST(! ec.failed());
             pr.reset();
         }
 
@@ -943,7 +944,7 @@ struct parser_test
                 "Content-Length: 3\r\n"
                 "\r\n"
                 "123" };
-            read_header(pr, in, ec);
+            read(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
 
@@ -974,6 +975,9 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(!pr.is_complete());
+            pr.parse(ec);
+            BOOST_TEST_EQ(
+                ec, condition::need_more_input);
             auto dest = pr.prepare();
             ignore_unused(dest);
             BOOST_TEST_NO_THROW(pr.commit(0));
@@ -992,6 +996,9 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(!pr.is_complete());
+            pr.parse(ec);
+            BOOST_TEST_EQ(
+                ec, condition::need_more_input);
             auto dest = pr.prepare();
             ignore_unused(dest);
             BOOST_TEST_THROWS(
@@ -1043,6 +1050,9 @@ struct parser_test
             read_header(pr, in, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(! pr.is_complete());
+            pr.parse(ec);
+            BOOST_TEST_EQ(
+                ec, condition::need_more_input);
             BOOST_TEST_NO_THROW(
                 pr.commit_eof());
         }
@@ -1299,7 +1309,6 @@ struct parser_test
         }
         buffers::flat_buffer fb(buf, sizeof(buf));
         pr_->set_body(std::ref(fb));
-        pr_->parse(ec);
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
@@ -1337,7 +1346,6 @@ struct parser_test
             return;
         }
         auto& ts = pr_->set_body<test_sink>();
-        pr_->parse(ec);
         BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
@@ -1618,28 +1626,16 @@ struct parser_test
             pr.reset();
             pr.start();
 
-            core::string_view res =
+            pieces in = {
                 "HTTP/1.1 200 OK\r\n"
                 "transfer-encoding: chunked\r\n"
                 "\r\n"
                 "d\r\nhello, world!\r\n"
-                "0\r\n\r\n";
-
-            auto bs = pr.prepare();
-            auto n =
-                buffers::buffer_copy(
-                    bs,
-                    buffers::const_buffer(
-                        res.data(),
-                        res.size()));
-
-            BOOST_TEST_EQ(n, res.size());
-            pr.commit(n);
+                "0\r\n\r\n" };
 
             system::error_code ec;
-
-            pr.parse(ec);
-            BOOST_TEST(!ec);
+            read(pr, in, ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
 
             auto str = pr.body();
@@ -1656,38 +1652,24 @@ struct parser_test
             pr.reset();
             pr.start();
 
-            core::string_view res =
+            pieces in1 = {
                 "HTTP/1.1 200 OK\r\n"
                 "transfer-encoding: chunked\r\n"
                 "\r\n"
-                "00000000000000000000000000000000000d\r\n";
+                "00000000000000000000000000000000000d\r\n" };
 
-            core::string_view body1 =
+            pieces in2 = {
                 "hello, world!\r\n"
-                "0\r\n\r\n";
-
-            pr.commit(
-                buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            res.data(), res.size())));
+                "0\r\n\r\n" };
 
             system::error_code ec;
-
-            pr.parse(ec);
-            BOOST_TEST(ec == condition::need_more_input);
+            read_header(pr, in1, ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.got_header());
-            BOOST_TEST(!pr.is_complete());
+            BOOST_TEST(! pr.is_complete());
 
-            pr.commit(
-                buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            body1.data(), body1.size())));
-
-            pr.parse(ec);
-            BOOST_TEST(!ec);
-            BOOST_TEST(pr.got_header());
+            read(pr, in2, ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
             BOOST_TEST_EQ(pr.body(), "hello, world!");
         }
@@ -1703,25 +1685,23 @@ struct parser_test
 
             // the chunk body is an OCTET stream, thus it
             // can contain anything
-            core::string_view res =
+            pieces in1 = {
                 "HTTP/1.1 200 OK\r\n"
                 "transfer-encoding: chunked\r\n"
                 "\r\n"
                 "1234\r\nhello, world!\r\n"
-                "0\r\n\r\n";
-
-            pr.commit(
-                buffers::buffer_copy(
-                    pr.prepare(),
-                    buffers::const_buffer(
-                        res.data(), res.size())));
+                "0\r\n\r\n" };
 
             system::error_code ec;
+            read_header(pr, in1, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(! pr.is_complete());
 
             pr.parse(ec);
-            BOOST_TEST(ec);
-            BOOST_TEST_EQ(ec, condition::need_more_input);
-            BOOST_TEST(!pr.is_complete());
+            BOOST_TEST_EQ(
+                ec, condition::need_more_input);
+            BOOST_TEST(! pr.is_complete());
         }
 
         {
@@ -1733,24 +1713,22 @@ struct parser_test
 
             // the chunk body is an OCTET stream, thus it
             // can contain anything
-            core::string_view res =
+            pieces in1 = {
                 "HTTP/1.1 200 OK\r\n"
                 "transfer-encoding: chunked\r\n"
                 "\r\n"
                 "03\r\nhello, world!\r\n"
-                "0\r\n\r\n";
-
-            pr.commit(
-                buffers::buffer_copy(
-                    pr.prepare(),
-                    buffers::const_buffer(
-                        res.data(), res.size())));
+                "0\r\n\r\n" };
 
             system::error_code ec;
+            read_header(pr, in1, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(! pr.is_complete());
 
             pr.parse(ec);
-            BOOST_TEST(ec);
-            BOOST_TEST_EQ(ec, condition::invalid_payload);
+            BOOST_TEST_EQ(
+                ec, condition::invalid_payload);
             BOOST_TEST(!pr.is_complete());
         }
 
@@ -1759,7 +1737,7 @@ struct parser_test
 
             pr.reset();
             pr.start();
-            std::vector<core::string_view> pieces = {
+            pieces in = {
                 "HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n",
                 "d\r\nhello, ",
                 "world!",
@@ -1772,23 +1750,7 @@ struct parser_test
             };
 
             system::error_code ec;
-            for( auto piece : pieces )
-            {
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            piece.data(), piece.size())));
-
-
-                pr.parse(ec);
-                if( ec)
-                {
-                    BOOST_TEST_EQ(
-                        ec, condition::need_more_input);
-                }
-            }
-
+            read(pr, in, ec);
             BOOST_TEST(pr.is_complete());
             BOOST_TEST_EQ(
                 pr.body(),
@@ -1804,7 +1766,7 @@ struct parser_test
                 "transfer-encoding: chunked\r\n"
                 "\r\n";
 
-            std::vector<core::string_view> pieces = {
+            pieces samples = {
                 "xxxasdfasdfasd", // invalid chunk header
                 "1\rzxcv",        // invalid crlf on chunk-size close
                 "1\r\nabcd",      // invalid chunk-body close
@@ -1816,27 +1778,23 @@ struct parser_test
                 "fffffffffffffffff\r\n"
             };
 
-            for( auto piece : pieces )
+            for( core::string_view bad_chunk : samples )
             {
                 pr.reset();
                 pr.start();
 
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            headers.data(),
-                            headers.size())));
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            piece.data(),
-                            piece.size())));
+                pieces in = { headers, bad_chunk };
 
                 system::error_code ec;
+                read_header(pr, in, ec);
+                BOOST_TEST(! ec.failed());
+                BOOST_TEST(pr.got_header());
+
                 pr.parse(ec);
-                BOOST_TEST(ec);
+                BOOST_TEST_EQ(
+                    ec, condition::need_more_input);
+
+                read_some(pr, in, ec);
                 BOOST_TEST_EQ(
                     ec, condition::invalid_payload);
                 BOOST_TEST(!pr.is_complete());
@@ -1861,55 +1819,24 @@ struct parser_test
 
             for( std::size_t i = 0; i < body.size(); ++i )
             {
-                auto s1 = body.substr(0, i);
-                auto s2 = body.substr(i);
-
                 pr.reset();
                 pr.start();
 
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            headers.data(),
-                            headers.size())));
+                pieces in = {
+                    headers,
+                    body.substr(0, i),
+                    body.substr(i) };
 
                 system::error_code ec;
+                read_header(pr, in, ec);
+                BOOST_TEST(! ec.failed());
+                BOOST_TEST(pr.got_header());
+
                 pr.parse(ec);
                 BOOST_TEST_EQ(
                     ec, condition::need_more_input);
-                BOOST_TEST(pr.got_header());
 
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            s1.data(),
-                            s1.size())));
-
-                pr.parse(ec);
-                if( ec &&
-                    !BOOST_TEST_EQ(
-                        ec, condition::need_more_input) )
-                {
-                    break;
-                }
-
-                pr.commit(
-                    buffers::buffer_copy(
-                        pr.prepare(),
-                        buffers::const_buffer(
-                            s2.data(),
-                            s2.size())));
-
-                pr.parse(ec);
-                if( ec &&
-                    !BOOST_TEST_EQ(
-                        ec, condition::need_more_input) )
-                {
-                    break;
-                }
-
+                read(pr, in, ec);
                 BOOST_TEST(pr.is_complete());
                 BOOST_TEST_EQ(
                     pr.body(),
@@ -1956,11 +1883,14 @@ struct parser_test
 
                 pr.commit(buffers::buffer_copy(
                     pr.prepare(),
-                    buffers::const_buffer(octets.data(), octets.size())));
+                    buffers::const_buffer(
+                        octets.data(), octets.size())));
 
                 pr.parse(ec);
-                BOOST_TEST_EQ(ec, condition::need_more_input);
-                BOOST_TEST(pr.got_header());
+                if(! ec)
+                    pr.parse(ec);
+                BOOST_TEST_EQ(
+                    ec, condition::need_more_input);
                 BOOST_TEST(!pr.is_complete());
 
                 pr.consume_body(
@@ -1978,21 +1908,27 @@ struct parser_test
 
             pr.commit(buffers::buffer_copy(
                 pr.prepare(),
-                buffers::const_buffer(octets.data(), octets.size())));
+                buffers::const_buffer(
+                    octets.data(), octets.size())));
 
             // first message
+            if(! pr.got_header())
+            {
+                pr.parse(ec);
+                BOOST_TEST(! ec.failed());
+                BOOST_TEST(pr.got_header());
+            }
             pr.parse(ec);
-            BOOST_TEST(!ec);
-            BOOST_TEST(pr.got_header());
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
 
             // second message
             pr.start();
-            BOOST_TEST(!pr.got_header());
-            BOOST_TEST(!pr.is_complete());
             pr.parse(ec);
-            BOOST_TEST(!ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.got_header());
+            pr.parse(ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
         }
         
@@ -2051,11 +1987,14 @@ struct parser_test
 
                 pr.commit(buffers::buffer_copy(
                     pr.prepare(),
-                    buffers::const_buffer(octets.data(), octets.size())));
+                    buffers::const_buffer(
+                        octets.data(), octets.size())));
 
                 pr.parse(ec);
-                BOOST_TEST_EQ(ec, condition::need_more_input);
-                BOOST_TEST(pr.got_header());
+                if(! ec)
+                    pr.parse(ec);
+                BOOST_TEST_EQ(
+                    ec, condition::need_more_input);
                 BOOST_TEST(!pr.is_complete());
 
                 pr.consume_body(
@@ -2074,26 +2013,114 @@ struct parser_test
 
             pr.commit(buffers::buffer_copy(
                 pr.prepare(),
-                buffers::const_buffer(octets.data(), octets.size())));
+                buffers::const_buffer(
+                    octets.data(), octets.size())));
 
             // first message
             pr.parse(ec);
-            BOOST_TEST(!ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.got_header());
+            pr.parse(ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
 
             // second message
             pr.start();
-            BOOST_TEST(!pr.got_header());
-            BOOST_TEST(!pr.is_complete());
             pr.parse(ec);
-            BOOST_TEST(!ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.got_header());
+            pr.parse(ec);
+            BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
         }
     }
 
     //-------------------------------------------
+
+    void
+    testSetBodyLimit()
+    {
+        context ctx;
+        response_parser::config cfg;
+        cfg.body_limit = 7;
+        install_parser_service(ctx, cfg);
+
+        response_parser pr(ctx);
+
+        // before reset
+        BOOST_TEST_THROWS(
+            pr.set_body_limit(3),
+            std::logic_error)
+
+        pr.reset();
+
+        // before start
+        BOOST_TEST_THROWS(
+            pr.set_body_limit(3),
+            std::logic_error)
+
+        pr.start();
+        pr.set_body_limit(3);
+
+        {
+            pieces in = {
+            "HTTP/1.1 200 OK\r\n"
+            "content-length: 7\r\n"
+            "\r\n"
+            "1234567" };
+            system::error_code ec;
+            read_header(pr, in, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.got_header());
+            read(pr, in, ec);
+            BOOST_TEST_EQ(
+                ec, error::body_too_large);
+        }
+
+        pr.reset();
+        pr.start();
+
+        // body_limit reset to cfg value
+        // after start
+        {
+            pieces in = {
+            "HTTP/1.1 200 OK\r\n"
+            "content-length: 7\r\n"
+            "\r\n"
+            "1234567" };
+            system::error_code ec;
+            read_header(pr, in, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.got_header());
+            read(pr, in, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.is_complete());
+
+        }
+
+        // after completion with body
+        BOOST_TEST(! pr.body().empty());
+        BOOST_TEST_THROWS(
+            pr.set_body_limit(3),
+            std::logic_error)
+
+        pr.start();
+
+        // after completion of a bodiless message
+        {
+            pieces in = {
+            "HTTP/1.1 200 OK\r\n"
+            "content-length: 0\r\n"
+            "\r\n" };
+            system::error_code ec;
+            read_header(pr, in, ec);
+            BOOST_TEST(! ec.failed());
+            BOOST_TEST(pr.got_header());
+            BOOST_TEST(pr.is_complete());
+            BOOST_TEST(pr.body().empty());
+            pr.set_body_limit(3);
+        }
+    }
 
     void
     run()
@@ -2110,6 +2137,7 @@ struct parser_test
         testChunkedInPlace();
         testMultipleMessageInPlace();
         testMultipleMessageInPlaceChunked();
+        testSetBodyLimit();
 #else
         // For profiling
         for(int i = 0; i < 10000; ++i )

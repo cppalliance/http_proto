@@ -551,7 +551,9 @@ struct zlib_test
 
             boost::system::error_code ec;
             pr.parse(ec);
-            if( ec )
+            if(!ec)
+                pr.parse(ec);
+            if(ec)
                 BOOST_TEST(ec == error::in_place_overflow
                     || ec == error::need_data);
 
@@ -739,6 +741,7 @@ struct zlib_test
             }
 
             pr.start();
+            pr.set_body_limit(body_size);
 
             auto rs = receiver(
                 pr,
@@ -798,6 +801,9 @@ struct zlib_test
         pr.commit_eof();
 
         boost::system::error_code ec;
+        pr.parse(ec);
+        BOOST_TEST(! ec.failed());
+        BOOST_TEST(pr.got_header());
         pr.parse(ec);
         BOOST_TEST_EQ(ec, zlib::error::version_err);
     }

@@ -323,6 +323,19 @@ public:
     Sink&
     set_body(Args&&... args);
 
+    /** Sets the maximum allowed size of the body for the current message.
+
+        This overrides the default value specified by
+        @ref config_base::body_limit.
+        The limit automatically resets to the default
+        for the next message.
+
+        @param n The new body size limit in bytes.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_body_limit(std::uint64_t n);
+
     /** Return the available body data.
 
         The returned buffer span will be invalidated if any member
@@ -369,9 +382,6 @@ private:
     bool
     is_plain() const noexcept;
 
-    void
-    on_headers(system::error_code&);
-
     BOOST_HTTP_PROTO_DECL
     void
     on_set_body() noexcept;
@@ -382,6 +392,9 @@ private:
         std::size_t,
         bool);
 
+    std::uint64_t
+    body_limit_remain() const noexcept;
+
     static constexpr unsigned buffers_N = 8;
 
     enum class state
@@ -389,6 +402,7 @@ private:
         reset,
         start,
         header,
+        header_done,
         body,
         set_body,
         complete_in_place,
@@ -407,10 +421,11 @@ private:
 
     detail::workspace ws_;
     detail::header h_;
-    std::size_t body_avail_ = 0;
+    std::uint64_t body_limit_= 0;
     std::uint64_t body_total_ = 0;
     std::uint64_t payload_remain_ = 0;
     std::uint64_t chunk_remain_ = 0;
+    std::size_t body_avail_ = 0;
     std::size_t nprepare_ = 0;
 
     // used to store initial headers + any potential overread
