@@ -921,7 +921,7 @@ parse(
             if(fb_.size() == 0)
             {
                 // stream closed cleanly
-                st_ = state::complete_in_place;
+                st_ = state::reset;
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::end_of_stream);
                 return;
