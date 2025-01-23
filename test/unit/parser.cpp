@@ -221,6 +221,8 @@ struct parser_test
         , res_pr_(ctx_)
     {
         in_.reserve(5);
+        req_pr_.reset();
+        res_pr_.reset();
     }
 
     //-------------------------------------------
@@ -1245,8 +1247,7 @@ struct parser_test
     void
     start()
     {
-        if(pr_->is_end_of_stream())
-            pr_->reset();
+        pr_->reset();
         if(pr_ == &req_pr_)
             req_pr_.start();
         else
@@ -1265,6 +1266,7 @@ struct parser_test
         if(ec.failed())
         {
             BOOST_TEST_EQ(ec, ex);
+            pr_->reset();
             return;
         }
         if(pr_->is_complete())
@@ -1281,6 +1283,7 @@ struct parser_test
         if(ec.failed())
         {
             BOOST_TEST_EQ(ec, ex);
+            pr_->reset();
             return;
         }
         if(! BOOST_TEST(pr_->is_complete()))
@@ -1305,6 +1308,7 @@ struct parser_test
         if(ec.failed())
         {
             BOOST_TEST_EQ(ec, ex);
+            pr_->reset();
             return;
         }
         buffers::flat_buffer fb(buf, sizeof(buf));
@@ -1316,6 +1320,7 @@ struct parser_test
             if(ec.failed())
             {
                 BOOST_TEST_EQ(ec, ex);
+                pr_->reset();
                 return;
             }
             if(! BOOST_TEST(pr_->is_complete()))
@@ -1343,6 +1348,7 @@ struct parser_test
         if(ec.failed())
         {
             BOOST_TEST_EQ(ec, ex);
+            pr_->reset();
             return;
         }
         auto& ts = pr_->set_body<test_sink>();
@@ -1353,6 +1359,7 @@ struct parser_test
             if(ec.failed())
             {
                 BOOST_TEST_EQ(ec, ex);
+                pr_->reset();
                 return;
             }
             if(! BOOST_TEST(pr_->is_complete()))

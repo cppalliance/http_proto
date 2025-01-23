@@ -187,29 +187,25 @@ public:
         return st_ >= state::complete_in_place;
     }
 
+#if 0
     /** Returns `true` if the end of the stream was reached.
 
         The end of the stream is encountered
-        when one of the following conditions
-        occurs:
-
-        @li @ref commit_eof was called and there
-            is no more data left to parse, or
-
-        @li An unrecoverable error occurred
-            during parsing.
+        when @ref commit_eof was called and there
+        is no more data left to parse.
 
         When the end of stream is reached, the
-            function @ref reset must be called
-            to start parsing a new stream.
+        function @ref reset must be called
+        to start parsing a new stream.
     */
     bool
     is_end_of_stream() const noexcept
     {
         return
-            st_ == state::reset ||
-            (st_ >= state::complete_in_place && got_eof_);
+            got_eof_ &&
+            (st_ == state::reset || st_ >= state::complete_in_place);
     }
+#endif
 
     //--------------------------------------------
     //
