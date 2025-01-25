@@ -43,7 +43,9 @@ struct header_limits
             @li <a href="https://datatracker.ietf.org/doc/html/rfc9112#section-2.1"
                 >2.1.  Message Format (rfc9112)</a>
             @li <a href="https://datatracker.ietf.org/doc/html/rfc9112#section-5"
-                >5.  Field Syntax (rfc9112)</a>
+                >5.  Field Syntax (rfc9112)</a>@see
+            @li <a href="https://stackoverflow.com/questions/686217/maximum-on-http-header-values"
+                >Maximum on HTTP header values (Stackoverflow)</a>
     */
     std::size_t max_size = 8 * 1024;
 

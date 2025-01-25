@@ -49,6 +49,31 @@ significant computational resources. For example:
   chunk directly after the current without having to perform memory movement
   due to the existence of a chunk header.
 
+== Two-Phase Parsing  
+
+The parser must return immediately after parsing the header and must not process
+the body until the next `parse()` call. For bodiless messages and head
+responses, it must transition directly to the `complete_in_place` state after
+parsing the header, making further `parse()` calls unnecessary (but still
+valid).
+
+This two-phase parsing offers several benefits with almost no complications on
+the API usage side:
+
+- It provides an optimization opportunity for users who want to attach a body
+  immediately after parsing the header (which is often the case), as there is no
+  need to allocate an internal buffer for the message body. This allows all
+  available space to be used for the input buffer.
+- Since parsing the body might result in an error, returning after parsing the
+  header enables users to access the header and, on the next `parse()` call,
+  encounter the error.
+- Setting the body limit during or after parsing the body doesn’t make much
+  sense, so returning immediately after parsing the header provides a window for
+  setting such limits.
+- If users attach a body immediately after parsing the header, we avoid the
+  need for an extra buffer copy operation (in case the user wants to attach an
+  elastic buffer).
+
 == Use Cases and Interfaces
 
 To keep things simple, we will use the following synchronous free functions to
@@ -57,38 +82,55 @@ demonstrate the flow of the parse operation in each example:
 [source,cpp]
 ----
 void
-read_some(stream& s, parser& pr)
+read_some(stream& s, parser& pr, error_code& ec)
 {
-    system::error_code ec;
-    if(pr.need_data())
-    {
-        auto n = s.read_some(pr.prepare(), ec);
-        pr.commit(n);
-        if(ec == asio::error::eof)
-        {
-            pr.commit_eof();
-            ec = {};
-        }
-        if(ec.failed())
-            throw system::system_error{ec};
-    }
     pr.parse(ec);
-    if(ec.failed() && ec != condition::need_more_input)
-        throw system::system_error{ec};
+    if(ec != condition::need_more_input)
+        return;
+
+    auto n = s.read_some(pr.prepare(), ec);
+    pr.commit(n);
+    if(ec == asio::error::eof)
+    {
+        pr.commit_eof();
+        ec = {};
+    }
+    else if(ec.failed())
+    {
+        return;
+    }
+
+    pr.parse(ec);
 }
 
 void
 read_header(stream& s, parser& pr)
 {
-    while(!pr.got_header())
-        read_some(s, pr);
+    do
+    {
+        error_code ec;
+        read_some(s, pr, ec);
+        if(ec == condition::need_more_input)
+            continue;
+        if(ec.failed())
+            throw system::system_error(ec);
+    }
+    while(! pr.got_header());
 }
 
 void
 read(stream& s, parser& pr)
-{
-    while(!pr.is_complete())
-        read_some(s, pr);
+{      
+    do
+    {
+        error_code ec;
+        read_some(s, pr, ec);
+        if(ec == condition::need_more_input)
+            continue;
+        if(ec.failed())
+            throw system::system_error(ec);
+    }
+    while(! pr.is_complete());
 }
 ----
 

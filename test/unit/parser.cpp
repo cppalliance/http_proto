@@ -1278,7 +1278,6 @@ struct parser_test
             BOOST_TEST_EQ(pr_->body(), sb_);
             return;
         }
-        BOOST_TEST(pr_->body().empty());
         read(*pr_, in, ec);
         if(ec.failed())
         {
@@ -1313,7 +1312,6 @@ struct parser_test
         }
         buffers::flat_buffer fb(buf, sizeof(buf));
         pr_->set_body(std::ref(fb));
-        BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
             read(*pr_, in, ec);
@@ -1328,7 +1326,6 @@ struct parser_test
         }
         BOOST_TEST_EQ(
             test_to_string(fb.data()), sb_);
-        BOOST_TEST(pr_->body().empty());
         // this should be a no-op
         read(*pr_, in, ec);
         BOOST_TEST(! ec.failed());
@@ -1352,7 +1349,6 @@ struct parser_test
             return;
         }
         auto& ts = pr_->set_body<test_sink>();
-        BOOST_TEST(pr_->body().empty());
         if(! pr_->is_complete())
         {
             read(*pr_, in, ec);
@@ -1366,7 +1362,6 @@ struct parser_test
                 return;
         }
         BOOST_TEST_EQ(ts.s, sb_);
-        BOOST_TEST(pr_->body().empty());
         // this should be a no-op
         read(*pr_, in, ec);
         BOOST_TEST(! ec.failed());

@@ -453,27 +453,38 @@ install_parser_service(
 //------------------------------------------------
 
 parser::
-parser(
-    context& ctx,
-    detail::kind k)
+parser(context& ctx, detail::kind k)
     : ctx_(ctx)
-    , svc_(ctx.get_service<
-        parser_service>())
-    , h_(detail::empty{k})
-    , eb_(nullptr)
+    , svc_(ctx.get_service<parser_service>())
+    , h_(detail::empty{ k })
     , st_(state::reset)
 {
-    auto const n =
-        svc_.space_needed;
+    auto const n = svc_.space_needed;
     ws_.allocate(n);
     h_.cap = n;
 }
 
-//------------------------------------------------
-
 parser::
 ~parser()
 {
+}
+
+//--------------------------------------------
+//
+// Observers
+//
+//--------------------------------------------
+
+bool
+parser::got_header() const noexcept
+{
+    return st_ > state::header;
+}
+
+bool
+parser::is_complete() const noexcept
+{
+    return st_ >= state::complete_in_place;
 }
 
 //------------------------------------------------
@@ -482,7 +493,6 @@ parser::
 //
 //------------------------------------------------
 
-// prepare for a new stream
 void
 parser::
 reset() noexcept
@@ -490,6 +500,12 @@ reset() noexcept
     ws_.clear();
     st_ = state::start;
     got_eof_ = false;
+}
+
+void
+parser::start()
+{
+    start_impl(false);
 }
 
 void
@@ -587,29 +603,35 @@ start_impl(
     BOOST_ASSERT(
         fb_.capacity() == svc_.max_overread() - leftover);
 
+    BOOST_ASSERT(
+        head_response == false ||
+        h_.kind == detail::kind::response);
+
     h_ = detail::header(detail::empty{h_.kind});
     h_.buf = reinterpret_cast<char*>(ws_.data());
     h_.cbuf = h_.buf;
     h_.cap = ws_.size();
 
-    BOOST_ASSERT(! head_response ||
-        h_.kind == detail::kind::response);
-    head_response_ = head_response;
-
-    // begin with in_place mode
-    how_ = how::in_place;
     st_ = state::header;
+    how_ = how::in_place;
+
+    // reset to the configured default
     body_limit_ = svc_.cfg.body_limit;
-    nprepare_ = 0;
+
+    body_total_ = 0;
+    payload_remain_ = 0;
     chunk_remain_ = 0;
+    body_avail_ = 0;
+    nprepare_ = 0;
+
+    filter_ = nullptr;
+    eb_ = nullptr;
+    sink_ = nullptr;
+
+    head_response_ = head_response;
     needs_chunk_close_ = false;
     trailer_headers_ = false;
     chunked_body_ended = false;
-    filter_ = nullptr;
-    sink_ = nullptr;
-    eb_ = nullptr;
-    body_avail_ = 0;
-    body_total_ = 0;
 }
 
 auto
@@ -758,19 +780,6 @@ parser::
 commit(
     std::size_t n)
 {
-    if(n > nprepare_)
-    {
-        // n can't be greater than size of
-        // the buffers returned by prepare()
-        detail::throw_invalid_argument();
-    }
-
-    if(got_eof_)
-    {
-        // can't commit after EOF
-        detail::throw_logic_error();
-    }
-
     switch(st_)
     {
     default:
@@ -788,6 +797,19 @@ commit(
 
     case state::header:
     {
+        if(n > nprepare_)
+        {
+            // n can't be greater than size of
+            // the buffers returned by prepare()
+            detail::throw_invalid_argument();
+        }
+
+        if(got_eof_)
+        {
+            // can't commit after EOF
+            detail::throw_logic_error();
+        }
+
         nprepare_ = 0; // invalidate
         fb_.commit(n);
         break;
@@ -801,6 +823,19 @@ commit(
 
     case state::body:
     {
+        if(n > nprepare_)
+        {
+            // n can't be greater than size of
+            // the buffers returned by prepare()
+            detail::throw_invalid_argument();
+        }
+
+        if(got_eof_)
+        {
+            // can't commit after EOF
+            detail::throw_logic_error();
+        }
+    
         nprepare_ = 0; // invalidate
         if(is_plain() && how_ == how::elastic)
         {
@@ -880,10 +915,6 @@ commit_eof()
     }
 }
 
-//-----------------------------------------------
-
-// process input data then
-// eof if input data runs out.
 void
 parser::
 parse(
@@ -1304,7 +1335,7 @@ parse(
                     // payload_remain_ and body_total_
                     // are already updated in commit()
 
-                    // cb0_ contains data 
+                    // cb0_ contains data
                     if(payload_avail != 0)
                     {
                         if(eb_->max_size() - eb_->size()
@@ -1393,7 +1424,7 @@ parse(
             body_buf.consume(body_avail_);
             eb_->commit(body_avail_);
             body_avail_ = 0;
-            // TODO: expand cb_0 when possible?
+            // TODO: expand cb0_ when possible?
             break;
         }
         }
@@ -1412,8 +1443,6 @@ parse(
         break;
     }
 }
-
-//------------------------------------------------
 
 auto
 parser::
@@ -1458,16 +1487,24 @@ core::string_view
 parser::
 body() const noexcept
 {
-    if(st_ == state::complete_in_place)
+    if(st_ != state::complete_in_place)
     {
-        auto cbp = (is_plain() ? cb0_ : cb1_).data();
-        BOOST_ASSERT(cbp[1].size() == 0);
-        BOOST_ASSERT(cbp[0].size() == body_avail_);
-        return core::string_view(
-            static_cast<char const*>(cbp[0].data()),
-            body_avail_);
+        // Precondition violation
+        detail::throw_logic_error();
     }
-    return {};
+
+    if(body_avail_ != body_total_)
+    {
+        // Precondition violation
+        detail::throw_logic_error();
+    }
+
+    auto cbp = (is_plain() ? cb0_ : cb1_).data();
+    BOOST_ASSERT(cbp[1].size() == 0);
+    BOOST_ASSERT(cbp[0].size() == body_avail_);
+    return core::string_view(
+        static_cast<char const*>(cbp[0].data()),
+        body_avail_);
 }
 
 core::string_view
@@ -1504,28 +1541,6 @@ set_body_limit(std::uint64_t n)
 //
 //------------------------------------------------
 
-auto
-parser::
-safe_get_header() const ->
-    detail::header const*
-{
-    // headers must be received
-    if( ! got_header() ||
-        fb_.size() == 0) // happens on eof
-        detail::throw_logic_error();
-
-    return &h_;
-}
-
-bool
-parser::
-is_plain() const noexcept
-{
-    return ! filter_ &&
-        h_.md.payload != payload::chunked;
-}
-
-// Called at the end of set_body
 void
 parser::
 on_set_body() noexcept
@@ -1555,6 +1570,7 @@ apply_filter(
             break;
 
         auto f_rs = [&](){
+            BOOST_ASSERT(filter_ != nullptr);
             if(how_ == how::elastic)
             {
                 std::size_t n = clamp(body_limit_remain());
@@ -1670,6 +1686,26 @@ apply_filter(
 
 done:
     return p0 - payload_avail;
+}
+
+detail::header const*
+parser::
+safe_get_header() const
+{
+    // headers must be received
+    if( ! got_header() ||
+        fb_.size() == 0) // happens on eof
+        detail::throw_logic_error();
+
+    return &h_;
+}
+
+bool
+parser::
+is_plain() const noexcept
+{
+    return ! filter_ &&
+        h_.md.payload != payload::chunked;
 }
 
 std::uint64_t
