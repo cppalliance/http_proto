@@ -45,26 +45,45 @@ class filter;
 
 /** A parser for HTTP/1 messages.
 
-    The parser is strict. Any malformed
-    inputs according to the documented
-    HTTP ABNFs is treated as an
-    unrecoverable error.
+    This parser uses a single block of memory allocated
+    during construction and guarantees that it will
+    never exceed the specified size. This space will be
+    reused for parsing multiple HTTP messages (one
+    message at a time).
+
+    The allocated space will be utilized for the
+    following purposes:
+
+    @li Provide a mutable buffer sequence for reading
+        raw input (for example, from a socket).
+    @li Storing HTTP headers and provide a non-owning,
+        read-only view that allows efficient access and
+        iteration through header names and values.
+    @li Offering O(1) access to important HTTP headers,
+        including the request method, target, and
+        response status code.
+    @li Storing all or part of an HTTP message and
+        provide the necessary interfaces for retrieving
+        it.
+    @li Taking ownership of user-provided elastic
+        buffer and Sink objects.
+    @li Storing the necessary state for inflate
+        algorithms.
+
+    The parser is strict. Any malformed inputs
+    according to the documented HTTP ABNFs is treated
+    as an unrecoverable error.
 */
 class BOOST_SYMBOL_VISIBLE
     parser
 {
-    BOOST_HTTP_PROTO_DECL
-    parser(context& ctx, detail::kind);
-
 public:
-    /** Parser configuration settings
-
-        @see
-            @li <a href="https://stackoverflow.com/questions/686217/maximum-on-http-header-values"
-                >Maximum on HTTP header values (Stackoverflow)</a>
+    /** Parser configuration settings.
     */
     struct config_base
     {
+        /** Configurable limits for HTTP headers.
+        */
         header_limits headers;
 
         /** Largest allowed size for a content body.
@@ -108,8 +127,7 @@ public:
                 when the payload size is not
                 known ahead of time.
 
-            This cannot be zero, and this cannot
-            be greater than @ref body_limit.
+            This cannot be zero.
         */
         std::size_t min_buffer = 4096;
 
@@ -120,28 +138,34 @@ public:
         std::size_t max_prepare = std::size_t(-1);
 
         /** Space to reserve for type-erasure.
+
+            This space is used for the following
+            purposes:
+
+            @li Storing an instance of the user-provided
+                @ref sink objects.
+
+            @li Storing an instance of the user-provided
+                ElasticBuffer.
         */
         std::size_t max_type_erase = 1024;
     };
 
+    /** The type of buffer returned from @ref prepare.
+    */
     using mutable_buffers_type =
         buffers::mutable_buffer_span;
 
+    /** The type of buffer returned from @ref pull_body.
+    */
     using const_buffers_type =
         buffers::const_buffer_span;
-
-    struct stream;
 
     //--------------------------------------------
     //
     // Special Members
     //
     //--------------------------------------------
-
-    /** Destructor.
-    */
-    BOOST_HTTP_PROTO_DECL
-    ~parser();
 
     /** Constructor (deleted)
     */
@@ -151,43 +175,41 @@ public:
     */
     parser& operator=(parser&&) = delete;
 
+    /** Destructor.
+    */
+    BOOST_HTTP_PROTO_DECL
+    ~parser();
+
     //--------------------------------------------
     //
     // Observers
     //
     //--------------------------------------------
 
+    /** Returns `true` if a complete header has been
+        parsed.
+    */
+    BOOST_HTTP_PROTO_DECL
+    bool
+    got_header() const noexcept;
+
+    /** Returns `true` if a complete message has been
+        parsed.
+
+        Calling @ref start prepares the parser
+        to process the next message in the stream.
+    */
+    BOOST_HTTP_PROTO_DECL
+    bool
+    is_complete() const noexcept;
+
 #if 0
     /** Return true if any input was committed.
     */
+    BOOST_HTTP_PROTO_DECL
     bool
-    got_some() const noexcept
-    {
-        return st_ != state::need_start;
-    }
-#endif
+    got_some() const noexcept;
 
-    /** Return true if the complete header was parsed.
-    */
-    bool
-    got_header() const noexcept
-    {
-        return st_ > state::header;
-    }
-
-    /** Returns `true` if a complete message has been parsed.
-
-        Calling @ref reset prepares the parser
-        to process the next message in the stream.
-
-    */
-    bool
-    is_complete() const noexcept
-    {
-        return st_ >= state::complete_in_place;
-    }
-
-#if 0
     /** Returns `true` if the end of the stream was reached.
 
         The end of the stream is encountered
@@ -214,70 +236,151 @@ public:
     //--------------------------------------------
 
     /** Prepare for a new stream.
+
+        This function must be called before parsing  
+        the first message in a new stream.
     */
     BOOST_HTTP_PROTO_DECL
     void
     reset() noexcept;
 
-    /** Prepare for the next message on the stream.
+    /** Prepare for a new message on the stream.
+
+        This function must be called before parsing
+        a new message in a stream.
+
+        @par Preconditions
+        This function may only be called if it is the
+        first message being read from the stream or if
+        the previous message has been fully parsed.
     */
+    BOOST_HTTP_PROTO_DECL
     void
-    start()
-    {
-        start_impl(false);
-    }
+    start();
 
-private:
-    // New message on the current stream
-    BOOST_HTTP_PROTO_DECL void
-        start_impl(bool head_response);
-public:
+    /** Prepares the input buffer.
 
-    /** Return the input buffer
+        The returned buffer sequence will either
+        reference the internal buffer or, if available,
+        the attached elastic buffer.
+
+        @par Preconditions
+        This function may only be called after a call
+        to @ref parse completes with an error code
+        equal to @ref condition::need_more_input.
+
+        @returns A non-empty mutable buffer.
+
+        @see
+            @ref commit.
+            @ref commit_eof.
     */
     BOOST_HTTP_PROTO_DECL
     mutable_buffers_type
     prepare();
 
     /** Commit bytes to the input buffer
+
+        After committing, a call to @ref parse
+        is required to process the input.
+
+        @par Preconditions
+        @li `n` must be less than or equal to
+            the size of the buffer returned
+            by @ref prepare.
+        @li No previous call to @ref commit.
+        @li No previous call to @ref commit_eof.
+
+        @par Postconditions
+        All buffer sequences previously obtained  
+        from @ref prepare are invalidated.
+
+        @param n The number of bytes written to
+        the input buffer.
+
+        @see
+            @ref parse.
     */
     BOOST_HTTP_PROTO_DECL
     void
     commit(
         std::size_t n);
 
-    /** Indicate there will be no more input
+    /** Indicate there will be no more input.
 
         @par Postconditions
         All buffer sequences previously obtained
-        by calling @ref prepare are invalidated.
+        from @ref prepare are invalidated.
+
+        @see
+            @ref parse.
     */
     BOOST_HTTP_PROTO_DECL
     void
     commit_eof();
 
     /** Parse pending input data
+
+        This function attempts to parse the pending
+        input data.
+
+        This function returns immediately after the
+        header is fully parsed. This is because certain
+        operations, like @ref set_body_limit, must be
+        performed before the body parsing starts. It is
+        also more efficient to attach the body at this
+        stage to avoid extra copy operations. The body
+        parsing will begin in a subsequent function call.
+
+        If @ref set_body was called previously, this
+        function first tries to transfer available
+        body data to the Sink or elastic buffer.
+
+        When `ec == condition::need_more`, more input
+        needs to be read into the internal buffer
+        before continuing parsing.
+
+        When `ec == error::end_of_stream`, all
+        messages have been parsed, and the stream has
+        closed cleanly. The parser can be reused for  
+        a new stream after a call to @ref reset.
+
+        @param ec Set to the error, if any occurred.
+
+        @see
+            @ref start
+            @ref prepare
+            @ref commit
+            @ref commit_eof
     */
-    // VFALCO return result<void>?
     BOOST_HTTP_PROTO_DECL
     void
     parse(
         system::error_code& ec);
 
-    /** Attach a body.
+    /** Attach an elastic buffer body.
 
         This function attaches the specified elastic
         buffer as the storage for the message body.
-        The parser acquires ownership of the object
-        `eb` and destroys it when:
 
-        @li @ref is_complete returns `true`, or
-        @li @ref reset is called, or
-        @li an unrecoverable parsing error occurs, or
-        @li the parser is destroyed.
+        A call to @ref parse is required after this
+        function for the changes to take effect. This
+        should automatically happen during the next
+        IO layer call when reading the body.
+
+        The parser takes ownership of the `eb` object and
+        will destroy it when one of the following occurs:
+        @li The message body is completely received, or
+        @li An unrecoverable parsing error occurs, or
+        @li The parser is destroyed.
+
+        @par Preconditions
+        @li Header has been completely parsed.
+        @li No body is already attached.
+
+        @see
+            @ref parse.
     */
-    // VFALCO Should this function have
-    //        error_code& ec and call parse?
     template<class ElasticBuffer>
 #ifndef BOOST_HTTP_PROTO_DOCS
     typename std::enable_if<
@@ -289,24 +392,58 @@ public:
 #endif
     set_body(ElasticBuffer&& eb);
 
-    /** Attach a body.
+    /** Attach a reference to an elastic buffer body.
 
         This function attaches the specified elastic
-        buffer reference as the storage for the message body.
+        buffer reference as the storage for
+        the message body.
+
+        A call to @ref parse is required after this
+        function for the changes to take effect. This
+        should automatically happen during the next
+        IO layer call when reading the body.
+
         Ownership is not transferred; the caller must
         ensure that the lifetime of the object
         reference by `eb` extends until:
+        @li The message body is completely received, or
+        @li An unrecoverable parsing error occurs, or
+        @li The parser is destroyed.
 
-        @li @ref is_complete returns `true`, or
-        @li @ref reset is called, or
-        @li an unrecoverable parsing error occurs, or
-        @li the parser is destroyed.
+        @par Preconditions
+        @li Header has been completely parsed.
+        @li No body is already attached.
+
+        @see
+            @ref parse.
     */
     template<class ElasticBuffer>
     void set_body(
         std::reference_wrapper<ElasticBuffer> eb);
 
-    /** Attach a body
+    /** Attach a Sink body.
+
+        This function constructs a Sink for transferring
+        the message body to it.
+
+        A call to @ref parse is required after this
+        function for the changes to take effect. This
+        should automatically happen during the next
+        IO layer call when reading the body.
+
+        The parser destroys Sink object when:
+        @li The message body is completely received, or
+        @li An unrecoverable parsing error occurs, or
+        @li The parser is destroyed.
+
+        @par Preconditions
+        @li Header has been completely parsed.
+        @li No body is already attached.
+
+        @return A reference to the costructed Sink object.
+
+        @see
+            @ref parse.
     */
     template<
         class Sink,
@@ -319,14 +456,21 @@ public:
     Sink&
     set_body(Args&&... args);
 
-    /** Sets the maximum allowed size of the body for the current message.
+    /** Sets the maximum allowed body size for
+        the current message.
 
         This overrides the default value specified by
-        @ref config_base::body_limit.
-        The limit automatically resets to the default
-        for the next message.
+        @ref config_base::body_limit, but only for
+        the current message.
 
-        @param n The new body size limit in bytes.
+        The limit automatically resets to the
+        default for the next message.
+
+        @par Preconditions
+        This function can be called after
+        @ref start and before parsing the body.
+
+        @param n The new body size limit in bytes.  
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -334,26 +478,46 @@ public:
 
     /** Return the available body data.
 
-        The returned buffer span will be invalidated if any member
-        function of the parser is subsequently called.
+        The returned buffer span may become invalid if
+        any modifying member function is called.
+
+        @par Preconditions
+        This function can be called only after the
+        header is fully parsed and no body is attached.
+
+        @return An instance of @ref const_buffers_type
+        containing the parsed body data.  
     */
     BOOST_HTTP_PROTO_DECL
     const_buffers_type
     pull_body();
 
     /** Consumes bytes from the available body data.
+
+        @par Preconditions
+        `n` must be less than or equal to the size of
+        the buffer returned by @ref pull_body.
+
+        @param n The number of bytes to consume from
+        the available body data.
     */
     BOOST_HTTP_PROTO_DECL
     void
     consume_body(std::size_t n);
 
-    /** Return the complete body as a contiguous character buffer.
+    /** Return the complete body as a contiguous buffer.
+
+        @par Preconditions
+        @li The message has been fully parsed.
+        @li No body is currently attached.
+        @li @ref consume_body has not been called before.
+
+        @return A contiguous character buffer containing
+        the complete body data.
     */
     BOOST_HTTP_PROTO_DECL
     core::string_view
     body() const noexcept;
-
-    //--------------------------------------------
 
     /** Return any leftover data
 
@@ -372,11 +536,12 @@ private:
     friend class request_parser;
     friend class response_parser;
 
-    detail::header const*
-    safe_get_header() const;
+    BOOST_HTTP_PROTO_DECL
+    parser(context&, detail::kind);
 
-    bool
-    is_plain() const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    void
+    start_impl(bool);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -387,6 +552,12 @@ private:
         system::error_code&,
         std::size_t,
         bool);
+
+    detail::header const*
+    safe_get_header() const;
+
+    bool
+    is_plain() const noexcept;
 
     std::uint64_t
     body_limit_remain() const noexcept;
@@ -417,42 +588,31 @@ private:
 
     detail::workspace ws_;
     detail::header h_;
-    std::uint64_t body_limit_= 0;
-    std::uint64_t body_total_ = 0;
-    std::uint64_t payload_remain_ = 0;
-    std::uint64_t chunk_remain_ = 0;
-    std::size_t body_avail_ = 0;
-    std::size_t nprepare_ = 0;
+    std::uint64_t body_limit_;
+    std::uint64_t body_total_;
+    std::uint64_t payload_remain_;
+    std::uint64_t chunk_remain_;
+    std::size_t body_avail_;
+    std::size_t nprepare_;
 
-    // used to store initial headers + any potential overread
     buffers::flat_buffer fb_;
-
-    // used for raw input once headers are read
     buffers::circular_buffer cb0_;
-
-    // used for transformed output, if applicable
-    // can be empty/null
     buffers::circular_buffer cb1_;
 
-    // used to provide stable storage when returning
-    // `mutable_buffers_type` from relevant functions
     buffers::mutable_buffer_pair mbp_;
-
-    // used to provide stable storage when returning
-    // `const_buffers_type` from relevant functions
     buffers::const_buffer_pair cbp_;
 
-    buffers::any_dynamic_buffer* eb_ = nullptr;
-    detail::filter* filter_ = nullptr;
-    sink* sink_ = nullptr;
+    detail::filter* filter_;
+    buffers::any_dynamic_buffer* eb_;
+    sink* sink_;
 
-    state st_ = state::start;
-    how how_ = how::in_place;
-    bool got_eof_ = false;
-    bool head_response_ = false;
-    bool needs_chunk_close_ = false;
-    bool trailer_headers_ = false;
-    bool chunked_body_ended = false;
+    state st_;
+    how how_;
+    bool got_eof_;
+    bool head_response_;
+    bool needs_chunk_close_;
+    bool trailer_headers_;
+    bool chunked_body_ended;
 };
 
 //------------------------------------------------
