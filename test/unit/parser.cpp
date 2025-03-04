@@ -1223,7 +1223,8 @@ struct parser_test
                 error::need_data, false, {
                 "HTTP/1.1 200 OK\r\n"
                 "Transfer-Encoding: chunked\r\n"
-                "\r\n"});
+                "\r\n",
+                "1"});
         }
 
         {
@@ -2125,6 +2126,36 @@ struct parser_test
     }
 
     void
+    testAccessHeaderAfterBodyError()
+    {
+        // the parsed header must remain valid and
+        // accessible if an error occurs during body parsing.
+
+        context ctx;
+        response_parser::config cfg;
+        install_parser_service(ctx, cfg);
+        response_parser pr(ctx);
+
+        pr.reset();
+        pr.start();
+
+        pieces in = {
+            "HTTP/1.1 200 OK\r\n"
+            "transfer-encoding: chunked\r\n"
+            "\r\n"
+            "bad-chunk-header\r\n" };
+        system::error_code ec;
+        read_header(pr, in, ec);
+        BOOST_TEST(! ec.failed());
+        BOOST_TEST(pr.got_header());
+        read(pr, in, ec);
+        BOOST_TEST(ec.failed());
+        BOOST_TEST(pr.got_header());
+        BOOST_TEST_EQ(
+            pr.get().payload(), payload::chunked);
+    }
+
+    void
     run()
     {
 #if 1
@@ -2140,6 +2171,7 @@ struct parser_test
         testMultipleMessageInPlace();
         testMultipleMessageInPlaceChunked();
         testSetBodyLimit();
+        testAccessHeaderAfterBodyError();
 #else
         // For profiling
         for(int i = 0; i < 10000; ++i )

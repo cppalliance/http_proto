@@ -272,7 +272,7 @@ public:
         @returns A non-empty mutable buffer.
 
         @see
-            @ref commit.
+            @ref commit,
             @ref commit_eof.
     */
     BOOST_HTTP_PROTO_DECL
@@ -330,7 +330,10 @@ public:
         performed before the body parsing starts. It is
         also more efficient to attach the body at this
         stage to avoid extra copy operations. The body
-        parsing will begin in a subsequent function call.
+        parsing will begin in a subsequent call.
+
+        If an error occurs during body parsing, the
+        parsed header will remain valid and accessible.
 
         If @ref set_body was called previously, this
         function first tries to transfer available
@@ -348,10 +351,10 @@ public:
         @param ec Set to the error, if any occurred.
 
         @see
-            @ref start
-            @ref prepare
-            @ref commit
-            @ref commit_eof
+            @ref start,
+            @ref prepare,
+            @ref commit,
+            @ref commit_eof.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -461,10 +464,8 @@ public:
 
         This overrides the default value specified by
         @ref config_base::body_limit, but only for
-        the current message.
-
-        The limit automatically resets to the
-        default for the next message.
+        the current message. The limit automatically
+        resets to the default for the next message.
 
         @par Preconditions
         This function can be called after
@@ -608,6 +609,7 @@ private:
 
     state st_;
     how how_;
+    bool got_header_;
     bool got_eof_;
     bool head_response_;
     bool needs_chunk_close_;

@@ -73,6 +73,8 @@ the API usage side:
 - If users attach a body immediately after parsing the header, we avoid the
   need for an extra buffer copy operation (in case the user wants to attach an
   elastic buffer).
+- The parsed headers remain valid and accessible even if an error occurs during
+  body parsing.
 
 == Use Cases and Interfaces
 

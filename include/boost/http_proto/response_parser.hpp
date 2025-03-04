@@ -74,7 +74,16 @@ public:
         start_impl(true);
     }
 
-    /** Return the parsed response headers.
+    /** Return a read-only view to the parsed response headers.
+
+        The returned view becomes invalid after calling 
+        @ref start or @ref reset.
+
+        @par Preconditions
+        This function can be called only after the
+        header is fully parsed.
+
+        @return A read-only view to the parsed response headers.
     */
     BOOST_HTTP_PROTO_DECL
     response_view
