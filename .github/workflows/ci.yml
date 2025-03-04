@@ -1115,6 +1115,7 @@ jobs:
   antora:
     needs: [ runner-selection ]
     strategy:
+      fail-fast: false
       matrix:
         include:
           # - { name: Windows, os: windows-latest }

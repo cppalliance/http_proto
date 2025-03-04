@@ -458,6 +458,7 @@ parser(context& ctx, detail::kind k)
     , svc_(ctx.get_service<parser_service>())
     , h_(detail::empty{ k })
     , st_(state::reset)
+    , got_header_(false)
 {
     auto const n = svc_.space_needed;
     ws_.allocate(n);
@@ -478,7 +479,7 @@ parser::
 bool
 parser::got_header() const noexcept
 {
-    return st_ > state::header;
+    return got_header_;
 }
 
 bool
@@ -499,6 +500,7 @@ reset() noexcept
 {
     ws_.clear();
     st_ = state::start;
+    got_header_ = false;
     got_eof_ = false;
 }
 
@@ -628,6 +630,7 @@ start_impl(
     eb_ = nullptr;
     sink_ = nullptr;
 
+    got_header_ = false;
     head_response_ = head_response;
     needs_chunk_close_ = false;
     trailer_headers_ = false;
@@ -976,6 +979,8 @@ parse(
             return;
         }
 
+        got_header_ = true;
+
         // reserve headers + table
         ws_.reserve_front(h_.size);
         ws_.reserve_back(h_.table_space());
@@ -1097,26 +1102,33 @@ parse(
                 if(chunk_remain_ == 0
                     && !chunked_body_ended)
                 {
-                    if(cb0_.size() == 0)
-                    {
-                        ec = BOOST_HTTP_PROTO_ERR(
-                            error::need_data);
-                        return;
-                    }
-
                     auto cs = chained_sequence(cb0_.data());
+                    auto check_ec = [&]()
+                    {
+                        if(ec == condition::need_more_input && got_eof_)
+                        {
+                            ec = BOOST_HTTP_PROTO_ERR(error::incomplete);
+                            st_ = state::reset;
+                        }
+                    };
 
                     if(needs_chunk_close_)
                     {
                         parse_eol(cs, ec);
                         if(ec)
+                        {
+                            check_ec();
                             return;
+                        }
                     }
                     else if(trailer_headers_)
                     {
                         skip_trailer_headers(cs, ec);
                         if(ec)
+                        {
+                            check_ec();
                             return;
+                        }
                         cb0_.consume(cb0_.size() - cs.size());
                         chunked_body_ended = true;
                         continue;
@@ -1124,12 +1136,18 @@ parse(
                     
                     auto chunk_size = parse_hex(cs, ec);
                     if(ec)
+                    {
+                        check_ec();
                         return;
+                    }
 
                     // skip chunk extensions
                     find_eol(cs, ec);
                     if(ec)
+                    {
+                        check_ec();
                         return;
+                    }
 
                     cb0_.consume(cb0_.size() - cs.size());
                     chunk_remain_ = chunk_size;
@@ -1693,8 +1711,7 @@ parser::
 safe_get_header() const
 {
     // headers must be received
-    if( ! got_header() ||
-        fb_.size() == 0) // happens on eof
+    if(! got_header_)
         detail::throw_logic_error();
 
     return &h_;

@@ -44,7 +44,16 @@ public:
     explicit
     request_parser(context&);
 
-    /** Return the parsed request headers.
+    /** Return a read-only view to the parsed request headers.
+
+        The returned view becomes invalid after calling 
+        @ref start or @ref reset.
+
+        @par Preconditions
+        This function can be called only after the
+        header is fully parsed.
+
+        @return A read-only view to the parsed request headers.
     */
     BOOST_HTTP_PROTO_DECL
     request_view
