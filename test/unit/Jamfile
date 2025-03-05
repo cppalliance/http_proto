@@ -27,7 +27,6 @@ project
     ;
 
 local SOURCES =
-    buffered_base.cpp
     context.cpp
     error.cpp
     field.cpp

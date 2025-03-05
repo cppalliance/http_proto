@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
-#include <boost/http_proto/buffered_base.hpp>
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/deflate.hpp>
 #include <boost/http_proto/error.hpp>

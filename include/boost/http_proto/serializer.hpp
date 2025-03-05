@@ -271,19 +271,13 @@ private:
         typename std::enable_if<
             std::is_constructible<
                 Source,
-                buffered_base::allocator&,
+                detail::workspace&,
                 Args...>::value>::type* = nullptr>
     Source&
     construct_source(Args&&... args)
     {
-        buffered_base::allocator a(
-            ws_.data(),
-            (ws_.size() - ws_.space_needed<Source>()) / 2,
-            false);
-        auto& src = ws_.emplace<Source>(
-            a, std::forward<Args>(args)...);
-        ws_.reserve_front(a.size_used());
-        return src;
+        return ws_.emplace<Source>(
+            ws_, std::forward<Args>(args)...);
     }
 
     BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
@@ -550,7 +544,7 @@ start(
         !std::is_abstract<Source>::value, "");
     static_assert(
         std::is_constructible<Source, Args...>::value ||
-        std::is_constructible<Source, buffered_base::allocator&, Args...>::value,
+        std::is_constructible<Source, detail::workspace&, Args...>::value,
         "The Source cannot be constructed with the given arguments");
 
     start_init(m);
