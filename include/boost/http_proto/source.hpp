@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_SOURCE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/buffered_base.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/system/error_code.hpp>
