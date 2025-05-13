@@ -16,9 +16,9 @@
 #include <boost/http_proto/service/zlib_service.hpp>
 
 #include <boost/assert.hpp>
-#include <boost/buffers/algorithm.hpp>
-#include <boost/buffers/buffer_copy.hpp>
-#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/copy.hpp>
+#include <boost/buffers/prefix.hpp>
+#include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/hexdig_chars.hpp>
@@ -1205,7 +1205,7 @@ parse(
                     {
                     case how::in_place:
                     {
-                        auto copied = buffers::buffer_copy(
+                        auto copied = buffers::copy(
                             cb1_.prepare(cb1_.capacity()),
                             chunk);
                         chunk_remain_ -= copied;
@@ -1249,7 +1249,7 @@ parse(
                             st_ = state::reset;
                             return;
                         }
-                        buffers::buffer_copy(
+                        buffers::copy(
                             eb_->prepare(chunk_avail),
                             chunk);
                         chunk_remain_ -= chunk_avail;
@@ -1366,7 +1366,7 @@ parse(
                         }
                         // only happens when an elastic body
                         // is attached in header_done state
-                        buffers::buffer_copy(
+                        buffers::copy(
                             eb_->prepare(payload_avail),
                             cb0_.data());
                         cb0_.consume(payload_avail);
@@ -1436,7 +1436,7 @@ parse(
                     error::buffer_overflow);
                 return;
             }
-            buffers::buffer_copy(
+            buffers::copy(
                 eb_->prepare(body_avail_),
                 body_buf.data());
             body_buf.consume(body_avail_);

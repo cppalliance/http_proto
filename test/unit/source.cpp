@@ -44,8 +44,8 @@ struct source_test
                 return rv;
             }
             auto const n =
-                buffers::buffer_copy(b, cb_);
-            cb_ += n;
+                buffers::copy(b, cb_);
+            cb_ = buffers::sans_prefix(cb_, n);
             rv.bytes += n;
             rv.finished = cb_.size() == 0;
             return rv;
