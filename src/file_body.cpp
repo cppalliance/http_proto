@@ -8,7 +8,6 @@
 //
 
 #include <boost/http_proto/file_body.hpp>
-#include <boost/buffers/algorithm.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {

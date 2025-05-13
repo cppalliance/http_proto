@@ -11,7 +11,8 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_FILTER_HPP
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_FILTER_HPP
 
-#include <boost/buffers/algorithm.hpp>
+#include <boost/buffers/range.hpp>
+#include <boost/buffers/sans_prefix.hpp>
 
 namespace boost {
 namespace http_proto {

@@ -38,9 +38,8 @@ TEST_SUITE(
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
 
-#include <boost/buffers/algorithm.hpp>
-#include <boost/buffers/buffer_copy.hpp>
-#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/copy.hpp>
+#include <boost/buffers/size.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/make_buffer.hpp>
@@ -231,7 +230,7 @@ struct zlib_test
             on_read(buffers::mutable_buffer b)
             {
                 results rs;
-                auto n = buffers::buffer_copy(
+                auto n = buffers::copy(
                     b,
                     buffers::const_buffer(
                         body_view_.data(),
@@ -256,14 +255,14 @@ struct zlib_test
         while(! body_view.empty() || ! sr.is_done() )
         {
             auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            BOOST_TEST_GT(buffers::size(cbs), 0);
 
-            auto n2 = buffers::buffer_copy(
+            auto n2 = buffers::copy(
                 output_buf, cbs);
-            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
+            BOOST_TEST_EQ(n2, buffers::size(cbs));
 
             sr.consume(n2);
-            output_buf += n2;
+            output_buf = buffers::sans_prefix(output_buf, n2);
         }
         return output_buf;
     }
@@ -284,7 +283,7 @@ struct zlib_test
         while(! body_view.empty() )
         {
             auto mbs = stream.prepare();
-            auto n = buffers::buffer_copy(
+            auto n = buffers::copy(
                 mbs, buffers::const_buffer(
                     body_view.data(),
                     std::min(
@@ -295,13 +294,13 @@ struct zlib_test
             stream.commit(n);
 
             auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            BOOST_TEST_GT(buffers::size(cbs), 0);
 
-            auto n2 = buffers::buffer_copy(
+            auto n2 = buffers::copy(
                 output_buf, cbs);
-            BOOST_TEST_EQ(n2, buffers::buffer_size(cbs));
+            BOOST_TEST_EQ(n2, buffers::size(cbs));
             sr.consume(n2);
-            output_buf += n2;
+            output_buf = buffers::sans_prefix(output_buf, n2);
             body_view = body_view.subspan(n);
         }
         stream.close();
@@ -309,11 +308,11 @@ struct zlib_test
         while(! sr.is_done() )
         {
             auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
-            auto n = buffers::buffer_copy(
+            BOOST_TEST_GT(buffers::size(cbs), 0);
+            auto n = buffers::copy(
                 output_buf, cbs);
-            output_buf += n;
-            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
+            output_buf = buffers::sans_prefix(output_buf, n);
+            BOOST_TEST_EQ(n, buffers::size(cbs));
             sr.consume(n);
         }
 
@@ -365,15 +364,15 @@ struct zlib_test
         while(! sr.is_done() )
         {
             auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::buffer_size(cbs), 0);
+            BOOST_TEST_GT(buffers::size(cbs), 0);
             BOOST_TEST_LT(
-                    buffers::buffer_size(cbs),
+                    buffers::size(cbs),
                     output_buf.size());
 
-            auto n = buffers::buffer_copy(output_buf, cbs);
-            BOOST_TEST_EQ(n, buffers::buffer_size(cbs));
+            auto n = buffers::copy(output_buf, cbs);
+            BOOST_TEST_EQ(n, buffers::size(cbs));
 
-            output_buf += n;
+            output_buf = buffers::sans_prefix(output_buf, n);
             sr.consume(n);
         }
         return output_buf;
@@ -544,7 +543,7 @@ struct zlib_test
         buffers::string_buffer buf(&rs);
         for(;;)
         {
-            auto n1 = buffers::buffer_copy(
+            auto n1 = buffers::copy(
                 pr.prepare(), input);
             pr.commit(n1);
             input = buffers::sans_prefix(input, n1);
@@ -558,8 +557,8 @@ struct zlib_test
                     || ec == error::need_data);
 
             // consume in_place body
-            auto n2 = buffers::buffer_copy(
-                buf.prepare(buffers::buffer_size(pr.pull_body())),
+            auto n2 = buffers::copy(
+                buf.prepare(buffers::size(pr.pull_body())),
                 pr.pull_body());
             buf.commit(n2);
             pr.consume_body(n2);
@@ -583,7 +582,7 @@ struct zlib_test
         buffers::const_buffer input)
     {
         std::string rs;
-        std::size_t n1 = buffers::buffer_copy(
+        std::size_t n1 = buffers::copy(
                 pr.prepare(), input);
         input = buffers::sans_prefix(input, n1);
         pr.commit(n1);
@@ -597,7 +596,7 @@ struct zlib_test
 
         while(ec == error::need_data)
         {
-            std::size_t n2 = buffers::buffer_copy(
+            std::size_t n2 = buffers::copy(
                     pr.prepare(), input);
             input = buffers::sans_prefix(input, n2);
             pr.commit(n2);
@@ -618,7 +617,7 @@ struct zlib_test
         response_parser& pr,
         buffers::const_buffer input)
     {
-        std::size_t n1 = buffers::buffer_copy(
+        std::size_t n1 = buffers::copy(
                 pr.prepare(), input);
         input = buffers::sans_prefix(input, n1);
         pr.commit(n1);
@@ -656,7 +655,7 @@ struct zlib_test
 
         while(ec == error::need_data)
         {
-            std::size_t n2 = buffers::buffer_copy(
+            std::size_t n2 = buffers::copy(
                     pr.prepare(), input);
             input = buffers::sans_prefix(input, n2);
             pr.commit(n2);
@@ -792,7 +791,7 @@ struct zlib_test
             "HTTP/1.1 200 OK\r\n"
             "Content-Encoding: deflate\r\n"
             "\r\n" };
-        auto n = buffers::buffer_copy(
+        auto n = buffers::copy(
             pr.prepare(),
             buffers::const_buffer{ msg.data(), msg.size() });
 

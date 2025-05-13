@@ -10,6 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_IMPL_ARRAY_OF_BUFFERS_HPP
 #define BOOST_HTTP_PROTO_DETAIL_IMPL_ARRAY_OF_BUFFERS_HPP
 
+#include <boost/buffers/sans_prefix.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
 
@@ -100,7 +101,7 @@ consume(std::size_t n)
     {
         if(n < p_->size())
         {
-            *p_ += n;
+            *p_ = buffers::sans_prefix(*p_, n);
             return;
         }
         n -= p_->size();

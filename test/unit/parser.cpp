@@ -14,8 +14,8 @@
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/service/zlib_service.hpp>
-#include <boost/buffers/buffer_copy.hpp>
-#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/copy.hpp>
+#include <boost/buffers/size.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>
@@ -241,7 +241,7 @@ struct parser_test
         {
             core::string_view& s = in[0];
             auto const n =
-                buffers::buffer_copy(
+                buffers::copy(
                 pr.prepare(),
                 buffers::make_buffer(
                     s.data(), s.size()));
@@ -302,7 +302,7 @@ struct parser_test
         pr.reset();
         pr.start();
         auto const n =
-            buffers::buffer_copy(
+            buffers::copy(
             pr.prepare(),
             buffers::make_buffer(
                 s.data(), s.size()));
@@ -461,7 +461,7 @@ struct parser_test
             BOOST_TEST_NO_THROW(
                 dest = pr.prepare());
             BOOST_TEST_EQ(
-                buffers::buffer_size(dest), n);
+                buffers::size(dest), n);
         };
 
         //
@@ -512,7 +512,7 @@ struct parser_test
             BOOST_TEST_NO_THROW(
                 dest = pr.prepare());
             BOOST_TEST_EQ(
-                buffers::buffer_size(dest), n);
+                buffers::size(dest), n);
         };
 
         {
@@ -590,7 +590,7 @@ struct parser_test
                 BOOST_TEST_NO_THROW(
                     dest = pr->prepare());
                 BOOST_TEST_EQ(
-                    buffers::buffer_size(dest), n);
+                    buffers::size(dest), n);
             }
 
             // the parser must be manually reset() to clear its inner workspace
@@ -685,7 +685,7 @@ struct parser_test
             BOOST_TEST(ec == error::need_data);
             auto dest = pr.prepare();
             BOOST_TEST_LE(
-                buffers::buffer_size(dest),
+                buffers::size(dest),
                 s.capacity());
             pr.reset();
         }
@@ -757,7 +757,7 @@ struct parser_test
             auto dest = pr.prepare();
             BOOST_TEST_THROWS(
                 pr.commit(
-                    buffers::buffer_size(dest) + 1),
+                    buffers::size(dest) + 1),
                 std::invalid_argument);
         }
 
@@ -788,7 +788,7 @@ struct parser_test
             pr.start();
             auto dest = pr.prepare();
             BOOST_TEST_GE(
-                buffers::buffer_size(dest), 1);
+                buffers::size(dest), 1);
             BOOST_TEST_NO_THROW(
                 pr.commit(1));
         }
@@ -813,7 +813,7 @@ struct parser_test
             auto dest = pr.prepare();
             BOOST_TEST_THROWS(
                 pr.commit(
-                    buffers::buffer_size(dest) + 1),
+                    buffers::size(dest) + 1),
                 std::invalid_argument);
         }
 
@@ -1005,7 +1005,7 @@ struct parser_test
             ignore_unused(dest);
             BOOST_TEST_THROWS(
                 pr.commit(
-                    buffers::buffer_size(dest) + 1),
+                    buffers::size(dest) + 1),
                 std::invalid_argument);
         }
     }
@@ -1884,7 +1884,7 @@ struct parser_test
                 octets += std::string(100, 'a');
                 remaining -= 100;
 
-                pr.commit(buffers::buffer_copy(
+                pr.commit(buffers::copy(
                     pr.prepare(),
                     buffers::const_buffer(
                         octets.data(), octets.size())));
@@ -1897,7 +1897,7 @@ struct parser_test
                 BOOST_TEST(!pr.is_complete());
 
                 pr.consume_body(
-                    buffers::buffer_size(pr.pull_body())
+                    buffers::size(pr.pull_body())
                     - 1); // left one byte so the circular buffer doesn't reset
 
                 octets.clear();
@@ -1909,7 +1909,7 @@ struct parser_test
             octets += make_header(i % 100);
             octets += std::string(i % 100, 'a');
 
-            pr.commit(buffers::buffer_copy(
+            pr.commit(buffers::copy(
                 pr.prepare(),
                 buffers::const_buffer(
                     octets.data(), octets.size())));
@@ -1988,7 +1988,7 @@ struct parser_test
                 octets += to_hex(1);
                 remaining -= 100;
 
-                pr.commit(buffers::buffer_copy(
+                pr.commit(buffers::copy(
                     pr.prepare(),
                     buffers::const_buffer(
                         octets.data(), octets.size())));
@@ -2001,7 +2001,7 @@ struct parser_test
                 BOOST_TEST(!pr.is_complete());
 
                 pr.consume_body(
-                    buffers::buffer_size(pr.pull_body()));
+                    buffers::size(pr.pull_body()));
 
                 octets.clear();
             }
@@ -2014,7 +2014,7 @@ struct parser_test
             octets += make_chunk(i % 100 + 1);
             octets += make_chunk(0);
 
-            pr.commit(buffers::buffer_copy(
+            pr.commit(buffers::copy(
                 pr.prepare(),
                 buffers::const_buffer(
                     octets.data(), octets.size())));

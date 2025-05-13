@@ -369,7 +369,7 @@ private:
     auto stream = sr.start_stream(req);
 
     std::string_view msg = "Hello, world!";
-    auto n = buffers::buffer_copy(
+    auto n = buffers::copy(
         stream.prepare(),
         buffers::make_buffer(
             msg.data(), msg.size()));

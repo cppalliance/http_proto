@@ -13,9 +13,9 @@
 
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
-#include <boost/buffers/algorithm.hpp>
-#include <boost/buffers/buffer_copy.hpp>
-#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/copy.hpp>
+#include <boost/buffers/prefix.hpp>
+#include <boost/buffers/size.hpp>
 #include <boost/buffers/const_buffer.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/mutable_buffer.hpp>
@@ -50,7 +50,7 @@ struct serializer_test
             BOOST_TEST(! is_done_);
             results rv;
             rv.bytes =
-                buffers::buffer_copy(
+                buffers::copy(
                     b,
                     buffers::make_buffer(
                         s_.data(),
@@ -97,9 +97,9 @@ struct serializer_test
         ConstBuffers const& src)
     {
         auto n0 = dest.size();
-        auto n = buffers::buffer_size(src);
+        auto n = buffers::size(src);
         dest.resize(n0 + n);
-        buffers::buffer_copy(
+        buffers::copy(
             buffers::mutable_buffer(
                 &dest[n0], n), src);
         return n;
@@ -329,13 +329,13 @@ struct serializer_test
             BOOST_TEST(!stream.is_full());
             auto mbs = stream.prepare();
 
-            auto bs = buffers::buffer_size(mbs);
+            auto bs = buffers::size(mbs);
             BOOST_TEST_GT(bs, 0);
 
             if( bs > body.size() )
                 bs = body.size();
 
-            buffers::buffer_copy(
+            buffers::copy(
                 mbs, buffers::const_buffer(body.data(), bs));
 
             stream.commit(bs);
@@ -368,9 +368,9 @@ struct serializer_test
             while( buf.size() > 0 )
             {
                 auto num_copied =
-                    buffers::buffer_copy(out_buf, buf);
+                    buffers::copy(out_buf, buf);
 
-                buf += num_copied;
+                buf = buffers::sans_prefix(buf, num_copied);
 
                 s.insert(
                     s.end(),
@@ -398,7 +398,7 @@ struct serializer_test
 
             auto cbs = mcbs.value();
             auto end = cbs.end();
-            auto size = buffers::buffer_size(cbs);
+            auto size = buffers::size(cbs);
             BOOST_TEST_GT(size, 0);
 
             for(auto pos = cbs.begin(); pos != end; ++pos)
@@ -730,7 +730,7 @@ struct serializer_test
             rv = sr.prepare();
             BOOST_TEST(! rv.has_error());
             BOOST_TEST_EQ(
-                buffers::buffer_size(*rv), 0);
+                buffers::size(*rv), 0);
             BOOST_TEST(! sr.is_done());
             sr.consume(0);
             BOOST_TEST(sr.is_done());
@@ -780,7 +780,7 @@ struct serializer_test
             auto stream = sr.start_stream(res);
             auto mbs = stream.prepare();
             BOOST_TEST_GT(
-                buffers::buffer_size(mbs), 0);
+                buffers::size(mbs), 0);
             BOOST_TEST(!stream.is_full());
             BOOST_TEST_THROWS(
                 stream.commit(0), std::logic_error);
@@ -794,12 +794,12 @@ struct serializer_test
             mcbs = sr.prepare();
             auto cbs = mcbs.value();
             BOOST_TEST_EQ(
-                buffers::buffer_size(cbs),
+                buffers::size(cbs),
                 serialized.size());
 
             std::vector<char> s(
-                buffers::buffer_size(cbs), 'a');
-            buffers::buffer_copy(
+                buffers::size(cbs), 'a');
+            buffers::copy(
                 buffers::make_buffer(
                     s.data(), s.size()),
                 cbs);

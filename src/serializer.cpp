@@ -16,9 +16,9 @@
 
 #include "detail/filter.hpp"
 
-#include <boost/buffers/algorithm.hpp>
-#include <boost/buffers/buffer_copy.hpp>
-#include <boost/buffers/buffer_size.hpp>
+#include <boost/buffers/copy.hpp>
+#include <boost/buffers/sans_prefix.hpp>
+#include <boost/buffers/size.hpp>
 #include <boost/core/ignore_unused.hpp>
 
 #include <stddef.h>
@@ -108,7 +108,7 @@ consume_buffers(
     {
         if(bytes < p->size())
         {
-            *p += bytes;
+            *p = buffers::sans_prefix(*p, bytes);
             return;
         }
         bytes -= p->size();
@@ -138,14 +138,14 @@ write_chunk_header(
     }
     buf[16] = '\r';
     buf[17] = '\n';
-    auto n = buffers::buffer_copy(
+    auto n = buffers::copy(
         dest0,
         buffers::const_buffer(
             buf, sizeof(buf)));
     ignore_unused(n);
     BOOST_ASSERT(n == 18);
     BOOST_ASSERT(
-        buffers::buffer_size(dest0) == n);
+        buffers::size(dest0) == n);
 }
 
 template<class DynamicBuffer>
@@ -153,7 +153,7 @@ void
 write_chunk_close(DynamicBuffer& db)
 {
     db.commit(
-        buffers::buffer_copy(
+        buffers::copy(
             db.prepare(2),
             buffers::const_buffer("\r\n", 2)));
 }
@@ -163,7 +163,7 @@ void
 write_last_chunk(DynamicBuffer& db)
 {
     db.commit(
-        buffers::buffer_copy(
+        buffers::copy(
             db.prepare(5),
             buffers::const_buffer("0\r\n\r\n", 5)));
 }
@@ -246,7 +246,7 @@ prepare() ->
 
     // TODO: This is a temporary solution until we refactor
     // the implementation for efficient partial buffer consumption.
-    if( is_chunked_ && buffers::buffer_size(prepped_) && is_header_done_ )
+    if( is_chunked_ && buffers::size(prepped_) && is_header_done_ )
         return const_buffers_type(
             prepped_.data(), prepped_.size());
 
@@ -278,7 +278,7 @@ prepare() ->
     {
         if( st_ == style::buffers )
         {
-            if( buffers::buffer_size(buf_) == 0 )
+            if( buffers::size(buf_) == 0 )
                 return {};
 
             auto buf = *(buf_.data());
@@ -322,7 +322,7 @@ prepare() ->
         if( st_ == style::buffers )
         {
             buf_.consume(n);
-            if( buffers::buffer_size(buf_) == 0 )
+            if( buffers::size(buf_) == 0 )
                 more_ = false;
         }
         else
@@ -404,7 +404,7 @@ prepare() ->
     auto cbs = const_buffers_type(
         prepped_.data(), prepped_.size());
 
-    BOOST_ASSERT(buffers::buffer_size(cbs) > 0);
+    BOOST_ASSERT(buffers::size(cbs) > 0);
     return cbs;
 }
 
@@ -444,7 +444,7 @@ consume(
         BOOST_ASSERT(st_ != style::empty);
         out_->consume(n);
     }
-    auto is_empty = (buffers::buffer_size(prepped_) == 0);
+    auto is_empty = (buffers::size(prepped_) == 0);
 
     if( st_ == style::buffers && !filter_ && is_empty )
         more_ = false;
@@ -529,9 +529,9 @@ start_init(
                 p + chunk_header_len_ + crlf_len_,
                 last_chunk_len_);
 
-        buffers::buffer_copy(
+        buffers::copy(
             chunk_close_, buffers::const_buffer("\r\n", 2));
-        buffers::buffer_copy(
+        buffers::copy(
             last_chunk_,
             buffers::const_buffer("0\r\n\r\n", 5));
     }
@@ -564,7 +564,7 @@ start_empty(
 
         buffers::mutable_buffer dest(
             ws_.data(), 5);
-        buffers::buffer_copy(
+        buffers::copy(
             dest,
             buffers::const_buffer(
                 "0\r\n\r\n", 5));
@@ -594,13 +594,13 @@ start_buffers(
 
         copy(&prepped_[1], buf_.data(), buf_.size());
 
-        more_ = (buffers::buffer_size(buf_) > 0);
+        more_ = (buffers::size(buf_) > 0);
         return;
     }
 
     if( !filter_ && is_chunked_ )
     {
-        if( buffers::buffer_size(buf_) == 0 )
+        if( buffers::size(buf_) == 0 )
         {
             prepped_ = make_array(
                 1 +           // header
@@ -614,7 +614,7 @@ start_buffers(
         }
 
         write_chunk_header(
-            chunk_header_, buffers::buffer_size(buf_));
+            chunk_header_, buffers::size(buf_));
 
         prepped_ = make_array(
             1 +           // header
