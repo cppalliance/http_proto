@@ -1121,7 +1121,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - { name: Windows, os: windows-latest }
+          - { name: Windows, os: windows-latest }
           - { name: Ubuntu, os: ubuntu-latest }
           - { name: MacOS, os: macos-latest }
     name: Antora Docs (${{ matrix.name }})
@@ -1153,8 +1153,14 @@ jobs:
         with:
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
           boost-dir: boost-source
-          scan-modules-dir: http-proto-root
-          scan-modules-ignore: http_proto
+          cache: false
+          modules-exclude-paths: ''
+          scan-modules-dir: |
+            http-proto-root
+            buffers-root
+          scan-modules-ignore: |
+            http_proto
+            buffers
 
       - name: Patch Boost
         id: patch
@@ -1189,9 +1195,6 @@ jobs:
           cp -r "$workspace_root"/http-proto-root "libs/$module"
           cp -r "$workspace_root"/buffers-root libs/buffers
 
-          python3 tools/boostdep/depinst/depinst.py buffers
-          python3 tools/boostdep/depinst/depinst.py http_proto
-
       - uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -1223,4 +1226,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: antora-docs-${{ matrix.name }}
-          path: doc/build/site
+          path: boost-root/libs/http_proto/doc/build/site

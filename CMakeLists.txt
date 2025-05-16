@@ -133,24 +133,30 @@ endif ()
 #
 #-------------------------------------------------
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 file(GLOB_RECURSE BOOST_HTTP_PROTO_HEADERS CONFIGURE_DEPENDS include/boost/*.hpp include/boost/*.natvis)
 file(GLOB_RECURSE BOOST_HTTP_PROTO_SOURCES CONFIGURE_DEPENDS src/*.cpp src/*.hpp)
+file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_SOURCES CONFIGURE_DEPENDS src_zlib/*.cpp src_zlib/*.hpp)
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_HTTP_PROTO_HEADERS})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
+
 add_library(boost_http_proto ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_SOURCES})
 add_library(Boost::http_proto ALIAS boost_http_proto)
 target_compile_features(boost_http_proto PUBLIC cxx_constexpr)
-target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_NO_LIB=1)
 target_include_directories(boost_http_proto PUBLIC "${PROJECT_SOURCE_DIR}/include")
 target_link_libraries(boost_http_proto PUBLIC ${BOOST_HTTP_PROTO_DEPENDENCIES})
-target_compile_definitions(boost_http_proto PUBLIC $<IF:$<BOOL:${BUILD_SHARED_LIBS}>,BOOST_HTTP_PROTO_DYN_LINK=1,BOOST_HTTP_PROTO_STATIC_LINK=1>)
+target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_NO_LIB)
 target_compile_definitions(boost_http_proto PRIVATE BOOST_HTTP_PROTO_SOURCE)
+if (BUILD_SHARED_LIBS)
+    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_DYN_LINK)
+else ()
+    target_compile_definitions(boost_http_proto PUBLIC BOOST_HTTP_PROTO_STATIC_LINK)
+endif ()
 
 find_package(ZLIB)
-
 if (ZLIB_FOUND)
-    file(GLOB_RECURSE BOOST_HTTP_PROTO_ZLIB_SOURCES CONFIGURE_DEPENDS src_zlib/*.cpp src_zlib/*.hpp)
-    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src_zlib PREFIX "http_proto" FILES ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
     add_library(boost_http_proto_zlib ${BOOST_HTTP_PROTO_HEADERS} ${BOOST_HTTP_PROTO_ZLIB_SOURCES})
     add_library(Boost::http_proto_zlib ALIAS boost_http_proto_zlib)
     target_link_libraries(boost_http_proto_zlib PUBLIC boost_http_proto)
