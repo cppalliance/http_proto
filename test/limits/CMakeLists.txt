@@ -14,6 +14,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES limits.cpp Jamfile)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../../url/extra PREFIX "_extra" FILES ${TEST_MAIN})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../../src PREFIX "_extra" FILES ${LIMITS_SOURCES})
 add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ${LIMITS_SOURCES})
+target_include_directories(boost_http_proto_limits PRIVATE ../../)
 target_include_directories(boost_http_proto_limits PRIVATE ../../include ../../../url/extra ../../..)
 target_compile_definitions(boost_http_proto_limits PRIVATE
     BOOST_HTTP_PROTO_MAX_HEADER=20

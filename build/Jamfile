@@ -44,6 +44,7 @@ lib boost_http_proto
    : requirements
      <library>/boost//buffers
      <library>/boost//url
+     <include>../
      <define>BOOST_HTTP_PROTO_SOURCE
    : usage-requirements
      <library>/boost//buffers
@@ -59,6 +60,7 @@ lib boost_http_proto_zlib
    : requirements
      <library>/boost/http_proto//boost_http_proto
      [ ac.check-library /zlib//zlib : <library>/zlib//zlib : <build>no ]
+     <include>../
      <define>BOOST_HTTP_PROTO_ZLIB_SOURCE
    : usage-requirements
      <library>/zlib//zlib

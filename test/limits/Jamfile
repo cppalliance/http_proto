@@ -14,6 +14,7 @@ project
       $(c11-requires)
       <source>../../../url/extra/test_main.cpp
       <include>.
+      <include>../..
       <include>../../../url/extra
       <library>/boost//buffers
       <library>/boost//url
