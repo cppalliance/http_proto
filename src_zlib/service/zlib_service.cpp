@@ -14,12 +14,14 @@
 #include <boost/config.hpp>
 #include <boost/system/result.hpp>
 #include <boost/throw_exception.hpp>
-
+#include <boost/static_assert.hpp>
 #include <zlib.h>
 
 namespace boost {
 namespace http_proto {
 namespace zlib {
+
+//------------------------------------------------
 
 namespace {
 
@@ -320,6 +322,8 @@ install_service(context& ctx)
 {
     ctx.make_service<service_impl>();
 }
+
+//------------------------------------------------
 
 } // zlib
 } // http_proto
