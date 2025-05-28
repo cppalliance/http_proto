@@ -25,8 +25,8 @@ class message_base
     : public fields_base
     , public message_view_base
 {
-    friend class request;
-    friend class response;
+    friend class request_base;
+    friend class response_base;
 
     explicit
     message_base(
@@ -34,6 +34,16 @@ class message_base
         : fields_view_base(
             &this->fields_base::h_)
         , fields_base(k)
+    {
+    }
+
+    message_base(
+        detail::kind k,
+        char* storage,
+        std::size_t storage_size) noexcept
+        : fields_view_base(&this->fields_base::h_)
+        , fields_base(
+            k, storage, storage_size)
     {
     }
 
@@ -67,12 +77,34 @@ class message_base
     {
     }
 
+    message_base(
+        detail::kind k,
+        char* storage,
+        std::size_t storage_size,
+        core::string_view s)
+        : fields_view_base(
+            &this->fields_base::h_)
+        , fields_base(
+            k, storage, storage_size, s)
+    {
+    }
+
     explicit
     message_base(
-        detail::header const& ph) noexcept
+        detail::header const& ph)
         : fields_view_base(
             &this->fields_base::h_)
         , fields_base(ph)
+    {
+    }
+
+    message_base(
+        detail::header const& ph,
+        char* storage,
+        std::size_t storage_size)
+        : fields_view_base(
+            &this->fields_base::h_)
+        , fields_base(ph, storage, storage_size)
     {
     }
 

@@ -1387,10 +1387,6 @@ struct fields_base_test
         testErase();
         testSet();
         testExpect();
-
-        test_suite::log <<
-            "sizeof(detail::header) == " <<
-            sizeof(detail::header) << "\n";
     }
 };
 

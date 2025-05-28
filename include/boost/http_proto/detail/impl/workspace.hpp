@@ -30,7 +30,7 @@ struct workspace::any
 };
 
 template<class U>
-struct alignas(alignof(::max_align_t))
+struct alignas(::max_align_t)
     workspace::any_impl : any
 {
     U u;
@@ -117,7 +117,7 @@ push_array(
     std::size_t n,
     T const& t)
 {
-    struct alignas(alignof(::max_align_t))
+    struct alignas(::max_align_t)
         U : any
     {
         std::size_t n_ = 0;

@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -32,13 +33,29 @@
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/token_rule.hpp>
 
-#include "detail/move_chars.hpp"
-#include "rfc/detail/rules.hpp"
+#include "src/detail/move_chars.hpp"
+#include "src/rfc/detail/rules.hpp"
 
 namespace boost {
 namespace http_proto {
 
-static
+namespace {
+
+std::size_t
+align_down(
+    void * ptr,
+    std::size_t size,
+    std::size_t alignment)
+{
+    auto addr = reinterpret_cast<std::uintptr_t>(ptr);
+    auto aligned_end = (addr + size) & ~(alignment - 1);
+
+    if(aligned_end > addr)
+        return aligned_end - addr;
+
+    return 0;
+}
+
 system::result<core::string_view>
 verify_field_name(
     core::string_view name)
@@ -56,7 +73,6 @@ verify_field_name(
     return rv;
 }
 
-static
 system::result<typename detail::field_value_rule_t::value_type>
 verify_field_value(
     core::string_view value)
@@ -80,6 +96,8 @@ verify_field_value(
 
     return rv;
 }
+
+} // namespace
 
 class fields_base::
     op_t
@@ -194,13 +212,13 @@ op_t::
 reserve(
     std::size_t bytes)
 {
-    if(bytes > self_.max_capacity_in_bytes())
+    auto n = growth(
+        self_.h_.cap, bytes);
+    if(n > self_.max_capacity_in_bytes())
     {
         // max capacity exceeded
         detail::throw_length_error();
     }
-    auto n = growth(
-        self_.h_.cap, bytes);
     if(n <= self_.h_.cap)
         return false;
     auto buf = new char[n];
@@ -276,10 +294,117 @@ move_chars(
 //------------------------------------------------
 
 fields_base::
+prefix_op_t::
+prefix_op_t(
+    fields_base& self,
+    std::size_t new_prefix,
+    core::string_view* s0,
+    core::string_view* s1)
+    : self_(self)
+    , new_prefix_(static_cast<
+        offset_type>(new_prefix))
+{
+    if(self.h_.size - self.h_.prefix + new_prefix
+        > max_offset)
+        detail::throw_length_error();
+
+    // memmove happens in the destructor
+    // to avoid overlaping with start line.
+    if(new_prefix_ < self_.h_.prefix
+        && !self.h_.is_default())
+        return;
+
+    auto new_size =
+        self.h_.size - self.h_.prefix + new_prefix_;
+    if(new_size > self.h_.cap)
+    {
+        // static storage will always throw which is
+        // intended since they cannot reallocate.
+        if(self.h_.max_cap < new_size)
+            detail::throw_length_error();
+
+        auto bytes_needed =
+            detail::header::bytes_needed(
+                new_size,
+                self.h_.count);
+
+        char* p = new char[bytes_needed];
+        std::memcpy(
+            p + new_prefix_,
+            self.h_.cbuf + self.h_.prefix,
+            self.h_.size - self.h_.prefix);
+        self.h_.copy_table(p + bytes_needed);
+
+        // old buffer gets released in the destructor
+        // to avoid invalidating any string_views
+        // that may still reference it.
+        buf_        = self.h_.buf;
+        self.h_.buf = p;
+        self.h_.cap = bytes_needed;
+    }
+    else
+    {
+        // memmove to the right and update any
+        // string_views that reference that region.
+        detail::move_chars(
+            self.h_.buf + new_prefix_,
+            self.h_.cbuf + self.h_.prefix,
+            self.h_.size - self.h_.prefix,
+            s0,
+            s1);
+    }
+
+    self.h_.cbuf   = self.h_.buf;
+    self.h_.size   = new_size;
+    self.h_.prefix = new_prefix_;
+}
+
+fields_base::
+prefix_op_t::
+~prefix_op_t()
+{
+    if(new_prefix_ < self_.h_.prefix)
+    {
+        std::memmove(
+            self_.h_.buf + new_prefix_,
+            self_.h_.cbuf + self_.h_.prefix,
+            self_.h_.size - self_.h_.prefix);
+
+        self_.h_.cbuf = self_.h_.buf;
+        self_.h_.size =
+            self_.h_.size - self_.h_.prefix + new_prefix_;
+        self_.h_.prefix = new_prefix_;
+    }
+    else if(buf_)
+    {
+        delete[] buf_;
+    }
+}
+
+//------------------------------------------------
+
+fields_base::
 fields_base(
     detail::kind k) noexcept
     : fields_base(k, 0)
 {
+}
+
+fields_base::
+fields_base(
+    detail::kind k,
+    char* storage,
+    std::size_t storage_size) noexcept
+    : fields_view_base(&h_)
+    , h_(k)
+    , static_storage(true)
+{
+    h_.buf = storage;
+    h_.cap = align_down(
+        storage,
+        storage_size,
+        alignof(detail::header::entry));
+    h_.max_cap = h_.cap;
 }
 
 fields_base::
@@ -351,6 +476,53 @@ fields_base(
         detail::throw_system_error(ec);
 }
 
+// copy s and parse it
+fields_base::
+fields_base(
+    detail::kind k,
+    char* storage,
+    std::size_t storage_size,
+    core::string_view s)
+    : fields_view_base(&h_)
+    , h_(detail::empty{k})
+    , static_storage(true)
+{
+    h_.cbuf = storage;
+    h_.buf = storage;
+    h_.cap = align_down(
+        storage,
+        storage_size,
+        alignof(detail::header::entry));
+    h_.max_cap = h_.cap;
+
+    auto n = detail::header::count_crlf(s);
+    if(h_.kind == detail::kind::fields)
+    {
+        if(n < 1)
+            detail::throw_invalid_argument();
+        n -= 1;
+    }
+    else
+    {
+        if(n < 2)
+            detail::throw_invalid_argument();
+        n -= 2;
+    }
+
+    if(detail::header::bytes_needed(
+        s.size(), n)
+            >= h_.cap)
+        detail::throw_length_error();
+
+    s.copy(h_.buf, s.size());
+    system::error_code ec;
+    // VFALCO This is using defaults?
+    header_limits lim;
+    h_.parse(s.size(), lim, ec);
+    if(ec.failed())
+        detail::throw_system_error(ec);
+}
+
 // construct a complete copy of h
 fields_base::
 fields_base(
@@ -359,16 +531,44 @@ fields_base(
     , h_(h.kind)
 {
     if(h.is_default())
-    {
-        BOOST_ASSERT(h.cap == 0);
-        BOOST_ASSERT(h.buf == nullptr);
-        h_ = h;
         return;
-    }
 
     // allocate and copy the buffer
     op_t op(*this);
     op.grow(h.size, h.count);
+    h.assign_to(h_);
+    std::memcpy(
+        h_.buf, h.cbuf, h.size);
+    h.copy_table(h_.buf + h_.cap);
+}
+
+// construct a complete copy of h
+fields_base::
+fields_base(
+    detail::header const& h,
+    char* storage,
+    std::size_t storage_size)
+    : fields_view_base(&h_)
+    , h_(h.kind)
+    , static_storage(true)
+{
+    h_.buf = storage;
+    h_.cap = align_down(
+        storage,
+        storage_size,
+        alignof(detail::header::entry));
+    h_.max_cap = h_.cap;
+
+    if(h.is_default())
+        return;
+
+    h_.cbuf = storage;
+
+    if(detail::header::bytes_needed(
+        h.size, h.count)
+            >= h_.cap)
+        detail::throw_length_error();
+
     h.assign_to(h_);
     std::memcpy(
         h_.buf, h.cbuf, h.size);
@@ -380,7 +580,7 @@ fields_base(
 fields_base::
 ~fields_base()
 {
-    if(h_.buf)
+    if(h_.buf && !static_storage)
         delete[] h_.buf;
 }
 
@@ -435,6 +635,10 @@ shrink_to_fit() noexcept
         h_.size, h_.count) >=
             h_.cap)
         return;
+
+    if(static_storage)
+        return;
+
     fields_base tmp(h_);
     tmp.h_.swap(h_);
 }
@@ -641,6 +845,8 @@ set(
             h_.size - pos1);
         *dest++ = '\r';
         *dest++ = '\n';
+
+        h_.cbuf = h_.buf;
     }
     {
         // update tab
@@ -775,24 +981,36 @@ copy_impl(
 {
     BOOST_ASSERT(
         h.kind == ph_->kind);
-    if(! h.is_default())
+
+    auto const n =
+        detail::header::bytes_needed(
+            h.size, h.count);
+    if(n <= h_.cap && !h.is_default())
     {
-        auto const n =
-            detail::header::bytes_needed(
-                h.size, h.count);
-        if(n <= h_.cap)
+        // no realloc
+        h_.cbuf = h_.buf;
+        h.assign_to(h_);
+        h.copy_table(
+            h_.buf + h_.cap);
+        std::memcpy(
+            h_.buf,
+            h.cbuf,
+            h.size);
+        return;
+    }
+
+    if(static_storage)
+    {
+        if(h.is_default())
         {
-            // no realloc
             h.assign_to(h_);
-            h.copy_table(
-                h_.buf + h_.cap);
-            std::memcpy(
-                h_.buf,
-                h.cbuf,
-                h.size);
+            h_.cbuf = h.cbuf;
             return;
         }
+        // static storages cannot reallocate
+        detail::throw_length_error();
     }
+
     fields_base tmp(h);
     tmp.h_.swap(h_);
 }
@@ -840,6 +1058,7 @@ insert_impl_unchecked(
             h_.buf + pos + n,
             h_.buf + pos,
             h_.size - pos);
+        h_.cbuf = h_.buf;
     }
 
     // serialize

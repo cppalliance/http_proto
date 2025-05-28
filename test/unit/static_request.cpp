@@ -1,6 +1,5 @@
 //
-// Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
-// Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,20 +8,32 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/request.hpp>
+#include <boost/http_proto/static_request.hpp>
 
 #include <boost/http_proto/request_view.hpp>
 
 #include <utility>
 
-#include "boost/http_proto/message_base.hpp"
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
 
-struct request_test
+struct static_request_test
 {
+    template<std::size_t Capacity>
+    static
+    void
+    check(
+        static_request<Capacity>& req,
+        std::size_t count,
+        core::string_view s)
+    {
+        req = static_request<Capacity>(s);
+        BOOST_TEST(
+            req.size() == count);
+    }
+
     void
     testHelpers()
     {
@@ -30,7 +41,7 @@ struct request_test
             "POST /x HTTP/1.0\r\n"
             "User-Agent: boost\r\n"
             "\r\n";
-        request req(cs);
+        static_request<64> req(cs);
         BOOST_TEST(req.method() == method::post);
         BOOST_TEST(req.method_text() == "POST");
         BOOST_TEST(req.target() == "/x");
@@ -42,15 +53,6 @@ struct request_test
     void
     testSpecial()
     {
-        auto const check =
-        []( request& req,
-            std::size_t count,
-            core::string_view s)
-        {
-            req = request(s);
-            BOOST_TEST(
-                req.size() == count);
-        };
 
         core::string_view const cs =
             "POST /x HTTP/1.0\r\n"
@@ -58,14 +60,9 @@ struct request_test
             "User-Agent: boost\r\n"
             "\r\n";
 
-        core::string_view const cs2 =
-            "CONNECT 127.0.0.1 HTTP/1.1\r\n"
-            "User-Agent: boost\r\n"
-            "\r\n";
-
-        // request()
+        // static_request()
         {
-            request req;
+            static_request<64> req;
             check(req, 0,
                 "GET / HTTP/1.1\r\n"
                 "\r\n");
@@ -79,12 +76,12 @@ struct request_test
                 req.version() == version::http_1_1);
         }
 
-        // request(request const&)
+        // static_request(static_request const&)
         {
             {
                 // default
-                request r1;
-                request r2(r1);
+                static_request<64> r1;
+                static_request<64> r2(r1);
                 check(r2, 0,
                     "GET / HTTP/1.1\r\n"
                     "\r\n");
@@ -96,8 +93,8 @@ struct request_test
                     r2.version() == version::http_1_1);
             }
             {
-                request r1(cs);
-                request r2(r1);
+                static_request<128> r1(cs);
+                static_request<128> r2(r1);
                 check(r1, 2, cs);
                 check(r2, 2, cs);
                 BOOST_TEST(
@@ -112,50 +109,12 @@ struct request_test
             }
         }
 
-        // request(request&&)
+        // operator=(static_request const&)
         {
             {
                 // default
-                request r1;
-                request r2(std::move(r1));
-                check(r1, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                check(r2, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                BOOST_TEST(
-                    r2.method() == method::get);
-                BOOST_TEST(
-                    r2.method_text() == "GET");
-                BOOST_TEST(
-                    r2.version() == version::http_1_1);
-            }
-            {
-                request r1(cs);
-                request r2(std::move(r1));
-                check(r1, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                check(r2, 2, cs);
-                BOOST_TEST(
-                    r2.buffer().data() !=
-                        r1.buffer().data());
-                BOOST_TEST(
-                    r2.method() == method::post);
-                BOOST_TEST(
-                    r2.method_text() == "POST");
-                BOOST_TEST(
-                    r2.version() == version::http_1_0);
-            }
-        }
-
-        // operator=(request const&)
-        {
-            {
-                // default
-                request r1;
-                request r2(cs);
+                static_request<128> r1;
+                static_request<128> r2(cs);
                 r1 = r2;
                 check(r1, 2, cs);
                 check(r2, 2, cs);
@@ -170,8 +129,8 @@ struct request_test
                     r1.version() == version::http_1_0);
             }
             {
-                request r1(cs);
-                request r2;
+                static_request<128> r1(cs);
+                static_request<128> r2;
                 r1 = r2;
                 check(r1, 0,
                     "GET / HTTP/1.1\r\n"
@@ -187,77 +146,19 @@ struct request_test
                     r1.version() == version::http_1_1);
             }
         }
-
-        // operator=(fields&&)
-        {
-            {
-                request r1(cs);
-                request r2;
-                r2 = std::move(r1);
-                check(r1, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                check(r2, 2, cs);
-                BOOST_TEST(
-                    r2.method() == method::post);
-                BOOST_TEST(
-                    r2.method_text() == "POST");
-                BOOST_TEST(
-                    r2.target() == "/x");
-                BOOST_TEST(
-                    r2.version() == version::http_1_0);
-            }
-            {
-                request r1(cs);
-                request r2(cs2);
-                r2 = std::move(r1);
-                check(r1, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                check(r2, 2, cs);
-                BOOST_TEST(
-                    r2.method() == method::post);
-                BOOST_TEST(
-                    r2.method_text() == "POST");
-                BOOST_TEST(
-                    r2.target() == "/x");
-                BOOST_TEST(
-                    r2.version() == version::http_1_0);
-            }
-            {
-                request r1;
-                request r2(cs);
-                r2 = std::move(r1);
-                check(r1, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                check(r2, 0,
-                    "GET / HTTP/1.1\r\n"
-                    "\r\n");
-                BOOST_TEST(
-                    r1.buffer().data() !=
-                    r2.buffer().data());
-                BOOST_TEST(
-                    r2.method() == method::get);
-                BOOST_TEST(
-                    r2.method_text() == "GET");
-                BOOST_TEST(
-                    r2.version() == version::http_1_1);
-            }
-        }
     }
 
     void
     testViewConstructor()
     {
         {
-            request req;
+            static_request<64> req;
             BOOST_TEST_EQ(
                 req.buffer(),
                 "GET / HTTP/1.1\r\n\r\n");
 
             request_view req_view(req);
-            request req2(req_view);
+            static_request<64> req2(req_view);
 
             BOOST_TEST_EQ(
                 req2.buffer(),
@@ -275,14 +176,14 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<64> req;
             req.set_method("POST");
             BOOST_TEST_EQ(
                 req.buffer(),
                 "POST / HTTP/1.1\r\n\r\n");
 
             request_view req_view(req);
-            request req2(req_view);
+            static_request<64> req2(req_view);
 
             BOOST_TEST_EQ(
                 req2.buffer(),
@@ -309,15 +210,15 @@ struct request_test
         // clear()
         {
             {
-                request req;
-                BOOST_TEST(req.capacity_in_bytes() == 0);
+                static_request<64> req;
+                BOOST_TEST(req.capacity_in_bytes() == 64);
                 req.clear();
-                BOOST_TEST(req.capacity_in_bytes() == 0);
+                BOOST_TEST(req.capacity_in_bytes() == 64);
                 BOOST_TEST(req.buffer() ==
                     "GET / HTTP/1.1\r\n\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -344,7 +245,7 @@ struct request_test
         // set_method(method)
         {
             {
-                request req;
+                static_request<64> req;
                 req.set_method(method::delete_);
                 BOOST_TEST(
                     req.method() == method::delete_);
@@ -354,7 +255,7 @@ struct request_test
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -373,7 +274,7 @@ struct request_test
         // set_method(string_view)
         {
             {
-                request req;
+                static_request<64> req;
                 req.set_method("DELETE");
                 BOOST_TEST(
                     req.method() == method::delete_);
@@ -383,7 +284,7 @@ struct request_test
                     "DELETE / HTTP/1.1\r\n\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "POST /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -398,7 +299,7 @@ struct request_test
                     "\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "DELETE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -413,7 +314,7 @@ struct request_test
                     "\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -428,7 +329,7 @@ struct request_test
                     "\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -447,7 +348,7 @@ struct request_test
         // set_target
         {
             {
-                request req;
+                static_request<128> req;
                 req.set_target("/index.htm");
                 BOOST_TEST(
                     req.target() == "/index.htm");
@@ -455,7 +356,7 @@ struct request_test
                     "GET /index.htm HTTP/1.1\r\n\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -467,7 +368,7 @@ struct request_test
             }
             {
                 // shrinks
-                request req(
+                static_request<128> req(
                     "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -481,7 +382,7 @@ struct request_test
             }
             {
                 // same size
-                request req(
+                static_request<128> req(
                     "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -495,7 +396,7 @@ struct request_test
             }
             {
                 // grows
-                request req(
+                static_request<128> req(
                     "SOMETHINGSUPERLONGHERE /abcdefghijklmnopqrstuvwxyz HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -512,7 +413,7 @@ struct request_test
         // set_version
         {
             {
-                request req;
+                static_request<128> req;
                 req.set_version(version::http_1_0);
                 BOOST_TEST(
                     req.version() == version::http_1_0);
@@ -520,7 +421,7 @@ struct request_test
                     "GET / HTTP/1.0\r\n\r\n");
             }
             {
-                request req(
+                static_request<128> req(
                     "POST /x HTTP/1.1\r\n"
                     "User-Agent: boost\r\n"
                     "\r\n");
@@ -539,7 +440,7 @@ struct request_test
     testExpect()
     {
         {
-            request req;
+            static_request<64> req;
             req.set_expect_100_continue(true);
             BOOST_TEST(
                 req.metadata().expect.is_100_continue);
@@ -551,14 +452,14 @@ struct request_test
 
 
         {
-            request req;
+            static_request<64> req;
             req.set_expect_100_continue(false);
             BOOST_TEST(
                 !req.metadata().expect.is_100_continue);
         }
 
         {
-            request req;
+            static_request<64> req;
             req.set_expect_100_continue(true);
             BOOST_TEST(
                 req.metadata().expect.is_100_continue);
@@ -569,7 +470,7 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<64> req;
             BOOST_TEST(
                 !req.metadata().expect.ec.failed());
 
@@ -585,7 +486,7 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<128> req;
             req.append("Expect", "100-continue");
             req.append("Expect", "101-dalmations");
 
@@ -604,7 +505,7 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<256> req;
             req.append("Expect", "100-continue");
             req.append("Content-Length", "1234");
             req.append("Expect", "100-continue");
@@ -624,7 +525,7 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<256> req;
             req.append("Expect", "404-not-found");
             req.append("Content-Length", "1234");
             req.append("Expect", "101-dalmations");
@@ -644,7 +545,7 @@ struct request_test
         }
 
         {
-            request req;
+            static_request<256> req;
             req.append("Expect", "100-continue");
             req.append("Content-Length", "1234");
             req.append("Expect", "100-continue");
@@ -669,139 +570,13 @@ struct request_test
     void
     testInitialSize()
     {
-        auto check_default =[](request& f)
         {
-            BOOST_TEST_EQ(
-                f.capacity_in_bytes(), 0);
-
-            auto const old = f.buffer().data();
-            f.append(field::host, "www.google.com");
-            f.append(field::connection, "close");
-            f.insert(
-                f.find(field::host),
-                field::content_length, "1234");
-
-            BOOST_TEST_NE(
-                f.buffer().data(), old);
-            // implies that the default capacity is larger than whatever is
-            // required for these simple operations
-            BOOST_TEST_GT(
-                f.capacity_in_bytes(), 0);
-            BOOST_TEST_GE(
-                f.max_capacity_in_bytes(), f.capacity_in_bytes());
-        };
-
-        auto check = [](
-            request& f,
-            std::size_t size,
-            std::size_t max_size)
-        {
-            auto const old = f.buffer().data();
-            f.append(field::host, "www.google.com");
-            f.append(field::connection, "close");
-            f.insert(
-                f.find(field::host),
-                field::content_length, "1234");
-
-            BOOST_TEST_EQ(
-                f.buffer().data(), old);
-            BOOST_TEST_EQ(
-                f.capacity_in_bytes(), size);
-            BOOST_TEST_EQ(
-                f.max_capacity_in_bytes(), max_size);
-            BOOST_TEST_THROWS(
-                f.reserve_bytes(max_size + 1),
-                std::length_error);
-        };
-
-        {
-            request f;
-            check_default(f);
-        }
-
-        {
-            request f(0);
-            check_default(f);
-        }
-
-        {
-            request f(0, 0);
+            static_request<16> f;
             BOOST_TEST_THROWS(
                 f.append(field::host, "www.google.com"),
                 std::length_error);
             BOOST_TEST_EQ(
-                f.max_capacity_in_bytes(), 0);
-        }
-
-        {
-            BOOST_TEST_THROWS(
-                request(0, ~std::size_t{0}),
-                std::length_error);
-
-            BOOST_TEST_THROWS(
-                request(1024, ~std::size_t{0}),
-                std::length_error);
-        }
-
-        {
-            std::size_t init = 4096;
-            std::size_t cap = init;
-
-            request f(init);
-            check(f, init, cap);
-        }
-
-        {
-            std::size_t init = 4096;
-            std::size_t cap = 8192;
-
-            request f(init, cap);
-            check(f, init, cap);
-        }
-
-        {
-            std::size_t init = 4096;
-
-            request f(init);
-            request f2(2 * init);
-            check(f, init, init);
-
-            f = f2;
-            // check(f, init, 2 * init);
-            // check(f2, 2 * init, 2 * init);
-        }
-
-        {
-            std::size_t init = 4096;
-            std::size_t cap = 8192;
-
-            request f(init, cap);
-            request f2(2 * init, 2 * cap);
-            check(f, init, cap);
-
-            f = f2;
-            // check(f, init, 2 * cap);
-            // check(f2, 2 * init, 2 * cap);
-        }
-
-        {
-            std::size_t init = 4096;
-            std::size_t cap = 8192;
-
-            request f(init, cap);
-            request f2(2 * init, 2 * cap);
-            check(f, init, cap);
-
-            f = std::move(f2);
-            check(f, 2 * init, 2 * cap);
-        }
-
-        {
-            BOOST_TEST_THROWS(
-                request(1024, 0), std::length_error);
-
-            BOOST_TEST_THROWS(
-                request(1024, 512), std::length_error);
+                f.max_capacity_in_bytes(), 16);
         }
     }
 
@@ -819,8 +594,8 @@ struct request_test
 };
 
 TEST_SUITE(
-    request_test,
-    "boost.http_proto.request");
+    static_request_test,
+    "boost.http_proto.static_request");
 
 } // http_proto
 } // boost

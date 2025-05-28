@@ -23,7 +23,7 @@ class BOOST_SYMBOL_VISIBLE
     response_view
     : public message_view_base
 {
-    friend class response;
+    friend class response_base;
     friend class response_parser;
 
     explicit

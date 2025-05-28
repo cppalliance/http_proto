@@ -1,6 +1,7 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 // Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -37,31 +38,45 @@ class fields_base
     : public virtual fields_view_base
 {
     detail::header h_;
+    bool static_storage = false;
 
     class op_t;
+    class prefix_op_t
+    {
+        fields_base& self_;
+        offset_type new_prefix_;
+        char* buf_ = nullptr;
+
+    public:
+        prefix_op_t(
+            fields_base& self,
+            std::size_t new_prefix,
+            core::string_view* s0 = nullptr,
+            core::string_view* s1 = nullptr);
+
+        ~prefix_op_t();
+    };
+
     using entry =
         detail::header::entry;
     using table =
         detail::header::table;
 
     friend class fields;
+    template<std::size_t>
+    friend class static_fields;
+    friend class request_base;
     friend class request;
+    template<std::size_t>
+    friend class static_request;
+    friend class response_base;
     friend class response;
+    template<std::size_t>
+    friend class static_response;
     friend class serializer;
     friend class message_base;
     friend struct detail::header;
     friend struct detail::prefix_op;
-
-    BOOST_HTTP_PROTO_DECL
-    fields_base(
-        detail::kind,
-        std::size_t size);
-
-    BOOST_HTTP_PROTO_DECL
-    fields_base(
-        detail::kind,
-        std::size_t size,
-        std::size_t max_size);
 
     BOOST_HTTP_PROTO_DECL
     explicit
@@ -71,9 +86,42 @@ class fields_base
     BOOST_HTTP_PROTO_DECL
     fields_base(
         detail::kind,
+        char*,
+        std::size_t) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        std::size_t);
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        std::size_t,
+        std::size_t);
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
         core::string_view);
 
-    fields_base(detail::header const&);
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::kind,
+        char*,
+        std::size_t,
+        core::string_view);
+
+    BOOST_HTTP_PROTO_DECL
+    explicit
+    fields_base(
+        detail::header const&);
+
+    BOOST_HTTP_PROTO_DECL
+    fields_base(
+        detail::header const&,
+        char*,
+        std::size_t);
 
 public:
     /** Destructor
