@@ -24,6 +24,8 @@ class BOOST_SYMBOL_VISIBLE
     : public fields_view_base
 {
     friend class fields;
+    template<std::size_t>
+    friend class static_fields;
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 protected:

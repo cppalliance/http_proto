@@ -46,10 +46,12 @@ struct empty
 
 struct header
 {
-    // this field lookup table is
-    // stored at the end of the
-    // allocated buffer, in
-    // reverse order.
+    // +------------+-----------+--------------+------------------------------+
+    // | start-line |  headers  |  free space  |  entry[count-1] ... entry[0] |
+    // +------------+-----------+--------------+------------------------------+
+    // ^            ^           ^                                             ^
+    // buf          buf+prefix  buf+size                                      buf+cap
+
     struct entry
     {
         offset_type np;   // name pos

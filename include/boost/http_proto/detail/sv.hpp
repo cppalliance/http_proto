@@ -21,7 +21,7 @@ namespace detail {
 namespace string_literals {
 inline
 core::string_view
-operator"" _sv(
+operator""_sv(
     char const* p,
     std::size_t n) noexcept
 {

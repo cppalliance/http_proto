@@ -54,6 +54,9 @@ local SOURCES =
     serializer.cpp
     sink.cpp
     source.cpp
+    static_fields.cpp
+    static_request.cpp
+    static_response.cpp
     status.cpp
     string_body.cpp
     test_helpers.cpp

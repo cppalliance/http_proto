@@ -32,13 +32,21 @@ class fields_view_base
     detail::header const* ph_;
 
     friend class fields;
+    template<std::size_t>
+    friend class static_fields;
     friend class fields_base;
     friend class fields_view;
     friend class message_base;
     friend class message_view_base;
+    friend class request_base;
     friend class request;
+    template<std::size_t>
+    friend class static_request;
     friend class request_view;
+    friend class response_base;
     friend class response;
+    template<std::size_t>
+    friend class static_response;
     friend class response_view;
     friend class serializer;
 

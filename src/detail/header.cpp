@@ -209,13 +209,14 @@ bytes_needed(
     // make sure `size` is big enough
     // to hold the largest default buffer:
     // "HTTP/1.1 200 OK\r\n\r\n"
-    if( size < 19)
+    if(size < 19)
         size = 19;
-    static constexpr auto A =
-        alignof(header::entry);
-    return align_up(size, A) +
-            (count * sizeof(
-                header::entry));
+
+    return
+        align_up(
+            size,
+            alignof(header::entry)) +
+        count * sizeof(header::entry);
 }
 
 std::size_t
@@ -258,7 +259,7 @@ bool
 header::
 is_default() const noexcept
 {
-    return buf == nullptr;
+    return buf != cbuf;
 }
 
 std::size_t
@@ -308,6 +309,11 @@ copy_table(
     void* dest,
     std::size_t n) const noexcept
 {
+    // When `n == 0`, cbuf + cap may have incorrect
+    // alignment, which can trigger UB sanitizer.
+    if(n == 0)
+        return;
+
     std::memcpy(
         reinterpret_cast<
             entry*>(dest) - n,
@@ -335,10 +341,12 @@ assign_to(
     auto const buf_ = dest.buf;
     auto const cbuf_ = dest.cbuf;
     auto const cap_ = dest.cap;
+    auto const max_cap_ = dest.max_cap;
     dest = *this;
     dest.buf = buf_;
     dest.cbuf = cbuf_;
     dest.cap = cap_;
+    dest.max_cap = max_cap_;
 }
 
 //------------------------------------------------
