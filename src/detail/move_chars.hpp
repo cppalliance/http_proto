@@ -47,7 +47,8 @@ is_overlapping(
 inline
 void
 move_chars_impl(
-    std::ptrdiff_t,
+    char*,
+    char const*,
     core::string_view const&) noexcept
 {
 }
@@ -55,7 +56,8 @@ move_chars_impl(
 template<class... Sn>
 void
 move_chars_impl(
-    std::ptrdiff_t d,
+    char* dest,
+    char const* src,
     core::string_view const& buf,
     core::string_view* s,
     Sn&&... sn) noexcept
@@ -63,9 +65,9 @@ move_chars_impl(
     if( s != nullptr &&
         is_overlapping(buf, *s))
     {
-        *s = { s->data() + d, s->size() };
+        *s = { s->data() + (dest - src), s->size() };
     }
-    move_chars_impl(d, buf, sn...);
+    move_chars_impl(dest, src, buf, sn...);
 }
 
 template<class... Args>
@@ -77,7 +79,8 @@ move_chars(
     Args&&... args) noexcept
 {
     move_chars_impl(
-        dest - src,
+        dest,
+        src,
         core::string_view(src, n),
         args...);
     std::memmove(
