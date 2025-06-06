@@ -829,7 +829,7 @@ jobs:
           ref: develop
 
       - name: Setup C++
-        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.8
+        uses: alandefreitas/cpp-actions/setup-cpp@v1.8.10
         id: setup-cpp
         with:
           compiler: ${{ matrix.compiler }}
@@ -838,7 +838,7 @@ jobs:
           trace-commands: true
 
       - name: Install packages
-        uses: alandefreitas/cpp-actions/package-install@v1.8.8
+        uses: alandefreitas/cpp-actions/package-install@v1.8.10
         id: package-install
         with:
           apt-get-add-architecture: 'i386'
@@ -847,12 +847,12 @@ jobs:
             build-essential
 
       - name: Clone Boost
-        uses: alandefreitas/cpp-actions/boost-clone@v1.8.8
+        uses: alandefreitas/cpp-actions/boost-clone@v1.8.10
         id: boost-clone
         with:
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
           boost-dir: boost-source
-          cache: false
+          cache: true
           modules-exclude-paths: ''
           scan-modules-dir: |
             http-proto-root
@@ -862,7 +862,7 @@ jobs:
             buffers
 
       - name: Install zlib (Windows)
-        uses: alandefreitas/cpp-actions/package-install@v1.8.8
+        uses: alandefreitas/cpp-actions/package-install@v1.8.10
         if: ${{ startsWith(matrix.runs-on, 'windows') && !matrix.skip-zlib }}
         id: zlib-install
         with:
@@ -927,7 +927,7 @@ jobs:
           cp -r "$workspace_root"/buffers-root libs/buffers
 
       - name: Boost B2 Workflow
-        uses: alandefreitas/cpp-actions/b2-workflow@v1.8.8
+        uses: alandefreitas/cpp-actions/b2-workflow@v1.8.10
         if: ${{ !matrix.coverage && !matrix.time-trace }}
         env:
           ASAN_OPTIONS: ${{ ((matrix.compiler == 'apple-clang' || matrix.compiler == 'clang') && 'detect_invalid_pointer_pairs=0:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1') || 'detect_invalid_pointer_pairs=2:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1' }}
@@ -949,7 +949,7 @@ jobs:
           extra-args: ${{ (matrix.valgrind && 'testing.launcher=valgrind' || '' )}}
 
       - name: Boost CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.8
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.10
         if: ${{ matrix.coverage || matrix.time-trace || matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root
@@ -986,7 +986,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/.local/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
       - name: Find Package Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.8
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.10
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -1010,7 +1010,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Subdirectory Integration Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.8
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.10
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}/test/cmake_test
@@ -1031,7 +1031,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: Root Project CMake Workflow
-        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.8
+        uses: alandefreitas/cpp-actions/cmake-workflow@v1.8.10
         if: ${{ matrix.build-cmake || matrix.is-earliest }}
         with:
           source-dir: boost-root/libs/${{ steps.patch.outputs.module }}
@@ -1055,7 +1055,7 @@ jobs:
           toolchain: ${{ (startsWith(matrix.runs-on, 'windows') && steps.patch-user-config.outputs.toolchain) || '' }}
 
       - name: FlameGraph
-        uses: alandefreitas/cpp-actions/flamegraph@v1.8.8
+        uses: alandefreitas/cpp-actions/flamegraph@v1.8.10
         if: matrix.time-trace
         with:
           source-dir: boost-root/libs/http_proto
@@ -1108,7 +1108,7 @@ jobs:
           fetch-depth: 100
 
       - name: Changelog
-        uses: alandefreitas/cpp-actions/create-changelog@v1.8.8
+        uses: alandefreitas/cpp-actions/create-changelog@v1.8.10
         with:
           thank-non-regular: ${{ startsWith(github.ref, 'refs/tags/') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -1131,7 +1131,7 @@ jobs:
         shell: bash
     steps:
       - name: Install packages
-        uses: alandefreitas/cpp-actions/package-install@v1.8.8
+        uses: alandefreitas/cpp-actions/package-install@v1.8.10
         with:
           apt-get: git cmake
 
@@ -1148,12 +1148,12 @@ jobs:
           ref: develop
 
       - name: Clone Boost
-        uses: alandefreitas/cpp-actions/boost-clone@v1.8.8
+        uses: alandefreitas/cpp-actions/boost-clone@v1.8.10
         id: boost-clone
         with:
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
           boost-dir: boost-source
-          cache: false
+          cache: true
           modules-exclude-paths: ''
           scan-modules-dir: |
             http-proto-root

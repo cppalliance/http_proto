@@ -74,8 +74,7 @@ class filter;
     according to the documented HTTP ABNFs is treated
     as an unrecoverable error.
 */
-class BOOST_SYMBOL_VISIBLE
-    parser
+class parser
 {
 public:
     /** Parser configuration settings.

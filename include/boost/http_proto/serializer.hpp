@@ -65,8 +65,7 @@ class filter;
     called, or the serializer is destroyed, otherwise the
     behavior is undefined.
 */
-class BOOST_SYMBOL_VISIBLE
-    serializer
+class serializer
 {
 public:
     using const_buffers_type = buffers::const_buffer_span;

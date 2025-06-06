@@ -19,8 +19,7 @@ namespace http_proto {
 
 /** A reference to an HTTP response header
 */
-class BOOST_SYMBOL_VISIBLE
-    response_view
+class response_view
     : public message_view_base
 {
     friend class response_base;

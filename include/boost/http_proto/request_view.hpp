@@ -19,8 +19,7 @@ namespace http_proto {
 
 /** A read-only reference to an HTTP request
 */
-class BOOST_SYMBOL_VISIBLE
-    request_view
+class request_view
     : public message_view_base
 {
     friend class request_base;
@@ -88,7 +87,7 @@ public:
     /** Return the request-target string
     */
     core::string_view
-    target_text() const noexcept
+    target() const noexcept
     {
         return core::string_view(
             ph_->cbuf +

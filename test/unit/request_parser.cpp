@@ -133,7 +133,7 @@ struct request_parser_test
             BOOST_TEST(req.method() == m);
             BOOST_TEST(req.method_text() ==
                 to_string(m));
-            BOOST_TEST(req.target_text() == t);
+            BOOST_TEST(req.target() == t);
             BOOST_TEST(req.version() == v);
         };
 
@@ -319,7 +319,7 @@ struct request_parser_test
             rv.method() == method::get);
         BOOST_TEST(
             rv.method_text() == "GET");
-        BOOST_TEST(rv.target_text() == "/");
+        BOOST_TEST(rv.target() == "/");
         BOOST_TEST(rv.version() ==
             version::http_1_1);
 

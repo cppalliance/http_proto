@@ -117,7 +117,7 @@ struct stream
 /** Provides in-memory compression and decompression functions
     using zlib underneath.
 */
-struct BOOST_HTTP_PROTO_DECL
+struct BOOST_SYMBOL_VISIBLE
     service
     : http_proto::service
 {
