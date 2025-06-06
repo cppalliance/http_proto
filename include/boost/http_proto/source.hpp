@@ -31,7 +31,7 @@ namespace http_proto {
     Non-const member functions may not be
     called concurrently on the same instance.
 */
-struct BOOST_HTTP_PROTO_DECL
+struct BOOST_SYMBOL_VISIBLE
     source
 {
     /** The results of producing data.
@@ -153,6 +153,7 @@ private:
             indicate failure or that no more
             data remains (or both).
     */
+    BOOST_HTTP_PROTO_DECL
     virtual
     results
     on_read(

@@ -19,8 +19,7 @@ namespace http_proto {
 
 /** A read-only, forward range of HTTP fields
 */
-class BOOST_SYMBOL_VISIBLE
-    fields_view
+class fields_view
     : public fields_view_base
 {
     friend class fields;

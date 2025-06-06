@@ -20,8 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-class BOOST_SYMBOL_VISIBLE
-    response_parser
+class response_parser
     : public parser
 {
 public:

@@ -23,8 +23,7 @@ namespace http_proto {
 
 /** Provides message metadata for requests and responses
 */
-class BOOST_SYMBOL_VISIBLE
-    message_view_base
+class message_view_base
     : public virtual fields_view_base
 {
     friend class request_view;
