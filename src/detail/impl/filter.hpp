@@ -41,8 +41,8 @@ process_impl(
     auto ib = *it_i++;
     for(;;)
     {
-        // empty buffers may be passed, and this is
-        // intentional and valid.
+        // empty input buffers may be passed, and
+        // this is intentional and valid.
         results rs = process_impl(ob, ib, more);
 
         rv.out_bytes += rs.out_bytes;
@@ -56,7 +56,7 @@ process_impl(
         ob = buffers::sans_prefix(ob, rs.out_bytes);
         ib = buffers::sans_prefix(ib, rs.in_bytes);
 
-        if( ob.size() == 0 )
+        while( ob.size() == 0 )
         {
             if( it_o == buffers::end(out) )
                 return rv;

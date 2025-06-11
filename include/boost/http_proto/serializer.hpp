@@ -11,19 +11,21 @@
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
 #include <boost/http_proto/context.hpp>
-#include <boost/http_proto/detail/array_of_buffers.hpp>
+#include <boost/http_proto/detail/array_of_const_buffers.hpp>
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/source.hpp>
+
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/system/result.hpp>
-#include <cstdint>
+
 #include <memory>
+#include <numeric>
 #include <type_traits>
 #include <utility>
 
@@ -31,14 +33,10 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
-class request;
-class response;
-class request_view;
-class response_view;
 class message_view_base;
 namespace detail {
 class filter;
-} // detail
+} // namespace detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -68,7 +66,8 @@ class filter;
 class serializer
 {
 public:
-    using const_buffers_type = buffers::const_buffer_span;
+    using const_buffers_type =
+        buffers::const_buffer_span;
 
     struct stream;
 
@@ -219,36 +218,14 @@ public:
     void
     consume(std::size_t n);
 
-    /** Applies deflate compression to the current message
-
-        After @ref reset is called, compression is not
-        applied to the next message.
-
-        Must be called before any calls to @ref start.
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    use_deflate_encoding();
-
-    /** Applies gzip compression to the current message
-
-        After @ref reset is called, compression is not
-        applied to the next message.
-
-        Must be called before any calls to @ref start.
-    */
-    BOOST_HTTP_PROTO_DECL
-    void
-    use_gzip_encoding();
-
 private:
-    static void copy(
-        buffers::const_buffer*,
-        buffers::const_buffer const*,
-        std::size_t n) noexcept;
-    auto
-    make_array(std::size_t n) ->
-        detail::array_of_const_buffers;
+    class const_buf_gen_base;
+
+    template<class>
+    class const_buf_gen;
+
+    detail::array_of_const_buffers
+    make_array(std::size_t n);
 
     template<
         class Source,
@@ -279,10 +256,25 @@ private:
             ws_, std::forward<Args>(args)...);
     }
 
-    BOOST_HTTP_PROTO_DECL void start_init(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void start_empty(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void start_buffers(message_view_base const&);
-    BOOST_HTTP_PROTO_DECL void start_source(message_view_base const&, source*);
+    BOOST_HTTP_PROTO_DECL
+    void
+    start_init(
+        message_view_base const&);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    start_empty(
+        message_view_base const&);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    start_buffers(
+        message_view_base const&);
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    start_source(
+        message_view_base const&);
 
     enum class style
     {
@@ -292,68 +284,25 @@ private:
         stream
     };
 
-    // chunked-body   = *chunk
-    //                  last-chunk
-    //                  trailer-section
-    //                  CRLF
-
-    static
-    constexpr
-    std::size_t
-    crlf_len_ = 2;
-
-    // chunk          = chunk-size [ chunk-ext ] CRLF
-    //                  chunk-data CRLF
-    static
-    constexpr
-    std::size_t
-    chunk_header_len_ =
-        16 + // 16 hex digits => 64 bit number
-        crlf_len_;
-
-    // last-chunk     = 1*("0") [ chunk-ext ] CRLF
-    static
-    constexpr
-    std::size_t
-    last_chunk_len_ =
-        1 + // "0"
-        crlf_len_ +
-        crlf_len_; // chunked-body termination requires an extra CRLF
-
-    static
-    constexpr
-    std::size_t
-    chunked_overhead_ =
-        chunk_header_len_ +
-        crlf_len_ + // closing chunk data
-        last_chunk_len_;
-
-    detail::workspace ws_;
-    detail::array_of_const_buffers buf_;
-    detail::filter* filter_ = nullptr;
-    source* src_;
     context& ctx_;
-    buffers::circular_buffer tmp0_;
-    buffers::circular_buffer tmp1_;
+    detail::workspace ws_;
+
+    const_buf_gen_base* buf_gen_;
+    detail::filter* filter_;
+    source* source_;
+
+    buffers::circular_buffer cb0_;
+    buffers::circular_buffer cb1_;
     detail::array_of_const_buffers prepped_;
-
-    buffers::mutable_buffer chunk_header_;
-    buffers::mutable_buffer chunk_close_;
-    buffers::mutable_buffer last_chunk_;
-
-    buffers::circular_buffer* in_ = nullptr;
-    buffers::circular_buffer* out_ = nullptr;
-
-    buffers::const_buffer* hp_;  // header
+    buffers::const_buffer tmp_;
 
     style st_;
-    bool more_;
+    bool more_input_;
     bool is_done_;
     bool is_header_done_;
     bool is_chunked_;
-    bool is_expect_continue_;
-    bool is_compressed_ = false;
-    bool filter_done_ = false;
+    bool needs_exp100_continue_;
+    bool filter_done_;
 };
 
 //------------------------------------------------
@@ -421,17 +370,6 @@ struct serializer::stream
     BOOST_HTTP_PROTO_DECL
     std::size_t
     capacity() const noexcept;
-
-    /** Returns the number of octets serialized by this
-        stream.
-
-        The associated serializer stores stream output in its
-        internal buffers. The stream returns the size of this
-        output.
-    */
-    BOOST_HTTP_PROTO_DECL
-    std::size_t
-    size() const noexcept;
 
     /** Return true if the stream cannot currently hold
         additional output data.
@@ -503,6 +441,97 @@ private:
 
 //---------------------------------------------------------
 
+class serializer::const_buf_gen_base
+{
+public:
+    // Next non-empty buffer
+    virtual
+    buffers::const_buffer
+    operator()() = 0;
+
+    // Size of remaining buffers
+    virtual
+    std::size_t
+    size() const = 0;
+
+    // Count of remaining non-empty buffers
+    virtual
+    std::size_t
+    count() const = 0;
+
+    // Returns true when there is no buffer or
+    // the remaining buffers are empty
+    virtual
+    bool
+    is_empty() const = 0;
+};
+
+template<class ConstBufferSequence>
+class serializer::const_buf_gen
+    : public const_buf_gen_base
+{
+    using it_t = decltype(buffers::begin(
+        std::declval<ConstBufferSequence>()));
+
+    ConstBufferSequence cbs_;
+    it_t current_;
+public:
+    using const_buffer =
+        buffers::const_buffer;
+
+    explicit
+    const_buf_gen(ConstBufferSequence cbs)
+        : cbs_(std::move(cbs))
+        , current_(buffers::begin(cbs_))
+    {
+    }
+
+    const_buffer
+    operator()() override
+    {
+        while(current_ != buffers::end(cbs_))
+        {
+            const_buffer buf = *current_++;
+            if(buf.size() != 0)
+                return buf;
+        }
+        return {};
+    }
+
+    std::size_t
+    size() const override
+    {
+        return std::accumulate(
+            current_,
+            buffers::end(cbs_),
+            std::size_t{},
+            [](std::size_t sum, const_buffer cb) {
+                return sum + cb.size(); });
+    }
+
+    std::size_t
+    count() const override
+    {
+        return std::count_if(
+            current_,
+            buffers::end(cbs_),
+            [](const_buffer cb) {
+                return cb.size() != 0; });
+    }
+
+    bool
+    is_empty() const override
+    {
+        return std::all_of(
+            current_,
+            buffers::end(cbs_),
+            [](const_buffer cb) {
+                return cb.size() == 0; });
+    }
+};
+
+//---------------------------------------------------------
+
 template<
     class ConstBufferSequence,
     class>
@@ -510,22 +539,17 @@ void
 serializer::
 start(
     message_view_base const& m,
-    ConstBufferSequence&& body)
+    ConstBufferSequence&& cbs)
 {
+    static_assert(buffers::is_const_buffer_sequence<
+            ConstBufferSequence>::value,
+        "ConstBufferSequence type requirements not met");
+
     start_init(m);
-    auto const& bs =
-        ws_.emplace<ConstBufferSequence>(
-            std::forward<ConstBufferSequence>(body));
-
-    std::size_t n = std::distance(
-        buffers::begin(bs),
-        buffers::end(bs));
-
-    buf_ = make_array(n);
-    auto p = buf_.data();
-    for(buffers::const_buffer b : buffers::range(bs))
-        *p++ = b;
-
+    buf_gen_ = std::addressof(
+        ws_.emplace<const_buf_gen<typename
+        std::decay<ConstBufferSequence>::type>>(
+                std::forward<ConstBufferSequence>(cbs)));
     start_buffers(m);
 }
 
@@ -549,22 +573,9 @@ start(
     start_init(m);
     auto& src = construct_source<Source>(
         std::forward<Args>(args)...);
-    start_source(m, std::addressof(src));
+    source_ = std::addressof(src);
+    start_source(m);
     return src;
-}
-
-//------------------------------------------------
-
-inline
-auto
-serializer::
-make_array(std::size_t n) ->
-    detail::array_of_const_buffers
-{
-    return {
-        ws_.push_array(n,
-        buffers::const_buffer{}),
-        n };
 }
 
 } // http_proto
