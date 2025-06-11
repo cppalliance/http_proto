@@ -404,23 +404,16 @@ struct zlib_test
             sr.reset();
 
             response res;
-            res.set("Transfer-Encoding", c);
+            res.set("Content-Encoding", c);
             res.set_chunked(chunked_encoding);
 
             std::string header;
             {
                 header += "HTTP/1.1 200 OK\r\n";
                 if( c == "deflate" )
-                {
-                    header += "Transfer-Encoding: deflate\r\n";
-                    sr.use_deflate_encoding();
-                }
+                    header += "Content-Encoding: deflate\r\n";
                 if( c == "gzip" )
-                {
-                    header += "Transfer-Encoding: gzip\r\n";
-                    sr.use_gzip_encoding();
-                }
-
+                    header += "Content-Encoding: gzip\r\n";
                 if( chunked_encoding )
                     header += "Transfer-Encoding: chunked\r\n";
 
@@ -763,9 +756,9 @@ struct zlib_test
 
         response res{
             "HTTP/1.1 200 OK\r\n"
+            "Content-Encoding: gzip\r\n"
             "\r\n" };
         std::string buf(1024, '*');
-        sr.use_gzip_encoding();
         sr.start(res, buffers::const_buffer{ buf.data(), buf.size() });
 
         auto rs = sr.prepare();
