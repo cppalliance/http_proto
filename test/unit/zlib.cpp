@@ -207,7 +207,7 @@ struct zlib_test
         core::string_view sv2(
             reinterpret_cast<char const*>(
                 decompressed_output.data()), n);
-        BOOST_TEST_EQ(sv2, expected);
+        BOOST_TEST(sv2 == expected);
 
         ::inflateEnd(&zs);
         return;
@@ -464,7 +464,7 @@ struct zlib_test
 
                 if( chunk_size == 0 )
                 {
-                    BOOST_TEST_EQ(chunk, "\r\n");
+                    BOOST_TEST(chunk == "\r\n");
                 }
                 else
                 {
