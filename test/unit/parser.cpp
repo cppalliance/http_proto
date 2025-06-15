@@ -1272,11 +1272,11 @@ struct parser_test
         }
         if(pr_->is_complete())
         {
-            BOOST_TEST_EQ(pr_->body(), sb_);
+            BOOST_TEST(pr_->body() == sb_);
             // this should be a no-op
             read(*pr_, in, ec);
             BOOST_TEST(! ec.failed());
-            BOOST_TEST_EQ(pr_->body(), sb_);
+            BOOST_TEST(pr_->body() == sb_);
             return;
         }
         read(*pr_, in, ec);
@@ -1288,11 +1288,11 @@ struct parser_test
         }
         if(! BOOST_TEST(pr_->is_complete()))
             return;
-        BOOST_TEST_EQ(pr_->body(), sb_);
+        BOOST_TEST(pr_->body() == sb_);
         // this should be a no-op
         read(*pr_, in, ec);
         BOOST_TEST(! ec.failed());
-        BOOST_TEST_EQ(pr_->body(), sb_);
+        BOOST_TEST(pr_->body() == sb_);
     }
 
     void
@@ -1325,13 +1325,13 @@ struct parser_test
             if(! BOOST_TEST(pr_->is_complete()))
                 return;
         }
-        BOOST_TEST_EQ(
-            test_to_string(fb.data()), sb_);
+        BOOST_TEST(
+            test_to_string(fb.data()) == sb_);
         // this should be a no-op
         read(*pr_, in, ec);
         BOOST_TEST(! ec.failed());
-        BOOST_TEST_EQ(
-            test_to_string(fb.data()), sb_);
+        BOOST_TEST(
+            test_to_string(fb.data()) == sb_);
     }
 
     void
@@ -1362,11 +1362,11 @@ struct parser_test
             if(! BOOST_TEST(pr_->is_complete()))
                 return;
         }
-        BOOST_TEST_EQ(ts.s, sb_);
+        BOOST_TEST(ts.s == sb_);
         // this should be a no-op
         read(*pr_, in, ec);
         BOOST_TEST(! ec.failed());
-        BOOST_TEST_EQ(ts.s, sb_);
+        BOOST_TEST(ts.s == sb_);
     }
 
 
@@ -1642,7 +1642,7 @@ struct parser_test
             BOOST_TEST(pr.is_complete());
 
             auto str = pr.body();
-            BOOST_TEST_EQ(str, "hello, world!");
+            BOOST_TEST(str == "hello, world!");
         }
 
         {
@@ -1674,7 +1674,7 @@ struct parser_test
             read(pr, in2, ec);
             BOOST_TEST(! ec.failed());
             BOOST_TEST(pr.is_complete());
-            BOOST_TEST_EQ(pr.body(), "hello, world!");
+            BOOST_TEST(pr.body() == "hello, world!");
         }
 
         {
@@ -1755,9 +1755,9 @@ struct parser_test
             system::error_code ec;
             read(pr, in, ec);
             BOOST_TEST(pr.is_complete());
-            BOOST_TEST_EQ(
-                pr.body(),
-                "hello, world! and this is a much longer string of text");
+            BOOST_TEST(
+                pr.body() ==
+                    "hello, world! and this is a much longer string of text");
         }
 
         {
@@ -1841,9 +1841,9 @@ struct parser_test
 
                 read(pr, in, ec);
                 BOOST_TEST(pr.is_complete());
-                BOOST_TEST_EQ(
-                    pr.body(),
-                    "hello, world! and this is a much longer string of text");
+                BOOST_TEST(
+                    pr.body() ==
+                        "hello, world! and this is a much longer string of text");
             }
         }
     }

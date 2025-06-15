@@ -152,8 +152,7 @@ struct serializer_test
 
             if( chunk_size == 0 ) // last chunk
             {
-                BOOST_TEST_EQ(chunked_body, "\r\n");
-                BOOST_TEST_EQ(chunked_body.size(), 2);
+                BOOST_TEST(chunked_body == "\r\n");
                 chunked_body.remove_prefix(2);
                 break;
             }
@@ -229,7 +228,7 @@ struct serializer_test
             serializer sr(ctx);
             sr.start(res);
             std::string s = read(sr);
-            BOOST_TEST_EQ(s, expected);
+            BOOST_TEST(s == expected);
         };
 
         check(
@@ -481,8 +480,8 @@ struct serializer_test
                     "Content-Length: 2048\r\n"
                     "\r\n";
 
-                BOOST_TEST_EQ(
-                    s.substr(0, header.size()), header);
+                BOOST_TEST(
+                    s.substr(0, header.size()) == header);
                 BOOST_TEST(s ==
                     "HTTP/1.1 200 OK\r\n"
                     "Server: test\r\n"
@@ -623,8 +622,8 @@ struct serializer_test
                         s.starts_with(expected_header));
 
                     s.remove_prefix(expected_header.size());
-                    BOOST_TEST_EQ(
-                        s, std::string(13370, '*'));
+                    BOOST_TEST(
+                        s == std::string(13370, '*'));
                 });
         }
 
@@ -800,9 +799,7 @@ struct serializer_test
             mcbs = sr.prepare();
             std::string body;
             append(body, *mcbs);
-            BOOST_TEST_EQ(
-                "0\r\n\r\n",
-                body);
+            BOOST_TEST(body == "0\r\n\r\n");
             sr.consume(5);
 
             BOOST_TEST(sr.is_done());
