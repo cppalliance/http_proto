@@ -1,15 +1,14 @@
 //
 // Copyright (c) 2023 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/cppalliance/buffers
+// Official repository: https://github.com/cppalliance/http_proto
 //
 
 #include <boost/http_proto/source.hpp>
-#include <boost/buffers/mutable_buffer.hpp>
-#include <boost/assert.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -28,11 +27,16 @@ on_read(
     do
     {
         buffers::mutable_buffer b(*it++);
-        rv += on_read(b);
-        if(rv.ec.failed())
+        auto rs = on_read(b);
+        rv += rs;
+        if(rs.ec.failed())
             return rv;
-        if(rv.finished)
+        if(rs.finished)
             break;
+        // Source must fill the entire buffer
+        // unless it has finished
+        if(b.size() != rs.bytes)
+            detail::throw_logic_error();
     }
     while(it != end_);
     return rv;

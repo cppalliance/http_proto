@@ -444,10 +444,11 @@ private:
 class serializer::const_buf_gen_base
 {
 public:
-    // Next non-empty buffer
+    // Returns the next non-empty buffer,
+    // or an empty buffer if none remain.
     virtual
     buffers::const_buffer
-    operator()() = 0;
+    next() = 0;
 
     // Size of remaining buffers
     virtual
@@ -487,7 +488,7 @@ public:
     }
 
     const_buffer
-    operator()() override
+    next() override
     {
         while(current_ != buffers::end(cbs_))
         {
