@@ -9,7 +9,9 @@
 //
 
 #include <boost/http_proto/detail/config.hpp>
+#include <iostream>
 
+#include "boost/buffers/prefix.hpp"
 #include "test_suite.hpp"
 
 #ifndef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -186,7 +188,7 @@ struct zlib_test
         }
 
         std::vector<unsigned char> decompressed_output(
-            2 * expected.size(), 0x00);
+            2 * expected.size() + 50, 0x00);
 
         zs.next_in = compressed.data();
         zs.avail_in =
@@ -234,9 +236,7 @@ struct zlib_test
                     b,
                     buffers::const_buffer(
                         body_view_.data(),
-                        std::min(
-                            std::size_t{512},
-                            body_view_.size())));
+                        body_view_.size()));
 
                 body_view_ = body_view_.subspan(n);
                 rs.bytes = n;
@@ -289,9 +289,8 @@ struct zlib_test
                     std::min(
                         std::size_t{512},
                         body_view.size())));
-
-            BOOST_TEST_GT(n, 0);
-            stream.commit(n);
+            body_view = body_view.subspan(n);
+            stream.commit(n);                
 
             auto cbs = sr.prepare().value();
             BOOST_TEST_GT(buffers::size(cbs), 0);
@@ -301,8 +300,8 @@ struct zlib_test
             BOOST_TEST_EQ(n2, buffers::size(cbs));
             sr.consume(n2);
             output_buf = buffers::sans_prefix(output_buf, n2);
-            body_view = body_view.subspan(n);
         }
+
         stream.close();
 
         while(! sr.is_done() )
@@ -351,9 +350,6 @@ struct zlib_test
                 buf_seq.push_back(
                     {body_view.data() + offset, remaining});
             }
-
-            for( auto buf : buf_seq )
-                BOOST_TEST_GT(buf.size(), 0);
         }
 
         buffers::const_buffer_span bufs(
@@ -422,7 +418,7 @@ struct zlib_test
 
             core::string_view str = header;
             std::vector<unsigned char> output(
-                str.size() + 3 * body.size(), 0x00);
+                str.size() + 3 * body.size() + 50, 0x00);
 
             span<char const> body_view = body;
             auto output_buf =
@@ -492,6 +488,8 @@ struct zlib_test
     void
     test_serializer()
     {
+        std::string empty_body = "";
+
         std::string short_body =
             "hello world, compression seems super duper cool! hmm, but what if I also add like a whole bunch of text to this thing????";
 
@@ -499,6 +497,7 @@ struct zlib_test
             generate_book(350000);
 
         std::vector<core::string_view> bodies = {
+            empty_body,
             short_body,
             long_body
         };

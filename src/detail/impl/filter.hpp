@@ -30,20 +30,44 @@ process_impl(
         results
 {
     results rv;
+
     auto it_o = buffers::begin(out);
     auto it_i = buffers::begin(in);
 
-    if( it_o == buffers::end(out) ||
-        it_i == buffers::end(in) )
-        return rv;
+    auto ob = [&]() -> buffers::mutable_buffer
+    {
+        if( it_o != buffers::end(out) )
+            return *it_o++;
+        return {};
+    }();
 
-    auto ob = *it_o++;
-    auto ib = *it_i++;
+    buffers::const_buffer ib;
+
     for(;;)
     {
+        while( ib.size() == 0 )
+        {
+            if( it_i == buffers::end(in) )
+            {
+                if( more )
+                    return rv;
+
+                // if more == false we return only
+                // when output buffers are full.
+                break;
+            }
+            else
+            {
+                ib = *it_i++;
+            }
+        }
+
         // empty input buffers may be passed, and
         // this is intentional and valid.
-        results rs = process_impl(ob, ib, more);
+        results rs = process_impl(
+            ob,
+            ib,
+            more || it_i != buffers::end(in));
 
         rv.out_bytes += rs.out_bytes;
         rv.in_bytes  += rs.in_bytes;
@@ -61,21 +85,6 @@ process_impl(
             if( it_o == buffers::end(out) )
                 return rv;
             ob = *it_o++;
-        }
-
-        if( ib.size() == 0 )
-        {
-            if( it_i == buffers::end(in) )
-            {
-                // if `more == false` we return only
-                // when `out` buffers are full.
-                if( more )
-                    return rv;
-            }
-            else
-            {
-                ib = *it_i++;
-            }
         }
     }
 }
