@@ -13,17 +13,18 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/inflate_service.hpp>
+
+#include "src/detail/zlib_filter.hpp"
 
 #include <boost/assert.hpp>
 #include <boost/buffers/copy.hpp>
+#include <boost/buffers/front.hpp>
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/hexdig_chars.hpp>
-
-#include "detail/filter.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -112,62 +113,6 @@ Buffer Usage
 */
 
 namespace {
-class inflator_filter
-    : public http_proto::detail::filter
-{
-    zlib::stream& inflator_;
-
-public:
-    inflator_filter(
-        context& ctx,
-        http_proto::detail::workspace& ws,
-        bool use_gzip)
-        : inflator_{ ctx.get_service<zlib::service>()
-            .make_inflator(ws, use_gzip ? 31 : 15) }
-    {
-    }
-
-    virtual filter::results
-    on_process(
-        buffers::mutable_buffer out,
-        buffers::const_buffer in,
-        bool more) override
-    {
-        auto flush =
-            more ? zlib::flush::none : zlib::flush::finish;
-        filter::results results;
-
-        for(;;)
-        {
-            auto params = zlib::params{in.data(), in.size(),
-                out.data(), out.size() };
-            auto ec = inflator_.write(params, flush);
-
-            results.in_bytes  += in.size() - params.avail_in;
-            results.out_bytes += out.size() - params.avail_out;
-
-            if( ec.failed() &&
-                ec != zlib::error::buf_err )
-            {
-                results.ec = ec;
-                return results;
-            }
-
-            if( ec == zlib::error::stream_end )
-            {
-                results.finished = true;
-                return results;
-            }
-
-            in  = buffers::suffix(in, params.avail_in);
-            out = buffers::suffix(out, params.avail_out);
-
-            if( in.size() == 0 || out.size() == 0 )
-                return results;
-        }
-    }
-};
-
 class chained_sequence
 {
     char const* pos_;
@@ -351,6 +296,87 @@ clamp(
 }
 } // namespace
 
+class parser::filter
+    : public detail::zlib_filter
+{
+    zlib::inflate_service& svc_;
+    zlib::stream strm_;
+
+public:
+    struct results
+    {
+        std::size_t out_bytes = 0;
+        std::size_t in_bytes  = 0;
+        bool finished = false;
+        system::error_code ec;
+    };
+
+    filter(
+        context& ctx,
+        http_proto::detail::workspace& ws,
+        bool gzip)
+        : svc_(ctx.get_service<zlib::inflate_service>())
+    {
+        strm_.zalloc = &zalloc;
+        strm_.zfree  = &zfree;
+        strm_.opaque = &ws;
+        system::error_code ec = static_cast<zlib::error>(
+            svc_.init2(strm_, gzip ? 31 : 15));
+        if(ec != zlib::error::ok)
+            detail::throw_system_error(ec);
+    }
+
+    results
+    process(
+        buffers::mutable_buffer_subspan out,
+        buffers::const_buffer_pair in,
+        bool more)
+    {
+        results rv;
+        auto flush = zlib::no_flush;
+        for(;;)
+        {
+            const auto ob = buffers::front(out);
+            const auto ib = buffers::front(in);
+
+            if(!more && in[1].size() == 0)
+                flush = zlib::finish;
+
+            strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(ib.data()));
+            strm_.avail_in  = saturate_cast(ib.size());
+            strm_.next_out  = static_cast<unsigned char*>(ob.data());
+            strm_.avail_out = saturate_cast(ob.size());
+
+            auto ec = BOOST_HTTP_PROTO_ERR(
+                static_cast<zlib::error>(svc_.inflate(strm_, flush)));
+
+            const std::size_t in_bytes  = saturate_cast(ib.size()) - strm_.avail_in;
+            const std::size_t out_bytes = saturate_cast(ob.size()) - strm_.avail_out;
+
+            rv.in_bytes  += in_bytes;
+            rv.out_bytes += out_bytes;
+
+            if(ec.failed())
+                return rv;
+
+            if(ec == zlib::error::stream_end)
+            {
+                rv.finished = true;
+                return rv;
+            }
+
+            out = buffers::sans_prefix(out, out_bytes);
+            in  = buffers::sans_prefix(in, in_bytes);
+
+            if(buffers::size(out) == 0)
+                return rv;
+
+            if(buffers::size(in) == 0 && strm_.avail_out != 0)
+                return rv;
+        }
+    }
+};
+
 class parser_service
     : public service
 {
@@ -358,7 +384,6 @@ public:
     parser::config_base cfg;
     std::size_t space_needed = 0;
     std::size_t max_codec = 0;
-    zlib::service const* zlib_svc = nullptr;
 
     parser_service(
         context& ctx,
@@ -375,7 +400,7 @@ public:
 
 parser_service::
 parser_service(
-    context& ctx,
+    context& /* ctx */,
     parser::config_base const& cfg_)
         : cfg(cfg_)
 {
@@ -422,9 +447,20 @@ parser_service(
     {
         if(cfg.apply_deflate_decoder)
         {
-            auto const n = ctx.get_service<
-                zlib::service>().inflator_space_needed(15);
-            if( max_codec < n)
+            // TODO: Account for the number of allocations and
+            // their overhead in the workspace.
+
+            // https://www.zlib.net/zlib_tech.html
+            std::size_t n =
+                (1 << 15) + // window_bits
+                (7 * 1024) +
+                #ifdef __s390x__
+                5768 +
+                #endif
+                detail::workspace::
+                    space_needed<parser::filter>();
+
+            if(max_codec < n)
                 max_codec = n;
         }
     }
@@ -1031,12 +1067,12 @@ parse(
         if(svc_.cfg.apply_deflate_decoder &&
             h_.md.content_encoding.encoding == encoding::deflate)
         {
-            filter_ = &ws_.emplace<inflator_filter>(ctx_, ws_, false);
+            filter_ = &ws_.emplace<filter>(ctx_, ws_, false);
         }
         else if(svc_.cfg.apply_gzip_decoder &&
             h_.md.content_encoding.encoding == encoding::gzip)
         {
-            filter_ = &ws_.emplace<inflator_filter>(ctx_, ws_, true);
+            filter_ = &ws_.emplace<filter>(ctx_, ws_, true);
         }
         else
         {
@@ -1615,7 +1651,7 @@ apply_filter(
                 n = clamp(n, cb1_.capacity());
 
                 return filter_->process(
-                    cb1_.prepare(n),
+                    buffers::mutable_buffer_span{ cb1_.prepare(n) },
                     buffers::prefix(
                         cb0_.data(),
                         payload_avail),

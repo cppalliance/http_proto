@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2025 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -52,12 +53,12 @@ is_layout_identical()
 //------------------------------------------------
 
 template<bool isLayoutIdentical =
-    is_layout_identical<stream_t, z_stream_s>()>
+    is_layout_identical<stream, z_stream_s>()>
 struct stream_cast_impl
 {
     explicit
     stream_cast_impl(
-        stream_t& st)
+        stream& st)
         : pzs_(reinterpret_cast<z_stream_s*>(&st))
         , st_(st)
     {
@@ -104,7 +105,7 @@ struct stream_cast_impl
 
 private:
     z_stream_s* pzs_ = nullptr;
-    stream_t& st_;
+    stream& st_;
     z_stream_s zs_;
 };
 
@@ -115,7 +116,7 @@ struct stream_cast_impl<true>
 {
     explicit
     stream_cast_impl(
-        stream_t& st)
+        stream& st)
         // VFALCO A pinch of undefined behavior here
         : pzs_(reinterpret_cast<z_stream_s*>(&st))
     {

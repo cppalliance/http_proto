@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2025 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -19,7 +20,6 @@ namespace zlib {
 
 class inflate_service_impl
     : public inflate_service
-    , public http_proto::service
 {
 public:
     using key_type = inflate_service;
@@ -42,7 +42,7 @@ public:
 
     int
     init(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateInit(sc.get());
@@ -50,7 +50,7 @@ public:
 
     int
     init2(
-        stream_t& st,
+        stream& st,
         int windowBits) const override
     {
         stream_cast sc(st);
@@ -59,7 +59,7 @@ public:
 
     int
     inflate(
-        stream_t& st,
+        stream& st,
         int flush) const override
     {
         stream_cast sc(st);
@@ -68,7 +68,7 @@ public:
 
     int
     inflate_end(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateEnd(sc.get());
@@ -76,7 +76,7 @@ public:
 
     int
     set_dict(
-        stream_t& st,
+        stream& st,
         unsigned char const* dict,
         unsigned len) const override
     {
@@ -86,7 +86,7 @@ public:
 
     int
     get_dict(
-        stream_t& st,
+        stream& st,
         unsigned char* dest,
         unsigned* len) const override
     {
@@ -96,7 +96,7 @@ public:
 
     int
     sync(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateSync(sc.get());
@@ -104,8 +104,8 @@ public:
 
     int
     dup(
-        stream_t& dest,
-        stream_t& src) const override
+        stream& dest,
+        stream& src) const override
     {
         stream_cast sc0(dest);
         stream_cast sc1(src);
@@ -114,7 +114,7 @@ public:
 
     int
     reset(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateReset(sc.get());
@@ -122,7 +122,7 @@ public:
 
     int
     reset2(
-        stream_t& st,
+        stream& st,
         int windowBits) const override
     {
         stream_cast sc(st);
@@ -131,7 +131,7 @@ public:
 
     int
     prime(
-        stream_t& st,
+        stream& st,
         int bits,
         int value) const override
     {
@@ -141,7 +141,7 @@ public:
 
     long
     mark(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateMark(sc.get());
@@ -149,7 +149,7 @@ public:
 
     int
     get_header(
-        stream_t& st,
+        stream& st,
         void* header) const override
     {
         stream_cast sc(st);
@@ -159,7 +159,7 @@ public:
 
     int
     back_init(
-        stream_t& st,
+        stream& st,
         int windowBits,
         unsigned char* window) const override
     {
@@ -169,7 +169,7 @@ public:
 
     int
     back_end(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return inflateBackEnd(sc.get());

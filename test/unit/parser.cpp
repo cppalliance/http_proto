@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,7 +14,7 @@
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/response_parser.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/deflate_service.hpp>
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/buffers/flat_buffer.hpp>
@@ -354,7 +355,7 @@ struct parser_test
     {
     #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
         context ctx;
-        zlib::install_service(ctx);
+        zlib::install_deflate_service(ctx);
 
         request_parser::config_base cfg1;
         cfg1.apply_deflate_decoder = true;
