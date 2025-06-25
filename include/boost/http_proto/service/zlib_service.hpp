@@ -21,30 +21,30 @@ namespace boost {
 namespace http_proto {
 namespace zlib {
 
-struct stream_t
+struct stream
 {
     using alloc_func = void*(*)(void*, unsigned int, unsigned int);
     using free_func = void(*)(void*, void*);
 
-    unsigned char*      next_in;    // next input byte
-    unsigned int        avail_in;   // number of bytes available at next_in
-    unsigned long       total_in;   // total number of input bytes read so far
+    unsigned char* next_in;   // next input byte
+    unsigned int   avail_in;  // number of bytes available at next_in
+    unsigned long  total_in;  // total number of input bytes read so far
 
-    unsigned char*      next_out;   // next output byte will go here
-    unsigned int        avail_out;  // remaining free space at next_out
-    unsigned long       total_out;  // total number of bytes output so far
+    unsigned char* next_out;  // next output byte will go here
+    unsigned int   avail_out; // remaining free space at next_out
+    unsigned long  total_out; // total number of bytes output so far
 
-    char const*         msg;        // last error message, NULL if no error
-    void*               state;      // not visible by applications
+    char*         msg;       // last error message, NULL if no error
+    void*          state;     // not visible by applications
 
-    alloc_func          zalloc;     // used to allocate internal state
-    free_func           zfree;      // used to deallocate internal state
-    void*               opaque;     // private data object passed to zalloc and zfree
+    alloc_func     zalloc;    // used to allocate internal state
+    free_func      zfree;     // used to deallocate internal state
+    void*          opaque;    // private data object passed to zalloc and zfree
 
-    int                 data_type;  // best guess about the data type: binary or text
+    int            data_type; // best guess about the data type: binary or text
                                     // for deflate, or the decoding state for inflate
-    unsigned long       adler;      // Adler-32 or CRC-32 value of the uncompressed data
-    unsigned long       reserved;   // reserved for future use
+    unsigned long  adler;     // Adler-32 or CRC-32 value of the uncompressed data
+    unsigned long  reserved;  // reserved for future use
 };
 
 /** Error codes returned from compression/decompression functions.
@@ -65,140 +65,51 @@ enum class error
     version_err = -6
 };
 
-/// Flush methods.
-enum class flush
+/// Flush methods
+enum flush
 {
-    none,
-    partial,
-    sync,
-    full,
-    finish,
-    block,
-    trees
+    no_flush      = 0,
+    partial_flush = 1,
+    sync_flush    = 2,
+    full_flush    = 3,
+    finish        = 4,
+    block         = 5,
+    trees         = 6
 };
 
-/** Input and output buffers.
-
-    The application must update `next_in` and `avail_in` when `avail_in`
-    has dropped to zero. It must update `next_out` and `avail_out` when
-    `avail_out` has dropped to zero.
-*/
-struct params
+/// Compression levels
+enum compression_level
 {
-    /// Next input byte
-    void const* next_in;
-
-    /// Number of bytes available at `next_in`
-    std::size_t avail_in;
-
-    /// Next output byte
-    void* next_out;
-
-    /// Number of bytes remaining free at `next_out`
-    std::size_t avail_out;
+    default_compression = -1,
+    no_compression      = 0,
+    best_speed          = 1,
+    best_compression    = 9
 };
 
-/// Abstract interface for deflator/inflator streams.
-struct stream
+/// Compression strategy
+enum compression_strategy
 {
-    /** Call the underling compression/decompression algorithm.
-
-        @param p The input and output buffers.
-
-        @param f The flush method.
-
-        @return The result of operation that contains a value
-        of @ref error.
-    */
-    virtual system::error_code
-    write(params& p, flush f) noexcept = 0;
+    default_strategy = 0,
+    filtered         = 1,
+    huffman_only     = 2,
+    rle              = 3,
+    fixed            = 4
 };
 
-/** Provides in-memory compression and decompression functions
-    using zlib underneath.
-*/
-struct BOOST_SYMBOL_VISIBLE
-    service
-    : http_proto::service
+/// Possible values of the data_type field for deflate
+enum data_type
 {
-    /** The memory requirements for deflator.
-
-        @param window_bits The window size.
-
-        @param mem_level The memory level.
-
-        @return The memory requirements in bytes.
-    */
-    virtual
-    std::size_t
-    deflator_space_needed(
-        int window_bits,
-        int mem_level) const noexcept = 0;
-
-    /** The memory requirements for inflator.
-
-        @param window_bits The window size.
-
-        @return The memory requirements in bytes.
-    */
-    virtual
-    std::size_t
-    inflator_space_needed(
-        int window_bits) const noexcept = 0;
-
-    /** Create a deflator stream by calling zlib `deflateInit2()`.
-
-        @param ws A reference to the workspace used for constructing the
-        deflator stream object and for storage used by zlib.
-
-        @param level The compression level.
-
-        @param window_bits The window size.
-
-        @param mem_level Specifies how much memory should be allocated
-        for the internal compression state.
-
-        @return A reference to the created deflator stream.
-
-        @throws std::length_error If there is insufficient free space in 
-        @ref `http_proto::detail::workspace`.
-    */
-    virtual stream&
-    make_deflator(
-        http_proto::detail::workspace& ws,
-        int level,
-        int window_bits,
-        int mem_level) const = 0;
-
-    /** Create an inflator stream by calling zlib `inflateInit2()`.
-
-        @param ws A reference to the workspace used for constructing the
-        inflator stream object and for storage used by zlib.
-
-        @param window_bits The window size.
-
-        @return A reference to the created inflator stream.
-
-        @throws std::length_error If there is insufficient free space in
-        @ref `http_proto::detail::workspace`.
-    */
-    virtual stream&
-    make_inflator(
-        http_proto::detail::workspace& ws,
-        int window_bits) const = 0;
+    binary  = 0,
+    text    = 1,
+    ascii   = 1,
+    unknown = 2
 };
 
-/** Installs a zlib service on the provided context.
-
-    @param ctx A reference to the @ref context where the service
-    will be installed.
-
-    @throw std::invalid_argument If the zlib service already
-    exist on the context.
-*/
-BOOST_HTTP_PROTO_ZLIB_DECL
-void
-install_service(context& ctx);
+/// Compression method
+enum compression_method
+{
+    deflated = 8
+};
 
 } // zlib
 } // http_proto

@@ -54,6 +54,7 @@
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
 
 #include <boost/http_proto/service/service.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/deflate_service.hpp>
+#include <boost/http_proto/service/inflate_service.hpp>
 
 #endif

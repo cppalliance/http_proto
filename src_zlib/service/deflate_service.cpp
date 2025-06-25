@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2025 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -17,14 +18,13 @@ namespace boost {
 namespace http_proto {
 namespace zlib {
 
-BOOST_STATIC_ASSERT(sizeof(stream_t) == sizeof(z_stream_s));
-BOOST_STATIC_ASSERT(is_layout_identical<stream_t, z_stream_s>());
+BOOST_STATIC_ASSERT(sizeof(stream) == sizeof(z_stream_s));
+BOOST_STATIC_ASSERT(is_layout_identical<stream, z_stream_s>());
 
 //------------------------------------------------
 
 class deflate_service_impl
     : public deflate_service
-    , public http_proto::service
 {
 public:
     using key_type = deflate_service;
@@ -47,7 +47,7 @@ public:
 
     int
     init(
-        stream_t& st,
+        stream& st,
         int level) const override
     {
         stream_cast sc(st);
@@ -56,7 +56,7 @@ public:
 
     int
     init2(
-        stream_t& st,
+        stream& st,
         int level,
         int method,
         int windowBits,
@@ -71,7 +71,7 @@ public:
 
     int
     set_dict(
-        stream_t& st,
+        stream& st,
         unsigned char const* dict,
         unsigned len) const override
     {
@@ -81,7 +81,7 @@ public:
 
     int
     get_dict(
-        stream_t& st,
+        stream& st,
         unsigned char* dest,
         unsigned* len) const override
     {
@@ -91,8 +91,8 @@ public:
 
     int
     dup(
-        stream_t& dest,
-        stream_t& src) const override
+        stream& dest,
+        stream& src) const override
     {
         stream_cast sc0(dest);
         stream_cast sc1(src);
@@ -101,7 +101,7 @@ public:
 
     int
     deflate(
-        stream_t& st,
+        stream& st,
         int flush) const override
     {
         stream_cast sc(st);
@@ -110,7 +110,7 @@ public:
 
     int
     deflate_end(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return deflateEnd(sc.get());
@@ -118,7 +118,7 @@ public:
 
     int
     reset(
-        stream_t& st) const override
+        stream& st) const override
     {
         stream_cast sc(st);
         return deflateReset(sc.get());
@@ -126,7 +126,7 @@ public:
 
     int
     params(
-        stream_t& st,
+        stream& st,
         int level,
         int strategy) const override
     {
@@ -136,7 +136,7 @@ public:
 
     std::size_t
     bound(
-        stream_t& st,
+        stream& st,
         unsigned long sourceLen) const override
     {
         stream_cast sc(st);
@@ -145,7 +145,7 @@ public:
 
     int
     pending(
-        stream_t& st,
+        stream& st,
         unsigned* pending,
         int* bits) const override
     {
@@ -155,7 +155,7 @@ public:
 
     int
     prime(
-        stream_t& st,
+        stream& st,
         int bits,
         int value) const override
     {
@@ -165,7 +165,7 @@ public:
 
     int
     set_header(
-        stream_t& st,
+        stream& st,
         void* header) const override
     {
         stream_cast sc(st);

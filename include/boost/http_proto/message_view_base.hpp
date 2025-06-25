@@ -1,6 +1,7 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 // Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,10 +14,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
-#include <boost/url/grammar/recycled.hpp>
-#include <boost/url/grammar/type_traits.hpp>
-#include <memory>
-#include <string>
 
 namespace boost {
 namespace http_proto {

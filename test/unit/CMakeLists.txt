@@ -8,8 +8,9 @@
 #
 
 set(EXTRAFILES
-    ../../../url/extra/test_main.cpp
-    ../../../url/extra/test_suite.hpp
+    ../../../url/extra/test_suite/test_main.cpp
+    ../../../url/extra/test_suite/test_suite.cpp
+    ../../../url/extra/test_suite/test_suite.hpp
     ./test_helpers.hpp
     ./test_helpers.cpp
     )
@@ -23,7 +24,7 @@ list(APPEND PFILES
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
-target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra)
+target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/test_suite)
 target_link_libraries(boost_http_proto_tests PRIVATE Boost::filesystem)
 
 if (ZLIB_FOUND)

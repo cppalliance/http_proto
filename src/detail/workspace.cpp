@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -105,11 +106,25 @@ workspace::
 reserve_front(
     std::size_t n)
 {
-    // 
     // Requested size exceeds available space.
     // Note you can never reserve the last byte.
     if(n >= size())
         detail::throw_length_error();
+
+    auto const p = front_;
+    front_ += n ;
+    return p;
+}
+
+unsigned char*
+workspace::
+try_reserve_front(
+    std::size_t n) noexcept
+{
+    // Requested size exceeds available space.
+    // Note you can never reserve the last byte.
+    if(n >= size())
+        return nullptr;
 
     auto const p = front_;
     front_ += n ;

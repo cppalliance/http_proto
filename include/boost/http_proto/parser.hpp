@@ -268,7 +268,7 @@ public:
         to @ref parse completes with an error code
         equal to @ref condition::need_more_input.
 
-        @returns A non-empty mutable buffer.
+        @return A non-empty mutable buffer.
 
         @see
             @ref commit,
@@ -535,6 +535,8 @@ public:
 private:
     friend class request_parser;
     friend class response_parser;
+    friend class parser_service;
+    class filter;
 
     BOOST_HTTP_PROTO_DECL
     parser(context&, detail::kind);
@@ -602,7 +604,7 @@ private:
     buffers::mutable_buffer_pair mbp_;
     buffers::const_buffer_pair cbp_;
 
-    detail::filter* filter_;
+    filter* filter_;
     buffers::any_dynamic_buffer* eb_;
     sink* sink_;
 

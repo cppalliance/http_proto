@@ -12,15 +12,15 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/deflate_service.hpp>
 
-#include "src/detail/filter.hpp"
+#include "src/detail/zlib_filter.hpp"
 
 #include <boost/buffers/copy.hpp>
+#include <boost/buffers/front.hpp>
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/sans_prefix.hpp>
 #include <boost/buffers/sans_suffix.hpp>
-#include <boost/buffers/suffix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/core/ignore_unused.hpp>
 
@@ -30,78 +30,6 @@ namespace boost {
 namespace http_proto {
 
 namespace {
-
-class deflator_filter
-    : public http_proto::detail::filter
-{
-    zlib::stream& deflator_;
-
-public:
-    deflator_filter(
-        context& ctx,
-        http_proto::detail::workspace& ws,
-        bool use_gzip)
-        : deflator_{ ctx.get_service<zlib::service>()
-            .make_deflator(ws, -1, use_gzip ? 31 : 15, 8) }
-    {
-    }
-
-    virtual filter::results
-    on_process(
-        buffers::mutable_buffer out,
-        buffers::const_buffer in,
-        bool more) override
-    {
-        auto flush =
-            more ? zlib::flush::none : zlib::flush::finish;
-        filter::results results;
-
-        for(;;)
-        {
-            auto params = zlib::params{in.data(), in.size(),
-                out.data(), out.size() };
-            auto ec = deflator_.write(params, flush);
-
-            results.in_bytes  += in.size() - params.avail_in;
-            results.out_bytes += out.size() - params.avail_out;
-
-            if( ec.failed() &&
-                ec != zlib::error::buf_err)
-            {
-                results.ec = ec;
-                return results;
-            }
-
-            if( ec == zlib::error::stream_end )
-            {
-                results.finished = true;
-                return results;
-            }
-
-            in  = buffers::suffix(in, params.avail_in);
-            out = buffers::suffix(out, params.avail_out);
-
-            if( out.size() == 0 )
-                return results;
-
-            if( in.size() == 0 )
-            {
-                if( results.out_bytes == 0 &&
-                    flush == zlib::flush::none )
-                {
-                    // TODO: Is flush::block the right choice?
-                    // We might need a filter::flush() interface
-                    // so that the caller can decide when to flush.
-                    flush = zlib::flush::block;
-                    continue;
-                }
-                return results;
-            }
-        }
-    }
-};
-
-//------------------------------------------------
 
 constexpr
 std::size_t
@@ -256,6 +184,110 @@ public:
 } // namespace
 
 //------------------------------------------------
+
+class serializer::filter
+    : public detail::zlib_filter
+{
+    zlib::deflate_service& svc_;
+    zlib::stream strm_;
+
+public:
+    struct results
+    {
+        std::size_t out_bytes = 0;
+        std::size_t in_bytes  = 0;
+        bool out_short = false;
+        bool finished  = false;
+        system::error_code ec;
+    };
+
+    filter(
+        context& ctx,
+        http_proto::detail::workspace& ws,
+        bool gzip)
+        : svc_(ctx.get_service<zlib::deflate_service>())
+    {
+        strm_.zalloc = &zalloc;
+        strm_.zfree  = &zfree;
+        strm_.opaque = &ws;
+        system::error_code ec = static_cast<zlib::error>(svc_.init2(
+            strm_,
+            zlib::default_compression,
+            zlib::deflated,
+            gzip ? 31 : 15,
+            8,
+            zlib::default_strategy));
+        if(ec != zlib::error::ok)
+            detail::throw_system_error(ec);
+    }
+
+    results
+    process(
+        buffers::mutable_buffer_pair out,
+        buffers::const_buffer_pair in,
+        bool more,
+        bool force_flush = false)
+    {
+        results rv;
+        auto flush = zlib::no_flush;
+        for(;;)
+        {
+            auto ob = buffers::front(out);
+            auto ib = buffers::front(in);
+
+            if(!more && flush != zlib::finish && in[1].size() == 0)
+            {
+                // Prevent deflate from producing
+                // zero output due to small buffer
+                if(buffers::size(out) < 8)
+                {
+                    rv.out_short = true;
+                    return rv;
+                }
+                flush = zlib::finish;
+            }
+
+            strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(ib.data()));
+            strm_.avail_in  = saturate_cast(ib.size());
+            strm_.next_out  = static_cast<unsigned char*>(ob.data());
+            strm_.avail_out = saturate_cast(ob.size());
+
+            auto ec = BOOST_HTTP_PROTO_ERR(
+                static_cast<zlib::error>(svc_.deflate(strm_, flush)));
+
+            const std::size_t in_bytes  = saturate_cast(ib.size()) - strm_.avail_in;
+            const std::size_t out_bytes = saturate_cast(ob.size()) - strm_.avail_out;
+
+            rv.in_bytes  += in_bytes;
+            rv.out_bytes += out_bytes;
+
+            if(ec.failed())
+                return rv;
+
+            if(ec == zlib::error::stream_end)
+            {
+                rv.finished = true;
+                return rv;
+            }
+
+            out = buffers::sans_prefix(out, out_bytes);
+            in  = buffers::sans_prefix(in, in_bytes);
+
+            if(buffers::size(out) == 0)
+                return rv;
+
+            if(buffers::size(in) == 0 && strm_.avail_out != 0)
+            {
+                if(force_flush && rv.out_bytes == 0)
+                {
+                    flush = zlib::block;
+                    continue;
+                }
+                return rv;
+            }
+        }
+    }
+};
 
 serializer::
 ~serializer()
@@ -415,7 +447,7 @@ prepare() ->
 
                 const auto rs = filter_->process(
                     apndr.prepare(),
-                    tmp_,
+                    { tmp_, {} },
                     more_input_);
 
                 if(rs.ec.failed())
@@ -426,6 +458,9 @@ prepare() ->
 
                 tmp_ = buffers::sans_prefix(tmp_, rs.in_bytes);
                 apndr.commit(rs.out_bytes, !rs.finished);
+
+                if(rs.out_short)
+                    break;
 
                 if(rs.finished)
                     filter_done_ = true;
@@ -466,6 +501,9 @@ prepare() ->
                 cb1_.consume(rs.in_bytes);
                 apndr.commit(rs.out_bytes, !rs.finished);
 
+                if(rs.out_short)
+                    break;
+
                 if(rs.finished)
                     filter_done_ = true;
             }
@@ -493,7 +531,8 @@ prepare() ->
             const auto rs = filter_->process(
                 apndr.prepare(),
                 cb1_.data(),
-                more_input_);
+                more_input_,
+                prepped_.empty()); // force_flush
 
             if(rs.ec.failed())
             {
@@ -607,12 +646,12 @@ start_init(
     if(ce.encoding == encoding::deflate)
     {
         filter_ = &ws_.emplace<
-            deflator_filter>(ctx_, ws_, false);
+            filter>(ctx_, ws_, false);
     }
     else if(ce.encoding == encoding::gzip)
     {
         filter_ = &ws_.emplace<
-            deflator_filter>(ctx_, ws_, true);
+            filter>(ctx_, ws_, true);
     }
 }
 

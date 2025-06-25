@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,7 +25,6 @@
 #include <boost/buffers/type_traits.hpp>
 #include <boost/system/result.hpp>
 
-#include <memory>
 #include <numeric>
 #include <type_traits>
 #include <utility>
@@ -34,9 +34,6 @@ namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
 class message_view_base;
-namespace detail {
-class filter;
-} // namespace detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -219,8 +216,8 @@ public:
     consume(std::size_t n);
 
 private:
+    class filter;
     class const_buf_gen_base;
-
     template<class>
     class const_buf_gen;
 
@@ -288,7 +285,7 @@ private:
     detail::workspace ws_;
 
     const_buf_gen_base* buf_gen_;
-    detail::filter* filter_;
+    filter* filter_;
     source* source_;
 
     buffers::circular_buffer cb0_;

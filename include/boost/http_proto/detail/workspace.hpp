@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -127,6 +128,15 @@ public:
     unsigned char*
     reserve_front(
         std::size_t n);
+
+    /** Convert unused storage to reserved storage.
+
+        @return nullptr if n >= this->size() 
+    */
+    BOOST_HTTP_PROTO_DECL
+    unsigned char*
+    try_reserve_front(
+        std::size_t n) noexcept;
 
     template<class T, class... Args>
     typename std::decay<T>::type&

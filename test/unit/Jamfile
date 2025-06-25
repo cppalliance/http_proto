@@ -17,10 +17,11 @@ project
       $(c11-requires)
       <library>/boost/http_proto//boost_http_proto
       [ ac.check-library /boost/http_proto//boost_http_proto_zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
-      <source>../../../url/extra/test_main.cpp
+      <source>../../../url/extra/test_suite/test_main.cpp
+      <source>../../../url/extra/test_suite/test_suite.cpp
       <source>./test_helpers.cpp
       <include>.
-      <include>../../../url/extra
+      <include>../../../url/extra/test_suite
       <warnings>extra
       <warnings-as-errors>on
       <target-os>darwin,<undefined-sanitizer>norecover:<link>static

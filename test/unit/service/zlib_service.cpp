@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,7 +9,8 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/deflate_service.hpp>
+#include <boost/http_proto/service/inflate_service.hpp>
 
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 
@@ -25,7 +27,8 @@ struct zlib_service_test
     run()
     {
         context ctx;
-        zlib::install_service(ctx);
+        zlib::install_deflate_service(ctx);
+        zlib::install_inflate_service(ctx);
     }
 };
 

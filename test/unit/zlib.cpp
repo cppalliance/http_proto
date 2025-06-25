@@ -9,9 +9,7 @@
 //
 
 #include <boost/http_proto/detail/config.hpp>
-#include <iostream>
 
-#include "boost/buffers/prefix.hpp"
 #include "test_suite.hpp"
 
 #ifndef BOOST_HTTP_PROTO_HAS_ZLIB
@@ -35,10 +33,11 @@ TEST_SUITE(
 #include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/request_parser.hpp>
-#include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/response.hpp>
+#include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
+#include <boost/http_proto/service/deflate_service.hpp>
+#include <boost/http_proto/service/inflate_service.hpp>
 
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/size.hpp>
@@ -78,59 +77,6 @@ namespace http_proto {
 
 struct zlib_test
 {
-    struct faulty_zlib_service
-        : public zlib::service
-    {
-        using key_type = service;
-
-        struct faulty_stream : zlib::stream
-        {
-            system::error_code
-            write(zlib::params&, zlib::flush) noexcept override
-            {
-                return zlib::error::version_err;
-            }
-        };
-
-        explicit
-        faulty_zlib_service(context&) noexcept
-        {
-        }
-
-        std::size_t
-        deflator_space_needed(
-            int,
-            int) const noexcept override
-        {
-            return 1;
-        }
-
-        std::size_t
-        inflator_space_needed(
-            int) const noexcept override
-        {
-            return 1;
-        }
-
-        zlib::stream&
-        make_deflator(
-            http_proto::detail::workspace& ws,
-            int,
-            int,
-            int) const override
-        {
-            return ws.emplace<faulty_stream>();
-        }
-
-        zlib::stream&
-        make_inflator(
-            http_proto::detail::workspace& ws,
-            int) const override
-        {
-            return ws.emplace<faulty_stream>();
-        }
-    };
-
     std::string
     deflate(
         int window_bits,
@@ -388,11 +334,10 @@ struct zlib_test
         bool chunked_encoding)
     {
         context ctx;
-        zlib::install_service(ctx);
+        zlib::install_deflate_service(ctx);
         serializer sr(
             ctx,
-            ctx.get_service<
-                zlib::service>().deflator_space_needed(15, 8) + (2 * 1024));
+            512 * 1024);
 
         // prove we can reuse the serializer successfully
         for( int i = 0; i < 2; ++i )
@@ -666,7 +611,7 @@ struct zlib_test
     test_parser()
     {
         context ctx;
-        zlib::install_service(ctx);
+        zlib::install_inflate_service(ctx);
 
         auto append_chunked = [](
             std::string& msg,
@@ -745,66 +690,10 @@ struct zlib_test
                 pr.reset();
         }
     }
-
-    void
-    test_serializer_reports_zlib_errors()
-    {
-        context ctx;
-        ctx.make_service<faulty_zlib_service>();
-        serializer sr{ ctx };
-
-        response res{
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Encoding: gzip\r\n"
-            "\r\n" };
-        std::string buf(1024, '*');
-        sr.start(res, buffers::const_buffer{ buf.data(), buf.size() });
-
-        auto rs = sr.prepare();
-        BOOST_TEST(rs.has_error());
-        BOOST_TEST_EQ(rs.error(), zlib::error::version_err);
-    }
-
-    void
-    test_parser_reports_zlib_errors()
-    {
-        context ctx;
-        ctx.make_service<faulty_zlib_service>();
-
-        response_parser::config cfg;
-        cfg.apply_deflate_decoder = true;
-        install_parser_service(ctx, cfg);
-
-        response_parser pr{ ctx };
-        pr.reset();
-        pr.start();
-
-        std::string msg{
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Encoding: deflate\r\n"
-            "\r\n" };
-        auto n = buffers::copy(
-            pr.prepare(),
-            buffers::const_buffer{ msg.data(), msg.size() });
-
-        BOOST_TEST_EQ(n, msg.size());
-        pr.commit(n);
-        pr.commit_eof();
-
-        boost::system::error_code ec;
-        pr.parse(ec);
-        BOOST_TEST(! ec.failed());
-        BOOST_TEST(pr.got_header());
-        pr.parse(ec);
-        BOOST_TEST_EQ(ec, zlib::error::version_err);
-    }
-
     void run()
     {
         test_serializer();
-        test_serializer_reports_zlib_errors();
         test_parser();
-        test_parser_reports_zlib_errors();
     }
 };
 
