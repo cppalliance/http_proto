@@ -189,105 +189,89 @@ class serializer::filter
     : public detail::zlib_filter
 {
     zlib::deflate_service& svc_;
-    zlib::stream strm_;
 
 public:
-    struct results
-    {
-        std::size_t out_bytes = 0;
-        std::size_t in_bytes  = 0;
-        bool out_short = false;
-        bool finished  = false;
-        system::error_code ec;
-    };
-
     filter(
         context& ctx,
         http_proto::detail::workspace& ws,
-        bool gzip)
-        : svc_(ctx.get_service<zlib::deflate_service>())
+        int comp_level,
+        int window_bits,
+        int mem_level)
+        : zlib_filter(ws)
+        , svc_(ctx.get_service<zlib::deflate_service>())
     {
-        strm_.zalloc = &zalloc;
-        strm_.zfree  = &zfree;
-        strm_.opaque = &ws;
         system::error_code ec = static_cast<zlib::error>(svc_.init2(
             strm_,
-            zlib::default_compression,
+            comp_level,
             zlib::deflated,
-            gzip ? 31 : 15,
-            8,
+            window_bits,
+            mem_level,
             zlib::default_strategy));
         if(ec != zlib::error::ok)
             detail::throw_system_error(ec);
     }
 
-    results
-    process(
-        buffers::mutable_buffer_pair out,
-        buffers::const_buffer_pair in,
-        bool more,
-        bool force_flush = false)
+private:
+    virtual
+    std::size_t
+    min_out_buffer() const noexcept override
     {
-        results rv;
-        auto flush = zlib::no_flush;
-        for(;;)
+        // Prevents deflate from producing
+        // zero output due to small buffer
+        return 8;
+    }
+
+    virtual
+    zlib::error
+    do_process(zlib::flush flush) noexcept override
+    {
+        return static_cast<
+            zlib::error>(svc_.deflate(strm_, flush));
+    }
+};
+
+class serializer_service
+    : public service
+{
+public:
+    serializer::config cfg;
+    std::size_t space_needed = 0;
+
+    serializer_service(
+        context&,
+        serializer::config const& cfg_)
+        : cfg(cfg_)
+    {
+        space_needed += cfg.payload_buffer;
+        space_needed += cfg.max_type_erase;
+
+        if(cfg.apply_deflate_encoder || cfg.apply_gzip_encoder)
         {
-            auto ob = buffers::front(out);
-            auto ib = buffers::front(in);
+            // TODO: Account for the number of allocations and
+            // their overhead in the workspace.
 
-            if(!more && flush != zlib::finish && in[1].size() == 0)
-            {
-                // Prevent deflate from producing
-                // zero output due to small buffer
-                if(buffers::size(out) < 8)
-                {
-                    rv.out_short = true;
-                    return rv;
-                }
-                flush = zlib::finish;
-            }
-
-            strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(ib.data()));
-            strm_.avail_in  = saturate_cast(ib.size());
-            strm_.next_out  = static_cast<unsigned char*>(ob.data());
-            strm_.avail_out = saturate_cast(ob.size());
-
-            auto ec = BOOST_HTTP_PROTO_ERR(
-                static_cast<zlib::error>(svc_.deflate(strm_, flush)));
-
-            const std::size_t in_bytes  = saturate_cast(ib.size()) - strm_.avail_in;
-            const std::size_t out_bytes = saturate_cast(ob.size()) - strm_.avail_out;
-
-            rv.in_bytes  += in_bytes;
-            rv.out_bytes += out_bytes;
-
-            if(ec.failed())
-                return rv;
-
-            if(ec == zlib::error::stream_end)
-            {
-                rv.finished = true;
-                return rv;
-            }
-
-            out = buffers::sans_prefix(out, out_bytes);
-            in  = buffers::sans_prefix(in, in_bytes);
-
-            if(buffers::size(out) == 0)
-                return rv;
-
-            if(buffers::size(in) == 0 && strm_.avail_out != 0)
-            {
-                if(force_flush && rv.out_bytes == 0)
-                {
-                    flush = zlib::block;
-                    continue;
-                }
-                return rv;
-            }
+            // https://www.zlib.net/zlib_tech.html
+            space_needed +=
+                (1 << (cfg.zlib_window_bits + 2)) +
+                (1 << (cfg.zlib_mem_level + 9)) +
+                (6 * 1024) +
+                #ifdef __s390x__
+                5768 +
+                #endif
+                detail::workspace::space_needed<
+                    serializer::filter>();
         }
     }
 };
+
+void
+install_serializer_service(
+    context& ctx,
+    serializer::config const& cfg)
+{
+    ctx.make_service<
+        serializer_service>(cfg);
+}
 
 serializer::
 ~serializer()
@@ -299,18 +283,10 @@ serializer(
     serializer&&) noexcept = default;
 
 serializer::
-serializer(
-    context& ctx)
-    : serializer(ctx, 65536)
-{
-}
-
-serializer::
-serializer(
-    context& ctx,
-    std::size_t buffer_size)
+serializer(context& ctx)
     : ctx_(ctx)
-    , ws_(buffer_size)
+    , svc_(ctx.get_service<serializer_service>())
+    , ws_(svc_.space_needed)
 {
 }
 
@@ -446,7 +422,7 @@ prepare() ->
                 }
 
                 const auto rs = filter_->process(
-                    apndr.prepare(),
+                    buffers::mutable_buffer_span(apndr.prepare()),
                     { tmp_, {} },
                     more_input_);
 
@@ -488,7 +464,7 @@ prepare() ->
                 }
 
                 const auto rs = filter_->process(
-                    apndr.prepare(),
+                    buffers::mutable_buffer_span(apndr.prepare()),
                     cb1_.data(),
                     more_input_);
 
@@ -529,7 +505,7 @@ prepare() ->
             }
 
             const auto rs = filter_->process(
-                apndr.prepare(),
+                buffers::mutable_buffer_span(apndr.prepare()),
                 cb1_.data(),
                 more_input_,
                 prepped_.empty()); // force_flush
@@ -645,13 +621,21 @@ start_init(
     auto const& ce = md.content_encoding;
     if(ce.encoding == encoding::deflate)
     {
-        filter_ = &ws_.emplace<
-            filter>(ctx_, ws_, false);
+        filter_ = &ws_.emplace<filter>(
+            ctx_,
+            ws_,
+            svc_.cfg.zlib_comp_level,
+            svc_.cfg.zlib_window_bits,
+            svc_.cfg.zlib_mem_level);
     }
     else if(ce.encoding == encoding::gzip)
     {
-        filter_ = &ws_.emplace<
-            filter>(ctx_, ws_, true);
+        filter_ = &ws_.emplace<filter>(
+            ctx_,
+            ws_,
+            svc_.cfg.zlib_comp_level,
+            svc_.cfg.zlib_window_bits + 16,
+            svc_.cfg.zlib_mem_level);
     }
 }
 
@@ -1017,8 +1001,6 @@ close() const
             final_chunk_len));
     sr_->cb0_.commit(final_chunk_len);
 }
-
-//------------------------------------------------
 
 } // http_proto
 } // boost

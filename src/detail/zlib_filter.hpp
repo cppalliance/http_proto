@@ -12,41 +12,75 @@
 #define BOOST_HTTP_PROTO_DETAIL_ZLIB_FILTER_HPP
 
 #include <boost/http_proto/detail/workspace.hpp>
+#include <boost/http_proto/service/zlib_service.hpp>
+
+#include <boost/buffers/const_buffer_pair.hpp>
+#include <boost/buffers/mutable_buffer_subspan.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
 
-/** utilities for zlib filter
+/** Base class for zlib filters
 */
 class zlib_filter
 {
+public:
+    /** The results of processing the filter.
+    */
+    struct results
+    {
+        /** The number of bytes produced in the output.
+
+            This may be less than the total number
+            of bytes available for writing in the
+            destination buffers.
+        */
+        std::size_t out_bytes = 0;
+
+        /** The number of bytes consumed from the input.
+
+            This may be less than the total number
+            of bytes available for reading in the
+            source buffers.
+        */
+        std::size_t in_bytes = 0;
+
+        /** The error, if any occurred.
+        */
+        system::error_code ec;
+
+        /** True if the output buffer is too
+            small to make progress.
+
+            This can only happen in deflate operation.
+        */
+        bool out_short = false;
+
+        /** True if there will be no more output.
+        */
+        bool finished = false;
+    };
+
+    zlib_filter(workspace& ws);
+
+    results
+    process(
+        buffers::mutable_buffer_subspan out,
+        buffers::const_buffer_pair in,
+        bool more,
+        bool force_flush = false);
+
 protected:
-    static
-    void* zalloc(
-        void* opaque,
-        unsigned items,
-        unsigned size) noexcept
-    {
-        return reinterpret_cast<
-            detail::workspace*>(opaque)->try_reserve_front(items * size);
-    }
+    zlib::stream strm_;
 
-    static
-    void
-    zfree(void* /* opaque */, void* /* addr */) noexcept
-    {
-        // no-op
-    }
+    virtual
+    std::size_t
+    min_out_buffer() const noexcept = 0;
 
-    static
-    unsigned int
-    saturate_cast(std::size_t n) noexcept
-    {
-        if(n >= std::numeric_limits<unsigned int>::max())
-            return std::numeric_limits<unsigned int>::max();
-        return static_cast<unsigned int>(n);
-    }
+    virtual
+    zlib::error
+    do_process(zlib::flush) noexcept = 0;
 };
 
 } // detail

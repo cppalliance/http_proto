@@ -335,9 +335,11 @@ struct zlib_test
     {
         context ctx;
         zlib::install_deflate_service(ctx);
-        serializer sr(
-            ctx,
-            512 * 1024);
+        serializer::config cfg;
+        cfg.apply_deflate_encoder = true;
+        cfg.apply_gzip_encoder = true;
+        install_serializer_service(ctx, cfg);
+        serializer sr(ctx);
 
         // prove we can reuse the serializer successfully
         for( int i = 0; i < 2; ++i )

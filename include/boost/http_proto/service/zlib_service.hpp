@@ -34,7 +34,7 @@ struct stream
     unsigned int   avail_out; // remaining free space at next_out
     unsigned long  total_out; // total number of bytes output so far
 
-    char*         msg;       // last error message, NULL if no error
+    char*          msg;       // last error message, NULL if no error
     void*          state;     // not visible by applications
 
     alloc_func     zalloc;    // used to allocate internal state
