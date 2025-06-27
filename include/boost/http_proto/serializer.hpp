@@ -33,6 +33,7 @@ namespace boost {
 namespace http_proto {
 
 #ifndef BOOST_HTTP_PROTO_DOCS
+class serializer_service;
 class message_view_base;
 #endif
 
@@ -66,6 +67,73 @@ public:
     using const_buffers_type =
         buffers::const_buffer_span;
 
+    /** Serializer configuration settings.
+    */
+    struct config
+    {
+        /** True if serializer can encode deflate Content-Encoding.
+
+            The @ref zlib::deflate_service must already be
+            installed thusly, or else an exception
+            is thrown.
+        */
+        bool apply_deflate_encoder = false;
+
+        /** True if serializer can encode gzip Content-Encoding.
+
+            The @ref zlib::deflate_service must already be
+            installed thusly, or else an exception
+            is thrown.
+        */
+        bool apply_gzip_encoder = false;
+
+        /** Specifies the zlib compression level 0..9.
+
+            A compression level of 1 provides the fastest speed,
+            while level 9 offers the best compression. Level 0
+            applies no compression at all.
+        */
+        int zlib_comp_level = 6;
+
+        /** Specifies the zlib windows bits 9..15.
+
+            The windows bits controls the size of the history
+            buffer used when compressing data. Larger values
+            produce better compression at the expense of
+            greater memory usage.
+        */
+        int zlib_window_bits = 15;
+
+        /** Specifies the zlib memory level 1..9.
+
+            The memory level controls the amount of memory
+            used for the internal compression state. Larger
+            values use more memory, but are faster and
+            produce smaller output.
+        */
+        int zlib_mem_level = 8;
+
+        /** Minimum space for payload buffering.
+
+            This cannot be zero.
+        */
+        std::size_t payload_buffer = 8192;
+
+        /** Space to reserve for type-erasure.
+
+            This space is used for the following
+            purposes:
+
+            @li Storing an instance of the user-provided
+                @ref source objects.
+
+            @li Storing an instance of the user-provided
+                ConstBufferSequence.
+
+        */
+        std::size_t max_type_erase = 1024;
+    };
+
     struct stream;
 
     /** Destructor
@@ -82,18 +150,11 @@ public:
     /** Constructor
 
         @param ctx The serializer will access services
-                   registered with this context.
+            registered with this context.
     */
     BOOST_HTTP_PROTO_DECL
     serializer(
         context& ctx);
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    serializer(
-        context& ctx,
-        std::size_t buffer_size);
 
     //--------------------------------------------
 
@@ -216,6 +277,7 @@ public:
     consume(std::size_t n);
 
 private:
+    friend class serializer_service;
     class filter;
     class const_buf_gen_base;
     template<class>
@@ -282,6 +344,8 @@ private:
     };
 
     context& ctx_;
+    serializer_service& svc_;
+
     detail::workspace ws_;
 
     const_buf_gen_base* buf_gen_;
@@ -301,6 +365,16 @@ private:
     bool needs_exp100_continue_;
     bool filter_done_;
 };
+
+//------------------------------------------------
+
+/** Install the serializer service.
+*/
+BOOST_HTTP_PROTO_DECL
+void
+install_serializer_service(
+    context& ctx,
+    serializer::config const& cfg);
 
 //------------------------------------------------
 

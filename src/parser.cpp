@@ -137,7 +137,7 @@ public:
         if(pos_ < end_)
             return pos_;
 
-        // swap with the second range
+        // bring the second range
         if(begin_b_ != end_b_)
         {
             pos_ = begin_b_;
@@ -152,7 +152,7 @@ public:
     }
 
     bool
-    empty() const noexcept
+    is_empty() const noexcept
     {
         return pos_ == end_;
     }
@@ -177,7 +177,7 @@ parse_hex(
 {
     std::uint64_t v   = 0;
     std::size_t init_size = cs.size();
-    while(!cs.empty())
+    while(!cs.is_empty())
     {
         auto n = grammar::hexdig_value(cs.value());
         if(n < 0)
@@ -212,7 +212,7 @@ find_eol(
     chained_sequence& cs,
     system::error_code& ec) noexcept
 {
-    while(!cs.empty())
+    while(!cs.is_empty())
     {
         if(cs.value() == '\r')
         {
@@ -259,7 +259,7 @@ skip_trailer_headers(
     chained_sequence& cs,
     system::error_code& ec) noexcept
 {
-    while(!cs.empty())
+    while(!cs.is_empty())
     {
         if(cs.value() == '\r')
         {
@@ -300,80 +300,35 @@ class parser::filter
     : public detail::zlib_filter
 {
     zlib::inflate_service& svc_;
-    zlib::stream strm_;
 
 public:
-    struct results
-    {
-        std::size_t out_bytes = 0;
-        std::size_t in_bytes  = 0;
-        bool finished = false;
-        system::error_code ec;
-    };
-
     filter(
         context& ctx,
         http_proto::detail::workspace& ws,
-        bool gzip)
-        : svc_(ctx.get_service<zlib::inflate_service>())
+        int window_bits)
+        : zlib_filter(ws)
+        , svc_(ctx.get_service<zlib::inflate_service>())
     {
-        strm_.zalloc = &zalloc;
-        strm_.zfree  = &zfree;
-        strm_.opaque = &ws;
         system::error_code ec = static_cast<zlib::error>(
-            svc_.init2(strm_, gzip ? 31 : 15));
+            svc_.init2(strm_, window_bits));
         if(ec != zlib::error::ok)
             detail::throw_system_error(ec);
     }
 
-    results
-    process(
-        buffers::mutable_buffer_subspan out,
-        buffers::const_buffer_pair in,
-        bool more)
+private:
+    virtual
+    std::size_t
+    min_out_buffer() const noexcept override
     {
-        results rv;
-        auto flush = zlib::no_flush;
-        for(;;)
-        {
-            const auto ob = buffers::front(out);
-            const auto ib = buffers::front(in);
+        return 0;
+    }
 
-            if(!more && in[1].size() == 0)
-                flush = zlib::finish;
-
-            strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(ib.data()));
-            strm_.avail_in  = saturate_cast(ib.size());
-            strm_.next_out  = static_cast<unsigned char*>(ob.data());
-            strm_.avail_out = saturate_cast(ob.size());
-
-            auto ec = BOOST_HTTP_PROTO_ERR(
-                static_cast<zlib::error>(svc_.inflate(strm_, flush)));
-
-            const std::size_t in_bytes  = saturate_cast(ib.size()) - strm_.avail_in;
-            const std::size_t out_bytes = saturate_cast(ob.size()) - strm_.avail_out;
-
-            rv.in_bytes  += in_bytes;
-            rv.out_bytes += out_bytes;
-
-            if(ec.failed())
-                return rv;
-
-            if(ec == zlib::error::stream_end)
-            {
-                rv.finished = true;
-                return rv;
-            }
-
-            out = buffers::sans_prefix(out, out_bytes);
-            in  = buffers::sans_prefix(in, in_bytes);
-
-            if(buffers::size(out) == 0)
-                return rv;
-
-            if(buffers::size(in) == 0 && strm_.avail_out != 0)
-                return rv;
-        }
+    virtual
+    zlib::error
+    do_process(zlib::flush flush) noexcept override
+    {
+        return static_cast<
+            zlib::error>(svc_.inflate(strm_, flush));
     }
 };
 
@@ -386,73 +341,58 @@ public:
     std::size_t max_codec = 0;
 
     parser_service(
-        context& ctx,
-        parser::config_base const& cfg_);
-
-    std::size_t
-    max_overread() const noexcept
-    {
-        return
-            cfg.headers.max_size +
-            cfg.min_buffer;
-    }
-};
-
-parser_service::
-parser_service(
-    context& /* ctx */,
-    parser::config_base const& cfg_)
+        context&,
+        parser::config_base const& cfg_)
         : cfg(cfg_)
-{
-/*
-    | fb |     cb0     |     cb1     | C | T | f |
-
-    fb  flat_buffer         headers.max_size
-    cb0 circular_buffer     min_buffer
-    cb1 circular_buffer     min_buffer
-    C   codec               max_codec
-    T   body                max_type_erase
-    f   table               max_table_space
-
-*/
-    // validate
-    //if(cfg.min_prepare > cfg.max_prepare)
-        //detail::throw_invalid_argument();
-
-    if(cfg.max_prepare < 1)
-        detail::throw_invalid_argument();
-
-    // VFALCO TODO OVERFLOW CHECING
     {
-        //fb_.size() - h_.size +
-        //svc_.cfg.min_buffer +
-        //svc_.cfg.min_buffer +
-        //svc_.max_codec;
-    }
+    /*
+        | fb |     cb0     |     cb1     | C | T | f |
 
-    // VFALCO OVERFLOW CHECKING ON THIS
-    space_needed +=
-        cfg.headers.valid_space_needed();
+        fb  flat_buffer         headers.max_size
+        cb0 circular_buffer     min_buffer
+        cb1 circular_buffer     min_buffer
+        C   codec               max_codec
+        T   body                max_type_erase
+        f   table               max_table_space
 
-    // cb0_, cb1_
-    // VFALCO OVERFLOW CHECKING ON THIS
-    space_needed +=
-        cfg.min_buffer +
-        cfg.min_buffer;
+    */
+        // validate
+        //if(cfg.min_prepare > cfg.max_prepare)
+            //detail::throw_invalid_argument();
 
-    // T
-    space_needed += cfg.max_type_erase;
+        if(cfg.max_prepare < 1)
+            detail::throw_invalid_argument();
 
-    // max_codec
-    {
-        if(cfg.apply_deflate_decoder)
+        // VFALCO TODO OVERFLOW CHECING
+        {
+            //fb_.size() - h_.size +
+            //svc_.cfg.min_buffer +
+            //svc_.cfg.min_buffer +
+            //svc_.max_codec;
+        }
+
+        // VFALCO OVERFLOW CHECKING ON THIS
+        space_needed +=
+            cfg.headers.valid_space_needed();
+
+        // cb0_, cb1_
+        // VFALCO OVERFLOW CHECKING ON THIS
+        space_needed +=
+            cfg.min_buffer +
+            cfg.min_buffer;
+
+        // T
+        space_needed += cfg.max_type_erase;
+
+        // max_codec
+        if(cfg.apply_deflate_decoder || cfg.apply_gzip_decoder)
         {
             // TODO: Account for the number of allocations and
             // their overhead in the workspace.
 
             // https://www.zlib.net/zlib_tech.html
             std::size_t n =
-                (1 << 15) + // window_bits
+                (1 << cfg.zlib_window_bits) +
                 (7 * 1024) +
                 #ifdef __s390x__
                 5768 +
@@ -463,15 +403,23 @@ parser_service(
             if(max_codec < n)
                 max_codec = n;
         }
-    }
-    space_needed += max_codec;
+        space_needed += max_codec;
 
-    // round up to alignof(detail::header::entry)
-    auto const al = alignof(
-        detail::header::entry);
-    space_needed = al * ((
-        space_needed + al - 1) / al);
-}
+        // round up to alignof(detail::header::entry)
+        auto const al = alignof(
+            detail::header::entry);
+        space_needed = al * ((
+            space_needed + al - 1) / al);
+    }
+
+    std::size_t
+    max_overread() const noexcept
+    {
+        return
+            cfg.headers.max_size +
+            cfg.min_buffer;
+    }
+};
 
 void
 install_parser_service(
@@ -492,13 +440,11 @@ parser::
 parser(context& ctx, detail::kind k)
     : ctx_(ctx)
     , svc_(ctx.get_service<parser_service>())
+    , ws_(svc_.space_needed)
     , h_(detail::empty{ k })
     , st_(state::reset)
     , got_header_(false)
 {
-    auto const n = svc_.space_needed;
-    ws_.allocate(n);
-    h_.cap = n;
 }
 
 parser::
@@ -1067,12 +1013,14 @@ parse(
         if(svc_.cfg.apply_deflate_decoder &&
             h_.md.content_encoding.encoding == encoding::deflate)
         {
-            filter_ = &ws_.emplace<filter>(ctx_, ws_, false);
+            filter_ = &ws_.emplace<filter>(
+                ctx_, ws_, svc_.cfg.zlib_window_bits);
         }
         else if(svc_.cfg.apply_gzip_decoder &&
             h_.md.content_encoding.encoding == encoding::gzip)
         {
-            filter_ = &ws_.emplace<filter>(ctx_, ws_, true);
+            filter_ = &ws_.emplace<filter>(
+                ctx_, ws_, svc_.cfg.zlib_window_bits + 16);
         }
         else
         {

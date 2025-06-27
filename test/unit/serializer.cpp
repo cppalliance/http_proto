@@ -176,7 +176,8 @@ struct serializer_test
     testSyntax()
     {
         context ctx;
-        serializer sr(ctx, 1024);
+        install_serializer_service(ctx, {});
+        serializer sr(ctx);
         response res;
 
         sr.start(res);
@@ -203,7 +204,6 @@ struct serializer_test
         sr.start_stream(res);
         sr.reset();
 
-        serializer(ctx, 65536);
 #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
 #if 0
         serializer(65536, gzip_decoder);
@@ -225,6 +225,7 @@ struct serializer_test
         {
             response res(headers);
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
             sr.start(res);
             std::string s = read(sr);
@@ -281,6 +282,7 @@ struct serializer_test
         }
 
         context ctx;
+        install_serializer_service(ctx, {});
         serializer sr(ctx);
         buffers::const_buffer_span cbs(
             buf.data(), buf.size());
@@ -308,35 +310,29 @@ struct serializer_test
         // we limit the buffer size of the serializer, requiring
         // it to make multiple calls to source::read
         context ctx;
-        serializer sr(ctx, 1024);
+        install_serializer_service(ctx, {});
+        serializer sr(ctx);
         sr.start<Source>(res, std::forward<
             Source>(src));
         std::string s = read(sr);
         f(s);
     }
 
-    struct check_stream_opts
-    {
-        std::size_t sr_capacity = 1024;
-    };
-
     template <class F>
     void
     check_stream(
         core::string_view headers,
         core::string_view body,
-        check_stream_opts const& opts,
         F f)
     {
-        auto sr_capacity = opts.sr_capacity;
-
         response res(headers);
-
         context ctx;
-        serializer sr(ctx, sr_capacity);
+        install_serializer_service(ctx, {});
+        serializer sr(ctx);
         auto stream = sr.start_stream(res);
-        BOOST_TEST_GT(stream.capacity(), 0);
-        BOOST_TEST_LE(stream.capacity(), sr_capacity);
+        BOOST_TEST_GT(
+            stream.capacity(),
+            serializer::config{}.payload_buffer);
 
         std::vector<char> s; // stores complete output
 
@@ -511,6 +507,7 @@ struct serializer_test
                 "HTTP/1.1 200 OK\r\n"
                 "\r\n");
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
 
             sr.start<faulty_source>(
@@ -559,13 +556,11 @@ struct serializer_test
 
         // empty stream
         {
-            check_stream_opts opts;
             check_stream(
                 "HTTP/1.1 200 OK\r\n"
                 "Server: test\r\n"
                 "\r\n",
                 std::string(0, '*'),
-                opts,
                 [](core::string_view s)
                 {
                     core::string_view expected_header =
@@ -580,14 +575,12 @@ struct serializer_test
 
         // empty stream, chunked
         {
-            check_stream_opts opts;
             check_stream(
                 "HTTP/1.1 200 OK\r\n"
                 "Server: test\r\n"
                 "Transfer-Encoding: chunked\r\n"
                 "\r\n",
                 std::string(0, '*'),
-                opts,
                 [](core::string_view s)
                 {
                     core::string_view expected_header =
@@ -603,14 +596,12 @@ struct serializer_test
 
         // stream
         {
-            check_stream_opts opts;
             check_stream(
                 "HTTP/1.1 200 OK\r\n"
                 "Server: test\r\n"
                 "Content-Length: 13370\r\n"
                 "\r\n",
                 std::string(13370, '*'),
-                opts,
                 [](core::string_view s){
                     core::string_view expected_header =
                         "HTTP/1.1 200 OK\r\n"
@@ -629,14 +620,12 @@ struct serializer_test
 
         // stream, chunked
         {
-            check_stream_opts opts;
             check_stream(
                 "HTTP/1.1 200 OK\r\n"
                 "Server: test\r\n"
                 "Transfer-Encoding: chunked\r\n"
                 "\r\n",
                 std::string(13370, '*'),
-                opts,
                 [](core::string_view s)
                 {
                     core::string_view expected_header =
@@ -659,6 +648,7 @@ struct serializer_test
         // request
         {
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
             request req(
                 "GET / HTTP/1.1\r\n"
@@ -704,6 +694,7 @@ struct serializer_test
         // empty body
         {
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
             request req(
                 "GET / HTTP/1.1\r\n"
@@ -748,6 +739,7 @@ struct serializer_test
                 "\r\n";
 
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
             response res(sv);
             sr.start<test_source>(res, "12345");
@@ -771,6 +763,7 @@ struct serializer_test
                 "\r\n";
             response res(sv);
             context ctx;
+            install_serializer_service(ctx, {});
             serializer sr(ctx);
             auto stream = sr.start_stream(res);
 

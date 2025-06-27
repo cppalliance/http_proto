@@ -93,21 +93,32 @@ public:
         */
         std::uint64_t body_limit = 64 * 1024;
 
-        /** True if parser can decode deflate transfer and content encodings.
+        /** True if parser can decode deflate Content-Encoding.
 
-            The zlib service must already be
+            The @ref zlib::inflate_service must already be
             installed thusly, or else an exception
             is thrown.
         */
         bool apply_deflate_decoder = false;
 
-        /** True if parser can decode gzip transfer and content encodings.
+        /** True if parser can decode gzip Content-Encoding.
 
-            The zlib service must already be
+            The @ref zlib::inflate_service must already be
             installed thusly, or else an exception
             is thrown.
         */
         bool apply_gzip_decoder = false;
+
+        /** Specifies the zlib windows bits 9..15.
+
+            The windows bits must be greater than or equal to
+            the windows bits value used for compression.
+
+            If a compressed message has a larger window size,
+            parsing ends with @ref zlib::error::data_err instead
+            of allocating a bigger window.
+        */
+        int zlib_window_bits = 15;
 
         /** Minimum space for payload buffering.
 

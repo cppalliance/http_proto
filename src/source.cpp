@@ -33,8 +33,8 @@ on_read(
             return rv;
         if(rs.finished)
             break;
-        // Source must fill the entire buffer
-        // unless it has finished
+        // source must fill the entire buffer
+        // if it is not finished
         if(b.size() != rs.bytes)
             detail::throw_logic_error();
     }
