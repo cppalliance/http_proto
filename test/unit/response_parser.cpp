@@ -10,7 +10,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/response_parser.hpp>
 
-#include <boost/http_proto/context.hpp>
+#include <boost/rts/context.hpp>
 
 #include "test_suite.hpp"
 
@@ -23,9 +23,9 @@ public:
     void
     testSpecial()
     {
-        // response_parser(context&)
+        // response_parser(rts::context&)
         {
-            context ctx;
+            rts::context ctx;
             response_parser::config cfg;
             install_parser_service(ctx, cfg);
             response_parser pr(ctx);

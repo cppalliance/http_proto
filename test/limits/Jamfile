@@ -18,6 +18,7 @@ project
       <include>../..
       <include>../../../url/extra/test_suite
       <library>/boost//buffers
+      <library>/boost//rts
       <library>/boost//url
     ;
 
@@ -26,7 +27,5 @@ run limits.cpp /boost/http_proto//http_proto_sources
         <define>BOOST_HTTP_PROTO_MAX_HEADER=20
         <define>BOOST_HTTP_PROTO_NO_LIB
         <define>BOOST_HTTP_PROTO_STATIC_LINK
-        <library>/boost//buffers
-        <library>/boost//url
         <link>static
     ;

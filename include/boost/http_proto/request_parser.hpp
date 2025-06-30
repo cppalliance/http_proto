@@ -41,7 +41,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    request_parser(context&);
+    request_parser(rts::context&);
 
     /** Return a read-only view to the parsed request headers.
 

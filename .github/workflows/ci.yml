@@ -828,6 +828,13 @@ jobs:
           repository: cppalliance/buffers
           ref: develop
 
+      - name: Clone Boost.RunTimeServices
+        uses: actions/checkout@v3
+        with:
+          path: rts-root
+          repository: cppalliance/rts
+          ref: develop
+
       - name: Setup C++
         uses: alandefreitas/cpp-actions/setup-cpp@v1.8.10
         id: setup-cpp
@@ -857,9 +864,11 @@ jobs:
           scan-modules-dir: |
             http-proto-root
             buffers-root
+            rts-root
           scan-modules-ignore: |
             http_proto
             buffers
+            rts
 
       - name: Install zlib (Windows)
         uses: alandefreitas/cpp-actions/package-install@v1.8.10
@@ -925,6 +934,7 @@ jobs:
           # Patch boost-root with workspace module
           cp -r "$workspace_root"/http-proto-root "libs/$module"
           cp -r "$workspace_root"/buffers-root libs/buffers
+          cp -r "$workspace_root"/rts-root libs/rts
 
       - name: Boost B2 Workflow
         uses: alandefreitas/cpp-actions/b2-workflow@v1.8.10
@@ -1147,6 +1157,13 @@ jobs:
           repository: cppalliance/buffers
           ref: develop
 
+      - name: Clone Boost.RunTimeServices
+        uses: actions/checkout@v3
+        with:
+          path: rts-root
+          repository: cppalliance/rts
+          ref: develop
+
       - name: Clone Boost
         uses: alandefreitas/cpp-actions/boost-clone@v1.8.10
         id: boost-clone
@@ -1158,9 +1175,11 @@ jobs:
           scan-modules-dir: |
             http-proto-root
             buffers-root
+            rts-root
           scan-modules-ignore: |
             http_proto
             buffers
+            rts
 
       - name: Patch Boost
         id: patch
@@ -1194,6 +1213,7 @@ jobs:
           # Patch boost-root with workspace module
           cp -r "$workspace_root"/http-proto-root "libs/$module"
           cp -r "$workspace_root"/buffers-root libs/buffers
+          cp -r "$workspace_root"/rts-root libs/rts
 
       - uses: actions/setup-node@v4
         with:

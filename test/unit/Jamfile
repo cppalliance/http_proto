@@ -16,7 +16,7 @@ project
     : requirements
       $(c11-requires)
       <library>/boost/http_proto//boost_http_proto
-      [ ac.check-library /boost/http_proto//boost_http_proto_zlib : <library>/boost/http_proto//boost_http_proto_zlib : ]
+      [ ac.check-library /boost/rts//boost_rts_zlib : <library>/boost/rts//boost_rts_zlib : ]
       <source>../../../url/extra/test_suite/test_main.cpp
       <source>../../../url/extra/test_suite/test_suite.cpp
       <source>./test_helpers.cpp
@@ -28,7 +28,6 @@ project
     ;
 
 local SOURCES =
-    context.cpp
     error.cpp
     field.cpp
     fields.cpp
@@ -71,9 +70,6 @@ local SOURCES =
     rfc/token_rule.cpp
     rfc/transfer_encoding_rule.cpp
     rfc/detail/rules.cpp
-    service/service.cpp
-    service/zlib_service.cpp
-    service/virtual_service.cpp
     ;
 
 for local f in $(SOURCES)
