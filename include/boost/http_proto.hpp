@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/deflate.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
@@ -52,9 +51,5 @@
 #include <boost/http_proto/rfc/quoted_token_view.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
-
-#include <boost/http_proto/service/service.hpp>
-#include <boost/http_proto/service/deflate_service.hpp>
-#include <boost/http_proto/service/inflate_service.hpp>
 
 #endif

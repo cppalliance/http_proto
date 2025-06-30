@@ -9,15 +9,13 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/request_parser.hpp>
-
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/rfc/combine_field_values.hpp>
 
-#include "boost/http_proto/parser.hpp"
+#include <boost/rts/context.hpp>
+
 #include "test_suite.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 
 namespace boost {
@@ -88,7 +86,7 @@ struct request_parser_test
 
     void
     good(
-        context& ctx,
+        rts::context& ctx,
         core::string_view s,
         core::string_view expected = {})
     {
@@ -109,7 +107,7 @@ struct request_parser_test
     }
 
     void
-    bad(context& ctx, core::string_view s)
+    bad(rts::context& ctx, core::string_view s)
     {
         for(std::size_t nmax = 1;
             nmax < s.size(); ++nmax)
@@ -137,7 +135,7 @@ struct request_parser_test
             BOOST_TEST(req.version() == v);
         };
 
-        context ctx;
+        rts::context ctx;
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
 
@@ -204,7 +202,7 @@ struct request_parser_test
     {
         // request_parser()
         {
-            context ctx;
+            rts::context ctx;
             request_parser::config cfg;
             install_parser_service(ctx, cfg);
             request_parser pr(ctx);
@@ -236,7 +234,7 @@ struct request_parser_test
                 "\r\n\r\n";
         };
 
-        context ctx;
+        rts::context ctx;
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
 
@@ -295,7 +293,7 @@ struct request_parser_test
     void
     testGet()
     {
-        context ctx;
+        rts::context ctx;
         request_parser::config cfg;
         install_parser_service(ctx, cfg);
         request_parser pr(ctx);

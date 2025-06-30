@@ -8,12 +8,10 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
-#include <boost/http_proto/service/inflate_service.hpp>
 
 #include "src/detail/zlib_filter.hpp"
 
@@ -23,6 +21,7 @@
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
+#include <boost/rts/zlib/inflate_service.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/hexdig_chars.hpp>
 
@@ -299,19 +298,19 @@ clamp(
 class parser::filter
     : public detail::zlib_filter
 {
-    zlib::inflate_service& svc_;
+    rts::zlib::inflate_service& svc_;
 
 public:
     filter(
-        context& ctx,
+        rts::context& ctx,
         http_proto::detail::workspace& ws,
         int window_bits)
         : zlib_filter(ws)
-        , svc_(ctx.get_service<zlib::inflate_service>())
+        , svc_(ctx.get_service<rts::zlib::inflate_service>())
     {
-        system::error_code ec = static_cast<zlib::error>(
+        system::error_code ec = static_cast<rts::zlib::error>(
             svc_.init2(strm_, window_bits));
-        if(ec != zlib::error::ok)
+        if(ec != rts::zlib::error::ok)
             detail::throw_system_error(ec);
     }
 
@@ -324,16 +323,16 @@ private:
     }
 
     virtual
-    zlib::error
-    do_process(zlib::flush flush) noexcept override
+    rts::zlib::error
+    do_process(rts::zlib::flush flush) noexcept override
     {
         return static_cast<
-            zlib::error>(svc_.inflate(strm_, flush));
+            rts::zlib::error>(svc_.inflate(strm_, flush));
     }
 };
 
 class parser_service
-    : public service
+    : public rts::service
 {
 public:
     parser::config_base cfg;
@@ -341,7 +340,7 @@ public:
     std::size_t max_codec = 0;
 
     parser_service(
-        context&,
+        rts::context&,
         parser::config_base const& cfg_)
         : cfg(cfg_)
     {
@@ -423,7 +422,7 @@ public:
 
 void
 install_parser_service(
-    context& ctx,
+    rts::context& ctx,
     parser::config_base const& cfg)
 {
     ctx.make_service<
@@ -437,7 +436,7 @@ install_parser_service(
 //------------------------------------------------
 
 parser::
-parser(context& ctx, detail::kind k)
+parser(rts::context& ctx, detail::kind k)
     : ctx_(ctx)
     , svc_(ctx.get_service<parser_service>())
     , ws_(svc_.space_needed)

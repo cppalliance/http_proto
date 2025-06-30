@@ -25,12 +25,14 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
 target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/test_suite)
-target_link_libraries(boost_http_proto_tests PRIVATE Boost::filesystem)
+target_link_libraries(
+    boost_http_proto_tests PRIVATE
+    boost_http_proto
+    boost_filesystem
+    )
 
-if (ZLIB_FOUND)
-    target_link_libraries(boost_http_proto_tests PRIVATE boost_http_proto_zlib ZLIB::ZLIB)
-else ()
-    target_link_libraries(boost_http_proto_tests PRIVATE boost_http_proto)
+if (TARGET boost_rts_zlib)
+    target_link_libraries(boost_http_proto_tests PRIVATE boost_rts_zlib)
 endif ()
 
 add_test(NAME boost_http_proto_tests COMMAND boost_http_proto_tests)

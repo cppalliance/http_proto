@@ -12,7 +12,6 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/service/deflate_service.hpp>
 
 #include "src/detail/zlib_filter.hpp"
 
@@ -23,6 +22,9 @@
 #include <boost/buffers/sans_suffix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/rts/zlib/deflate_service.hpp>
+#include <boost/rts/zlib/compression_method.hpp>
+#include <boost/rts/zlib/compression_strategy.hpp>
 
 #include <stddef.h>
 
@@ -188,26 +190,26 @@ public:
 class serializer::filter
     : public detail::zlib_filter
 {
-    zlib::deflate_service& svc_;
+    rts::zlib::deflate_service& svc_;
 
 public:
     filter(
-        context& ctx,
+        rts::context& ctx,
         http_proto::detail::workspace& ws,
         int comp_level,
         int window_bits,
         int mem_level)
         : zlib_filter(ws)
-        , svc_(ctx.get_service<zlib::deflate_service>())
+        , svc_(ctx.get_service<rts::zlib::deflate_service>())
     {
-        system::error_code ec = static_cast<zlib::error>(svc_.init2(
+        system::error_code ec = static_cast<rts::zlib::error>(svc_.init2(
             strm_,
             comp_level,
-            zlib::deflated,
+            rts::zlib::deflated,
             window_bits,
             mem_level,
-            zlib::default_strategy));
-        if(ec != zlib::error::ok)
+            rts::zlib::default_strategy));
+        if(ec != rts::zlib::error::ok)
             detail::throw_system_error(ec);
     }
 
@@ -222,23 +224,23 @@ private:
     }
 
     virtual
-    zlib::error
-    do_process(zlib::flush flush) noexcept override
+    rts::zlib::error
+    do_process(rts::zlib::flush flush) noexcept override
     {
         return static_cast<
-            zlib::error>(svc_.deflate(strm_, flush));
+            rts::zlib::error>(svc_.deflate(strm_, flush));
     }
 };
 
 class serializer_service
-    : public service
+    : public rts::service
 {
 public:
     serializer::config cfg;
     std::size_t space_needed = 0;
 
     serializer_service(
-        context&,
+        rts::context&,
         serializer::config const& cfg_)
         : cfg(cfg_)
     {
@@ -266,7 +268,7 @@ public:
 
 void
 install_serializer_service(
-    context& ctx,
+    rts::context& ctx,
     serializer::config const& cfg)
 {
     ctx.make_service<
@@ -283,7 +285,7 @@ serializer(
     serializer&&) noexcept = default;
 
 serializer::
-serializer(context& ctx)
+serializer(rts::context& ctx)
     : ctx_(ctx)
     , svc_(ctx.get_service<serializer_service>())
     , ws_(svc_.space_needed)

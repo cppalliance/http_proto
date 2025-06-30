@@ -40,7 +40,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    response_parser(context& ctx);
+    response_parser(rts::context& ctx);
 
     /** Prepare for the next message on the stream.
 

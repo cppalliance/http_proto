@@ -14,7 +14,7 @@ namespace http_proto {
 
 response_parser::
 response_parser(
-    context& ctx)
+    rts::context& ctx)
     : parser(
         ctx,
         detail::kind::response)

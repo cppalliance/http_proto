@@ -11,7 +11,6 @@
 #ifndef BOOST_HTTP_PROTO_SERIALIZER_HPP
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/detail/array_of_const_buffers.hpp>
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -23,6 +22,7 @@
 #include <boost/buffers/const_buffer_span.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/buffers/type_traits.hpp>
+#include <boost/rts/context_fwd.hpp>
 #include <boost/system/result.hpp>
 
 #include <numeric>
@@ -154,7 +154,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     serializer(
-        context& ctx);
+        rts::context& ctx);
 
     //--------------------------------------------
 
@@ -343,7 +343,7 @@ private:
         stream
     };
 
-    context& ctx_;
+    rts::context& ctx_;
     serializer_service& svc_;
 
     detail::workspace ws_;
@@ -373,7 +373,7 @@ private:
 BOOST_HTTP_PROTO_DECL
 void
 install_serializer_service(
-    context& ctx,
+    rts::context& ctx,
     serializer::config const& cfg);
 
 //------------------------------------------------

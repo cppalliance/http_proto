@@ -12,10 +12,12 @@
 #define BOOST_HTTP_PROTO_DETAIL_ZLIB_FILTER_HPP
 
 #include <boost/http_proto/detail/workspace.hpp>
-#include <boost/http_proto/service/zlib_service.hpp>
 
 #include <boost/buffers/const_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_subspan.hpp>
+#include <boost/rts/zlib/error.hpp>
+#include <boost/rts/zlib/flush.hpp>
+#include <boost/rts/zlib/stream.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -72,15 +74,15 @@ public:
         bool force_flush = false);
 
 protected:
-    zlib::stream strm_;
+    rts::zlib::stream strm_;
 
     virtual
     std::size_t
     min_out_buffer() const noexcept = 0;
 
     virtual
-    zlib::error
-    do_process(zlib::flush) noexcept = 0;
+    rts::zlib::error
+    do_process(rts::zlib::flush) noexcept = 0;
 };
 
 } // detail

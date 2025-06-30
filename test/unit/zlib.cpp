@@ -8,36 +8,11 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/detail/config.hpp>
-
-#include "test_suite.hpp"
-
-#ifndef BOOST_HTTP_PROTO_HAS_ZLIB
-
-#include <boost/config/pragma_message.hpp>
-
-BOOST_PRAGMA_MESSAGE("zlib not found, building dummy zlib.cpp test")
-
-struct zlib_test
-{
-    void run()
-    {}
-};
-
-TEST_SUITE(
-    zlib_test,
-    "boost.http_proto.zlib");
-
-#else
-
-#include <boost/http_proto/context.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/request_parser.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/response_parser.hpp>
 #include <boost/http_proto/serializer.hpp>
-#include <boost/http_proto/service/deflate_service.hpp>
-#include <boost/http_proto/service/inflate_service.hpp>
 
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/size.hpp>
@@ -47,12 +22,13 @@ TEST_SUITE(
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/core/span.hpp>
+#include <boost/rts/zlib.hpp>
+
+#include "test_helpers.hpp"
 
 #include <string>
 #include <vector>
 #include <random>
-
-#include <zlib.h>
 
 // opt into random ascii generation as it's easier than
 // maintaing a large static asset that has to be loaded
@@ -79,23 +55,31 @@ struct zlib_test
 {
     std::string
     deflate(
+        rts::zlib::deflate_service& d_svc,
         int window_bits,
         int mem_level,
         core::string_view str)
     {
-        ::z_stream zs{};
+        namespace zlib = rts::zlib;
+        zlib::stream zs{};
 
-        if(!BOOST_TEST_EQ(
-               deflateInit2(&zs, -1, Z_DEFLATED, window_bits,
-               mem_level, Z_DEFAULT_STRATEGY), Z_OK))
+        auto ret = static_cast<zlib::error>(
+            d_svc.init2(
+                zs,
+                zlib::default_compression,
+                zlib::deflated,
+                window_bits,
+                mem_level,
+                zlib::default_strategy));
+
+        if(!BOOST_TEST_EQ(ret, zlib::error::ok))
         {
-            ::deflateEnd(&zs);
+            d_svc.deflate_end(zs);
             return {};
         }
 
-        zs.next_in  = reinterpret_cast<Bytef*>(
-            const_cast<char *>(str.data()));
-        zs.avail_in = static_cast<uInt>(str.size());
+        zs.next_in  = reinterpret_cast<unsigned char*>(const_cast<char *>(str.data()));
+        zs.avail_in = static_cast<unsigned int>(str.size());
 
         std::string result;
         for(;;)
@@ -103,33 +87,37 @@ struct zlib_test
             constexpr auto chunk_size = 2048;
             result.resize(result.size() + chunk_size);
             auto it = result.begin() + result.size() - chunk_size;
-            zs.next_out  = reinterpret_cast<Bytef*>(&*it);
+            zs.next_out  = reinterpret_cast<unsigned char*>(&*it);
             zs.avail_out = chunk_size;
-            auto ret = ::deflate(&zs, Z_FINISH);
+            ret = static_cast<zlib::error>(
+                d_svc.deflate(zs, zlib::finish));
             result.erase(
                 it + chunk_size - zs.avail_out, result.end());
-            if( ret != Z_OK )
+            if(ret != zlib::error::ok)
                 break;
         }
-        ::deflateEnd(&zs);
+        d_svc.deflate_end(zs);
         return result;
     }
 
     void verify_compressed(
+        rts::zlib::inflate_service& i_svc,
         span<unsigned char> compressed,
         core::string_view expected)
     {
-        int ret = -1;
+        namespace zlib = rts::zlib;
 
-        ::z_stream zs{};
+        zlib::stream zs{};
 
         int const window_bits = 15; // default
         int const enable_zlib_and_gzip = 32;
-        ret = ::inflateInit2(
-            &zs, window_bits + enable_zlib_and_gzip);
-        if(! BOOST_TEST_EQ(ret, Z_OK) )
+        auto ret = static_cast<zlib::error>(
+            i_svc.init2(
+                zs,
+                window_bits + enable_zlib_and_gzip));
+        if(! BOOST_TEST_EQ(ret, zlib::error::ok) )
         {
-            ::inflateEnd(&zs);
+            i_svc.inflate_end(zs);
             return;
         }
 
@@ -144,10 +132,10 @@ struct zlib_test
         zs.avail_out =
             static_cast<unsigned>(decompressed_output.size());
 
-        ret = ::inflate(&zs, Z_FINISH);
-        if(! BOOST_TEST_EQ(ret, Z_STREAM_END) )
+        ret = static_cast<zlib::error>(i_svc.inflate(zs, zlib::finish));
+        if(! BOOST_TEST_EQ(ret, zlib::error::stream_end) )
         {
-            ::inflateEnd(&zs);
+            i_svc.inflate_end(zs);
             return;
         }
 
@@ -157,7 +145,7 @@ struct zlib_test
                 decompressed_output.data()), n);
         BOOST_TEST(sv2 == expected);
 
-        ::inflateEnd(&zs);
+        i_svc.inflate_end(zs);
         return;
     }
 
@@ -333,8 +321,10 @@ struct zlib_test
         std::string const& body,
         bool chunked_encoding)
     {
-        context ctx;
+        namespace zlib = rts::zlib;
+        rts::context ctx;
         zlib::install_deflate_service(ctx);
+        auto& i_svc = zlib::install_inflate_service(ctx);
         serializer::config cfg;
         cfg.apply_deflate_encoder = true;
         cfg.apply_gzip_encoder = true;
@@ -428,7 +418,7 @@ struct zlib_test
 
             // BOOST_TEST_LT(compressed.size(), body.size());
 
-            verify_compressed(compressed, body);
+            verify_compressed(i_svc, compressed, body);
         }
     }
 
@@ -612,8 +602,9 @@ struct zlib_test
     void
     test_parser()
     {
-        context ctx;
-        zlib::install_inflate_service(ctx);
+        rts::context ctx;
+        rts::zlib::install_inflate_service(ctx);
+        auto& d_svc = rts::zlib::install_deflate_service(ctx);
 
         auto append_chunked = [](
             std::string& msg,
@@ -655,6 +646,7 @@ struct zlib_test
 
             auto body = generate_book(body_size);
             auto deflated_body = deflate(
+                d_svc,
                 15 + (encoding == "gzip" ? 16 : 0),
                 8,
                 body);
@@ -692,10 +684,13 @@ struct zlib_test
                 pr.reset();
         }
     }
+
     void run()
     {
+    #ifdef BOOST_RTS_HAS_ZLIB
         test_serializer();
         test_parser();
+    #endif
     }
 };
 
@@ -705,5 +700,3 @@ TEST_SUITE(
 
 } // namespace http_proto
 } // namespace boost
-
-#endif

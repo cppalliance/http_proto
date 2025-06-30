@@ -65,20 +65,20 @@ process(
     bool force_flush) -> results
 {
     results rv;
-    auto flush = zlib::no_flush;
+    auto flush = rts::zlib::no_flush;
     for(;;)
     {
         auto ob = buffers::front(out);
         auto ib = buffers::front(in);
 
-        if(!more && flush != zlib::finish && in[1].size() == 0)
+        if(!more && flush != rts::zlib::finish && in[1].size() == 0)
         {
             if(buffers::size(out) < min_out_buffer())
             {
                 rv.out_short = true;
                 return rv;
             }
-            flush = zlib::finish;
+            flush = rts::zlib::finish;
         }
 
         strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(ib.data()));
@@ -98,7 +98,7 @@ process(
         if(ec.failed())
             return rv;
 
-        if(ec == zlib::error::stream_end)
+        if(ec == rts::zlib::error::stream_end)
         {
             rv.finished = true;
             return rv;
@@ -114,7 +114,7 @@ process(
         {
             if(force_flush && rv.out_bytes == 0)
             {
-                flush = zlib::block;
+                flush = rts::zlib::block;
                 continue;
             }
             return rv;

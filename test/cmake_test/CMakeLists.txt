@@ -26,9 +26,8 @@ else()
     assert
     buffers
     config
-    container_hash
     core
-    mp11
+    rts
     static_assert
     system
     throw_exception
@@ -38,15 +37,13 @@ else()
 
     # Secondary dependencies
 
-    describe
+    container_hash
+    mp11
     variant2
     align
     optional
     predef
-    detail
-    utility
-    preprocessor
-    io
+    describe
   )
 
   foreach(dep IN LISTS deps)

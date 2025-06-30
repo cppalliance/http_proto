@@ -10,9 +10,9 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
-
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
+
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/size.hpp>
@@ -20,6 +20,8 @@
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/mutable_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <boost/rts/context.hpp>
+
 #include "test_helpers.hpp"
 
 #include <array>
@@ -175,7 +177,7 @@ struct serializer_test
     void
     testSyntax()
     {
-        context ctx;
+        rts::context ctx;
         install_serializer_service(ctx, {});
         serializer sr(ctx);
         response res;
@@ -224,7 +226,7 @@ struct serializer_test
             core::string_view expected)
         {
             response res(headers);
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             sr.start(res);
@@ -281,7 +283,7 @@ struct serializer_test
             body.remove_prefix(buf_size);
         }
 
-        context ctx;
+        rts::context ctx;
         install_serializer_service(ctx, {});
         serializer sr(ctx);
         buffers::const_buffer_span cbs(
@@ -309,7 +311,7 @@ struct serializer_test
         response res(headers);
         // we limit the buffer size of the serializer, requiring
         // it to make multiple calls to source::read
-        context ctx;
+        rts::context ctx;
         install_serializer_service(ctx, {});
         serializer sr(ctx);
         sr.start<Source>(res, std::forward<
@@ -326,7 +328,7 @@ struct serializer_test
         F f)
     {
         response res(headers);
-        context ctx;
+        rts::context ctx;
         install_serializer_service(ctx, {});
         serializer sr(ctx);
         auto stream = sr.start_stream(res);
@@ -506,7 +508,7 @@ struct serializer_test
             response res(
                 "HTTP/1.1 200 OK\r\n"
                 "\r\n");
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
 
@@ -647,7 +649,7 @@ struct serializer_test
     {
         // request
         {
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             request req(
@@ -693,7 +695,7 @@ struct serializer_test
 
         // empty body
         {
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             request req(
@@ -738,7 +740,7 @@ struct serializer_test
                 "Expect: 100-continue\r\n"
                 "\r\n";
 
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             response res(sv);
@@ -762,7 +764,7 @@ struct serializer_test
                 "Transfer-Encoding: chunked\r\n"
                 "\r\n";
             response res(sv);
-            context ctx;
+            rts::context ctx;
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             auto stream = sr.start_stream(res);

@@ -27,16 +27,13 @@ target_link_libraries(boost_http_proto_limits PRIVATE
     Boost::buffers
     Boost::config
     Boost::container_hash
+    Boost::rts
     Boost::system
     Boost::throw_exception
     Boost::url
     Boost::utility)
 
 target_link_libraries(boost_http_proto_limits INTERFACE Boost::http_proto)
-
-if (ZLIB_FOUND)
-    target_link_libraries(boost_http_proto_limits INTERFACE ZLIB::ZLIB)
-endif()
 
 add_test(NAME boost_http_proto_limits COMMAND boost_http_proto_limits)
 add_dependencies(tests boost_http_proto_limits)

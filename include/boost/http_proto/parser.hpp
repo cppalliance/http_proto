@@ -25,6 +25,7 @@
 #include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
+#include <boost/rts/context_fwd.hpp>
 #include <boost/url/grammar/error.hpp>
 
 #include <cstddef>
@@ -550,7 +551,7 @@ private:
     class filter;
 
     BOOST_HTTP_PROTO_DECL
-    parser(context&, detail::kind);
+    parser(rts::context&, detail::kind);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -596,7 +597,7 @@ private:
         elastic,
     };
 
-    context& ctx_;
+    rts::context& ctx_;
     parser_service& svc_;
 
     detail::workspace ws_;
@@ -636,7 +637,7 @@ private:
 BOOST_HTTP_PROTO_DECL
 void
 install_parser_service(
-    context& ctx,
+    rts::context& ctx,
     parser::config_base const& cfg);
 
 } // http_proto
