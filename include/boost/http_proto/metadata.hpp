@@ -78,7 +78,12 @@ encoding
     /**
       * Indicates the body has gzip applied.
     */
-    gzip
+    gzip,
+
+    /**
+      * Indicates the body has brotli applied.
+    */
+    br
 };
 
 //------------------------------------------------

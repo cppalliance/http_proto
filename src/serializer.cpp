@@ -13,7 +13,8 @@
 #include <boost/http_proto/message_view_base.hpp>
 #include <boost/http_proto/serializer.hpp>
 
-#include "src/detail/zlib_filter.hpp"
+#include "src/detail/brotli_filter_base.hpp"
+#include "src/detail/zlib_filter_base.hpp"
 
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/front.hpp>
@@ -22,9 +23,12 @@
 #include <boost/buffers/sans_suffix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <boost/rts/zlib/deflate_service.hpp>
+#include <boost/rts/brotli/encode.hpp>
 #include <boost/rts/zlib/compression_method.hpp>
 #include <boost/rts/zlib/compression_strategy.hpp>
+#include <boost/rts/zlib/deflate.hpp>
+#include <boost/rts/zlib/error.hpp>
+#include <boost/rts/zlib/flush.hpp>
 
 #include <stddef.h>
 
@@ -183,23 +187,19 @@ public:
     }
 };
 
-} // namespace
-
-//------------------------------------------------
-
-class serializer::filter
-    : public detail::zlib_filter
+class zlib_filter
+    : public detail::zlib_filter_base
 {
     rts::zlib::deflate_service& svc_;
 
 public:
-    filter(
+    zlib_filter(
         rts::context& ctx,
         http_proto::detail::workspace& ws,
         int comp_level,
         int window_bits,
         int mem_level)
-        : zlib_filter(ws)
+        : zlib_filter_base(ws)
         , svc_(ctx.get_service<rts::zlib::deflate_service>())
     {
         system::error_code ec = static_cast<rts::zlib::error>(svc_.init2(
@@ -224,13 +224,133 @@ private:
     }
 
     virtual
-    rts::zlib::error
-    do_process(rts::zlib::flush flush) noexcept override
+    results
+    do_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        filter::flush flush) noexcept override
     {
-        return static_cast<
-            rts::zlib::error>(svc_.deflate(strm_, flush));
+        strm_.next_out  = static_cast<unsigned char*>(out.data());
+        strm_.avail_out = saturate_cast(out.size());
+        strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(in.data()));
+        strm_.avail_in  = saturate_cast(in.size());
+
+        auto rs = static_cast<rts::zlib::error>(
+            svc_.deflate(strm_, translate(flush)));
+
+        results rv;
+        rv.out_bytes = saturate_cast(out.size()) - strm_.avail_out;
+        rv.in_bytes  = saturate_cast(in.size()) - strm_.avail_in;
+        rv.finished  = (rs == rts::zlib::error::stream_end);
+
+        if(rs < rts::zlib::error::ok && rs != rts::zlib::error::buf_err)
+            rv.ec = rs;
+
+        return rv;
     }
 };
+
+class brotli_filter
+    : public detail::brotli_filter_base
+{
+    rts::brotli::encode_service& svc_;
+    rts::brotli::encoder_state* state_;
+    bool flushing_ = false;
+public:
+    brotli_filter(
+        rts::context& ctx,
+        http_proto::detail::workspace&,
+        std::uint32_t comp_quality,
+        std::uint32_t comp_window)
+        : svc_(ctx.get_service<rts::brotli::encode_service>())
+    {
+        // TODO: use custom allocator
+        state_ = svc_.create_instance(nullptr, nullptr, nullptr);
+        if(!state_)
+            detail::throw_bad_alloc();
+        using encoder_parameter = rts::brotli::encoder_parameter;
+        svc_.set_parameter(state_, encoder_parameter::quality, comp_quality);
+        svc_.set_parameter(state_, encoder_parameter::lgwin, comp_window);
+    }
+
+    ~brotli_filter()
+    {
+        svc_.destroy_instance(state_);
+    }
+
+private:
+    virtual
+    results
+    do_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        filter::flush flush) noexcept override
+    {
+        if(flushing_)
+        {
+            // restore partial flush type
+            flush = filter::flush::partial;
+            in = {};
+        }
+        else if(flush == filter::flush::partial)
+        {
+            // the Brotli api requires continued flushing
+            // until all output is fully drained.
+            flushing_ = true;
+        }
+
+        auto* next_in = reinterpret_cast<const std::uint8_t*>(in.data());
+        auto available_in = in.size();
+        auto* next_out = reinterpret_cast<std::uint8_t*>(out.data());
+        auto available_out = out.size();
+
+        bool rs = svc_.compress_stream(
+            state_,
+            translate(flush),
+            &available_in,
+            &next_in,
+            &available_out,
+            &next_out,
+            nullptr);
+
+        results rv;
+        rv.in_bytes  = in.size()  - available_in;
+        rv.out_bytes = out.size() - available_out;
+        rv.finished  = svc_.is_finished(state_);
+
+        if(flushing_ && !svc_.has_more_output(state_))
+            flushing_ = false;
+
+        // TODO: use proper error code
+        if(rs == false)
+            rv.ec = error::bad_payload;
+
+        return rv;
+    }
+
+private:
+    static
+    rts::brotli::encoder_operation
+    translate(filter::flush flush) noexcept
+    {
+        switch(flush)
+        {
+        case filter::flush::none:
+            return rts::brotli::encoder_operation::process;
+
+        case filter::flush::partial:
+            return rts::brotli::encoder_operation::flush;
+
+        case filter::flush::finish:
+        default:
+            return rts::brotli::encoder_operation::finish;
+        }
+    }
+};
+
+} // namespace
+
+//------------------------------------------------
 
 class serializer_service
     : public rts::service
@@ -260,8 +380,7 @@ public:
                 #ifdef __s390x__
                 5768 +
                 #endif
-                detail::workspace::space_needed<
-                    serializer::filter>();
+                detail::workspace::space_needed<zlib_filter>();
         }
     }
 };
@@ -274,6 +393,8 @@ install_serializer_service(
     ctx.make_service<
         serializer_service>(cfg);
 }
+
+//------------------------------------------------
 
 serializer::
 ~serializer()
@@ -620,24 +741,43 @@ start_init(
     is_chunked_ = md.transfer_encoding.is_chunked;
 
     // Content-Encoding
-    auto const& ce = md.content_encoding;
-    if(ce.encoding == encoding::deflate)
+    switch (md.content_encoding.encoding)
     {
-        filter_ = &ws_.emplace<filter>(
+    case encoding::deflate:
+        if(!svc_.cfg.apply_deflate_encoder)
+            goto no_filter;
+        filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
             svc_.cfg.zlib_comp_level,
             svc_.cfg.zlib_window_bits,
             svc_.cfg.zlib_mem_level);
-    }
-    else if(ce.encoding == encoding::gzip)
-    {
-        filter_ = &ws_.emplace<filter>(
+        break;
+
+    case encoding::gzip:
+        if(!svc_.cfg.apply_gzip_encoder)
+            goto no_filter;
+        filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
             svc_.cfg.zlib_comp_level,
             svc_.cfg.zlib_window_bits + 16,
             svc_.cfg.zlib_mem_level);
+        break;
+
+    case encoding::br:
+        if(!svc_.cfg.apply_brotli_encoder)
+            goto no_filter;
+        filter_ = &ws_.emplace<brotli_filter>(
+            ctx_,
+            ws_,
+            svc_.cfg.brotli_comp_quality,
+            svc_.cfg.brotli_comp_window);
+        break;
+
+    no_filter:
+    default:
+        break;
     }
 }
 

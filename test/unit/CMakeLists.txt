@@ -35,5 +35,9 @@ if (TARGET boost_rts_zlib)
     target_link_libraries(boost_http_proto_tests PRIVATE boost_rts_zlib)
 endif ()
 
+if (TARGET boost_rts_brotli)
+    target_link_libraries(boost_http_proto_tests PRIVATE boost_rts_brotli)
+endif ()
+
 add_test(NAME boost_http_proto_tests COMMAND boost_http_proto_tests)
 add_dependencies(tests boost_http_proto_tests)

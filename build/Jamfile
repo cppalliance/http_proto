@@ -47,7 +47,6 @@ lib boost_http_proto
    : usage-requirements
      <library>/boost//buffers
      <library>/boost//rts
-     <library>/boost//url
    ;
 
 boost-install boost_http_proto ;

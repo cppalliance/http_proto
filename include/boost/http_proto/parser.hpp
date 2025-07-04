@@ -94,9 +94,18 @@ public:
         */
         std::uint64_t body_limit = 64 * 1024;
 
+
+        /** True if parser can decode br Content-Encoding.
+
+            The @ref rts::brotli::decode_service must already be
+            installed thusly, or else an exception
+            is thrown.
+        */
+        bool apply_brotli_decoder = false;
+
         /** True if parser can decode deflate Content-Encoding.
 
-            The @ref zlib::inflate_service must already be
+            The @ref rts::zlib::inflate_service must already be
             installed thusly, or else an exception
             is thrown.
         */
@@ -104,7 +113,7 @@ public:
 
         /** True if parser can decode gzip Content-Encoding.
 
-            The @ref zlib::inflate_service must already be
+            The @ref zrts::lib::inflate_service must already be
             installed thusly, or else an exception
             is thrown.
         */
@@ -547,8 +556,6 @@ public:
 private:
     friend class request_parser;
     friend class response_parser;
-    friend class parser_service;
-    class filter;
 
     BOOST_HTTP_PROTO_DECL
     parser(rts::context&, detail::kind);
@@ -616,7 +623,7 @@ private:
     buffers::mutable_buffer_pair mbp_;
     buffers::const_buffer_pair cbp_;
 
-    filter* filter_;
+    detail::filter* filter_;
     buffers::any_dynamic_buffer* eb_;
     sink* sink_;
 

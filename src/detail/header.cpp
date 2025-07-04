@@ -703,6 +703,12 @@ on_insert_content_encoding(
         md.content_encoding.encoding =
             encoding::gzip;
     }
+    else if( grammar::ci_is_equal(*(rv->begin()),
+        "br") )
+    {
+        md.content_encoding.encoding =
+            encoding::br;
+    }
     else
     {
         md.content_encoding.encoding =

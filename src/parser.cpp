@@ -13,7 +13,8 @@
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 
-#include "src/detail/zlib_filter.hpp"
+#include "src/detail/brotli_filter_base.hpp"
+#include "src/detail/zlib_filter_base.hpp"
 
 #include <boost/assert.hpp>
 #include <boost/buffers/copy.hpp>
@@ -21,7 +22,9 @@
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
-#include <boost/rts/zlib/inflate_service.hpp>
+#include <boost/rts/brotli/decode.hpp>
+#include <boost/rts/zlib/error.hpp>
+#include <boost/rts/zlib/inflate.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/hexdig_chars.hpp>
 
@@ -293,19 +296,18 @@ clamp(
         return limit;
     return static_cast<std::size_t>(x);
 }
-} // namespace
 
-class parser::filter
-    : public detail::zlib_filter
+class zlib_filter
+    : public detail::zlib_filter_base
 {
     rts::zlib::inflate_service& svc_;
 
 public:
-    filter(
+    zlib_filter(
         rts::context& ctx,
         http_proto::detail::workspace& ws,
         int window_bits)
-        : zlib_filter(ws)
+        : zlib_filter_base(ws)
         , svc_(ctx.get_service<rts::zlib::inflate_service>())
     {
         system::error_code ec = static_cast<rts::zlib::error>(
@@ -316,20 +318,94 @@ public:
 
 private:
     virtual
-    std::size_t
-    min_out_buffer() const noexcept override
+    results
+    do_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        filter::flush flush) noexcept override
     {
-        return 0;
-    }
+        strm_.next_out  = static_cast<unsigned char*>(out.data());
+        strm_.avail_out = saturate_cast(out.size());
+        strm_.next_in   = static_cast<unsigned char*>(const_cast<void *>(in.data()));
+        strm_.avail_in  = saturate_cast(in.size());
 
-    virtual
-    rts::zlib::error
-    do_process(rts::zlib::flush flush) noexcept override
-    {
-        return static_cast<
-            rts::zlib::error>(svc_.inflate(strm_, flush));
+        auto rs = static_cast<rts::zlib::error>(
+            svc_.inflate(strm_, translate(flush)));
+
+        results rv;
+        rv.out_bytes = saturate_cast(out.size()) - strm_.avail_out;
+        rv.in_bytes  = saturate_cast(in.size()) - strm_.avail_in;
+        rv.finished  = (rs == rts::zlib::error::stream_end);
+
+        if(rs < rts::zlib::error::ok && rs != rts::zlib::error::buf_err)
+            rv.ec = rs;
+
+        return rv;
     }
 };
+
+class brotli_filter
+    : public detail::brotli_filter_base
+{
+    rts::brotli::decode_service& svc_;
+    rts::brotli::decoder_state* state_;
+
+public:
+    brotli_filter(
+        rts::context& ctx,
+        http_proto::detail::workspace&)
+        : svc_(ctx.get_service<rts::brotli::decode_service>())
+    {
+        // TODO: use custom allocator
+        state_ = svc_.create_instance(nullptr, nullptr, nullptr);
+
+        if(!state_)
+            detail::throw_bad_alloc();
+    }
+
+    ~brotli_filter()
+    {
+        svc_.destroy_instance(state_);
+    }
+
+private:
+    virtual
+    results
+    do_process(
+        buffers::mutable_buffer out,
+        buffers::const_buffer in,
+        filter::flush flush) noexcept override
+    {
+        auto* next_in = reinterpret_cast<const std::uint8_t*>(in.data());
+        auto available_in = in.size();
+        auto* next_out = reinterpret_cast<std::uint8_t*>(out.data());
+        auto available_out = out.size();
+
+        auto rs = svc_.decompress_stream(
+            state_,
+            &available_in,
+            &next_in,
+            &available_out,
+            &next_out,
+            nullptr);
+
+        results rv;
+        rv.in_bytes  = in.size()  - available_in;
+        rv.out_bytes = out.size() - available_out;
+        rv.finished  = svc_.is_finished(state_);
+
+        if(rs == rts::brotli::decoder_result::needs_more_input && flush == filter::flush::finish)
+            rv.ec = BOOST_HTTP_PROTO_ERR(error::bad_payload);
+
+        if(rs == rts::brotli::decoder_result::error)
+            rv.ec = BOOST_HTTP_PROTO_ERR(
+                svc_.get_error_code(state_));
+
+        return rv;
+    }
+};
+
+} // namespace
 
 class parser_service
     : public rts::service
@@ -396,8 +472,8 @@ public:
                 #ifdef __s390x__
                 5768 +
                 #endif
-                detail::workspace::
-                    space_needed<parser::filter>();
+                detail::workspace::space_needed<
+                    zlib_filter>();
 
             if(max_codec < n)
                 max_codec = n;
@@ -1009,22 +1085,34 @@ parse(
         // must be installed after them.
         auto const p = ws_.reserve_front(cap);
 
-        if(svc_.cfg.apply_deflate_decoder &&
-            h_.md.content_encoding.encoding == encoding::deflate)
+        switch(h_.md.content_encoding.encoding)
         {
-            filter_ = &ws_.emplace<filter>(
+        case encoding::deflate:
+            if(!svc_.cfg.apply_deflate_decoder)
+                goto no_filter;
+            filter_ = &ws_.emplace<zlib_filter>(
                 ctx_, ws_, svc_.cfg.zlib_window_bits);
-        }
-        else if(svc_.cfg.apply_gzip_decoder &&
-            h_.md.content_encoding.encoding == encoding::gzip)
-        {
-            filter_ = &ws_.emplace<filter>(
+            break;
+
+        case encoding::gzip:
+            if(!svc_.cfg.apply_deflate_decoder)
+                goto no_filter;
+            filter_ = &ws_.emplace<zlib_filter>(
                 ctx_, ws_, svc_.cfg.zlib_window_bits + 16);
-        }
-        else
-        {
+            break;
+
+        case encoding::br:
+            if(!svc_.cfg.apply_brotli_decoder)
+                goto no_filter;
+            filter_ = &ws_.emplace<brotli_filter>(
+                ctx_, ws_);
+            break;
+
+        no_filter:
+        default:
             cap += svc_.max_codec;
             ws_.reserve_front(svc_.max_codec);
+            break;
         }
 
         if(is_plain() || how_ == how::elastic)
@@ -1610,9 +1698,6 @@ apply_filter(
         payload_avail -= f_rs.in_bytes;
         body_total_   += f_rs.out_bytes;
 
-        bool needs_more_space = !f_rs.finished &&
-            payload_avail != 0;
-
         switch(how_)
         {
         case how::in_place:
@@ -1620,7 +1705,7 @@ apply_filter(
             cb1_.commit(f_rs.out_bytes);
             body_avail_ += f_rs.out_bytes;
             if(cb1_.capacity() == 0 &&
-                needs_more_space)
+                !f_rs.finished && f_rs.in_bytes == 0)
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::in_place_overflow);
@@ -1646,7 +1731,7 @@ apply_filter(
         {
             eb_->commit(f_rs.out_bytes);
             if(eb_->max_size() - eb_->size() == 0 &&
-                needs_more_space)
+                !f_rs.finished && f_rs.in_bytes == 0)
             {
                 ec = BOOST_HTTP_PROTO_ERR(
                     error::buffer_overflow);
@@ -1665,7 +1750,7 @@ apply_filter(
         }
 
         if(body_limit_remain() == 0 &&
-            needs_more_space)
+            !f_rs.finished && f_rs.in_bytes == 0)
         {
             ec = BOOST_HTTP_PROTO_ERR(
                 error::body_too_large);

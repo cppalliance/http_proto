@@ -5,33 +5,33 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// Official repository: https://github.com/cppalliance/buffers
+// Official repository: https://github.com/cppalliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_DETAIL_ZLIB_FILTER_HPP
-#define BOOST_HTTP_PROTO_DETAIL_ZLIB_FILTER_HPP
-
-#include <boost/http_proto/detail/workspace.hpp>
+#ifndef BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
+#define BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
 
 #include <boost/buffers/const_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_subspan.hpp>
-#include <boost/rts/zlib/error.hpp>
-#include <boost/rts/zlib/flush.hpp>
-#include <boost/rts/zlib/stream.hpp>
+#include <boost/system/error_code.hpp>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
 
-/** Base class for zlib filters
+/** Base class for all filters
 */
-class zlib_filter
+class filter
 {
 public:
     /** The results of processing the filter.
     */
     struct results
     {
+        /** The error, if any occurred.
+        */
+        system::error_code ec;
+
         /** The number of bytes produced in the output.
 
             This may be less than the total number
@@ -48,10 +48,6 @@ public:
         */
         std::size_t in_bytes = 0;
 
-        /** The error, if any occurred.
-        */
-        system::error_code ec;
-
         /** True if the output buffer is too
             small to make progress.
 
@@ -64,25 +60,34 @@ public:
         bool finished = false;
     };
 
-    zlib_filter(workspace& ws);
-
     results
     process(
         buffers::mutable_buffer_subspan out,
         buffers::const_buffer_pair in,
         bool more,
-        bool force_flush = false);
+        bool partial_flush = false);
 
 protected:
-    rts::zlib::stream strm_;
+    enum class flush
+    {
+        none,
+        partial,
+        finish
+    };
 
     virtual
     std::size_t
-    min_out_buffer() const noexcept = 0;
+    min_out_buffer() const noexcept
+    {
+        return 0;
+    }
 
     virtual
-    rts::zlib::error
-    do_process(rts::zlib::flush) noexcept = 0;
+    results
+    do_process(
+        buffers::mutable_buffer,
+        buffers::const_buffer,
+        flush) noexcept = 0;
 };
 
 } // detail
