@@ -35,6 +35,9 @@ namespace http_proto {
 #ifndef BOOST_HTTP_PROTO_DOCS
 class serializer_service;
 class message_view_base;
+namespace detail {
+class filter;
+} // detail
 #endif
 
 /** A serializer for HTTP/1 messages
@@ -71,6 +74,14 @@ public:
     */
     struct config
     {
+        /** True if serializer can encode brotli Content-Encoding.
+
+            The @ref rts::brotli::encode_service must already be
+            installed thusly, or else an exception
+            is thrown.
+        */
+        bool apply_brotli_encoder = false;
+
         /** True if serializer can encode deflate Content-Encoding.
 
             The @ref zlib::deflate_service must already be
@@ -86,6 +97,20 @@ public:
             is thrown.
         */
         bool apply_gzip_encoder = false;
+
+        /** Specifies the brotli compression quality 0..11.
+
+            Higher quality values result in better, but also
+            slower compression.
+        */
+        std::uint32_t brotli_comp_quality = 5;
+
+        /** Specifies the brotli compression window 10..24.
+
+            Larger window sizes can improve compression
+            quality, but require more memory.
+        */
+        std::uint32_t brotli_comp_window = 18;
 
         /** Specifies the zlib compression level 0..9.
 
@@ -277,8 +302,6 @@ public:
     consume(std::size_t n);
 
 private:
-    friend class serializer_service;
-    class filter;
     class const_buf_gen_base;
     template<class>
     class const_buf_gen;
@@ -349,7 +372,7 @@ private:
     detail::workspace ws_;
 
     const_buf_gen_base* buf_gen_;
-    filter* filter_;
+    detail::filter* filter_;
     source* source_;
 
     buffers::circular_buffer cb0_;

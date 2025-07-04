@@ -16,7 +16,9 @@ project
     : requirements
       $(c11-requires)
       <library>/boost/http_proto//boost_http_proto
+      <library>/boost/url//boost_url
       [ ac.check-library /boost/rts//boost_rts_zlib : <library>/boost/rts//boost_rts_zlib : ]
+      [ ac.check-library /boost/rts//boost_rts_brotli : <library>/boost/rts//boost_rts_brotli : ]
       <source>../../../url/extra/test_suite/test_main.cpp
       <source>../../../url/extra/test_suite/test_suite.cpp
       <source>./test_helpers.cpp
@@ -28,6 +30,7 @@ project
     ;
 
 local SOURCES =
+    compression.cpp()
     error.cpp
     field.cpp
     fields.cpp
@@ -61,7 +64,6 @@ local SOURCES =
     string_body.cpp
     test_helpers.cpp
     version.cpp
-    zlib.cpp
     rfc/combine_field_values.cpp
     rfc/list_rule.cpp
     rfc/parameter.cpp

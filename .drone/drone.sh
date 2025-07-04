@@ -37,7 +37,13 @@ common_install () {
 
   if [ ! -d "$BOOST_ROOT/libs/buffers" ]; then
     pushd $BOOST_ROOT/libs
-    git clone https://github.com/CPPAlliance/buffers -b $BOOST_BRANCH --depth 1
+    git clone https://github.com/cppalliance/buffers -b $BOOST_BRANCH --depth 1
+    popd
+  fi
+
+  if [ ! -d "$BOOST_ROOT/libs/rts" ]; then
+    pushd $BOOST_ROOT/libs
+    git clone https://github.com/cppalliance/rts -b $BOOST_BRANCH --depth 1
     popd
   fi
 }
@@ -117,10 +123,14 @@ git submodule update --init --recursive
 # Customizations
 if [ ! -d "$BOOST_ROOT/libs/buffers" ]; then
   pushd $BOOST_ROOT/libs
-  git clone https://github.com/CPPAlliance/buffers -b $BOOST_BRANCH --depth 1
+  git clone https://github.com/cppalliance/buffers -b $BOOST_BRANCH --depth 1
   popd
 fi
-
+if [ ! -d "$BOOST_ROOT/libs/rts" ]; then
+  pushd $BOOST_ROOT/libs
+  git clone https://github.com/cppalliance/rts -b $BOOST_BRANCH --depth 1
+  popd
+fi
 cd libs/$SELF
 mkdir __build__ && cd __build__
 cmake -DCMAKE_INSTALL_PREFIX=~/.local ..
