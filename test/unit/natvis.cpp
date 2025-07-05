@@ -16,6 +16,8 @@
 
 #include "test_suite.hpp"
 
+#include <boost/core/ignore_unused.hpp>
+
 namespace boost {
 namespace http_proto {
 
@@ -31,6 +33,7 @@ struct natvis_test
                 "Server: localhost\r\n"
                 "\r\n");
             request_view rv(req);
+            ignore_unused(rv);
         }
         {
             std::error_condition ec(std::errc::address_in_use);
@@ -40,6 +43,7 @@ struct natvis_test
                 "Server: localhost\r\n"
                 "\r\n");
             response_view rv(res);
+            ignore_unused(rv);
         }
     }
 };

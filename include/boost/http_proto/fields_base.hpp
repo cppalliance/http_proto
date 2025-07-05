@@ -40,6 +40,13 @@ class fields_base
     detail::header h_;
     bool static_storage = false;
 
+    using entry =
+        detail::header::entry;
+    using offset_type =
+        detail::header::offset_type;
+    using table =
+        detail::header::table;
+
     class op_t;
     class prefix_op_t
     {
@@ -56,11 +63,6 @@ class fields_base
 
         ~prefix_op_t();
     };
-
-    using entry =
-        detail::header::entry;
-    using table =
-        detail::header::table;
 
     friend class fields;
     template<std::size_t>

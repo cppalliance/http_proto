@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +11,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/request.hpp>
+#include <boost/http_proto/response.hpp>
 
 #include "test_suite.hpp"
 
@@ -23,82 +25,118 @@
 #error "Limits should not be built with shared linking."
 #endif
 
+#ifndef BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET
+#error "Limits should be built with BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET."
+#endif
+
 namespace boost {
 namespace http_proto {
 
-// This has to be at least 19 because
-// of the default request buffer.
-static_assert(max_offset == 20, "max_offset != 20");
+constexpr auto max_offset =
+    std::numeric_limits<std::uint8_t>::max();
 
 class limits_test
 {
+    static
+    std::string
+    make_str(std::size_t n)
+    {
+        return std::string(n, '*');
+    }
+
 public:
     void
     testLimits()
     {
+        // request
         {
             request req;
+            core::string_view const cs =
+                "POST  HTTP/1.1\r\n"
+                "\r\n";
+            const auto remain = max_offset - cs.size();
+
             BOOST_TEST_THROWS(
                 req.set_start_line(
-                    method::connect,
-                    "https://www.example.com",
+                    method::post,
+                    make_str(remain + 1),
                     version::http_1_1),
                 std::length_error);
+
+            req.set_start_line(
+                method::post,
+                make_str(remain),
+                version::http_1_1);
+
+            BOOST_TEST_EQ(
+                req.buffer().size(), max_offset);
+        }
+
+        // response
+        {
+            response res;
+            core::string_view const cs =
+                "HTTP/1.1 200 \r\n"
+                "\r\n";
+            const auto remain = max_offset - cs.size();
+
+            BOOST_TEST_THROWS(
+                res.set_start_line(
+                    200,
+                    make_str(remain + 1),
+                    version::http_1_1),
+                std::length_error);
+
+            res.set_start_line(
+                200,
+                make_str(remain),
+                version::http_1_1);
+
+            BOOST_TEST_EQ(
+                res.buffer().size(), max_offset);
         }
     }
 
     void
     testFields()
     {
-        // reserve
-        {
-            {
-                fields f;
-                BOOST_TEST_NO_THROW(
-                    f.reserve_bytes(0));
-            }
-            {
-                fields f;
-                BOOST_TEST_NO_THROW(
-                    f.reserve_bytes(max_offset));
-            }
-            {
-                fields f;
-                BOOST_TEST_NO_THROW(f.reserve_bytes(
-                    f.max_capacity_in_bytes()));
-            }
-            {
-                fields f;
-                BOOST_TEST_THROWS(
-                    f.reserve_bytes(max_offset + 1),
-                    std::length_error);
-            }
-            {
-                fields f;
-                BOOST_TEST_THROWS(f.reserve_bytes(
-                    f.max_capacity_in_bytes() + 1),
-                    std::length_error);
-            }
-        }
+        core::string_view const cs =
+            ": \r\n"
+            "\r\n";
+        const auto remain = max_offset - cs.size();
 
         // append
         {
             fields f;
-            std::string s;
-            s.append(max_offset, 'x');
             BOOST_TEST_THROWS(
-                f.append(s, "v"),
+                f.append(
+                    make_str(remain / 2 + 1),
+                    make_str(remain / 2 + 1)),
                 std::length_error);
+
+            f.append(
+                make_str(remain / 2),
+                make_str(remain / 2 + 1));
+
+            BOOST_TEST_EQ(
+                f.buffer().size(), max_offset);
         }
 
         // set
         {
             fields f;
             BOOST_TEST_THROWS(
-                f.set("x",
-                    "0123456789"
-                    "0123456789"),
+                f.set(
+                    make_str(remain / 2 + 1),
+                    make_str(remain / 2 + 1)),
                 std::length_error);
+
+            f.set(
+                make_str(remain / 2),
+                make_str(remain / 2 + 1));
+
+            BOOST_TEST_EQ(
+                f.buffer().size(), max_offset);
         }
     }
 

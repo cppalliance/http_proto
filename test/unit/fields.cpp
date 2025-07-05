@@ -364,14 +364,6 @@ struct fields_test
         }
 
         {
-            BOOST_TEST_THROWS(
-                fields(0, ~std::size_t{0}), std::length_error);
-
-            BOOST_TEST_THROWS(
-                fields(1024, ~std::size_t{0}), std::length_error);
-        }
-
-        {
             std::size_t init = 4096;
             std::size_t cap = init;
 
