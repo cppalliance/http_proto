@@ -166,7 +166,7 @@ public:
     std::size_t
     max_size() noexcept
     {
-        return max_offset;
+        return detail::header::max_offset;
     }
 
     /** Return an iterator to the beginning

@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+# Copyright (c) 2025 Mohammad Nejati
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -24,7 +25,7 @@ project
 
 run limits.cpp /boost/http_proto//http_proto_sources
     : requirements
-        <define>BOOST_HTTP_PROTO_MAX_HEADER=20
+        <define>BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET
         <define>BOOST_HTTP_PROTO_NO_LIB
         <define>BOOST_HTTP_PROTO_STATIC_LINK
         <link>static

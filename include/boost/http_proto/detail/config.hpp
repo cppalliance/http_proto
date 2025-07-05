@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -19,9 +20,6 @@ namespace http_proto {
 
 //------------------------------------------------
 
-#if defined(BOOST_HTTP_PROTO_DOCS)
-# define BOOST_HTTP_PROTO_DECL
-#else
 # if (defined(BOOST_HTTP_PROTO_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)) && !defined(BOOST_HTTP_PROTO_STATIC_LINK)
 #  if defined(BOOST_HTTP_PROTO_SOURCE)
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_EXPORT
@@ -29,32 +27,10 @@ namespace http_proto {
 #  else
 #   define BOOST_HTTP_PROTO_DECL        BOOST_SYMBOL_IMPORT
 #  endif
-
-#  if defined(BOOST_HTTP_PROTO_ZLIB_SOURCE)
-#   define BOOST_HTTP_PROTO_ZLIB_DECL   BOOST_SYMBOL_EXPORT
-#   define BOOST_HTTP_PROTO_ZLIB_BUILD_DLL
-#  else
-#   define BOOST_HTTP_PROTO_ZLIB_DECL   BOOST_SYMBOL_IMPORT
-#  endif
-
-#  if defined(BOOST_HTTP_PROTO_EXT_SOURCE)
-#   define BOOST_HTTP_PROTO_EXT_DECL   BOOST_SYMBOL_EXPORT
-#   define BOOST_HTTP_PROTO_EXT_BUILD_DLL
-#  else
-#   define BOOST_HTTP_PROTO_EXT_DECL   BOOST_SYMBOL_IMPORT
-#  endif
 # endif // shared lib
 
 # ifndef  BOOST_HTTP_PROTO_DECL
 #  define BOOST_HTTP_PROTO_DECL
-# endif
-
-# ifndef  BOOST_HTTP_PROTO_ZLIB_DECL
-#  define BOOST_HTTP_PROTO_ZLIB_DECL
-# endif
-
-# ifndef  BOOST_HTTP_PROTO_EXT_DECL
-#  define BOOST_HTTP_PROTO_EXT_DECL
 # endif
 
 # if !defined(BOOST_HTTP_PROTO_SOURCE) && !defined(BOOST_ALL_NO_LIB) && !defined(BOOST_HTTP_PROTO_NO_LIB)
@@ -64,7 +40,6 @@ namespace http_proto {
 #  endif
 #  include <boost/config/auto_link.hpp>
 # endif
-#endif
 
 //------------------------------------------------
 
@@ -73,17 +48,6 @@ namespace http_proto {
     defined(BOOST_MSVC) )
 # define BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
 #endif
-
-// holds any offset within headers
-using offset_type = ::uint32_t; // private
-
-// maximum size of http header,
-// chunk header, or chunk extensions
-#ifndef BOOST_HTTP_PROTO_MAX_HEADER
-#define BOOST_HTTP_PROTO_MAX_HEADER (offset_type(-1))
-#endif
-static constexpr auto max_offset =
-    BOOST_HTTP_PROTO_MAX_HEADER;
 
 // Add source location to error codes
 #ifdef BOOST_HTTP_PROTO_NO_SOURCE_LOCATION

@@ -9,7 +9,6 @@
 //
 
 #include <boost/http_proto/detail/header.hpp>
-#include <boost/http_proto/detail/align_up.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
@@ -17,6 +16,9 @@
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
+
+#include "../rfc/transfer_encoding_rule.hpp"
+
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/range_rule.hpp>
@@ -25,10 +27,9 @@
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
 #include <boost/static_assert.hpp>
-#include <string>
+
 #include <utility>
 
-#include "../rfc/transfer_encoding_rule.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -212,11 +213,10 @@ bytes_needed(
     if(size < 19)
         size = 19;
 
-    return
-        align_up(
-            size,
-            alignof(header::entry)) +
-        count * sizeof(header::entry);
+    // align size up to alignof(entry)
+    size = (size + alignof(entry) - 1) & ~(alignof(entry) - 1);
+
+    return size + count * sizeof(entry);
 }
 
 std::size_t
@@ -1170,11 +1170,11 @@ parse_start_line(
         auto sm = std::get<0>(*rv);
         h.req.method = string_to_method(sm);
         h.req.method_len =
-            static_cast<offset_type>(sm.size());
+            static_cast<header::offset_type>(sm.size());
         // target
         auto st = std::get<1>(*rv);
         h.req.target_len =
-            static_cast<offset_type>(st.size());
+            static_cast<header::offset_type>(st.size());
         // version
         switch(std::get<2>(*rv))
         {
@@ -1231,7 +1231,7 @@ parse_start_line(
                 std::get<1>(*rv).v);
         h.res.status = std::get<1>(*rv).st;
     }
-    h.prefix = static_cast<offset_type>(it - it0);
+    h.prefix = static_cast<header::offset_type>(it - it0);
     h.size = h.prefix;
     h.on_start_line();
 }
@@ -1259,7 +1259,7 @@ parse_field(
         {
             // final CRLF
             h.size = static_cast<
-                offset_type>(it - h.cbuf);
+                header::offset_type>(it - h.cbuf);
             return;
         }
         if( ec == grammar::error::need_more &&
@@ -1283,7 +1283,7 @@ parse_field(
         remove_obs_fold(h.buf + h.size, it);
     }
     auto id = string_to_field(rv->name);
-    h.size = static_cast<offset_type>(it - h.cbuf);
+    h.size = static_cast<header::offset_type>(it - h.cbuf);
 
     // add field table entry
     if(h.buf != nullptr)
@@ -1292,13 +1292,13 @@ parse_field(
             h.buf + h.cap)[h.count];
         auto const base =
             h.buf + h.prefix;
-        e.np = static_cast<offset_type>(
+        e.np = static_cast<header::offset_type>(
             rv->name.data() - base);
-        e.nn = static_cast<offset_type>(
+        e.nn = static_cast<header::offset_type>(
             rv->name.size());
-        e.vp = static_cast<offset_type>(
+        e.vp = static_cast<header::offset_type>(
             rv->value.data() - base);
-        e.vn = static_cast<offset_type>(
+        e.vn = static_cast<header::offset_type>(
             rv->value.size());
         e.id = id;
     }

@@ -8,33 +8,27 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/fields_base.hpp>
-
+#include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/detail/except.hpp>
+#include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
+#include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 
-#include <boost/http_proto/detail/align_up.hpp>
-#include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/detail/except.hpp>
-#include <boost/http_proto/detail/header.hpp>
+#include "src/detail/move_chars.hpp"
+#include "src/rfc/detail/rules.hpp"
 
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
-
 #include <boost/core/detail/string_view.hpp>
-
 #include <boost/system/result.hpp>
-
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/token_rule.hpp>
-
-#include "src/detail/move_chars.hpp"
-#include "src/rfc/detail/rules.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -151,14 +145,8 @@ public:
         return table(end());
     }
 
-    static
-    std::size_t
-    growth(
-        std::size_t n0,
-        std::size_t m) noexcept;
-
     bool
-    reserve(std::size_t bytes);
+    reserve(std::size_t n);
 
     bool
     grow(
@@ -177,43 +165,12 @@ public:
         std::size_t n) const noexcept;
 };
 
-/*  Growth functions for containers
-
-    N1 = g( N0,  M );
-
-    g  = growth function
-    M  = minimum capacity
-    N0 = old size
-    N1 = new size
-*/
-std::size_t
-fields_base::
-op_t::
-growth(
-    std::size_t n0,
-    std::size_t m) noexcept
-{
-    auto const m1 =
-        detail::align_up(m, alignof(entry));
-    BOOST_ASSERT(m1 >= m);
-    if(n0 == 0)
-    {
-        // exact
-        return m1;
-    }
-    if(m1 > n0)
-        return m1;
-    return n0;
-}
-
 bool
 fields_base::
 op_t::
 reserve(
-    std::size_t bytes)
+    std::size_t n)
 {
-    auto n = growth(
-        self_.h_.cap, bytes);
     if(n > self_.max_capacity_in_bytes())
     {
         // max capacity exceeded
@@ -238,24 +195,16 @@ grow(
     std::size_t extra_char,
     std::size_t extra_field)
 {
-    // extra_field is naturally limited
-    // by max_offset, since each field
-    // is at least 4 bytes: "X:\r\n"
-    BOOST_ASSERT(
-        extra_field <= max_offset &&
-        extra_field <= static_cast<
-            std::size_t>(
-                max_offset - self_.h_.count));
-    if( extra_char > max_offset ||
-        extra_char > static_cast<std::size_t>(
-            max_offset - self_.h_.size))
+    if(extra_field > detail::header::max_offset - self_.h_.count)
         detail::throw_length_error();
-    auto n1 = growth(
-        self_.h_.cap,
+
+    if(extra_char > detail::header::max_offset - self_.h_.size)
+        detail::throw_length_error();
+
+    return reserve(
         detail::header::bytes_needed(
             self_.h_.size + extra_char,
             self_.h_.count + extra_field));
-    return reserve(n1);
 }
 
 void
@@ -305,7 +254,7 @@ prefix_op_t(
         offset_type>(new_prefix))
 {
     if(self.h_.size - self.h_.prefix + new_prefix
-        > max_offset)
+        > detail::header::max_offset)
         detail::throw_length_error();
 
     // memmove happens in the destructor
@@ -314,8 +263,9 @@ prefix_op_t(
         && !self.h_.is_default())
         return;
 
-    auto new_size =
-        self.h_.size - self.h_.prefix + new_prefix_;
+    auto new_size = static_cast<offset_type>(
+        self.h_.size - self.h_.prefix + new_prefix_);
+
     if(new_size > self.h_.cap)
     {
         // static storage will always throw which is
@@ -414,11 +364,10 @@ fields_base(
     : fields_view_base(&h_)
     , h_(k)
 {
-    if( storage_size > 0 )
+    if(storage_size != 0)
     {
-        h_.max_cap = detail::align_up(
-            storage_size, alignof(detail::header::entry));
         reserve_bytes(storage_size);
+        h_.max_cap = h_.cap;
     }
 }
 
@@ -430,18 +379,11 @@ fields_base(
     : fields_view_base(&h_)
     , h_(k)
 {
-    if( storage_size > max_storage_size )
+    if(storage_size > max_storage_size)
         detail::throw_length_error();
 
-    if( max_storage_size > h_.max_capacity_in_bytes() )
-        detail::throw_length_error();
-
-    h_.max_cap = detail::align_up(
-        max_storage_size, alignof(detail::header::entry));
-    if( storage_size > 0 )
-    {
-        reserve_bytes(storage_size);
-    }
+    reserve_bytes(storage_size);
+    h_.max_cap = max_storage_size;
 }
 
 // copy s and parse it
