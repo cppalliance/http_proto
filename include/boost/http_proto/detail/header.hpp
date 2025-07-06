@@ -51,7 +51,7 @@ struct header
     // ^            ^           ^                                             ^
     // buf          buf+prefix  buf+size                                      buf+cap
 
-#ifdef BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET
+#ifdef BOOST_HTTP_PROTO_TEST_LIMITS
     using offset_type = std::uint8_t;
 #else
     using offset_type = std::uint32_t;

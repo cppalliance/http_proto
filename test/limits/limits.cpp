@@ -25,8 +25,8 @@
 #error "Limits should not be built with shared linking."
 #endif
 
-#ifndef BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET
-#error "Limits should be built with BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET."
+#ifndef BOOST_HTTP_PROTO_TEST_LIMITS
+#error "Limits should be built with BOOST_HTTP_PROTO_TEST_LIMITS."
 #endif
 
 namespace boost {
