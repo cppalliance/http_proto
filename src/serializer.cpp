@@ -107,22 +107,34 @@ write_final_chunk(
     BOOST_ASSERT(n == 5);
 }
 
+buffers::mutable_buffer_pair
+prepare_chunked(
+    buffers::circular_buffer& cb) noexcept
+{
+    return
+        buffers::sans_suffix(
+            buffers::sans_prefix(
+                cb.prepare(cb.capacity()),
+                chunk_header_len),
+            final_chunk_len + crlf_len);
+}
+
 //------------------------------------------------
 
 class appender
 {
     buffers::circular_buffer& cb_;
     buffers::mutable_buffer_pair mbp_;
-    std::size_t n_ = 0;
     bool is_chunked_ = false;
     bool more_input_ = true;
 
 public:
     appender(
         buffers::circular_buffer& cb,
-        bool is_chunked)
+        bool is_chunked) noexcept
         : cb_(cb)
-        , mbp_(cb.prepare(cb.capacity()))
+        , mbp_(is_chunked ?
+            prepare_chunked(cb) : cb.prepare(cb.capacity()))
         , is_chunked_(is_chunked)
     {
     }
@@ -130,32 +142,20 @@ public:
     bool
     is_full() const noexcept
     {
-        auto remaining = cb_.capacity() - n_;
-        if(is_chunked_)
-            return remaining <= chunked_overhead_;
-
-        return remaining == 0;
+        return buffers::size(mbp_) == 0;
     }
 
     buffers::mutable_buffer_pair
     prepare() noexcept
     {
-        if(is_chunked_)
-        {
-            return buffers::sans_suffix(
-                buffers::sans_prefix(
-                    mbp_,
-                    chunk_header_len + n_)
-                , final_chunk_len + crlf_len);
-        }
-        return buffers::sans_prefix(mbp_, n_);
+        return mbp_;
     }
 
     void
     commit(std::size_t n, bool more) noexcept
     {
         BOOST_ASSERT(more_input_);
-        n_ += n;
+        mbp_ = buffers::sans_prefix(mbp_, n);
         more_input_ = more;
     }
 
@@ -163,10 +163,18 @@ public:
     {
         if(is_chunked_)
         {
-            if(n_)
+            auto consumed = cb_.capacity() -
+                buffers::size(mbp_) - chunked_overhead_;
+
+            if(consumed != 0)
             {
-                write_chunk_header(mbp_, n_);
-                cb_.commit(n_ + chunk_header_len);
+                write_chunk_header(
+                    cb_.prepare(chunk_header_len),
+                    consumed);
+                cb_.commit(chunk_header_len);
+
+                cb_.prepare(consumed);
+                cb_.commit(consumed);
 
                 write_crlf(
                     cb_.prepare(crlf_len));
@@ -182,7 +190,7 @@ public:
         }
         else // is_chunked_ == false
         {
-            cb_.commit(n_);
+            cb_.commit(cb_.capacity() - buffers::size(mbp_));
         }
     }
 };
@@ -1038,11 +1046,25 @@ start_stream(
 
 //------------------------------------------------
 
+bool
+serializer::
+stream::
+is_open() const noexcept
+{
+    if(sr_ == nullptr)
+        return false;
+
+    return sr_->more_input_;
+}
+
 std::size_t
 serializer::
 stream::
 capacity() const noexcept
 {
+    if(!is_open())
+        return 0;
+
     if(sr_->filter_)
         return sr_->cb1_.capacity();
 
@@ -1057,20 +1079,15 @@ capacity() const noexcept
     return 0;
 }
 
-bool
-serializer::
-stream::
-is_full() const noexcept
-{
-    return capacity() == 0;
-}
-
 auto
 serializer::
 stream::
-prepare() const ->
-    buffers_type
+prepare() noexcept ->
+    mutable_buffers_type
 {
+    if(!is_open())
+        return {};
+
     if(sr_->filter_)
         return sr_->cb1_.prepare(
             sr_->cb1_.capacity());
@@ -1080,21 +1097,25 @@ prepare() const ->
             sr_->cb0_.capacity());
 
     // chunked with no filter
-    const auto cap = sr_->cb0_.capacity();
-    if(cap <= chunked_overhead_)
-        detail::throw_length_error();
-
-    return buffers::sans_prefix(
-        sr_->cb0_.prepare(
-            cap - crlf_len - final_chunk_len),
-        chunk_header_len);
+    return prepare_chunked(sr_->cb0_);
 }
 
 void
 serializer::
 stream::
-commit(std::size_t n) const
+commit(std::size_t n)
 {
+    // Precondition violation
+    if(!is_open())
+        detail::throw_logic_error();
+
+    if(n > capacity())
+    {
+        // n can't be greater than size of
+        // the buffers returned by prepare()
+        detail::throw_invalid_argument();
+    }
+
     if(sr_->filter_)
         return sr_->cb1_.commit(n);
 
@@ -1123,11 +1144,10 @@ commit(std::size_t n) const
 void
 serializer::
 stream::
-close() const
+close()
 {
-    // Precondition violation
-    if(!sr_->more_input_)
-        detail::throw_logic_error();
+    if(!is_open())
+        return; // no-op;
 
     sr_->more_input_ = false;
 

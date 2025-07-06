@@ -159,7 +159,7 @@ public:
         std::size_t max_type_erase = 1024;
     };
 
-    struct stream;
+    class stream;
 
     /** Destructor
     */
@@ -401,124 +401,80 @@ install_serializer_service(
 
 //------------------------------------------------
 
-/** The type used for caller-provided body data during
-    serialization.
-
-    @code{.cpp}
-    http_proto::serializer sr(128);
-
-    http_proto::request req;
-    auto stream = sr.start_stream(req);
-
-    std::string_view msg = "Hello, world!";
-    auto n = buffers::copy(
-        stream.prepare(),
-        buffers::make_buffer(
-            msg.data(), msg.size()));
-
-    stream.commit(n);
-
-    auto cbs = sr.prepare().value();
-    (void)cbs;
-    @endcode
+/** Used for streaming body data during serialization.
 */
-struct serializer::stream
+class serializer::stream
 {
-    /** Constructor.
+public:
+    /** The type used to represent a sequence of mutable buffers
+    */
+    using mutable_buffers_type =
+        buffers::mutable_buffer_pair;
 
-        The only valid operations on default constructed
-        streams are assignment and destruction.
+    /** Constructor
+
+        A default-constructed stream is considered closed.
     */
     stream() = default;
 
-    /** Constructor.
-
-        The constructed stream will share the same
-        serializer as `other`.
+    /** Move constructor
     */
-    stream(stream const& other) = default;
+    stream(stream&& other)
+        : sr_(other.sr_)
+    {
+        other.sr_ = nullptr;
+    }
 
-    /** Assignment.
-
-        The current stream will share the same serializer
-        as `other`.
+    /** Move assignment
     */
-    stream& operator= (
-        stream const& other) = default;
+    stream&
+    operator=(stream&& other)
+    {
+        std::swap(sr_, other.sr_);
+        return *this;
+    }
 
-    /** A MutableBufferSequence consisting of a buffer pair.
-     */
-    using buffers_type =
-        buffers::mutable_buffer_pair;
+    /** Returns `true` if the stream is open
+    */
+    BOOST_HTTP_PROTO_DECL
+    bool
+    is_open() const noexcept;
 
-    /** Returns the remaining available capacity.
-
-        The returned value represents the available free
-        space in the backing fixed-sized buffers used by the
-        serializer associated with this stream.
-
-        The capacity is absolute and does not do any
-        accounting for any octets required by a chunked
-        transfer encoding.
+    /** Returns the available capacity
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
     capacity() const noexcept;
 
-    /** Return true if the stream cannot currently hold
-        additional output data.
+    /** Prepares a buffer for writing
 
-        The fixed-sized buffers maintained by the associated
-        serializer can be sufficiently full from previous
-        calls to @ref stream::commit.
+        Use @ref commit to make the written data available
+        to the serializer.
 
-        This function can be called to determine if the caller
-        should drain the serializer via @ref serializer::consume calls
-        before attempting to fill the buffer sequence
-        returned from @ref stream::prepare.
+        @return An object of type @ref mutable_buffers_type
+        that satisfies MutableBufferSequence requirements,
+        the underlying memory is owned by the serializer.
     */
     BOOST_HTTP_PROTO_DECL
-    bool
-    is_full() const noexcept;
+    mutable_buffers_type
+    prepare() noexcept;
 
-    /** Returns a MutableBufferSequence for storing
-        serializer input. If `n` bytes are written to the
-        buffer sequence, @ref stream::commit must be called
-        with `n` to update the backing serializer's buffers.
+    /** Commits data to the serializer
 
-        The returned buffer sequence is as wide as is
-        possible.
+        @param n Number of bytes to commit.
 
-        @exception std::length_error Thrown if the stream
-        has insufficient capacity and a chunked transfer
-        encoding is being used
-    */
-    BOOST_HTTP_PROTO_DECL
-    buffers_type
-    prepare() const;
-
-    /** Make `n` bytes available to the serializer.
-
-        Once the buffer sequence returned from @ref stream::prepare
-        has been filled, the input can be marked as ready
-        for serialization by using this function.
-
-        @exception std::logic_error Thrown if `commit` is
-        called with 0.
+        @throw std::invalid_argument if `n > capacity()`.
+        @throw std::logic_error if `!is_open()`.
     */
     BOOST_HTTP_PROTO_DECL
     void
-    commit(std::size_t n) const;
+    commit(std::size_t n);
 
-    /** Indicate that no more data is coming and that the
-        body should be treated as complete.
-
-        @excpeption std::logic_error Thrown if the stream
-        has been previously closed.
+    /** Closes the stream
     */
     BOOST_HTTP_PROTO_DECL
     void
-    close() const;
+    close();
 
 private:
     friend class serializer;

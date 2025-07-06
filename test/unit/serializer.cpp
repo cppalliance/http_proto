@@ -338,13 +338,12 @@ struct serializer_test
 
         std::vector<char> s; // stores complete output
 
-        auto prepare_chunk = [&]
+        auto prepare = [&]()
         {
-            BOOST_TEST(!stream.is_full());
+            BOOST_TEST(stream.capacity() != 0);
             auto mbs = stream.prepare();
-
             auto bs = buffers::size(mbs);
-            BOOST_TEST_GT(bs, 0);
+            BOOST_TEST_EQ(bs, stream.capacity());
 
             if( bs > body.size() )
                 bs = body.size();
@@ -354,15 +353,14 @@ struct serializer_test
 
             stream.commit(bs);
             if( bs < body.size() )
-                BOOST_TEST(stream.is_full());
+                BOOST_TEST(stream.capacity() == 0);
             else
-                BOOST_TEST(!stream.is_full());
+                BOOST_TEST(stream.capacity() != 0);
 
             body.remove_prefix(bs);
         };
 
-        auto consume_body_buffer = [&](
-            buffers::const_buffer buf)
+        auto consume = [&](buffers::const_buffer buf)
         {
             // we have the prepared buffer sequence
             // representing the serializer's output but we
@@ -392,7 +390,7 @@ struct serializer_test
         while(! sr.is_done() )
         {
             if(! body.empty() )
-                prepare_chunk();
+                prepare();
 
             if( body.empty() && !closed )
             {
@@ -409,10 +407,8 @@ struct serializer_test
             BOOST_TEST_GT(size, 0);
 
             for(auto pos = cbs.begin(); pos != end; ++pos)
-                consume_body_buffer(*pos);
+                consume(*pos);
         }
-
-        BOOST_TEST_THROWS(stream.close(), std::logic_error);
 
         f(core::string_view(s.data(), s.size()));
     }
@@ -758,6 +754,12 @@ struct serializer_test
     void
     testStreamErrors()
     {
+        // Default constructor
+        {
+            serializer::stream stream;
+            BOOST_TEST(!stream.is_open());
+        }
+
         {
             core::string_view sv =
                 "HTTP/1.1 200 OK\r\n"
@@ -768,11 +770,17 @@ struct serializer_test
             install_serializer_service(ctx, {});
             serializer sr(ctx);
             auto stream = sr.start_stream(res);
+            BOOST_TEST(stream.is_open());
 
             auto mbs = stream.prepare();
             BOOST_TEST_GT(
                 buffers::size(mbs), 0);
-            BOOST_TEST(!stream.is_full());
+            BOOST_TEST(stream.capacity() != 0);
+
+            // commit with `n > stream.capacity()`
+            BOOST_TEST_THROWS(
+                stream.commit(buffers::size(mbs) + 1),
+                std::invalid_argument);
 
             // commit 0 bytes must be possible
             stream.commit(0);
@@ -790,6 +798,14 @@ struct serializer_test
                 mcbs.error() == error::need_data);
 
             stream.close();
+            BOOST_TEST(!stream.is_open());
+            BOOST_TEST(stream.capacity() == 0);
+            BOOST_TEST(buffers::size(stream.prepare()) == 0);
+            BOOST_TEST_THROWS(
+                stream.commit(1),
+                std::logic_error);
+
+            stream.close(); // fine no-op
 
             mcbs = sr.prepare();
             std::string body;
