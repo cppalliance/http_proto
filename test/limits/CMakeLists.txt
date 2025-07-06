@@ -18,7 +18,7 @@ add_executable(boost_http_proto_limits limits.cpp Jamfile ${TEST_MAIN} ${LIMITS_
 target_include_directories(boost_http_proto_limits PRIVATE ../../)
 target_include_directories(boost_http_proto_limits PRIVATE ../../include ../../../url/extra/test_suite ../../..)
 target_compile_definitions(boost_http_proto_limits PRIVATE
-    BOOST_HTTP_PROTO_TEST_FORCE_8BIT_OFFSET
+    BOOST_HTTP_PROTO_TEST_LIMITS
     BOOST_HTTP_PROTO_NO_LIB
     BOOST_HTTP_PROTO_STATIC_LINK
 )
