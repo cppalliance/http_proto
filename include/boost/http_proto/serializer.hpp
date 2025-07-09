@@ -434,19 +434,21 @@ public:
         return *this;
     }
 
-    /** Returns `true` if the stream is open
+    /** Return true if the stream is open
     */
     BOOST_HTTP_PROTO_DECL
     bool
     is_open() const noexcept;
 
-    /** Returns the available capacity
+    /** Return the available capacity
+
+        @throw std::logic_error if `!is_open()`.
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    capacity() const noexcept;
+    capacity() const;
 
-    /** Prepares a buffer for writing
+    /** Prepare a buffer for writing
 
         Use @ref commit to make the written data available
         to the serializer.
@@ -454,12 +456,14 @@ public:
         @return An object of type @ref mutable_buffers_type
         that satisfies MutableBufferSequence requirements,
         the underlying memory is owned by the serializer.
+
+        @throw std::logic_error if `!is_open()`.
     */
     BOOST_HTTP_PROTO_DECL
     mutable_buffers_type
-    prepare() noexcept;
+    prepare();
 
-    /** Commits data to the serializer
+    /** Commit data to the serializer
 
         @param n Number of bytes to commit.
 
@@ -470,11 +474,18 @@ public:
     void
     commit(std::size_t n);
 
-    /** Closes the stream
+    /** Close the stream if open
     */
     BOOST_HTTP_PROTO_DECL
     void
     close();
+
+    /** Destructor
+
+        Closes the stream if open.
+    */
+    BOOST_HTTP_PROTO_DECL
+    ~stream();
 
 private:
     friend class serializer;
@@ -494,7 +505,7 @@ private:
 class serializer::const_buf_gen_base
 {
 public:
-    // Returns the next non-empty buffer,
+    // Return the next non-empty buffer,
     // or an empty buffer if none remain.
     virtual
     buffers::const_buffer
@@ -510,7 +521,7 @@ public:
     std::size_t
     count() const = 0;
 
-    // Returns true when there is no buffer or
+    // Return true when there is no buffer or
     // the remaining buffers are empty
     virtual
     bool
@@ -526,6 +537,7 @@ class serializer::const_buf_gen
 
     ConstBufferSequence cbs_;
     it_t current_;
+
 public:
     using const_buffer =
         buffers::const_buffer;
@@ -556,8 +568,10 @@ public:
             current_,
             buffers::end(cbs_),
             std::size_t{},
-            [](std::size_t sum, const_buffer cb) {
-                return sum + cb.size(); });
+            [](std::size_t sum, const_buffer cb)
+            {
+                return sum + cb.size();
+            });
     }
 
     std::size_t
@@ -566,8 +580,10 @@ public:
         return std::count_if(
             current_,
             buffers::end(cbs_),
-            [](const_buffer cb) {
-                return cb.size() != 0; });
+            [](const_buffer cb)
+            {
+                return cb.size() != 0;
+            });
     }
 
     bool
@@ -576,8 +592,10 @@ public:
         return std::all_of(
             current_,
             buffers::end(cbs_),
-            [](const_buffer cb) {
-                return cb.size() == 0; });
+            [](const_buffer cb)
+            {
+                return cb.size() == 0;
+            });
     }
 };
 
