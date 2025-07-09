@@ -236,7 +236,7 @@ private:
     do_process(
         buffers::mutable_buffer out,
         buffers::const_buffer in,
-        filter::flush flush) noexcept override
+        bool more) noexcept override
     {
         strm_.next_out  = static_cast<unsigned char*>(out.data());
         strm_.avail_out = saturate_cast(out.size());
@@ -244,7 +244,9 @@ private:
         strm_.avail_in  = saturate_cast(in.size());
 
         auto rs = static_cast<rts::zlib::error>(
-            svc_.deflate(strm_, translate(flush)));
+            svc_.deflate(
+                strm_,
+                more ? rts::zlib::no_flush : rts::zlib::finish));
 
         results rv;
         rv.out_bytes = saturate_cast(out.size()) - strm_.avail_out;
@@ -263,7 +265,7 @@ class brotli_filter
 {
     rts::brotli::encode_service& svc_;
     rts::brotli::encoder_state* state_;
-    bool flushing_ = false;
+
 public:
     brotli_filter(
         rts::context& ctx,
@@ -292,29 +294,19 @@ private:
     do_process(
         buffers::mutable_buffer out,
         buffers::const_buffer in,
-        filter::flush flush) noexcept override
+        bool more) noexcept override
     {
-        if(flushing_)
-        {
-            // restore partial flush type
-            flush = filter::flush::partial;
-            in = {};
-        }
-        else if(flush == filter::flush::partial)
-        {
-            // the Brotli api requires continued flushing
-            // until all output is fully drained.
-            flushing_ = true;
-        }
-
         auto* next_in = reinterpret_cast<const std::uint8_t*>(in.data());
         auto available_in = in.size();
         auto* next_out = reinterpret_cast<std::uint8_t*>(out.data());
         auto available_out = out.size();
 
+        using encoder_operation = 
+            rts::brotli::encoder_operation;
+
         bool rs = svc_.compress_stream(
             state_,
-            translate(flush),
+            more ? encoder_operation::process : encoder_operation::finish,
             &available_in,
             &next_in,
             &available_out,
@@ -326,33 +318,11 @@ private:
         rv.out_bytes = out.size() - available_out;
         rv.finished  = svc_.is_finished(state_);
 
-        if(flushing_ && !svc_.has_more_output(state_))
-            flushing_ = false;
-
         // TODO: use proper error code
         if(rs == false)
             rv.ec = error::bad_payload;
 
         return rv;
-    }
-
-private:
-    static
-    rts::brotli::encoder_operation
-    translate(filter::flush flush) noexcept
-    {
-        switch(flush)
-        {
-        case filter::flush::none:
-            return rts::brotli::encoder_operation::process;
-
-        case filter::flush::partial:
-            return rts::brotli::encoder_operation::flush;
-
-        case filter::flush::finish:
-        default:
-            return rts::brotli::encoder_operation::finish;
-        }
     }
 };
 
@@ -525,7 +495,7 @@ prepare() ->
         }
 
         case style::stream:
-            if(is_header_done_ && cb0_.size() == 0)
+            if(cb0_.size() == 0 && is_header_done_ && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
             break;
@@ -619,40 +589,31 @@ prepare() ->
 
         case style::stream:
         {
-            appender apndr(cb0_, is_chunked_);
-
-            if(apndr.is_full() || filter_done_)
-                break;
-
-            // The stream object is expected to
-            // have already populated cb1_
-            if(more_input_ && cb1_.size() == 0)
             {
-                if(!prepped_.empty())
+                appender apndr(cb0_, is_chunked_);
+                if(apndr.is_full() || filter_done_)
                     break;
 
+                const auto rs = filter_->process(
+                    buffers::mutable_buffer_span(apndr.prepare()),
+                    cb1_.data(),
+                    more_input_);
+
+                if(rs.ec.failed())
+                {
+                    is_done_ = true;
+                    return rs.ec;
+                }
+
+                cb1_.consume(rs.in_bytes);
+                apndr.commit(rs.out_bytes, !rs.finished);
+
+                if(rs.finished)
+                    filter_done_ = true;
+            }
+            if(cb0_.size() == 0 && is_header_done_ && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
-            }
-
-            const auto rs = filter_->process(
-                buffers::mutable_buffer_span(apndr.prepare()),
-                cb1_.data(),
-                more_input_,
-                prepped_.empty()); // force_flush
-
-            if(rs.ec.failed())
-            {
-                is_done_ = true;
-                return rs.ec;
-            }
-
-            cb1_.consume(rs.in_bytes);
-            apndr.commit(rs.out_bytes, !rs.finished);
-
-            if(rs.finished)
-                filter_done_ = true;
-
             break;
         }
         }
@@ -665,9 +626,6 @@ prepare() ->
     if(cbp[1].size() != 0)
         prepped_.append(cbp[1]);
 
-    BOOST_ASSERT(
-        buffers::size(prepped_) > 0);
-
     return const_buffers_type(
         prepped_.begin(),
         prepped_.size());
@@ -679,7 +637,7 @@ consume(
     std::size_t n)
 {
     // Precondition violation
-    if(is_done_ && n != 0)
+    if(is_done_)
         detail::throw_logic_error();
 
     if(!is_header_done_)
@@ -1051,19 +1009,17 @@ serializer::
 stream::
 is_open() const noexcept
 {
-    if(sr_ == nullptr)
-        return false;
-
-    return sr_->more_input_;
+    return sr_ != nullptr;
 }
 
 std::size_t
 serializer::
 stream::
-capacity() const noexcept
+capacity() const
 {
+    // Precondition violation
     if(!is_open())
-        return 0;
+        detail::throw_logic_error();
 
     if(sr_->filter_)
         return sr_->cb1_.capacity();
@@ -1082,11 +1038,12 @@ capacity() const noexcept
 auto
 serializer::
 stream::
-prepare() noexcept ->
+prepare() ->
     mutable_buffers_type
 {
+    // Precondition violation
     if(!is_open())
-        return {};
+        detail::throw_logic_error();
 
     if(sr_->filter_)
         return sr_->cb1_.prepare(
@@ -1109,12 +1066,9 @@ commit(std::size_t n)
     if(!is_open())
         detail::throw_logic_error();
 
+    // Precondition violation
     if(n > capacity())
-    {
-        // n can't be greater than size of
-        // the buffers returned by prepare()
         detail::throw_invalid_argument();
-    }
 
     if(sr_->filter_)
         return sr_->cb1_.commit(n);
@@ -1149,19 +1103,24 @@ close()
     if(!is_open())
         return; // no-op;
 
-    sr_->more_input_ = false;
-
-    if(sr_->filter_)
-        return;
-
-    if(!sr_->is_chunked_)
-        return;
-
     // chunked with no filter
-    write_final_chunk(
-        sr_->cb0_.prepare(
-            final_chunk_len));
-    sr_->cb0_.commit(final_chunk_len);
+    if(!sr_->filter_ && sr_->is_chunked_)
+    {
+        write_final_chunk(
+            sr_->cb0_.prepare(
+                final_chunk_len));
+        sr_->cb0_.commit(final_chunk_len);
+    }
+
+    sr_->more_input_ = false;
+    sr_ = nullptr;
+}
+
+serializer::
+stream::
+~stream()
+{
+    close();
 }
 
 } // http_proto

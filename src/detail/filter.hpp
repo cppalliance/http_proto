@@ -64,17 +64,9 @@ public:
     process(
         buffers::mutable_buffer_subspan out,
         buffers::const_buffer_pair in,
-        bool more,
-        bool partial_flush = false);
+        bool more);
 
 protected:
-    enum class flush
-    {
-        none,
-        partial,
-        finish
-    };
-
     virtual
     std::size_t
     min_out_buffer() const noexcept
@@ -87,7 +79,7 @@ protected:
     do_process(
         buffers::mutable_buffer,
         buffers::const_buffer,
-        flush) noexcept = 0;
+        bool) noexcept = 0;
 };
 
 } // detail

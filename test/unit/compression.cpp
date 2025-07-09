@@ -259,24 +259,20 @@ struct zlib_test
                 auto n = buffers::copy(b, body_);
                 body_ = buffers::sans_prefix(body_, n);
                 rs.bytes = n;
-                rs.ec = {};
                 rs.finished = (body_.size() == 0);
                 return rs;
             }
         };
 
-
         sr.start<source_t>(res, body);
-
         do
         {
-            auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::size(cbs), 0);
-            auto n = buffers::copy(
-                out.prepare(buffers::size(cbs)), cbs);
-            BOOST_TEST_EQ(n, buffers::size(cbs));
-            out.commit(n);
+            auto cbs = sr.prepare();
+            auto n = buffers::size(cbs.value());
+            BOOST_TEST_GT(n, 0);
+            buffers::copy(out.prepare(n), cbs.value());
             sr.consume(n);
+            out.commit(n);
         } while(!sr.is_done());
     }
 
@@ -289,33 +285,32 @@ struct zlib_test
         buffers::string_buffer out)
     {
         auto stream = sr.start_stream(res);
-
-        int stream_closed = 0;
         do
         {
-            if(stream_closed == 0)
+            if(stream.is_open())
             {
                 auto mbs = stream.prepare();
-                auto n1 = buffers::copy(mbs, body);
-                body = buffers::sans_prefix(body, n1);
-                stream.commit(n1);
+                auto n = buffers::copy(mbs, body);
+                body = buffers::sans_prefix(body, n);
+                stream.commit(n);
                 if(body.size() == 0)
-                    stream_closed = 1;
+                    stream.close();
             }
 
-            auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::size(cbs), 0);
-            auto n2 = buffers::copy(out.prepare(buffers::size(cbs)), cbs);
-            BOOST_TEST_EQ(n2, buffers::size(cbs));
-            sr.consume(n2);
-            out.commit(n2);
-
-            if(stream_closed == 1)
+            auto cbs = sr.prepare();
+            if(cbs.has_error())
             {
-                stream_closed = 2;
-                stream.close();
+                BOOST_ASSERT(
+                    cbs.error() == error::need_data);
             }
-
+            else
+            {
+                auto n = buffers::size(cbs.value());
+                BOOST_TEST_GT(n, 0);
+                buffers::copy(out.prepare(n), cbs.value());
+                sr.consume(n);
+                out.commit(n);
+            }
         } while(!sr.is_done());
     }
 
@@ -328,7 +323,6 @@ struct zlib_test
         buffers::string_buffer out)
     {
         std::vector<buffers::const_buffer> buf_seq;
-
         do
         {
             auto buf_size = std::min(body.size() / 23, body.size());
@@ -339,16 +333,14 @@ struct zlib_test
         } while(body.size() != 0);
 
         sr.start(res, buf_seq);
-
         do
         {
-            auto cbs = sr.prepare().value();
-            BOOST_TEST_GT(buffers::size(cbs), 0);
-            auto n = buffers::copy(
-                out.prepare(buffers::size(cbs)), cbs);
-            BOOST_TEST_EQ(n, buffers::size(cbs));
-            out.commit(n);
+            auto cbs = sr.prepare();
+            auto n = buffers::size(cbs.value());
+            BOOST_TEST_GT(n, 0);
+            buffers::copy(out.prepare(n), cbs.value());
             sr.consume(n);
+            out.commit(n);
         }while(!sr.is_done());
     }
 

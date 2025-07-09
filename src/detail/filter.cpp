@@ -23,26 +23,25 @@ filter::
 process(
     buffers::mutable_buffer_subspan out,
     buffers::const_buffer_pair in,
-    bool more,
-    bool partial_flush) -> results
+    bool more) -> results
 {
     results rv;
-    auto flush = filter::flush::none;
+    bool p_more = true;
     for(;;)
     {
-        if(!more && flush != filter::flush::finish && in[1].size() == 0)
+        if(!more && p_more && in[1].size() == 0)
         {
             if(buffers::size(out) < min_out_buffer())
             {
                 rv.out_short = true;
                 return rv;
             }
-            flush = filter::flush::finish;
+            p_more = false;
         }
 
         auto ob = buffers::front(out);
         auto ib = buffers::front(in);
-        auto rs = do_process(ob, ib, flush);
+        auto rs = do_process(ob, ib, p_more);
 
         rv.in_bytes  += rs.in_bytes;
         rv.out_bytes += rs.out_bytes;
@@ -66,14 +65,7 @@ process(
             return rv;
 
         if(buffers::size(in) == 0 && rs.out_bytes < ob.size())
-        {
-            if(partial_flush && rv.out_bytes == 0)
-            {
-                flush = filter::flush::partial;
-                continue;
-            }
             return rv;
-        }
     }
 }
 

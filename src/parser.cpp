@@ -322,7 +322,7 @@ private:
     do_process(
         buffers::mutable_buffer out,
         buffers::const_buffer in,
-        filter::flush flush) noexcept override
+        bool more) noexcept override
     {
         strm_.next_out  = static_cast<unsigned char*>(out.data());
         strm_.avail_out = saturate_cast(out.size());
@@ -330,7 +330,9 @@ private:
         strm_.avail_in  = saturate_cast(in.size());
 
         auto rs = static_cast<rts::zlib::error>(
-            svc_.inflate(strm_, translate(flush)));
+            svc_.inflate(
+                strm_,
+                more ? rts::zlib::no_flush : rts::zlib::finish));
 
         results rv;
         rv.out_bytes = saturate_cast(out.size()) - strm_.avail_out;
@@ -374,7 +376,7 @@ private:
     do_process(
         buffers::mutable_buffer out,
         buffers::const_buffer in,
-        filter::flush flush) noexcept override
+        bool more) noexcept override
     {
         auto* next_in = reinterpret_cast<const std::uint8_t*>(in.data());
         auto available_in = in.size();
@@ -394,7 +396,7 @@ private:
         rv.out_bytes = out.size() - available_out;
         rv.finished  = svc_.is_finished(state_);
 
-        if(rs == rts::brotli::decoder_result::needs_more_input && flush == filter::flush::finish)
+        if(!more && rs == rts::brotli::decoder_result::needs_more_input)
             rv.ec = BOOST_HTTP_PROTO_ERR(error::bad_payload);
 
         if(rs == rts::brotli::decoder_result::error)

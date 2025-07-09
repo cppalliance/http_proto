@@ -38,24 +38,6 @@ protected:
     rts::zlib::stream strm_;
 
     static
-    rts::zlib::flush
-    translate(filter::flush flush) noexcept
-    {
-        switch(flush)
-        {
-        case filter::flush::none:
-            return rts::zlib::flush::no_flush;
-
-        case filter::flush::partial:
-            return rts::zlib::flush::block;
-
-        case filter::flush::finish:
-        default:
-            return rts::zlib::flush::finish;
-        }
-    }
-
-    static
     unsigned int
     saturate_cast(std::size_t n) noexcept
     {

@@ -760,6 +760,58 @@ struct serializer_test
             BOOST_TEST(!stream.is_open());
         }
 
+        // Empty commits 
+        {
+            core::string_view sv =
+                "HTTP/1.1 200 OK\r\n"
+                "\r\n";
+            response res(sv);
+            rts::context ctx;
+            install_serializer_service(ctx, {});
+            serializer sr(ctx);
+            auto stream = sr.start_stream(res);
+
+            // consume whole header
+            {
+                auto cbs = sr.prepare();
+                BOOST_TEST_EQ(
+                    buffers::size(cbs.value()),
+                    sv.size());
+                sr.consume(sv.size());
+            }
+
+            // error::need_data
+            {
+                auto cbs = sr.prepare();
+                BOOST_TEST_EQ(
+                    cbs.error(),
+                    error::need_data);
+            }
+
+            // commit 0
+            {
+                stream.prepare();
+                stream.commit(0);
+                auto cbs = sr.prepare();
+                BOOST_TEST_EQ(
+                    cbs.error(),
+                    error::need_data);
+            }
+
+            // close empty
+            {
+                BOOST_TEST(!sr.is_done());
+                stream.close();
+                auto cbs = sr.prepare();
+                BOOST_TEST_EQ(
+                    buffers::size(cbs.value()),
+                    0);
+                BOOST_TEST(!sr.is_done());
+                sr.consume(0);
+                BOOST_TEST(sr.is_done());
+            }
+        }
+
         {
             core::string_view sv =
                 "HTTP/1.1 200 OK\r\n"
@@ -782,7 +834,7 @@ struct serializer_test
                 stream.commit(buffers::size(mbs) + 1),
                 std::invalid_argument);
 
-            // commit 0 bytes must be possible
+            // commiting 0 bytes must be possible
             stream.commit(0);
 
             auto mcbs = sr.prepare();
@@ -799,10 +851,14 @@ struct serializer_test
 
             stream.close();
             BOOST_TEST(!stream.is_open());
-            BOOST_TEST(stream.capacity() == 0);
-            BOOST_TEST(buffers::size(stream.prepare()) == 0);
             BOOST_TEST_THROWS(
-                stream.commit(1),
+                stream.prepare(),
+                std::logic_error);
+            BOOST_TEST_THROWS(
+                stream.capacity(),
+                std::logic_error);
+            BOOST_TEST_THROWS(
+                stream.commit(0),
                 std::logic_error);
 
             stream.close(); // fine no-op
