@@ -1087,23 +1087,23 @@ parse(
         // must be installed after them.
         auto const p = ws_.reserve_front(cap);
 
-        switch(h_.md.content_encoding.encoding)
+        switch(h_.md.content_encoding.coding)
         {
-        case encoding::deflate:
+        case content_coding::deflate:
             if(!svc_.cfg.apply_deflate_decoder)
                 goto no_filter;
             filter_ = &ws_.emplace<zlib_filter>(
                 ctx_, ws_, svc_.cfg.zlib_window_bits);
             break;
 
-        case encoding::gzip:
+        case content_coding::gzip:
             if(!svc_.cfg.apply_deflate_decoder)
                 goto no_filter;
             filter_ = &ws_.emplace<zlib_filter>(
                 ctx_, ws_, svc_.cfg.zlib_window_bits + 16);
             break;
 
-        case encoding::br:
+        case content_coding::br:
             if(!svc_.cfg.apply_brotli_decoder)
                 goto no_filter;
             filter_ = &ws_.emplace<brotli_filter>(

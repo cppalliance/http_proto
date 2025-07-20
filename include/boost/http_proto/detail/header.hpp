@@ -18,10 +18,11 @@
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/status.hpp>
 #include <boost/http_proto/version.hpp>
-#include <boost/core/detail/string_view.hpp>
+
 #include <boost/assert.hpp>
+#include <boost/core/detail/string_view.hpp>
+
 #include <cstdint>
-#include <type_traits>
 
 namespace boost {
 namespace http_proto {
@@ -45,11 +46,11 @@ struct empty
 
 struct header
 {
-    // +------------+-----------+--------------+------------------------------+
-    // | start-line |  headers  |  free space  |  entry[count-1] ... entry[0] |
-    // +------------+-----------+--------------+------------------------------+
-    // ^            ^           ^                                             ^
-    // buf          buf+prefix  buf+size                                      buf+cap
+    // +------------+---------+------+------------+-----------------------------+
+    // | start-line | headers | \r\n | free space | entry[count-1] ... entry[0] |
+    // +------------+---------+------+------------+-----------------------------+
+    // ^            ^                ^                                          ^
+    // buf          buf+prefix       buf+size                                   buf+cap
 
 #ifdef BOOST_HTTP_PROTO_TEST_LIMITS
     using offset_type = std::uint8_t;
@@ -57,10 +58,10 @@ struct header
     using offset_type = std::uint32_t;
 #endif
 
-    static
-    constexpr
+    static constexpr
     std::size_t max_offset =
-        std::numeric_limits<offset_type>::max();
+        std::numeric_limits<
+            offset_type>::max();
 
     struct entry
     {
@@ -123,7 +124,8 @@ struct header
     char* buf = nullptr;
     std::size_t cap = 0;
     std::size_t max_cap =
-        std::numeric_limits<std::size_t>::max();
+        std::numeric_limits<
+            std::size_t>::max();
 
     offset_type size = 0;
     offset_type count = 0;
@@ -151,22 +153,30 @@ private:
 
 public:
     // in fields_base.hpp
-    static header& get(fields_base& f) noexcept;
+    static header&
+    get(fields_base& f) noexcept;
 
-    BOOST_HTTP_PROTO_DECL static header const*
-        get_default(detail::kind k) noexcept;
+    BOOST_HTTP_PROTO_DECL
+    static header const*
+    get_default(detail::kind k) noexcept;
 
     // called from parser
     explicit header(empty) noexcept;
 
-    BOOST_HTTP_PROTO_DECL header(detail::kind) noexcept;
-    BOOST_HTTP_PROTO_DECL void swap(header&) noexcept;
-    BOOST_HTTP_PROTO_DECL bool keep_alive() const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    header(detail::kind) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void swap(header&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    bool keep_alive() const noexcept;
 
     static std::size_t bytes_needed(
         std::size_t size, std::size_t count) noexcept;
     static std::size_t table_space(
         std::size_t count) noexcept;
+
     std::size_t table_space() const noexcept;
 
     table tab() const noexcept;
@@ -188,7 +198,7 @@ public:
     void on_insert_connection(core::string_view);
     void on_insert_content_length(core::string_view);
     void on_insert_expect(core::string_view);
-    void on_insert_transfer_encoding();
+    void on_insert_transfer_encoding(core::string_view);
     void on_insert_content_encoding(core::string_view);
     void on_insert_upgrade(core::string_view);
     void on_erase_connection();
@@ -202,11 +212,14 @@ public:
 
     // parsing
 
-    static std::size_t count_crlf(
-        core::string_view s) noexcept;
-    BOOST_HTTP_PROTO_DECL void parse(
-        std::size_t, header_limits const&,
-            system::error_code&) noexcept;
+    static std::size_t
+    count_crlf(core::string_view s) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void parse(
+        std::size_t,
+        header_limits const&,
+        system::error_code&) noexcept;
 };
 
 } // detail
