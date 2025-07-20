@@ -67,7 +67,7 @@ verify_field_name(
     return rv;
 }
 
-system::result<typename detail::field_value_rule_t::value_type>
+system::result<detail::field_value_rule_t::value_type>
 verify_field_value(
     core::string_view value)
 {

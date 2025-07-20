@@ -707,9 +707,9 @@ start_init(
     is_chunked_ = md.transfer_encoding.is_chunked;
 
     // Content-Encoding
-    switch (md.content_encoding.encoding)
+    switch (md.content_encoding.coding)
     {
-    case encoding::deflate:
+    case content_coding::deflate:
         if(!svc_.cfg.apply_deflate_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
@@ -720,7 +720,7 @@ start_init(
             svc_.cfg.zlib_mem_level);
         break;
 
-    case encoding::gzip:
+    case content_coding::gzip:
         if(!svc_.cfg.apply_gzip_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
@@ -731,7 +731,7 @@ start_init(
             svc_.cfg.zlib_mem_level);
         break;
 
-    case encoding::br:
+    case content_coding::br:
         if(!svc_.cfg.apply_brotli_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<brotli_filter>(

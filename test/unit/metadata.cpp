@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,9 +15,6 @@
 #include <boost/http_proto/response.hpp>
 
 #include "test_helpers.hpp"
-
-#include <algorithm>
-#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -286,28 +284,28 @@ struct metadata_test
                 req.metadata().content_encoding;
             BOOST_TEST_EQ(t.ec, ce.ec);
             BOOST_TEST_EQ(t.count, ce.count);
-            BOOST_TEST_EQ(t.encoding, ce.encoding);
+            BOOST_TEST_EQ(t.coding, ce.coding);
         };
 
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 0, encoding::identity });
+            { ok, 0, content_coding::identity });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: gzip\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, encoding::gzip });
+            { ok, 1, content_coding::gzip });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: gzip, deflate\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, encoding::unsupported });
+            { ok, 1, content_coding::unknown });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -315,14 +313,14 @@ struct metadata_test
             "Content-Encoding: deflate\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 2, encoding::unsupported });
+            { ok, 2, content_coding::unknown });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: bad;\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_content_encoding, 1, encoding::identity});
+            { error::bad_content_encoding, 1, content_coding::unknown});
     }
 
     void
@@ -474,7 +472,6 @@ struct metadata_test
                 req.metadata().transfer_encoding;
             BOOST_TEST_EQ(t.ec, te.ec);
             BOOST_TEST_EQ(t.count, te.count);
-            BOOST_TEST_EQ(t.codings, te.codings);
             BOOST_TEST_EQ(t.is_chunked, te.is_chunked);
         };
 
@@ -482,21 +479,21 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 0, 0, false });
+            { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked, chunked\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 1, 0, false });
+            { error::bad_transfer_encoding, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -504,14 +501,14 @@ struct metadata_test
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 2, 0, false });
+            { error::bad_transfer_encoding, 2, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked, compress\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 1, 0, false});
+            { error::bad_transfer_encoding, 1, false});
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -519,14 +516,14 @@ struct metadata_test
             "Transfer-Encoding: compress\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 2, 0, false});
+            { error::bad_transfer_encoding, 2, false});
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked;a=b\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 1, 0, false });
+            { error::bad_transfer_encoding, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -534,55 +531,42 @@ struct metadata_test
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
             [](message_base&){},
-            { error::bad_transfer_encoding, 2, 0, false });
-
-        check(
-            "GET / HTTP/1.1\r\n"
-            "Server: localhost\r\n"
-            "Transfer-Encoding: gzip\r\n"
-            "Transfer-Encoding: compress\r\n"
-            "Transfer-Encoding: chunked\r\n"
-            "\r\n",
-            [](message_base& f)
-            {
-                f.erase(f.find(field::transfer_encoding));
-            },
-            { error::bad_transfer_encoding, 2, 0, false });
+            { error::bad_transfer_encoding, 2, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: compress\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: deflate\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: gzip\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 1, false });
+            { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: custom;a=1\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 1, false});
+            { ok, 1, false});
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: a,b,c\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 1, 3, false});
+            { ok, 1, false});
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -590,7 +574,7 @@ struct metadata_test
             "Transfer-Encoding: x,y\r\n"
             "\r\n",
             [](message_base&){},
-            { ok, 2, 5, false});
+            { ok, 2, false});
 
         //----------------------------------------
 
@@ -602,7 +586,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { ok, 0, 0, false });
+            { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -613,7 +597,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { ok, 1, 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -625,7 +609,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { ok, 1, 1, true });
+            { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -636,7 +620,7 @@ struct metadata_test
             {
                 f.erase(f.find(field::transfer_encoding));
             },
-            { ok, 0, 0, false });
+            { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
@@ -649,7 +633,7 @@ struct metadata_test
             {
                 f.erase(field::transfer_encoding);
             },
-            { ok, 0, 0, false });
+            { ok, 0, false });
     }
 
     void

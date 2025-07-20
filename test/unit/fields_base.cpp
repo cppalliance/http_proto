@@ -642,7 +642,7 @@ struct fields_base_test
             "\r\n",
             [](fields_base& f)
             {
-                system::result<typename fields_base::iterator> rv;
+                system::result<fields_base::iterator> rv;
 
                 rv = f.insert(f.find("U"), "Ser ver", "x");
                 BOOST_TEST(rv.has_error());

@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,55 +9,33 @@
 //
 
 // Test that header file is self-contained.
-#include "../../src/rfc/transfer_encoding_rule.hpp"
-
-#include <boost/static_assert.hpp>
-#include <type_traits>
+#include "../../src/rfc/transfer_coding_rule.hpp"
 
 #include "test_helpers.hpp"
 
+#include <boost/http_proto/rfc/list_rule.hpp>
+#include <boost/static_assert.hpp>
+#include <type_traits>
+
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_assignable<
-        system::result<detail::transfer_encoding>>::value);
-
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_assignable<
-        grammar::range<detail::transfer_encoding::param>>::value);
-
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_assignable<
-        detail::transfer_encoding::param>::value);
-
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_assignable<
-        quoted_token_view>::value);
+        system::result<transfer_coding_rule_t::value_type>>::value);
 
 BOOST_STATIC_ASSERT(
     std::is_nothrow_copy_constructible<
-        system::result<detail::transfer_encoding>>::value);
+        system::result<transfer_coding_rule_t::value_type>>::value);
 
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_constructible<
-        grammar::range<detail::transfer_encoding::param>>::value);
-
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_constructible<
-        detail::transfer_encoding::param>::value);
-
-BOOST_STATIC_ASSERT(
-    std::is_nothrow_copy_constructible<
-        quoted_token_view>::value);
-
-struct transfer_encoding_rule_test
+struct transfer_coding_rule_test
 {
     void
     run()
     {
         auto const& t =
-            detail::transfer_encoding_rule;
+            list_rule(transfer_coding_rule, 1);
 
         bad(t, "");
         bad(t, " ");
@@ -98,8 +77,9 @@ struct transfer_encoding_rule_test
 };
 
 TEST_SUITE(
-    transfer_encoding_rule_test,
-    "boost.http_proto.transfer_encoding_rule");
+    transfer_coding_rule_test,
+    "boost.http_proto.detail.transfer_coding_rule");
 
+} // detail
 } // http_proto
 } // boost

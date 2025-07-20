@@ -8,28 +8,26 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
+#include "src/rfc/transfer_coding_rule.hpp"
+
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
+#include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
-#include <boost/http_proto/rfc/detail/rules.hpp>
-
-#include "../rfc/transfer_encoding_rule.hpp"
-
+#include <boost/assert.hpp>
+#include <boost/assert/source_location.hpp>
+#include <boost/static_assert.hpp>
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/range_rule.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/unsigned_rule.hpp>
-#include <boost/assert.hpp>
-#include <boost/assert/source_location.hpp>
-#include <boost/static_assert.hpp>
 
 #include <utility>
-
 
 namespace boost {
 namespace http_proto {
@@ -440,7 +438,7 @@ on_insert(
     case field::expect:
         return on_insert_expect(v);
     case field::transfer_encoding:
-        return on_insert_transfer_encoding();
+        return on_insert_transfer_encoding(v);
     case field::upgrade:
         return on_insert_upgrade(v);
     default:
@@ -584,83 +582,44 @@ on_insert_expect(
 
 void
 header::
-on_insert_transfer_encoding()
+on_insert_transfer_encoding(
+    core::string_view v)
 {
     ++md.transfer_encoding.count;
     if(md.transfer_encoding.ec.failed())
         return;
-    auto const n =
-        md.transfer_encoding.count;
-    md.transfer_encoding = {};
-    md.transfer_encoding.count = n;
-    for(auto s :
-        fields_view_base::subrange(
-            this, find(field::transfer_encoding)))
+
+    auto rv = grammar::parse(
+        v, list_rule(transfer_coding_rule, 1));
+    if(! rv)
     {
-        auto rv = grammar::parse(
-            s, transfer_encoding_rule);
-        if(! rv)
-        {
-            // parse error
-            md.transfer_encoding.ec =
-                BOOST_HTTP_PROTO_ERR(
-                    error::bad_transfer_encoding);
-            md.transfer_encoding.codings = 0;
-            md.transfer_encoding.is_chunked = false;
-            update_payload();
-            return;
-        }
-        md.transfer_encoding.codings += rv->size();
-        for(auto t : *rv)
-        {
-            auto& mte = md.transfer_encoding;
-
-            if(! mte.is_chunked )
-            {
-                if( t.id == transfer_encoding::chunked )
-                {
-                    mte.is_chunked = true;
-                    continue;
-                }
-
-                auto b =
-                    mte.encoding ==
-                    http_proto::encoding::identity;
-
-                if( t.id == transfer_encoding::deflate )
-                    mte.encoding = http_proto::encoding::deflate;
-
-                if( t.id == transfer_encoding::gzip )
-                    mte.encoding = http_proto::encoding::gzip;
-
-                if( b )
-                    continue;
-            }
-            if(t.id == transfer_encoding::chunked)
-            {
-                // chunked appears twice
-                md.transfer_encoding.ec =
-                    BOOST_HTTP_PROTO_ERR(
-                        error::bad_transfer_encoding);
-                md.transfer_encoding.codings = 0;
-                md.transfer_encoding.is_chunked = false;
-                md.transfer_encoding.encoding =
-                    http_proto::encoding::identity;
-                update_payload();
-                return;
-            }
-            // chunked must be last
-            md.transfer_encoding.ec =
-                BOOST_HTTP_PROTO_ERR(
-                    error::bad_transfer_encoding);
-            md.transfer_encoding.codings = 0;
-            md.transfer_encoding.is_chunked = false;
-            md.transfer_encoding.encoding =
-                http_proto::encoding::identity;
-            update_payload();
-            return;
-        }
+        // parse error
+        goto error;
     }
+    for(auto t : *rv)
+    {
+        if(! md.transfer_encoding.is_chunked)
+        {
+            if(t.id == transfer_coding_rule_t::chunked)
+                md.transfer_encoding.is_chunked = true;
+            continue;
+        }
+        if(t.id == transfer_coding_rule_t::chunked)
+        {
+            // chunked appears twice
+            goto error;
+        }
+        // chunked must be last
+        goto error;
+    }
+    update_payload();
+    return;
+
+error:
+    md.transfer_encoding.ec =
+        BOOST_HTTP_PROTO_ERR(
+            error::bad_transfer_encoding);
+    md.transfer_encoding.is_chunked = false;
     update_payload();
 }
 
@@ -670,49 +629,50 @@ on_insert_content_encoding(
     core::string_view v)
 {
     ++md.content_encoding.count;
-    if( md.content_encoding.ec.failed() )
+    if(md.content_encoding.ec.failed())
         return;
 
     auto rv = grammar::parse(
         v, list_rule(token_rule, 1));
-    if( !rv )
+    if(!rv)
     {
         md.content_encoding.ec =
             BOOST_HTTP_PROTO_ERR(
                 error::bad_content_encoding);
+        md.content_encoding.coding =
+            content_coding::unknown;
         return;
     }
 
-    if( rv->size() > 1 ||
-        md.content_encoding.count > 1)
+    if(rv->size() > 1 || md.content_encoding.count > 1)
     {
-        md.content_encoding.encoding =
-            encoding::unsupported;
+        md.content_encoding.coding =
+            content_coding::unknown;
         return;
     }
 
-    if( grammar::ci_is_equal(*(rv->begin()),
-        "deflate") )
+    if(grammar::ci_is_equal(
+        *rv->begin(), "deflate"))
     {
-        md.content_encoding.encoding =
-            encoding::deflate;
+        md.content_encoding.coding =
+            content_coding::deflate;
     }
-    else if( grammar::ci_is_equal(*(rv->begin()),
-        "gzip") )
+    else if(grammar::ci_is_equal(
+        *rv->begin(), "gzip"))
     {
-        md.content_encoding.encoding =
-            encoding::gzip;
+        md.content_encoding.coding =
+            content_coding::gzip;
     }
-    else if( grammar::ci_is_equal(*(rv->begin()),
-        "br") )
+    else if(grammar::ci_is_equal(
+        *rv->begin(), "br"))
     {
-        md.content_encoding.encoding =
-            encoding::br;
+        md.content_encoding.coding =
+            content_coding::br;
     }
     else
     {
-        md.content_encoding.encoding =
-            encoding::unsupported;
+        md.content_encoding.coding =
+            content_coding::unknown;
     }
 }
 
@@ -774,10 +734,12 @@ on_erase_connection()
     while(n > 0)
     {
         if(e->id == field::connection)
+        {
             on_insert_connection(
                 core::string_view(
                     p + e->vp, e->vn));
-        --n;
+            --n;
+        }
         --e;
     }
 }
@@ -809,10 +771,12 @@ on_erase_content_length()
     while(n > 0)
     {
         if(e->id == field::content_length)
+        {
             on_insert_content_length(
                 core::string_view(
                     p + e->vp, e->vn));
-        --n;
+            --n;
+        }
         --e;
     }
     update_payload();
@@ -841,17 +805,19 @@ on_erase_expect()
         return;
     */
     // reset and re-insert
-    auto n = count;
+    auto n = md.expect.count;
     auto const p = cbuf + prefix;
     auto const* e = &tab()[0];
     md.expect = {};
     while(n > 0)
     {
         if(e->id == field::expect)
+        {
             on_insert_expect(
                 core::string_view(
                     p + e->vp, e->vn));
-        --n;
+            --n;
+        }
         --e;
     }
 }
@@ -862,17 +828,22 @@ on_erase_transfer_encoding()
 {
     BOOST_ASSERT(
         md.transfer_encoding.count > 0);
-    --md.transfer_encoding.count;
-    if(md.transfer_encoding.count == 0)
+    // reset and re-insert
+    auto n = md.transfer_encoding.count - 1;
+    auto const p = cbuf + prefix;
+    auto const* e = &tab()[0];
+    md.transfer_encoding = {};
+    while(n > 0)
     {
-        // no Transfer-Encoding
-        md.transfer_encoding = {};
-        update_payload();
-        return;
+        if(e->id == field::transfer_encoding)
+        {
+            on_insert_transfer_encoding(
+                core::string_view(
+                    p + e->vp, e->vn));
+            --n;
+        }
+        --e;
     }
-    // re-insert everything
-    --md.transfer_encoding.count;
-    on_insert_transfer_encoding();
 }
 
 void

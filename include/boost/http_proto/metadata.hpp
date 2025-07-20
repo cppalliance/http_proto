@@ -12,7 +12,6 @@
 #define BOOST_HTTP_PROTO_METADATA_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error.hpp> // VFALCO TEMPORARY
 #include <boost/system/error_code.hpp>
 #include <cstdint>
 #include <cstdlib>
@@ -26,9 +25,6 @@ namespace http_proto {
 */
 enum class payload
 {
-// VFALCO 3 space indent or
-// else Doxygen malfunctions
-
     /**
       * This message has no payload
     */
@@ -55,35 +51,19 @@ enum class payload
     ,to_eof
 };
 
-/** The effective encoding of the body octets.
+/** Standard content-codings for HTTP message bodies
 */
-enum class
-encoding
+enum class content_coding
 {
-    /**
-      * Indicates the body is not encoded.
-    */
-    identity,
-
-    /**
-      * Indicates the body encoding is unsupported.
-    */
-    unsupported,
-
-    /**
-      * Indicates the body has deflate applied.
-    */
+    unknown,
+    br,
+    compress,
+    dcb,
+    dcz,
     deflate,
-
-    /**
-      * Indicates the body has gzip applied.
-    */
     gzip,
-
-    /**
-      * Indicates the body has brotli applied.
-    */
-    br
+    identity,
+    zstd,
 };
 
 //------------------------------------------------
@@ -153,8 +133,8 @@ struct metadata
 
         /** The body encoding.
         */
-        http_proto::encoding encoding =
-            http_proto::encoding::identity;
+        content_coding coding =
+            content_coding::identity;
 
     #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
@@ -164,7 +144,7 @@ struct metadata
         content_encoding_t(
             system::error_code ec_,
             std::size_t count_,
-            http_proto::encoding encoding_) noexcept
+            encoding encoding_) noexcept
             : ec(ec_)
             , count(count_)
             , encoding(encoding_)
@@ -261,25 +241,9 @@ struct metadata
         */
         std::size_t count = 0;
 
-        /** The total number of codings
-        */
-        std::size_t codings = 0;
-
         /** True if valid and chunked is specified last
         */
         bool is_chunked = false;
-
-        /** The effective body encoding.
-
-            This indicates the type of encoding detected on the body,
-            if the fields contain a valid encoding. Otherwise it will have
-            @ref encoding::identity if the header is invalid.
-
-            Whether or not the message entity is also chunked is set
-            in @ref metadata::is_chunked and not here.
-        */
-        http_proto::encoding encoding =
-            http_proto::encoding::identity;
 
     #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
         constexpr
@@ -289,14 +253,10 @@ struct metadata
         transfer_encoding_t(
             system::error_code ec_,
             std::size_t count_,
-            std::size_t codings_,
             bool is_chunked_) noexcept
             : ec(ec_)
             , count(count_)
-            , codings(codings_)
             , is_chunked(is_chunked_)
-            , encoding(
-                http_proto::encoding::identity)
         {
         }
     #endif
