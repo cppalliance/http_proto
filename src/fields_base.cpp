@@ -171,7 +171,7 @@ op_t::
 reserve(
     std::size_t n)
 {
-    if(n > self_.max_capacity_in_bytes())
+    if(n > self_.max_cap_)
     {
         // max capacity exceeded
         detail::throw_length_error();
@@ -270,7 +270,7 @@ prefix_op_t(
     {
         // static storage will always throw which is
         // intended since they cannot reallocate.
-        if(self.h_.max_cap < new_size)
+        if(self.max_cap_ < new_size)
             detail::throw_length_error();
 
         auto bytes_needed =
@@ -347,14 +347,14 @@ fields_base(
     std::size_t storage_size) noexcept
     : fields_view_base(&h_)
     , h_(k)
-    , static_storage(true)
+    , static_storage_(true)
 {
     h_.buf = storage;
     h_.cap = align_down(
         storage,
         storage_size,
         alignof(detail::header::entry));
-    h_.max_cap = h_.cap;
+    max_cap_ = h_.cap;
 }
 
 fields_base::
@@ -367,7 +367,7 @@ fields_base(
     if(storage_size != 0)
     {
         reserve_bytes(storage_size);
-        h_.max_cap = h_.cap;
+        max_cap_ = h_.cap;
     }
 }
 
@@ -383,7 +383,7 @@ fields_base(
         detail::throw_length_error();
 
     reserve_bytes(storage_size);
-    h_.max_cap = max_storage_size;
+    max_cap_ = max_storage_size;
 }
 
 // copy s and parse it
@@ -427,7 +427,7 @@ fields_base(
     core::string_view s)
     : fields_view_base(&h_)
     , h_(detail::empty{k})
-    , static_storage(true)
+    , static_storage_(true)
 {
     h_.cbuf = storage;
     h_.buf = storage;
@@ -435,7 +435,7 @@ fields_base(
         storage,
         storage_size,
         alignof(detail::header::entry));
-    h_.max_cap = h_.cap;
+    max_cap_ = h_.cap;
 
     auto n = detail::header::count_crlf(s);
     if(h_.kind == detail::kind::fields)
@@ -492,14 +492,14 @@ fields_base(
     std::size_t storage_size)
     : fields_view_base(&h_)
     , h_(h.kind)
-    , static_storage(true)
+    , static_storage_(true)
 {
     h_.buf = storage;
     h_.cap = align_down(
         storage,
         storage_size,
         alignof(detail::header::entry));
-    h_.max_cap = h_.cap;
+    max_cap_ = h_.cap;
 
     if(h.is_default())
         return;
@@ -522,7 +522,7 @@ fields_base(
 fields_base::
 ~fields_base()
 {
-    if(h_.buf && !static_storage)
+    if(h_.buf && !static_storage_)
         delete[] h_.buf;
 }
 
@@ -578,7 +578,7 @@ shrink_to_fit() noexcept
             h_.cap)
         return;
 
-    if(static_storage)
+    if(static_storage_)
         return;
 
     fields_base tmp(h_);
@@ -941,7 +941,7 @@ copy_impl(
         return;
     }
 
-    if(static_storage)
+    if(static_storage_)
     {
         if(h.is_default())
         {
