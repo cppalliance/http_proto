@@ -38,7 +38,10 @@ class fields_base
     : public virtual fields_view_base
 {
     detail::header h_;
-    bool static_storage = false;
+    bool static_storage_ = false;
+    std::size_t max_cap_ =
+        std::numeric_limits<
+            std::size_t>::max();
 
     using entry =
         detail::header::entry;
@@ -77,7 +80,6 @@ class fields_base
     friend class static_response;
     friend class serializer;
     friend class message_base;
-    friend struct detail::header;
     friend struct detail::prefix_op;
 
     BOOST_HTTP_PROTO_DECL
@@ -142,7 +144,7 @@ public:
     std::size_t
     max_capacity_in_bytes() noexcept
     {
-        return h_.max_cap;
+        return max_cap_;
     }
 
     /** Returns the total number of bytes allocated by the container
@@ -587,20 +589,6 @@ private:
 
     void raw_erase_n(field, std::size_t) noexcept;
 };
-
-//------------------------------------------------
-
-#ifndef BOOST_HTTP_PROTO_DOCS
-namespace detail {
-inline
-header&
-header::
-get(fields_base& f) noexcept
-{
-    return f.h_;
-}
-} // detail
-#endif
 
 } // http_proto
 } // boost

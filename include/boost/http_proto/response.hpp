@@ -213,6 +213,7 @@ public:
     swap(response& other) noexcept
     {
         h_.swap(other.h_);
+        std::swap(max_cap_, other.max_cap_);
     }
 
     /** Swap two instances

@@ -137,7 +137,6 @@ swap(header& h) noexcept
     std::swap(cbuf, h.cbuf);
     std::swap(buf, h.buf);
     std::swap(cap, h.cap);
-    std::swap(max_cap, h.max_cap);
     std::swap(size, h.size);
     std::swap(count, h.count);
     std::swap(prefix, h.prefix);
@@ -339,12 +338,10 @@ assign_to(
     auto const buf_ = dest.buf;
     auto const cbuf_ = dest.cbuf;
     auto const cap_ = dest.cap;
-    auto const max_cap_ = dest.max_cap;
     dest = *this;
     dest.buf = buf_;
     dest.cbuf = cbuf_;
     dest.cap = cap_;
-    dest.max_cap = max_cap_;
 }
 
 //------------------------------------------------

@@ -22,7 +22,7 @@
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/grammar/tuple_rule.hpp>
 
-#include "rules.hpp"
+#include "src/rfc/detail/rules.hpp"
 
 namespace boost {
 namespace http_proto {
