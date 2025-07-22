@@ -50,21 +50,18 @@ align_down(
     return 0;
 }
 
-system::result<core::string_view>
+void
 verify_field_name(
-    core::string_view name)
+    core::string_view name,
+    system::error_code& ec)
 {
-    auto rv =
-        grammar::parse(name, detail::field_name_rule);
-    if( rv.has_error() )
+    auto rv = grammar::parse(
+        name, detail::field_name_rule);
+    if(rv.has_error())
     {
-        auto ec = rv.error();
-        if( ec == urls::grammar::error::leftover )
-            return error::bad_field_name;
-        if( ec == condition::need_more_input )
-            return error::bad_field_name;
+        ec = BOOST_HTTP_PROTO_ERR(
+            error::bad_field_name);
     }
-    return rv;
 }
 
 system::result<detail::field_value_rule_t::value_type>
@@ -701,15 +698,19 @@ erase(
 
 //------------------------------------------------
 
-system::result<void>
+void
 fields_base::
 set(
     iterator it,
-    core::string_view value)
+    core::string_view value,
+    system::error_code& ec)
 {
     auto rv = verify_field_value(value);
-    if( rv.has_error() )
-        return rv.error();
+    if(rv.has_error())
+    {
+        ec = rv.error();
+        return;
+    }
 
     value = rv->value;
     bool has_obs_fold = rv->has_obs_fold;
@@ -818,23 +819,26 @@ set(
         e.id = id;
         h_.on_insert(id, it->value);
     }
-    return {};
 }
 
 // erase existing fields with id
 // and then add the field with value
-system::result<void>
+void
 fields_base::
 set(
     field id,
-    core::string_view value)
+    core::string_view value,
+    system::error_code& ec)
 {
     BOOST_ASSERT(
         id != field::unknown);
 
     auto rv = verify_field_value(value);
-    if( rv.has_error() )
-        return rv.error();
+    if(rv.has_error())
+    {
+        ec = rv.error();
+        return;
+    }
 
     value = rv->value;
     bool has_obs_fold = rv->has_obs_fold;
@@ -859,26 +863,27 @@ set(
 
     insert_impl_unchecked(
         id, to_string(id), value, h_.count, has_obs_fold);
-    return {};
 }
 
 // erase existing fields with name
 // and then add the field with value
-system::result<void>
+void
 fields_base::
 set(
     core::string_view name,
-    core::string_view value)
+    core::string_view value,
+    system::error_code& ec)
 {
-    {
-        auto rv = verify_field_name(name);
-        if( rv.has_error() )
-            return rv.error();
-    }
+    verify_field_name(name , ec);
+    if(ec.failed())
+        return;
 
     auto rv = verify_field_value(value);
-    if( rv.has_error() )
-        return rv.error();
+    if(rv.has_error())
+    {
+        ec = rv.error();
+        return;
+    }
 
     value = rv->value;
     bool has_obs_fold = rv->has_obs_fold;
@@ -906,7 +911,6 @@ set(
     insert_impl_unchecked(
         string_to_field(name),
         name, value, h_.count, has_obs_fold);
-    return {};
 }
 
 //------------------------------------------------
@@ -1059,27 +1063,28 @@ insert_impl_unchecked(
         h_.on_insert(id, value);
 }
 
-system::result<void>
+void
 fields_base::
 insert_impl(
     field id,
     core::string_view name,
     core::string_view value,
-    std::size_t before)
+    std::size_t before,
+    system::error_code& ec)
 {
-    {
-        auto rv = verify_field_name(name);
-        if( rv.has_error() )
-            return rv.error();
-    }
+    verify_field_name(name, ec);
+    if(ec.failed())
+        return;
 
     auto rv = verify_field_value(value);
-    if( rv.has_error() )
-        return rv.error();
+    if(rv.has_error())
+    {
+        ec = rv.error();
+        return;
+    }
 
     insert_impl_unchecked(
         id, name, rv->value, before, rv->has_obs_fold);
-    return {};
 }
 
 // erase i and update metadata

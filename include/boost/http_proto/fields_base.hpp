@@ -13,9 +13,9 @@
 #define BOOST_HTTP_PROTO_FIELDS_BASE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/core/detail/string_view.hpp>
-#include <boost/system/result.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -181,12 +181,13 @@ public:
 
     /** Append a header
 
-        This function appends a new header with the
-        specified id and value. The value must be
-        syntactically valid or else an error is returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
-        <br/>
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed.
+
+        Any leading or trailing whitespace in the
+        value is ignored.
+
         No iterators are invalidated.
 
         @par Example
@@ -201,7 +202,6 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Calls to allocate may throw.
 
         @param id The field name constant,
         which may not be @ref field::unknown.
@@ -209,27 +209,87 @@ public:
         @param value A value, which must be semantically
         valid for the message.
 
-        @return The error, if any occurred.
+        @throw boost::system::system_error if value
+        is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
-    system::result<void>
+    void
     append(
         field id,
         core::string_view value)
     {
-        BOOST_ASSERT(
-            id != field::unknown);
-        return insert_impl(
-            id, to_string(id), value, h_.count);
+        system::error_code ec;
+        append(id, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
     }
 
     /** Append a header
 
-        This function appends a new header with the
-        specified name and value. Both values must be
-        syntactically valid or else an error is returned.
-        Any leading or trailing whitespace in the new
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed.
+
+        Any leading or trailing whitespace in the
         value is ignored.
-        <br/>
+
+        No iterators are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.append( field::user_agent, "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `to_string( id ).size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @param id The field name constant,
+        which may not be @ref field::unknown.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @param ec Set to the error, if value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    void
+    append(
+        field id,
+        core::string_view value,
+        system::error_code& ec)
+    {
+        // TODO: this should probably return an error
+        BOOST_ASSERT(id != field::unknown);
+        insert_impl(
+            id,
+            to_string(id),
+            value,
+            h_.count,
+            ec);
+    }
+
+    /** Append a header
+
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed.
+
+        Any leading or trailing whitespace in the
+        value is ignored.
+
         No iterators are invalidated.
 
         @par Example
@@ -244,26 +304,80 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Calls to allocate may throw.
 
         @param name The header name.
 
         @param value A value, which must be semantically
         valid for the message.
 
-        @return The error, if any occurred.
+        @throw boost::system::system_error if name or
+        value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
-    system::result<void>
+    void
     append(
         core::string_view name,
         core::string_view value)
     {
-        return insert_impl(
-            string_to_field(
-                name),
+        system::error_code ec;
+        append(name, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+    }
+
+    /** Append a header
+
+        This function appends a new header.
+        Existing headers with the same name are
+        not changed.
+
+        Any leading or trailing whitespace in the
+        value is ignored.
+
+        No iterators are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.append( "User-Agent", "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `name.size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @param name The header name.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @param ec Set to the error, if name or value is
+        invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    void
+    append(
+        core::string_view name,
+        core::string_view value,
+        system::error_code& ec)
+    {
+        insert_impl(
+            string_to_field(name),
             name,
             value,
-            h_.count);
+            h_.count,
+            ec);
     }
 
     /** Insert a header
@@ -274,7 +388,7 @@ public:
         inserted. Names are not case-sensitive.
         Any leading or trailing whitespace in
         the new value is ignored.
-        <br>
+
         All iterators that are equal to `before`
         or come after are invalidated.
 
@@ -290,10 +404,8 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Calls to allocate may throw.
 
-        @return An iterator the newly inserted header, or
-        an error if any occurred.
+        @return An iterator to the newly inserted header.
 
         @param before Position to insert before.
 
@@ -302,22 +414,86 @@ public:
 
         @param value A value, which must be semantically
         valid for the message.
+
+        @throw boost::system::system_error if value
+        is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
-    system::result<iterator>
+    iterator
     insert(
         iterator before,
         field id,
         core::string_view value)
     {
+        system::error_code ec;
+        auto const it = insert(
+            before, id, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return it;
+    }
+
+    /** Insert a header
+
+        If a matching header with the same name
+        exists, it is not replaced. Instead, an
+        additional header with the same name is
+        inserted. Names are not case-sensitive.
+        Any leading or trailing whitespace in
+        the new value is ignored.
+
+        All iterators that are equal to `before`
+        or come after are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.insert( req.begin(), field::user_agent, "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `to_string( id ).size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @return An iterator to the newly inserted header.
+
+        @param before Position to insert before.
+
+        @param id The field name constant,
+        which may not be @ref field::unknown.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @param ec Set to the error, if value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    iterator
+    insert(
+        iterator before,
+        field id,
+        core::string_view value,
+        system::error_code& ec)
+    {
         // TODO: this should probably return an error
-        BOOST_ASSERT(
-            id != field::unknown);
-
-        auto rv = insert_impl(
-            id, to_string(id), value, before.i_);
-
-        if( rv.has_error() )
-            return rv.error();
+        BOOST_ASSERT(id != field::unknown);
+        insert_impl(
+            id,
+            to_string(id),
+            value,
+            before.i_,
+            ec);
         return before;
     }
 
@@ -329,7 +505,7 @@ public:
         inserted. Names are not case-sensitive.
         Any leading or trailing whitespace in
         the new value is ignored.
-        <br>
+
         All iterators that are equal to `before`
         or come after are invalidated.
 
@@ -345,10 +521,8 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Calls to allocate may throw.
 
-        @return An iterator the newly inserted header, or
-        an error if any occurred.
+        @return An iterator to the newly inserted header.
 
         @param before Position to insert before.
 
@@ -356,22 +530,83 @@ public:
 
         @param value A value, which must be semantically
         valid for the message.
+
+        @throw boost::system::system_error if name or
+        value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
-    system::result<iterator>
+    iterator
     insert(
         iterator before,
         core::string_view name,
         core::string_view value)
     {
-        auto rv = insert_impl(
-            string_to_field(
-                name),
+        system::error_code ec;
+        insert(before, name, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return before;
+    }
+
+    /** Insert a header
+
+        If a matching header with the same name
+        exists, it is not replaced. Instead, an
+        additional header with the same name is
+        inserted. Names are not case-sensitive.
+        Any leading or trailing whitespace in
+        the new value is ignored.
+
+        All iterators that are equal to `before`
+        or come after are invalidated.
+
+        @par Example
+        @code
+        request req;
+
+        req.insert( req.begin(), "User-Agent", "Boost" );
+        @endcode
+
+        @par Complexity
+        Linear in `name.size() + value.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @return An iterator to the newly inserted header.
+
+        @param before Position to insert before.
+
+        @param name The header name.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @param ec Set to the error, if name or value is
+        invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    iterator
+    insert(
+        iterator before,
+        core::string_view name,
+        core::string_view value,
+        system::error_code& ec)
+    {
+        insert_impl(
+            string_to_field(name),
             name,
             value,
-            before.i_);
-
-        if( rv.has_error() )
-            return rv.error();
+            before.i_,
+            ec);
         return before;
     }
 
@@ -469,20 +704,64 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Calls to allocate may throw.
-
-        @return The error, if any occurred.
 
         @param it An iterator to the header.
 
         @param value A value, which must be semantically
         valid for the message.
+
+        @throw boost::system::system_error if value is
+        invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
     BOOST_HTTP_PROTO_DECL
-    system::result<void>
+    void
     set(
         iterator it,
-        core::string_view value);
+        core::string_view value)
+    {
+        system::error_code ec;
+        set(it, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+    }
+
+    /** Set a header value
+
+        Uses the given value to overwrite the
+        current one in the header field pointed to by the
+        iterator. The value must be syntactically
+        valid or else an error is returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
+
+        @par Complexity
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @param it An iterator to the header.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @param ec Set to the error, if value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set(
+        iterator it,
+        core::string_view value,
+        system::error_code& ec);
 
     /** Set a header value
 
@@ -500,19 +779,67 @@ public:
 
         @par Complexity
 
-        @return The error, if any occurred.
+        @param id The field constant of the
+        header to set.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @throw boost::system::system_error if value is
+        invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set(
+        field id,
+        core::string_view value)
+    {
+        system::error_code ec;
+        set(id, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+    }
+
+    /** Set a header value
+
+        The container is modified to contain exactly
+        one field with the specified id set to the given value,
+        which must be syntactically valid or else an error is
+        returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
+
+        @par Postconditions
+        @code
+        this->count( id ) == 1 && this->at( id ) == value
+        @endcode
+
+        @par Complexity
 
         @param id The field constant of the
         header to set.
 
         @param value A value, which must be semantically
         valid for the message.
+
+        @param ec Set to the error, if value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
     BOOST_HTTP_PROTO_DECL
-    system::result<void>
+    void
     set(
         field id,
-        core::string_view value);
+        core::string_view value,
+        system::error_code& ec);
 
     /** Set a header value
 
@@ -528,18 +855,63 @@ public:
         this->count( name ) == 1 && this->at( name ) == value
         @endcode
 
-        @return The error, if any occurred.
+        @param name The field name.
+
+        @param value A value, which must be semantically
+        valid for the message.
+
+        @throw boost::system::system_error if name or value is
+        invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set(
+        core::string_view name,
+        core::string_view value)
+    {
+        system::error_code ec;
+        set(name, value, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+    }
+
+    /** Set a header value
+
+        The container is modified to contain exactly
+        one field with the specified name set to the given value,
+        which must be syntactically valid or else an error is
+        returned.
+        Any leading or trailing whitespace in the new value
+        is ignored.
+
+        @par Postconditions
+        @code
+        this->count( name ) == 1 && this->at( name ) == value
+        @endcode
 
         @param name The field name.
 
         @param value A value, which must be semantically
         valid for the message.
+
+        @param ec Set to the error, if name or value is invalid.
+
+        @throw std::length_error if the required space
+        exceeds the maximum capacity.
+
+        @throw std::bad_alloc if the allocation fails.
     */
     BOOST_HTTP_PROTO_DECL
-    system::result<void>
+    void
     set(
         core::string_view name,
-        core::string_view value);
+        core::string_view value,
+        system::error_code& ec);
 
     //--------------------------------------------
 
@@ -558,12 +930,13 @@ private:
         bool has_obs_fold);
 
     BOOST_HTTP_PROTO_DECL
-    system::result<void>
+    void
     insert_impl(
         field id,
         core::string_view name,
         core::string_view value,
-        std::size_t before);
+        std::size_t before,
+        system::error_code& ec);
 
     BOOST_HTTP_PROTO_DECL
     void
