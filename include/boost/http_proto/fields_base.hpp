@@ -271,8 +271,10 @@ public:
         core::string_view value,
         system::error_code& ec)
     {
-        // TODO: this should probably return an error
-        BOOST_ASSERT(id != field::unknown);
+        // Precondition violation
+        if(id == field::unknown)
+            detail::throw_logic_error();
+
         insert_impl(
             id,
             to_string(id),
@@ -486,8 +488,10 @@ public:
         core::string_view value,
         system::error_code& ec)
     {
-        // TODO: this should probably return an error
-        BOOST_ASSERT(id != field::unknown);
+        // Precondition violation
+        if(id == field::unknown)
+            detail::throw_logic_error();
+
         insert_impl(
             id,
             to_string(id),
@@ -662,7 +666,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    erase(field id) noexcept;
+    erase(field id);
 
     /** Erase all matching fields
 
@@ -821,8 +825,8 @@ public:
 
         @par Complexity
 
-        @param id The field constant of the
-        header to set.
+        @param id The field name constant,
+        which may not be @ref field::unknown.
 
         @param value A value, which must be semantically
         valid for the message.

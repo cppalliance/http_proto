@@ -591,10 +591,12 @@ shrink_to_fit() noexcept
 std::size_t
 fields_base::
 erase(
-    field id) noexcept
+    field id)
 {
-    BOOST_ASSERT(
-        id != field::unknown);
+    // Precondition violation
+    if(id == field::unknown)
+        detail::throw_logic_error();
+
 #if 1
     auto const end_ = end();
     auto it = find_last(end_, id);
@@ -830,8 +832,9 @@ set(
     core::string_view value,
     system::error_code& ec)
 {
-    BOOST_ASSERT(
-        id != field::unknown);
+    // Precondition violation
+    if(id == field::unknown)
+        detail::throw_logic_error();
 
     auto rv = verify_field_value(value);
     if(rv.has_error())
