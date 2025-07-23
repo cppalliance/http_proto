@@ -144,10 +144,10 @@ struct metadata
         content_encoding_t(
             system::error_code ec_,
             std::size_t count_,
-            encoding encoding_) noexcept
+            content_coding coding_) noexcept
             : ec(ec_)
             , count(count_)
-            , encoding(encoding_)
+            , coding(coding_)
         {
         }
     #endif

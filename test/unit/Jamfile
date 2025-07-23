@@ -70,7 +70,7 @@ local SOURCES =
     rfc/quoted_token_rule.cpp
     rfc/quoted_token_view.cpp
     rfc/token_rule.cpp
-    rfc/transfer_encoding_rule.cpp
+    rfc/transfer_coding_rule.cpp
     rfc/detail/rules.cpp
     ;
 

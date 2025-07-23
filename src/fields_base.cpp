@@ -151,11 +151,6 @@ public:
         std::size_t extra_field);
 
     void
-    copy_prefix(
-        std::size_t n,
-        std::size_t i) noexcept;
-
-    void
     move_chars(
         char* dest,
         char const* src,
@@ -202,27 +197,6 @@ grow(
         detail::header::bytes_needed(
             self_.h_.size + extra_char,
             self_.h_.count + extra_field));
-}
-
-void
-fields_base::
-op_t::
-copy_prefix(
-    std::size_t n,
-    std::size_t i) noexcept
-{
-    // copy first n chars
-    std::memcpy(
-        self_.h_.buf,
-        cbuf_,
-        n);
-    // copy first i entries
-    if(i > 0)
-        std::memcpy(
-            self_.h_.tab_() - i,
-            reinterpret_cast<entry*>(
-                buf_ + cap_) - i,
-            i * sizeof(entry));
 }
 
 void
@@ -597,55 +571,10 @@ erase(
     if(id == field::unknown)
         detail::throw_logic_error();
 
-#if 1
-    auto const end_ = end();
-    auto it = find_last(end_, id);
-    if(it == end_)
+    auto const i0 = h_.find(id);
+    if(i0 == h_.count)
         return 0;
-    std::size_t n = 1;
-    auto const begin_ = begin();
-    raw_erase(it.i_);
-    while(it != begin_)
-    {
-        --it;
-        if(it->id == id)
-        {
-            raw_erase(it.i_);
-            ++n;
-        }
-    }
-    h_.on_erase_all(id);
-    return n;
-#else
-    std::size_t n = 0;
-    auto it0 = find(id);
-    auto const end_ = end();
-    if(it0 != end_)
-    {
-        auto it1 = it0;
-        std::size_t total = 0;
-        std::size_t size = 0;
-        // [it0, it1) run of id
-        for(;;)
-        {
-            size += length(it1.i_);
-            ++it1;
-            if(it1 == end_)
-                goto finish;
-            if(it1->id != id)
-                break;
-        }
-        std::memmove(
-            h_.buf + offset(it0.i_),
-            h_.buf + offset(it1.i_),
-            h_.size - offset(it2.i_));
-
-    finish:
-        h_.size -= size;
-        h_.count -= n;
-    }
-    return n;
-#endif
+    return erase_all_impl(i0, id);
 }
 
 std::size_t
@@ -653,49 +582,14 @@ fields_base::
 erase(
     core::string_view name) noexcept
 {
-    auto it0 = find(name);
-    auto const end_ = end();
-    if(it0 == end_)
+    auto const i0 = h_.find(name);
+    if(i0 == h_.count)
         return 0;
-    auto it = end_;
-    std::size_t n = 1;
-    auto const id = it0->id;
+    auto const ft = h_.tab();
+    auto const id = ft[i0].id;
     if(id == field::unknown)
-    {
-        // fix self-intersection
-        name = it0->name;
-
-        for(;;)
-        {
-            --it;
-            if(it == it0)
-                break;
-            if(grammar::ci_is_equal(
-                it->name, name))
-            {
-                raw_erase(it.i_);
-                ++n;
-            }
-        }
-        raw_erase(it.i_);
-    }
-    else
-    {
-        for(;;)
-        {
-            --it;
-            if(it == it0)
-                break;
-            if(it->id == id)
-            {
-                raw_erase(it.i_);
-                ++n;
-            }
-        }
-        raw_erase(it.i_);
-        h_.on_erase_all(id);
-    }
-    return n;
+        return erase_all_impl(i0, name);
+    return erase_all_impl(i0, id);
 }
 
 //------------------------------------------------
@@ -843,9 +737,6 @@ set(
         return;
     }
 
-    value = rv->value;
-    bool has_obs_fold = rv->has_obs_fold;
-
     auto const i0 = h_.find(id);
     if(i0 != h_.count)
     {
@@ -857,15 +748,19 @@ set(
                 h_.size - length(i0);
             auto const n =
                 ft[i0].nn + 2 +
-                    value.size() + 2;
+                    rv->value.size() + 2;
             // VFALCO missing overflow check
             reserve_bytes(n0 + n);
         }
         erase_all_impl(i0, id);
     }
 
-    insert_impl_unchecked(
-        id, to_string(id), value, h_.count, has_obs_fold);
+    insert_unchecked_impl(
+        id,
+        to_string(id),
+        rv->value,
+        h_.count,
+        rv->has_obs_fold);
 }
 
 // erase existing fields with name
@@ -888,9 +783,6 @@ set(
         return;
     }
 
-    value = rv->value;
-    bool has_obs_fold = rv->has_obs_fold;
-
     auto const i0 = h_.find(name);
     if(i0 != h_.count)
     {
@@ -903,17 +795,23 @@ set(
                 h_.size - length(i0);
             auto const n =
                 ft[i0].nn + 2 +
-                    value.size() + 2;
+                    rv->value.size() + 2;
             // VFALCO missing overflow check
             reserve_bytes(n0 + n);
         }
         // VFALCO simple algorithm but
         // costs one extra memmove
-        erase_all_impl(i0, id);
+        if(id != field::unknown)
+            erase_all_impl(i0, id);
+        else
+            erase_all_impl(i0, name);
     }
-    insert_impl_unchecked(
+    insert_unchecked_impl(
         string_to_field(name),
-        name, value, h_.count, has_obs_fold);
+        name,
+        rv->value,
+        h_.count,
+        rv->has_obs_fold);
 }
 
 //------------------------------------------------
@@ -966,7 +864,7 @@ copy_impl(
 
 void
 fields_base::
-insert_impl_unchecked(
+insert_unchecked_impl(
     field id,
     core::string_view name,
     core::string_view value,
@@ -1086,8 +984,12 @@ insert_impl(
         return;
     }
 
-    insert_impl_unchecked(
-        id, name, rv->value, before, rv->has_obs_fold);
+    insert_unchecked_impl(
+        id,
+        name,
+        rv->value,
+        before,
+        rv->has_obs_fold);
 }
 
 // erase i and update metadata
@@ -1098,8 +1000,7 @@ erase_impl(
     field id) noexcept
 {
     raw_erase(i);
-    if(id != field::unknown)
-        h_.on_erase(id);
+    h_.on_erase(id);
 }
 
 //------------------------------------------------
@@ -1157,6 +1058,35 @@ erase_all_impl(
     return n;
 }
 
+// erase all fields with name
+// when id == field::unknown
+std::size_t
+fields_base::
+erase_all_impl(
+    std::size_t i0,
+    core::string_view name) noexcept
+{
+    std::size_t n = 1;
+    std::size_t i = h_.count - 1;
+    auto const ft = h_.tab();
+    auto const* p = h_.cbuf + h_.prefix;
+    while(i > i0)
+    {
+        core::string_view s(
+            p + ft[i].np, ft[i].nn);
+        if(s == name)
+        {
+            raw_erase(i);
+            ++n;
+        }
+        // go backwards to
+        // reduce memmoves
+        --i;
+    }
+    raw_erase(i0);
+    return n;
+}
+
 // return i-th field absolute offset
 std::size_t
 fields_base::
@@ -1166,10 +1096,8 @@ offset(
     if(i == 0)
         return h_.prefix;
     if(i < h_.count)
-        return h_.prefix +
-            h_.tab_()[0-(static_cast<std::ptrdiff_t>(i) + 1)].np;
+        return h_.prefix + h_.tab()[i].np;
     // make final CRLF the last "field"
-    //BOOST_ASSERT(i == h_.count);
     return h_.size - 2;
 }
 
