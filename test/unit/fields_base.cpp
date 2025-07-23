@@ -417,6 +417,17 @@ struct fields_base_test
             },
             "\r\n");
 
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                system::error_code ec;
+                BOOST_TEST_THROWS(
+                    f.append(field::unknown, "y", ec),
+                    std::logic_error);
+            },
+            "\r\n");
+
         // append(string_view, string_view)
 
         check(
@@ -588,6 +599,19 @@ struct fields_base_test
                 }
             },
             "Server: x\r\n"
+            "T: 1\r\n"
+            "\r\n");
+
+        check(
+            "T: 1\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                system::error_code ec;
+                BOOST_TEST_THROWS(
+                    f.insert(f.find("T"), field::unknown, "x", ec),
+                    std::logic_error);
+            },
             "T: 1\r\n"
             "\r\n");
 
@@ -916,6 +940,17 @@ struct fields_base_test
             "Connection: keep-alive\r\n"
             "Server: Boost\r\n"
             "\r\n");
+        
+        // unknown field id
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                BOOST_TEST_THROWS(
+                    f.erase(field::unknown),
+                    std::logic_error);
+            },
+            "\r\n");
     }
 
     void
@@ -1013,6 +1048,17 @@ struct fields_base_test
                 f.set(field::server, "y");
             },
             "Server: y\r\n"
+            "\r\n");
+
+        check(
+            "\r\n",
+            [](fields_base& f)
+            {
+                system::error_code ec;
+                BOOST_TEST_THROWS(
+                    f.set(field::unknown, "y" , ec),
+                    std::logic_error);
+            },
             "\r\n");
 
         check(
