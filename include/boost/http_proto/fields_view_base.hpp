@@ -208,6 +208,36 @@ public:
         return ph_->count;
     }
 
+    /** Return the value of a field, or throws an exception.
+
+        If more than one field with the specified name exists,
+        the first field defined by insertion order is returned.
+
+        @param id The field name constant.
+
+        @return The field value.
+
+        @throw std::out_of_range if the field is not found.
+    */
+    BOOST_HTTP_PROTO_DECL
+    core::string_view
+    at(field id) const;
+
+    /** Return the value of a field, or throws an exception.
+
+        If more than one field with the specified name exists,
+        the first field defined by insertion order is returned.
+
+        @param name The field name.
+
+        @return The field value.
+
+        @throw std::out_of_range if the field is not found.
+    */
+    BOOST_HTTP_PROTO_DECL
+    core::string_view
+    at(core::string_view name) const;
+
     /** Return true if a field exists
     */
     BOOST_HTTP_PROTO_DECL

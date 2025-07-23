@@ -172,6 +172,18 @@ struct fields_view_base_test
 
         BOOST_TEST(f.size() == 10);
 
+        // at(field)
+        // at(string_view)
+
+        BOOST_TEST(f.at("x") == "1");
+        BOOST_TEST(f.at(field::set_cookie) == "a");
+        BOOST_TEST_THROWS(
+            f.at("accept"),
+            std::out_of_range);
+        BOOST_TEST_THROWS(
+            f.at(field::accept),
+            std::out_of_range);
+
         // exists(field)
         // exists(string_view)
 

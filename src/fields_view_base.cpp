@@ -163,6 +163,30 @@ operator++() noexcept ->
 //
 //------------------------------------------------
 
+core::string_view
+fields_view_base::
+at(
+    field id) const
+{
+    auto const it = find(id);
+    if(it == end())
+        BOOST_THROW_EXCEPTION(
+            std::out_of_range{ "field not found" });
+    return it->value;
+}
+
+core::string_view
+fields_view_base::
+at(
+    core::string_view name) const
+{
+    auto const it = find(name);
+    if(it == end())
+        BOOST_THROW_EXCEPTION(
+            std::out_of_range{ "field not found" });
+    return it->value;
+}
+
 bool
 fields_view_base::
 exists(
