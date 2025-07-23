@@ -75,6 +75,7 @@ struct transfer_coding_rule_t
         } extension;
     };
 
+    BOOST_HTTP_PROTO_DECL
     auto
     parse(
         char const*& it,

@@ -1144,6 +1144,20 @@ struct fields_base_test
             "\r\n");
 
         check(
+            "UnkownId0: w\r\n"
+            "UnkownId1: x\r\n"
+            "UnkownId2: y\r\n"
+            "\r\n",
+            [](fields_base& f)
+            {
+                f.set("UnkownId1", "z");
+            },
+            "UnkownId0: w\r\n"
+            "UnkownId2: y\r\n"
+            "UnkownId1: z\r\n"
+            "\r\n");
+
+        check(
             "T: 1\r\n"
             "Server: xx\r\n"
             "T: 2\r\n"

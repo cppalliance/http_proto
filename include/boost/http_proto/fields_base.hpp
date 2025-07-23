@@ -722,7 +722,6 @@ public:
 
         @throw std::bad_alloc if the allocation fails.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     set(
         iterator it,
@@ -797,7 +796,6 @@ public:
 
         @throw std::bad_alloc if the allocation fails.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     set(
         field id,
@@ -872,7 +870,6 @@ public:
 
         @throw std::bad_alloc if the allocation fails.
     */
-    BOOST_HTTP_PROTO_DECL
     void
     set(
         core::string_view name,
@@ -926,7 +923,7 @@ private:
         detail::header const&);
 
     void
-    insert_impl_unchecked(
+    insert_unchecked_impl(
         field id,
         core::string_view name,
         core::string_view value,
@@ -948,13 +945,19 @@ private:
         std::size_t i,
         field id) noexcept;
 
-    void raw_erase(
+    void
+    raw_erase(
         std::size_t) noexcept;
 
     std::size_t
     erase_all_impl(
         std::size_t i0,
         field id) noexcept;
+
+    std::size_t
+    erase_all_impl(
+        std::size_t i0,
+        core::string_view name) noexcept;
 
     std::size_t
     offset(
