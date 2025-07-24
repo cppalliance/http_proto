@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,6 +13,7 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/core/detail/string_view.hpp>
+#include <boost/optional.hpp>
 #include <cstdint>
 #include <iosfwd>
 #include <type_traits>
@@ -21,9 +23,7 @@ namespace http_proto {
 
 enum class field : unsigned short
 {
-    unknown = 0,    // must be zero
-
-    a_im,
+    a_im = 1,
     accept,
     accept_additions,
     accept_charset,
@@ -399,7 +399,7 @@ to_string(field f);
         @ref field::unknown if there is no match.
 */
 BOOST_HTTP_PROTO_DECL
-field
+boost::optional<field>
 string_to_field(
     core::string_view s) noexcept;
 

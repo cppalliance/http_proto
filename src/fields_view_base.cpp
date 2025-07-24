@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,7 +15,6 @@
 #include <boost/url/grammar/parse.hpp>
 #include <boost/assert.hpp>
 #include <boost/assert/source_location.hpp>
-#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -45,7 +45,8 @@ operator*() const noexcept ->
     auto const* p =
         ph_->cbuf + ph_->prefix;
     return {
-        e.id,
+        (e.id == detail::header::unknown_field)
+            ? optional<field>{} : e.id,
         core::string_view(
             p + e.np, e.nn),
         core::string_view(
@@ -68,7 +69,8 @@ operator*() const noexcept ->
     auto const* p =
         ph_->cbuf + ph_->prefix;
     return {
-        e.id,
+        (e.id == detail::header::unknown_field)
+            ? optional<field>{} : e.id,
         core::string_view(
             p + e.np, e.nn),
         core::string_view(
@@ -126,7 +128,7 @@ operator++() noexcept ->
     BOOST_ASSERT(i_ < ph_->count);
     auto const* e = &ph_->tab()[i_];
     auto const id = e->id;
-    if(id != field::unknown)
+    if(id != detail::header::unknown_field)
     {
         ++i_;
         --e;

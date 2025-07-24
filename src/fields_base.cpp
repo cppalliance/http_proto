@@ -562,15 +562,23 @@ shrink_to_fit() noexcept
 //
 //------------------------------------------------
 
+auto
+fields_base::
+erase(
+    iterator it) noexcept -> iterator
+{
+    auto const id = it->id.value_or(
+        detail::header::unknown_field);
+    raw_erase(it.i_);
+    h_.on_erase(id);
+    return it;
+}
+
 std::size_t
 fields_base::
 erase(
-    field id)
+    field id) noexcept
 {
-    // Precondition violation
-    if(id == field::unknown)
-        detail::throw_logic_error();
-
     auto const i0 = h_.find(id);
     if(i0 == h_.count)
         return 0;
@@ -587,7 +595,7 @@ erase(
         return 0;
     auto const ft = h_.tab();
     auto const id = ft[i0].id;
-    if(id == field::unknown)
+    if(id == detail::header::unknown_field)
         return erase_all_impl(i0, name);
     return erase_all_impl(i0, id);
 }
@@ -701,14 +709,15 @@ set(
         h_.size = static_cast<
             offset_type>(h_.size + dn);
     }
-    auto const id = it->id;
+    auto const id = it->id.value_or(
+        detail::header::unknown_field);
     if(h_.is_special(id))
     {
         // replace first char of name
         // with null to hide metadata
         char saved = h_.buf[pos0];
         auto& e = h_.tab()[i];
-        e.id = field::unknown;
+        e.id = detail::header::unknown_field;
         h_.buf[pos0] = '\0';
         h_.on_erase(id);
         h_.buf[pos0] = saved; // restore
@@ -726,10 +735,6 @@ set(
     core::string_view value,
     system::error_code& ec)
 {
-    // Precondition violation
-    if(id == field::unknown)
-        detail::throw_logic_error();
-
     auto rv = verify_field_value(value);
     if(rv.has_error())
     {
@@ -801,7 +806,7 @@ set(
         }
         // VFALCO simple algorithm but
         // costs one extra memmove
-        if(id != field::unknown)
+        if(id != detail::header::unknown_field)
             erase_all_impl(i0, id);
         else
             erase_all_impl(i0, name);
@@ -865,7 +870,7 @@ copy_impl(
 void
 fields_base::
 insert_unchecked_impl(
-    field id,
+    optional<field> id,
     core::string_view name,
     core::string_view value,
     std::size_t before,
@@ -954,20 +959,20 @@ insert_unchecked_impl(
             ! value.empty());
     e.vn = static_cast<
         offset_type>(value.size());
-    e.id = id;
+    e.id = id.value_or(
+        detail::header::unknown_field);
 
     // update container
     h_.count++;
     h_.size = static_cast<
         offset_type>(h_.size + n);
-    if( id != field::unknown)
-        h_.on_insert(id, value);
+    h_.on_insert(e.id, value);
 }
 
 void
 fields_base::
 insert_impl(
-    field id,
+    optional<field> id,
     core::string_view name,
     core::string_view value,
     std::size_t before,
@@ -990,17 +995,6 @@ insert_impl(
         rv->value,
         before,
         rv->has_obs_fold);
-}
-
-// erase i and update metadata
-void
-fields_base::
-erase_impl(
-    std::size_t i,
-    field id) noexcept
-{
-    raw_erase(i);
-    h_.on_erase(id);
 }
 
 //------------------------------------------------
@@ -1038,7 +1032,7 @@ erase_all_impl(
     field id) noexcept
 {
     BOOST_ASSERT(
-        id != field::unknown);
+        id != detail::header::unknown_field);
     std::size_t n = 1;
     std::size_t i = h_.count - 1;
     auto const ft = h_.tab();
@@ -1059,7 +1053,7 @@ erase_all_impl(
 }
 
 // erase all fields with name
-// when id == field::unknown
+// when id == detail::header::unknown_field
 std::size_t
 fields_base::
 erase_all_impl(

@@ -14,6 +14,7 @@
 #include <boost/http_proto/field.hpp>
 
 #include <boost/core/detail/string_view.hpp>
+#include <boost/optional/optional_io.hpp>
 
 #include "test_suite.hpp"
 

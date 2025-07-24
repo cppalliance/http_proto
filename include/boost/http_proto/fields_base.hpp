@@ -203,8 +203,7 @@ public:
         @par Exception Safety
         Strong guarantee.
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
 
         @param value A value, which must be semantically
         valid for the message.
@@ -252,8 +251,7 @@ public:
         @par Exception Safety
         Strong guarantee.
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
 
         @param value A value, which must be semantically
         valid for the message.
@@ -271,10 +269,6 @@ public:
         core::string_view value,
         system::error_code& ec)
     {
-        // Precondition violation
-        if(id == field::unknown)
-            detail::throw_logic_error();
-
         insert_impl(
             id,
             to_string(id),
@@ -411,8 +405,7 @@ public:
 
         @param before Position to insert before.
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
 
         @param value A value, which must be semantically
         valid for the message.
@@ -468,8 +461,7 @@ public:
 
         @param before Position to insert before.
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
 
         @param value A value, which must be semantically
         valid for the message.
@@ -488,10 +480,6 @@ public:
         core::string_view value,
         system::error_code& ec)
     {
-        // Precondition violation
-        if(id == field::unknown)
-            detail::throw_logic_error();
-
         insert_impl(
             id,
             to_string(id),
@@ -630,18 +618,15 @@ public:
         @par Exception Safety
         Throws nothing.
 
-        @return An iterator to the inserted
-        element.
+        @return An iterator to one past the
+        removed element.
 
         @param it An iterator to the element
         to erase.
     */
+    BOOST_HTTP_PROTO_DECL
     iterator
-    erase(iterator it) noexcept
-    {
-        erase_impl(it.i_, it->id);
-        return it;
-    }
+    erase(iterator it) noexcept;
 
     /** Erase headers
 
@@ -661,12 +646,11 @@ public:
 
         @return The number of headers erased.
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
     */
     BOOST_HTTP_PROTO_DECL
     std::size_t
-    erase(field id);
+    erase(field id) noexcept;
 
     /** Erase all matching fields
 
@@ -823,8 +807,7 @@ public:
 
         @par Complexity
 
-        @param id The field name constant,
-        which may not be @ref field::unknown.
+        @param id The field name constant.
 
         @param value A value, which must be semantically
         valid for the message.
@@ -924,7 +907,7 @@ private:
 
     void
     insert_unchecked_impl(
-        field id,
+        optional<field> id,
         core::string_view name,
         core::string_view value,
         std::size_t before,
@@ -933,7 +916,7 @@ private:
     BOOST_HTTP_PROTO_DECL
     void
     insert_impl(
-        field id,
+        optional<field> id,
         core::string_view name,
         core::string_view value,
         std::size_t before,

@@ -9,6 +9,7 @@
 
 // Test that header file is self-contained.
 #include <boost/http_proto/fields_view_base.hpp>
+#include <boost/optional/optional_io.hpp>
 #include <boost/static_assert.hpp>
 #include <type_traits>
 
@@ -44,7 +45,7 @@ struct fields_view_base_test
             BOOST_TEST(it == f.begin());
             BOOST_TEST(it != f.end());
 
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "x");
             BOOST_TEST_EQ(it->value, "1");
 
@@ -59,7 +60,7 @@ struct fields_view_base_test
                 BOOST_TEST_EQ(it0->name, "Accept");
                 BOOST_TEST_EQ(it0->value, "2");
             }
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "z");
             BOOST_TEST_EQ(it->value, "3");
 
@@ -67,13 +68,13 @@ struct fields_view_base_test
             BOOST_TEST_EQ(it, f.end());
 
             --it;
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "z");
             BOOST_TEST_EQ(it->value, "3");
 
             {
                 auto it1 = it--; // post-decrement
-                BOOST_TEST_EQ(it1->id, field::unknown);
+                BOOST_TEST(!it1->id.has_value());
                 BOOST_TEST_EQ(it1->name, "z");
                 BOOST_TEST_EQ(it1->value, "3");
             }
@@ -82,7 +83,7 @@ struct fields_view_base_test
             BOOST_TEST_EQ(it->value, "2");
 
             --it;
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "x");
             BOOST_TEST_EQ(it->value, "1");
 
@@ -105,7 +106,7 @@ struct fields_view_base_test
             BOOST_TEST(it == f.rbegin());
             BOOST_TEST(it != f.rend());
 
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "z");
             BOOST_TEST_EQ(it->value, "3");
 
@@ -120,7 +121,7 @@ struct fields_view_base_test
                 BOOST_TEST_EQ(it0->name, "Accept");
                 BOOST_TEST_EQ(it0->value, "2");
             }
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "x");
             BOOST_TEST_EQ(it->value, "1");
 
@@ -128,13 +129,13 @@ struct fields_view_base_test
             BOOST_TEST_EQ(it, f.rend());
 
             --it;
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "x");
             BOOST_TEST_EQ(it->value, "1");
 
             {
                 auto it0 = it--; // post-decrement
-                BOOST_TEST_EQ(it0->id, field::unknown);
+                BOOST_TEST(!it0->id.has_value());
                 BOOST_TEST_EQ(it0->name, "x");
                 BOOST_TEST_EQ(it0->value, "1");
             }
@@ -143,7 +144,7 @@ struct fields_view_base_test
             BOOST_TEST_EQ(it->value, "2");
 
             --it;
-            BOOST_TEST_EQ(it->id, field::unknown);
+            BOOST_TEST(!it->id.has_value());
             BOOST_TEST_EQ(it->name, "z");
             BOOST_TEST_EQ(it->value, "3");
 

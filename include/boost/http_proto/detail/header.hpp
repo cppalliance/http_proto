@@ -63,6 +63,10 @@ struct header
         std::numeric_limits<
             offset_type>::max();
 
+    static constexpr
+    field unknown_field =
+        static_cast<field>(0);
+
     struct entry
     {
         offset_type np;   // name pos
@@ -212,7 +216,6 @@ public:
     static std::size_t
     count_crlf(core::string_view s) noexcept;
 
-    BOOST_HTTP_PROTO_DECL
     void parse(
         std::size_t,
         header_limits const&,

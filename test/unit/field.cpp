@@ -396,7 +396,8 @@ public:
         auto const unknown =
             [&](core::string_view s)
             {
-                BOOST_TEST(string_to_field(s) == field::unknown);
+                BOOST_TEST(
+                    !string_to_field(s).has_value());
             };
         unknown("");
         unknown("x");
