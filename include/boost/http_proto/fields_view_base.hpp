@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,8 +16,6 @@
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
 #include <boost/core/detail/string_view.hpp>
-#include <iterator>
-#include <memory>
 #include <string>
 
 namespace boost {
@@ -74,7 +73,7 @@ public:
     /**@{*/
     struct reference
     {
-        field const id;
+        boost::optional<field> const id;
         core::string_view const name;
         core::string_view const value;
 
@@ -98,7 +97,7 @@ public:
     */
     struct value_type
     {
-        field id;
+        boost::optional<field> id;
         std::string name;
         std::string value;
 

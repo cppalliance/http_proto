@@ -417,17 +417,6 @@ struct fields_base_test
             },
             "\r\n");
 
-        check(
-            "\r\n",
-            [](fields_base& f)
-            {
-                system::error_code ec;
-                BOOST_TEST_THROWS(
-                    f.append(field::unknown, "y", ec),
-                    std::logic_error);
-            },
-            "\r\n");
-
         // append(string_view, string_view)
 
         check(
@@ -599,19 +588,6 @@ struct fields_base_test
                 }
             },
             "Server: x\r\n"
-            "T: 1\r\n"
-            "\r\n");
-
-        check(
-            "T: 1\r\n"
-            "\r\n",
-            [](fields_base& f)
-            {
-                system::error_code ec;
-                BOOST_TEST_THROWS(
-                    f.insert(f.find("T"), field::unknown, "x", ec),
-                    std::logic_error);
-            },
             "T: 1\r\n"
             "\r\n");
 
@@ -901,6 +877,7 @@ struct fields_base_test
             "T: 2\r\n"
             "Connection: close\r\n"
             "T: 3\r\n"
+            "U: 4\r\n"
             "\r\n",
             [](fields_base& f)
             {
@@ -909,6 +886,7 @@ struct fields_base_test
             },
             "Server: Boost\r\n"
             "Connection: close\r\n"
+            "U: 4\r\n"
             "\r\n");
 
         // no matches
@@ -931,6 +909,7 @@ struct fields_base_test
             "X: 1\r\n"
             "Server: Boost\r\n"
             "X: 2\r\n"
+            "Y: 3\r\n"
             "\r\n",
             [](fields_base& f)
             {
@@ -939,17 +918,7 @@ struct fields_base_test
             },
             "Connection: keep-alive\r\n"
             "Server: Boost\r\n"
-            "\r\n");
-        
-        // unknown field id
-        check(
-            "\r\n",
-            [](fields_base& f)
-            {
-                BOOST_TEST_THROWS(
-                    f.erase(field::unknown),
-                    std::logic_error);
-            },
+            "Y: 3\r\n"
             "\r\n");
     }
 
@@ -1048,17 +1017,6 @@ struct fields_base_test
                 f.set(field::server, "y");
             },
             "Server: y\r\n"
-            "\r\n");
-
-        check(
-            "\r\n",
-            [](fields_base& f)
-            {
-                system::error_code ec;
-                BOOST_TEST_THROWS(
-                    f.set(field::unknown, "y" , ec),
-                    std::logic_error);
-            },
             "\r\n");
 
         check(

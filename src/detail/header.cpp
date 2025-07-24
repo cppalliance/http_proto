@@ -71,6 +71,10 @@ operator-(
 
 //------------------------------------------------
 
+constexpr field header::unknown_field;
+
+//------------------------------------------------
+
 constexpr
 header::
 header(fields_tag) noexcept
@@ -1250,7 +1254,8 @@ parse_field(
         BOOST_ASSERT(h.buf != nullptr);
         remove_obs_fold(h.buf + h.size, it);
     }
-    auto id = string_to_field(rv->name);
+    auto id = string_to_field(rv->name)
+        .value_or(header::unknown_field);
     h.size = static_cast<header::offset_type>(it - h.cbuf);
 
     // add field table entry

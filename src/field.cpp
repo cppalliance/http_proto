@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -493,7 +494,7 @@ struct field_table
         }
     }
 
-    field
+    optional<field>
     string_to_field(
         core::string_view s) const noexcept
     {
@@ -505,13 +506,13 @@ struct field_table
             return static_cast<field>(i);
         i = map_[j][1];
         if(i == 0)
-            return field::unknown;
+            return boost::none;
         i += 255;
         s2 = by_name_[i];
 
         if(equals(s, s2))
             return static_cast<field>(i);
-        return field::unknown;
+        return boost::none;
     }
 
     //
@@ -558,7 +559,7 @@ to_string(field f)
     return v.begin()[static_cast<unsigned>(f)];
 }
 
-field
+boost::optional<field>
 string_to_field(
     core::string_view s) noexcept
 {
