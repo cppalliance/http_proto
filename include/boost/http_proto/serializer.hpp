@@ -358,6 +358,21 @@ private:
     start_source(
         message_view_base const&);
 
+    void
+    out_init();
+
+    buffers::mutable_buffer_pair
+    out_prepare() noexcept;
+
+    void
+    out_commit(std::size_t) noexcept;
+
+    std::size_t
+    out_capacity() const noexcept;
+
+    void
+    out_finish() noexcept;
+
     enum class style
     {
         empty,
@@ -371,16 +386,17 @@ private:
 
     detail::workspace ws_;
 
-    const_buf_gen_base* buf_gen_;
     detail::filter* filter_;
+    const_buf_gen_base* buf_gen_;
     source* source_;
 
-    buffers::circular_buffer cb0_;
-    buffers::circular_buffer cb1_;
+    buffers::circular_buffer out_;
+    buffers::circular_buffer in_;
     detail::array_of_const_buffers prepped_;
     buffers::const_buffer tmp_;
 
     style st_;
+    uint8_t chunk_header_len_;
     bool more_input_;
     bool is_done_;
     bool is_header_done_;

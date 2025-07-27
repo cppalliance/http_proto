@@ -456,7 +456,7 @@ struct serializer_test
             "Server: test\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            std::string("0000000000000800\r\n") +
+            std::string("800\r\n") +
             std::string(2048, '*') +
             std::string("\r\n0\r\n\r\n"));
 
