@@ -180,7 +180,7 @@ struct zlib_test
                 body.remove_prefix(piece.size());
                 if(ret == zlib::error::stream_end)
                     break;
-                if(ret == zlib::error::buf_err)
+                if(ret == zlib::error::buf_err && zs.avail_out == 0)
                     continue;
                 if(!BOOST_TEST_GE(static_cast<int>(ret), 0))
                     break;
@@ -368,7 +368,6 @@ struct zlib_test
 
         install_serializer_service(ctx, cfg);
         serializer sr(ctx);
-        sr.reset();
 
         const auto rand_string = make_rand_string(1024 * 1024);
 

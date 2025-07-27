@@ -17,11 +17,11 @@
 #include "src/detail/zlib_filter_base.hpp"
 
 #include <boost/buffers/copy.hpp>
-#include <boost/buffers/front.hpp>
 #include <boost/buffers/prefix.hpp>
 #include <boost/buffers/sans_prefix.hpp>
 #include <boost/buffers/sans_suffix.hpp>
 #include <boost/buffers/size.hpp>
+#include <boost/core/bit.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/rts/brotli/encode.hpp>
 #include <boost/rts/zlib/compression_method.hpp>
@@ -42,49 +42,47 @@ std::size_t
 crlf_len = 2;
 
 constexpr
-std::size_t
-chunk_header_len = 16 + crlf_len;
+std::uint8_t
+chunk_header_len(
+    std::size_t max_chunk_size) noexcept
+{
+    return
+        static_cast<uint8_t>(
+            (core::bit_width(max_chunk_size) + 3) / 4 +
+            crlf_len);
+};
 
 constexpr
 std::size_t
 final_chunk_len = 1 + crlf_len + crlf_len;
 
-constexpr
-std::size_t
-chunked_overhead_ =
-    chunk_header_len +
-    crlf_len +
-    final_chunk_len;
-
-template<class MutableBufferSequence>
 void
 write_chunk_header(
-    const MutableBufferSequence& mbs,
+    const buffers::mutable_buffer_pair& mbs,
     std::size_t size) noexcept
 {
     static constexpr char hexdig[] =
         "0123456789ABCDEF";
     char buf[18];
     auto p = buf + 16;
-    for(std::size_t i = 16; i--;)
+    auto const n = buffers::size(mbs);
+    for(std::size_t i = n - crlf_len; i--;)
     {
         *--p = hexdig[size & 0xf];
         size >>= 4;
     }
     buf[16] = '\r';
     buf[17] = '\n';
-    auto n = buffers::copy(
+    auto copied = buffers::copy(
         mbs,
-        buffers::const_buffer(
-            buf, sizeof(buf)));
-    ignore_unused(n);
-    BOOST_ASSERT(n == 18);
+        buffers::const_buffer(p, n));
+    ignore_unused(copied);
+    BOOST_ASSERT(copied == n);
 }
 
-template<class MutableBufferSequence>
 void
 write_crlf(
-    const MutableBufferSequence& mbs) noexcept
+    const buffers::mutable_buffer_pair& mbs) noexcept
 {
     auto n = buffers::copy(
         mbs,
@@ -94,10 +92,9 @@ write_crlf(
     BOOST_ASSERT(n == 2);
 }
 
-template<class MutableBufferSequence>
 void
 write_final_chunk(
-    const MutableBufferSequence& mbs) noexcept
+    const buffers::mutable_buffer_pair& mbs) noexcept
 {
     auto n = buffers::copy(
         mbs,
@@ -107,93 +104,7 @@ write_final_chunk(
     BOOST_ASSERT(n == 5);
 }
 
-buffers::mutable_buffer_pair
-prepare_chunked(
-    buffers::circular_buffer& cb) noexcept
-{
-    return
-        buffers::sans_suffix(
-            buffers::sans_prefix(
-                cb.prepare(cb.capacity()),
-                chunk_header_len),
-            final_chunk_len + crlf_len);
-}
-
 //------------------------------------------------
-
-class appender
-{
-    buffers::circular_buffer& cb_;
-    buffers::mutable_buffer_pair mbp_;
-    bool is_chunked_ = false;
-    bool more_input_ = true;
-
-public:
-    appender(
-        buffers::circular_buffer& cb,
-        bool is_chunked) noexcept
-        : cb_(cb)
-        , mbp_(is_chunked ?
-            prepare_chunked(cb) : cb.prepare(cb.capacity()))
-        , is_chunked_(is_chunked)
-    {
-    }
-
-    bool
-    is_full() const noexcept
-    {
-        return buffers::size(mbp_) == 0;
-    }
-
-    buffers::mutable_buffer_pair
-    prepare() noexcept
-    {
-        return mbp_;
-    }
-
-    void
-    commit(std::size_t n, bool more) noexcept
-    {
-        BOOST_ASSERT(more_input_);
-        mbp_ = buffers::sans_prefix(mbp_, n);
-        more_input_ = more;
-    }
-
-    ~appender()
-    {
-        if(is_chunked_)
-        {
-            auto consumed = cb_.capacity() -
-                buffers::size(mbp_) - chunked_overhead_;
-
-            if(consumed != 0)
-            {
-                write_chunk_header(
-                    cb_.prepare(chunk_header_len),
-                    consumed);
-                cb_.commit(chunk_header_len);
-
-                cb_.prepare(consumed);
-                cb_.commit(consumed);
-
-                write_crlf(
-                    cb_.prepare(crlf_len));
-                cb_.commit(crlf_len);
-            }
-
-            if(!more_input_)
-            {
-                write_final_chunk(
-                    cb_.prepare(final_chunk_len));
-                cb_.commit(final_chunk_len);
-            }
-        }
-        else // is_chunked_ == false
-        {
-            cb_.commit(cb_.capacity() - buffers::size(mbp_));
-        }
-    }
-};
 
 class zlib_filter
     : public detail::zlib_filter_base
@@ -396,10 +307,8 @@ serializer::
 reset() noexcept
 {
     ws_.clear();
-    filter_ = nullptr;
     is_done_ = false;
     is_header_done_ = false;
-    filter_done_ = false;
 }
 
 //------------------------------------------------
@@ -437,6 +346,7 @@ prepare() ->
                 prepped_.size());
 
         case style::buffers:
+        {
             // add more buffers if prepped_ is half empty.
             if(more_input_ &&
                 prepped_.capacity() >= prepped_.size())
@@ -466,20 +376,17 @@ prepare() ->
             return const_buffers_type(
                 prepped_.begin(),
                 prepped_.size());
+        }
 
         case style::source:
         {
-            if(!more_input_)
-                break;
-
-            // handles chunked payloads automatically
-            appender apndr(cb0_, is_chunked_);
-
-            if(apndr.is_full())
+            if(out_capacity() == 0 || !more_input_)
                 break;
 
             const auto rs = source_->read(
-                apndr.prepare());
+                out_prepare());
+
+            out_commit(rs.bytes);
 
             if(rs.ec.failed())
             {
@@ -488,14 +395,16 @@ prepare() ->
             }
 
             if(rs.finished)
+            {
                 more_input_ = false;
+                out_finish();
+            }
 
-            apndr.commit(rs.bytes, more_input_);
             break;
         }
 
         case style::stream:
-            if(cb0_.size() == 0 && is_header_done_ && more_input_)
+            if(out_.size() == 0 && is_header_done_ && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
             break;
@@ -512,8 +421,7 @@ prepare() ->
 
         case style::buffers:
         {
-            appender apndr(cb0_, is_chunked_);
-            while(!apndr.is_full() && !filter_done_)
+            while(out_capacity() != 0 && !filter_done_)
             {
                 if(more_input_ && tmp_.size() == 0)
                 {
@@ -523,37 +431,40 @@ prepare() ->
                 }
 
                 const auto rs = filter_->process(
-                    buffers::mutable_buffer_span(apndr.prepare()),
+                    buffers::mutable_buffer_span(
+                        out_prepare()),
                     { tmp_, {} },
                     more_input_);
-
                 if(rs.ec.failed())
                 {
                     is_done_ = true;
                     return rs.ec;
                 }
 
-                tmp_ = buffers::sans_prefix(tmp_, rs.in_bytes);
-                apndr.commit(rs.out_bytes, !rs.finished);
+                tmp_ = buffers::sans_prefix(
+                    tmp_, rs.in_bytes);
+                out_commit(rs.out_bytes);
 
                 if(rs.out_short)
                     break;
 
                 if(rs.finished)
+                {
                     filter_done_ = true;
+                    out_finish();
+                }
             }
             break;
         }
 
         case style::source:
         {
-            appender apndr(cb0_, is_chunked_);
-            while(!apndr.is_full() && !filter_done_)
+            while(out_capacity() != 0 && !filter_done_)
             {
-                if(more_input_ && cb1_.capacity() != 0)
+                if(more_input_ && in_.capacity() != 0)
                 {
                     const auto rs = source_->read(
-                        cb1_.prepare(cb1_.capacity()));
+                        in_.prepare(in_.capacity()));
                     if(rs.ec.failed())
                     {
                         is_done_ = true;
@@ -561,12 +472,13 @@ prepare() ->
                     }
                     if(rs.finished)
                         more_input_ = false;
-                    cb1_.commit(rs.bytes);
+                    in_.commit(rs.bytes);
                 }
 
                 const auto rs = filter_->process(
-                    buffers::mutable_buffer_span(apndr.prepare()),
-                    cb1_.data(),
+                    buffers::mutable_buffer_span(
+                        out_prepare()),
+                    in_.data(),
                     more_input_);
 
                 if(rs.ec.failed())
@@ -575,43 +487,48 @@ prepare() ->
                     return rs.ec;
                 }
 
-                cb1_.consume(rs.in_bytes);
-                apndr.commit(rs.out_bytes, !rs.finished);
+                in_.consume(rs.in_bytes);
+                out_commit(rs.out_bytes);
 
                 if(rs.out_short)
                     break;
 
                 if(rs.finished)
+                {
                     filter_done_ = true;
+                    out_finish();
+                }
             }
             break;
         }
 
         case style::stream:
         {
+            if(out_capacity() == 0 || filter_done_)
+                break;
+
+            const auto rs = filter_->process(
+                buffers::mutable_buffer_span(
+                    out_prepare()),
+                in_.data(),
+                more_input_);
+
+            if(rs.ec.failed())
             {
-                appender apndr(cb0_, is_chunked_);
-                if(apndr.is_full() || filter_done_)
-                    break;
-
-                const auto rs = filter_->process(
-                    buffers::mutable_buffer_span(apndr.prepare()),
-                    cb1_.data(),
-                    more_input_);
-
-                if(rs.ec.failed())
-                {
-                    is_done_ = true;
-                    return rs.ec;
-                }
-
-                cb1_.consume(rs.in_bytes);
-                apndr.commit(rs.out_bytes, !rs.finished);
-
-                if(rs.finished)
-                    filter_done_ = true;
+                is_done_ = true;
+                return rs.ec;
             }
-            if(cb0_.size() == 0 && is_header_done_ && more_input_)
+
+            in_.consume(rs.in_bytes);
+            out_commit(rs.out_bytes);
+
+            if(rs.finished)
+            {
+                filter_done_ = true;
+                out_finish();
+            }
+
+            if(out_.size() == 0 && is_header_done_ && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
             break;
@@ -620,7 +537,7 @@ prepare() ->
     }
 
     prepped_.reset(!is_header_done_);
-    const auto cbp = cb0_.data();
+    const auto cbp = out_.data();
     if(cbp[0].size() != 0)
         prepped_.append(cbp[0]);
     if(cbp[1].size() != 0)
@@ -656,19 +573,19 @@ consume(
 
     prepped_.consume(n);
 
-    // no-op when cb0_ is not in use
-    cb0_.consume(n);
+    // no-op when out_ is not in use
+    out_.consume(n);
 
     if(!prepped_.empty())
-        return;
-
-    if(needs_exp100_continue_)
         return;
 
     if(more_input_)
         return;
 
     if(filter_ && !filter_done_)
+        return;
+
+    if(needs_exp100_continue_)
         return;
 
     is_done_ = true;
@@ -694,6 +611,10 @@ serializer::
 start_init(
     message_view_base const& m)
 {
+    // Precondition violation
+    // if(!is_done_)
+    //     detail::throw_logic_error();
+
     reset();
 
     // VFALCO what do we do with
@@ -718,6 +639,7 @@ start_init(
             svc_.cfg.zlib_comp_level,
             svc_.cfg.zlib_window_bits,
             svc_.cfg.zlib_mem_level);
+        filter_done_ = false;
         break;
 
     case content_coding::gzip:
@@ -729,6 +651,7 @@ start_init(
             svc_.cfg.zlib_comp_level,
             svc_.cfg.zlib_window_bits + 16,
             svc_.cfg.zlib_mem_level);
+        filter_done_ = false;
         break;
 
     case content_coding::br:
@@ -739,10 +662,12 @@ start_init(
             ws_,
             svc_.cfg.brotli_comp_quality,
             svc_.cfg.brotli_comp_window);
+        filter_done_ = false;
         break;
 
     no_filter:
     default:
+        filter_ = nullptr;
         break;
     }
 }
@@ -773,7 +698,7 @@ start_empty(
             ws_.reserve_front(
                 final_chunk_len),
             final_chunk_len };
-        write_final_chunk(final_chunk);
+        write_final_chunk({ final_chunk, {} });
 
         prepped_[1] = final_chunk;
     }
@@ -829,7 +754,7 @@ start_buffers(
                     final_chunk_len),
                 final_chunk_len };
             write_final_chunk(
-                final_chunk);
+                { final_chunk, {} });
 
             prepped_[0] = { m.ph_->cbuf, m.ph_->size };
             prepped_[1] = final_chunk;
@@ -840,29 +765,32 @@ start_buffers(
         // Write entire buffers as a single chunk
         // since total size is known
 
-        mutable_buffer chunk_header = {
-            ws_.reserve_front(
-                chunk_header_len),
-            chunk_header_len };
+        auto const buf_size = buf_gen_->size();
+        auto const header_len = 
+            chunk_header_len(buf_size);
 
-        write_chunk_header(
-            chunk_header,
-            buf_gen_->size());
+        mutable_buffer chunk_header = {
+            ws_.reserve_front(header_len),
+            header_len };
+
+        write_chunk_header({ chunk_header, {} }, buf_size);
 
         mutable_buffer crlf_and_final_chunk = {
                 ws_.reserve_front(
                     crlf_len + final_chunk_len),
                 crlf_len + final_chunk_len };
 
-        write_crlf(
+        write_crlf({
             buffers::prefix(
                 crlf_and_final_chunk,
-                crlf_len));
+                crlf_len)
+            , {} });
 
-        write_final_chunk(
+        write_final_chunk({
             buffers::sans_prefix(
                 crlf_and_final_chunk,
-                crlf_len));
+                crlf_len)
+            , {}});
 
         prepped_ = make_array(
             1 + // header
@@ -899,25 +827,13 @@ start_buffers(
 
     prepped_ = make_array(
         1 + // header
-        2); // circular buffer
+        2); // out buffer pairs
 
-    const auto n = ws_.size() - 1;
-    cb0_ = { ws_.reserve_front(n), n };
-
-    if(is_chunked_)
-    {
-        if(cb0_.capacity() <= chunked_overhead_)
-            detail::throw_length_error();
-    }
-    else
-    {
-        if(cb0_.capacity() == 0)
-            detail::throw_length_error();
-    }
+    out_init();
 
     prepped_[0] = { m.ph_->cbuf, m.ph_->size };
     tmp_ = {};
-    more_input_ = !buf_gen_->is_empty();
+    more_input_ = true;
 }
 
 void
@@ -930,31 +846,16 @@ start_source(
 
     prepped_ = make_array(
         1 + // header
-        2); // circular buffer
+        2); // out buffer pairs
 
     if(filter_)
     {
-        // TODO: Optimize buffer distribution
-        const auto n = (ws_.size() - 1) / 2;
-        cb0_ = { ws_.reserve_front(n), n };
-        cb1_ = { ws_.reserve_front(n), n };
-    }
-    else
-    {
-        const auto n = ws_.size() - 1;
-        cb0_ = { ws_.reserve_front(n), n };
+        // TODO: smarter buffer distribution
+        auto const n = (ws_.size() - 1) / 2;
+        in_ = { ws_.reserve_front(n), n };
     }
 
-    if(is_chunked_)
-    {
-        if(cb0_.capacity() <= chunked_overhead_)
-            detail::throw_length_error();
-    }
-    else
-    {
-        if(cb0_.capacity() == 0)
-            detail::throw_length_error();
-    }
+    out_init();
 
     prepped_[0] = { m.ph_->cbuf, m.ph_->size };
     more_input_ = true;
@@ -971,35 +872,102 @@ start_stream(
 
     prepped_ = make_array(
         1 + // header
-        2); // circular buffer
+        2); // out buffer pairs
 
     if(filter_)
     {
-        // TODO: Optimize buffer distribution
-        const auto n = (ws_.size() - 1) / 2;
-        cb0_ = { ws_.reserve_front(n), n };
-        cb1_ = { ws_.reserve_front(n), n };
-    }
-    else
-    {
-        const auto n = ws_.size() - 1;
-        cb0_ = { ws_.reserve_front(n), n };
+        // TODO: smarter buffer distribution
+        auto const n = (ws_.size() - 1) / 2;
+        in_ = { ws_.reserve_front(n), n };
     }
 
-    if(is_chunked_)
-    {
-        if(cb0_.capacity() <= chunked_overhead_)
-            detail::throw_length_error();
-    }
-    else
-    {
-        if(cb0_.capacity() == 0)
-            detail::throw_length_error();
-    }
+    out_init();
 
     prepped_[0] = { m.ph_->cbuf, m.ph_->size };
     more_input_ = true;
     return stream{ *this };
+}
+
+void
+serializer::
+out_init()
+{
+    // use all the remaining buffer
+    auto const n = ws_.size() - 1;
+    out_ = { ws_.reserve_front(n), n };
+    chunk_header_len_ =
+        chunk_header_len(out_.capacity());
+    if(out_capacity() == 0)
+        detail::throw_length_error();
+}
+
+buffers::mutable_buffer_pair
+serializer::
+out_prepare() noexcept
+{
+    if(is_chunked_)
+    {
+        return buffers::sans_suffix(
+            buffers::sans_prefix(
+                out_.prepare(out_.capacity()),
+                chunk_header_len_),
+            crlf_len + final_chunk_len );
+    }
+    return out_.prepare(out_.capacity());
+}
+
+void
+serializer::
+out_commit(
+    std::size_t n) noexcept
+{
+    if(is_chunked_)
+    {
+        if(n == 0)
+            return;
+
+        write_chunk_header(out_.prepare(chunk_header_len_), n);
+        out_.commit(chunk_header_len_);
+
+        out_.prepare(n);
+        out_.commit(n);
+
+        write_crlf(out_.prepare(crlf_len));
+        out_.commit(crlf_len);
+    }
+    else
+    {
+        out_.commit(n);
+    }
+}
+
+std::size_t
+serializer::
+out_capacity() const noexcept
+{
+    if(is_chunked_)
+    {
+        auto const overhead =
+            chunk_header_len_ +
+            crlf_len +
+            final_chunk_len;
+        if(out_.capacity() < overhead)
+            return 0;
+        return out_.capacity() - overhead;
+    }
+    return out_.capacity();
+}
+
+void
+serializer::
+out_finish() noexcept
+{
+    if(is_chunked_)
+    {
+        write_final_chunk(
+            out_.prepare(final_chunk_len));
+        out_.commit(final_chunk_len);
+    }
 }
 
 //------------------------------------------------
@@ -1022,17 +990,9 @@ capacity() const
         detail::throw_logic_error();
 
     if(sr_->filter_)
-        return sr_->cb1_.capacity();
+        return sr_->in_.capacity();
 
-    if(!sr_->is_chunked_)
-        return sr_->cb0_.capacity();
-
-    // chunked with no filter
-    const auto cap = sr_->cb0_.capacity();
-    if(cap > chunked_overhead_)
-        return cap - chunked_overhead_;
-
-    return 0;
+    return sr_->out_capacity();
 }
 
 auto
@@ -1046,15 +1006,10 @@ prepare() ->
         detail::throw_logic_error();
 
     if(sr_->filter_)
-        return sr_->cb1_.prepare(
-            sr_->cb1_.capacity());
+        return sr_->in_.prepare(
+            sr_->in_.capacity());
 
-    if(!sr_->is_chunked_)
-        return sr_->cb0_.prepare(
-            sr_->cb0_.capacity());
-
-    // chunked with no filter
-    return prepare_chunked(sr_->cb0_);
+    return sr_->out_prepare();
 }
 
 void
@@ -1071,28 +1026,9 @@ commit(std::size_t n)
         detail::throw_invalid_argument();
 
     if(sr_->filter_)
-        return sr_->cb1_.commit(n);
+        return sr_->in_.commit(n);
 
-    if(!sr_->is_chunked_)
-        return sr_->cb0_.commit(n);
-
-    // chunked with no filter
-    if(n != 0)
-    {
-        write_chunk_header(
-            sr_->cb0_.prepare(
-                chunk_header_len),
-            n);
-        sr_->cb0_.commit(
-            chunk_header_len);
-
-        sr_->cb0_.prepare(n);
-        sr_->cb0_.commit(n);
-
-        write_crlf(
-            sr_->cb0_.prepare(crlf_len));
-        sr_->cb0_.commit(crlf_len);
-    }
+    sr_->out_commit(n);
 }
 
 void
@@ -1103,14 +1039,8 @@ close()
     if(!is_open())
         return; // no-op;
 
-    // chunked with no filter
-    if(!sr_->filter_ && sr_->is_chunked_)
-    {
-        write_final_chunk(
-            sr_->cb0_.prepare(
-                final_chunk_len));
-        sr_->cb0_.commit(final_chunk_len);
-    }
+    if(!sr_->filter_)
+        sr_->out_finish();
 
     sr_->more_input_ = false;
     sr_ = nullptr;
