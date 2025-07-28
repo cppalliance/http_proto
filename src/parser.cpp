@@ -11,7 +11,6 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/rfc/detail/rules.hpp>
 
 #include "src/detail/brotli_filter_base.hpp"
 #include "src/detail/zlib_filter_base.hpp"

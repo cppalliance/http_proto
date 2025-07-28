@@ -9,12 +9,12 @@
 //
 
 #include "src/rfc/transfer_coding_rule.hpp"
+#include "src/rfc/detail/rules.hpp"
 
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
-#include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/rfc/upgrade_rule.hpp>
