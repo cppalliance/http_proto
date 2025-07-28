@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/rfc/detail/rules.hpp>
+#include "../src/rfc/detail/rules.hpp"
 
 #include "test_rule.hpp"
 

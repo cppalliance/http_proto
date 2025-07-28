@@ -10,10 +10,12 @@
 #ifndef BOOST_HTTP_PROTO_RFC_IMPL_LIST_RULE_HPP
 #define BOOST_HTTP_PROTO_RFC_IMPL_LIST_RULE_HPP
 
+#include <boost/http_proto/rfc/detail/ws.hpp>
+
 #include <boost/url/grammar/parse.hpp>
+#include <boost/url/grammar/charset.hpp>
 #include <boost/url/grammar/range_rule.hpp>
 #include <boost/core/empty_value.hpp>
-#include <type_traits>
 
 namespace boost {
 namespace http_proto {

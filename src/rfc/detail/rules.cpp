@@ -7,7 +7,7 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/rfc/detail/rules.hpp>
+#include "src/rfc/detail/rules.hpp"
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/detail/config.hpp>

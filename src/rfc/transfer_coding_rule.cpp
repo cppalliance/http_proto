@@ -10,7 +10,7 @@
 
 #include "src/rfc/transfer_coding_rule.hpp"
 
-#include <boost/http_proto/rfc/detail/rules.hpp>
+#include <boost/http_proto/rfc/detail/ws.hpp>
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/url/grammar/ci_string.hpp>

@@ -11,7 +11,6 @@
 #define BOOST_HTTP_PROTO_RFC_LIST_RULE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/url/grammar/range_rule.hpp>
 #include <boost/core/empty_value.hpp>
 

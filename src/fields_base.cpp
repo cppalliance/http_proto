@@ -15,7 +15,6 @@
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/header_limits.hpp>
-#include <boost/http_proto/rfc/detail/rules.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 
 #include "src/detail/move_chars.hpp"
