@@ -23,6 +23,7 @@ project
       <source>../../../url/extra/test_suite/test_suite.cpp
       <source>./test_helpers.cpp
       <include>.
+      <include>../..
       <include>../../../url/extra/test_suite
       <warnings>extra
       <warnings-as-errors>on
@@ -30,16 +31,15 @@ project
     ;
 
 local SOURCES =
-    compression.cpp()
+    compression.cpp
     error.cpp
     field.cpp
-    fields.cpp
     fields_base.cpp
-    fields_view.cpp
     fields_view_base.cpp
-    file.cpp
+    fields_view.cpp
+    fields.cpp
     file_base.cpp
-    file_body.cpp
+    file.cpp
     header_limits.cpp
     http_proto.cpp
     message_base.cpp
@@ -47,12 +47,12 @@ local SOURCES =
     metadata.cpp
     method.cpp
     parser.cpp
-    request.cpp
     request_parser.cpp
     request_view.cpp
-    response.cpp
+    request.cpp
     response_parser.cpp
     response_view.cpp
+    response.cpp
     sandbox.cpp
     serializer.cpp
     sink.cpp
@@ -65,26 +65,27 @@ local SOURCES =
     test_helpers.cpp
     version.cpp
     rfc/combine_field_values.cpp
+    rfc/detail/rules.cpp
+    rfc/detail/transfer_coding_rule.cpp
     rfc/list_rule.cpp
     rfc/parameter.cpp
     rfc/quoted_token_rule.cpp
     rfc/quoted_token_view.cpp
     rfc/token_rule.cpp
-    rfc/transfer_coding_rule.cpp
-    rfc/detail/rules.cpp
     ;
 
 for local f in $(SOURCES)
 {
-#    run $(f) : : : ;
     run $(f) : target-name $(f:B)_ ;
 }
+
+# file tests
 
 local FILE_TESTS =
     file_posix.cpp
     file_stdio.cpp
     file_win32.cpp
-;
+    ;
 
 for local f in $(FILE_TESTS)
 {

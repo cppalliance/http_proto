@@ -25,6 +25,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${PFILES})
 source_group("_extra" FILES ${EXTRAFILES})
 add_executable(boost_http_proto_tests ${PFILES} ${EXTRAFILES})
 target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/test_suite)
+target_include_directories(boost_http_proto_tests PRIVATE . ../../)
 target_link_libraries(
     boost_http_proto_tests PRIVATE
     boost_http_proto
