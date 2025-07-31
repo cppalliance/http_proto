@@ -9,13 +9,15 @@
 //
 
 // Test that header file is self-contained.
-#include "../../src/rfc/transfer_coding_rule.hpp"
+#include "src/rfc/detail/transfer_coding_rule.hpp"
 
 #include "test_helpers.hpp"
 
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/static_assert.hpp>
 #include <type_traits>
+
+#if defined(BOOST_HTTP_PROTO_STATIC_LINK)
 
 namespace boost {
 namespace http_proto {
@@ -83,3 +85,5 @@ TEST_SUITE(
 } // detail
 } // http_proto
 } // boost
+
+#endif // defined(BOOST_HTTP_PROTO_STATIC_LINK)

@@ -8,9 +8,11 @@
 //
 
 // Test that header file is self-contained.
-#include "../src/rfc/detail/rules.hpp"
+#include "src/rfc/detail/rules.hpp"
 
 #include "test_rule.hpp"
+
+#if defined(BOOST_HTTP_PROTO_STATIC_LINK)
 
 namespace boost {
 namespace http_proto {
@@ -61,3 +63,5 @@ TEST_SUITE(
 } // detail
 } // http_proto
 } // boost
+
+#endif // defined(BOOST_HTTP_PROTO_STATIC_LINK)

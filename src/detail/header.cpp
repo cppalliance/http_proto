@@ -8,8 +8,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include "src/rfc/transfer_coding_rule.hpp"
 #include "src/rfc/detail/rules.hpp"
+#include "src/rfc/detail/transfer_coding_rule.hpp"
 
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/field.hpp>

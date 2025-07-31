@@ -8,7 +8,7 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include "src/rfc/transfer_coding_rule.hpp"
+#include "src/rfc/detail/transfer_coding_rule.hpp"
 
 #include <boost/http_proto/rfc/detail/ws.hpp>
 #include <boost/http_proto/rfc/quoted_token_rule.hpp>
