@@ -130,7 +130,7 @@ jobs:
             runs-on: "windows-2022"
             b2-toolset: "gcc"
             generator: "MinGW Makefiles"
-            is-latest: true
+            is-latest: false
             is-earliest: true
             name: "MinGW"
             build-type: "Release"
@@ -143,7 +143,7 @@ jobs:
             runs-on: "windows-2022"
             b2-toolset: "gcc"
             generator: "MinGW Makefiles"
-            is-latest: true
+            is-latest: false
             is-earliest: true
             name: "MinGW (shared)"
             shared: true
