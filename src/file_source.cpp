@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2022 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,21 +8,19 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/file_body.hpp>
-#include <boost/assert.hpp>
+#include <boost/http_proto/file_source.hpp>
 
 namespace boost {
 namespace http_proto {
 
-file_body::
-~file_body() = default;
+file_source::
+~file_source() = default;
 
-file_body::
-file_body(
-    file_body&&) noexcept = default;
+file_source::
+file_source(file_source&&) noexcept = default;
 
-file_body::
-file_body(
+file_source::
+file_source(
     file&& f,
     std::uint64_t size) noexcept
     : f_(std::move(f))
@@ -30,12 +29,11 @@ file_body(
 }
 
 auto
-file_body::
+file_source::
 on_read(
-    buffers::mutable_buffer b) ->
-        source::results
+    buffers::mutable_buffer b) -> results
 {
-    source::results rv;
+    results rv;
     if(n_ > 0)
     {
         std::size_t n;
@@ -46,31 +44,14 @@ on_read(
         n = f_.read(
             b.data(), n, rv.ec);
         rv.bytes = n;
+        if(n == 0 && b.size() != 0 && !rv.ec)
+        {
+            rv.finished = true;
+            return rv;
+        }
         n_ -= n;
     }
     rv.finished = n_ == 0;
-    return rv;
-}
-
-auto
-file_body::
-on_write(
-    buffers::const_buffer b, bool) ->
-        sink::results
-{
-    sink::results rv;
-    if(n_ > 0)
-    {
-        std::size_t n;
-        if( n_ >= b.size())
-            n = b.size();
-        else
-            n = static_cast<std::size_t>(n_);
-        n = f_.write(
-            b.data(), n, rv.ec);
-        rv.bytes = n;
-        n_ -= n;
-    }
     return rv;
 }
 

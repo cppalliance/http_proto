@@ -83,6 +83,8 @@ for local f in $(SOURCES)
 
 local FILE_TESTS =
     file_posix.cpp
+    file_sink.cpp
+    file_source.cpp
     file_stdio.cpp
     file_win32.cpp
     ;
