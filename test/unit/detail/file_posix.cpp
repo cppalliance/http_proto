@@ -8,7 +8,7 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/file_posix.hpp>
+#include <boost/http_proto/detail/file_posix.hpp>
 
 #if BOOST_HTTP_PROTO_USE_POSIX_FILE
 
@@ -17,6 +17,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 class file_posix_test
 {
@@ -32,6 +33,7 @@ TEST_SUITE(
     file_posix_test,
     "boost.http_proto.file_posix");
 
+} // detail
 } // http_proto
 } // boost
 

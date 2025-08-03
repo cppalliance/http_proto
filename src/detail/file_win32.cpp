@@ -7,11 +7,11 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/file_win32.hpp>
+#include <boost/http_proto/detail/file_win32.hpp>
 
 #if BOOST_HTTP_PROTO_USE_WIN32_FILE
 
-#include "detail/win32_unicode_path.hpp"
+#include "src/detail/win32_unicode_path.hpp"
 #include <boost/core/exchange.hpp>
 #include <boost/system/errc.hpp>
 #include <boost/winapi/access_rights.hpp>
@@ -22,7 +22,6 @@
 
 namespace boost {
 namespace http_proto {
-
 namespace detail {
 
 // VFALCO Can't seem to get boost/detail/winapi to work with
@@ -50,8 +49,6 @@ set_file_pointer_ex(
     }
     return 1;
 }
-
-} // detail
 
 file_win32::
 ~file_win32()
@@ -250,7 +247,7 @@ size(
 std::uint64_t
 file_win32::
 pos(
-    system::error_code& ec)
+    system::error_code& ec) const
 {
     if(h_ == winapi::INVALID_HANDLE_VALUE_)
     {
@@ -381,6 +378,7 @@ write(void const* buffer, std::size_t n,
     return nwritten;
 }
 
+} // detail
 } // http_proto
 } // boost
 

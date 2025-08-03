@@ -8,30 +8,33 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/file_stdio.hpp>
+#include <boost/http_proto/detail/file_win32.hpp>
+
+#if BOOST_HTTP_PROTO_USE_WIN32_FILE
 
 #include "file_test.hpp"
 #include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
-class file_stdio_test
+class file_win32_test
 {
 public:
     void
     run()
     {
-#ifdef _WIN32
-        test_file<file_stdio, true>();
-#else
-        test_file<file_stdio>();
-#endif
+        test_file<file_win32, true>();
     }
 };
 
 TEST_SUITE(
-    file_stdio_test,
-    "boost.http_proto.file_stdio");
+    file_win32_test,
+    "boost.http_proto.file_win32");
+
+} // detail
 } // http_proto
 } // boost
+
+#endif // BOOST_HTTP_PROTO_USE_WIN32_FILE

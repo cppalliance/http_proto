@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2022 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,14 +8,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_FILE_BASE_HPP
-#define BOOST_HTTP_PROTO_FILE_BASE_HPP
-
-#include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/error.hpp>
-#include <boost/type_traits/make_void.hpp>
-#include <cstdint>
-#include <type_traits>
+#ifndef BOOST_HTTP_PROTO_FILE_MODE_HPP
+#define BOOST_HTTP_PROTO_FILE_MODE_HPP
 
 namespace boost {
 namespace http_proto {
@@ -95,69 +90,6 @@ enum class file_mode
     */
     append_existing
 };
-
-/** Determine if `T` meets the requirements of <em>File</em>.
-
-    Metafunctions are used to perform compile time checking of template
-    types. This type will be `std::true_type` if `T` meets the requirements,
-    else the type will be `std::false_type`. 
-
-    @par Example
-
-    Use with `static_assert`:
-
-    @code
-    template<class File>
-    void f(File& file)
-    {
-        static_assert(is_file<File>::value,
-            "File type requirements not met");
-    ...
-    @endcode
-
-    Use with `std::enable_if` (SFINAE):
-
-    @code
-    template<class File>
-    typename std::enable_if<is_file<File>::value>::type
-    f(File& file);
-    @endcode
-*/
-#if BOOST_HTTP_PROTO_DOCS
-template<class T>
-struct is_file : std::integral_constant<bool, ...>{};
-#else
-template<class T, class = void>
-struct is_file : std::false_type {};
-
-template<class T>
-struct is_file<T, boost::void_t<decltype(
-    std::declval<bool&>() = std::declval<T const&>().is_open(),
-    std::declval<T&>().close(std::declval<system::error_code&>()),
-    std::declval<T&>().open(
-        std::declval<char const*>(),
-        std::declval<file_mode>(),
-        std::declval<system::error_code&>()),
-    std::declval<std::uint64_t&>() = std::declval<T&>().size(
-        std::declval<system::error_code&>()),
-    std::declval<std::uint64_t&>() = std::declval<T&>().pos(
-        std::declval<system::error_code&>()),
-    std::declval<T&>().seek(
-        std::declval<std::uint64_t>(),
-        std::declval<system::error_code&>()),
-    std::declval<std::size_t&>() = std::declval<T&>().read(
-        std::declval<void*>(),
-        std::declval<std::size_t>(),
-        std::declval<system::error_code&>()),
-    std::declval<std::size_t&>() = std::declval<T&>().write(
-        std::declval<void const*>(),
-        std::declval<std::size_t>(),
-        std::declval<system::error_code&>())
-            )>> : std::integral_constant<bool,
-    std::is_default_constructible<T>::value &&
-    std::is_destructible<T>::value
-        > {};
-#endif
 
 } // http_proto
 } // boost
