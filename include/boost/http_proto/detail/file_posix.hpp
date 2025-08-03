@@ -13,7 +13,7 @@
 #include <boost/http_proto/detail/config.hpp>
 
 #if ! defined(BOOST_HTTP_PROTO_NO_POSIX_FILE)
-# if ! defined(__APPLE__) && ! defined(__linux__)
+# if ! defined(__APPLE__) && ! defined(__linux__) && ! defined(__FreeBSD__) && ! defined(__NetBSD__)
 #  define BOOST_HTTP_PROTO_NO_POSIX_FILE
 # endif
 #endif
