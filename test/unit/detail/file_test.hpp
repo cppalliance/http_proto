@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_FILE_TEST_HPP
 #define BOOST_HTTP_PROTO_FILE_TEST_HPP
 
-#include <boost/http_proto/file_base.hpp>
+#include <boost/http_proto/file_mode.hpp>
 #include <boost/config.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/filesystem/path.hpp>

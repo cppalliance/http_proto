@@ -18,12 +18,9 @@
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/fields_view_base.hpp>
 #include <boost/http_proto/file.hpp>
-#include <boost/http_proto/file_base.hpp>
-#include <boost/http_proto/file_posix.hpp>
+#include <boost/http_proto/file_mode.hpp>
 #include <boost/http_proto/file_sink.hpp>
 #include <boost/http_proto/file_source.hpp>
-#include <boost/http_proto/file_stdio.hpp>
-#include <boost/http_proto/file_win32.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/message_view_base.hpp>

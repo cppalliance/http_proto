@@ -7,7 +7,7 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/file_posix.hpp>
+#include <boost/http_proto/detail/file_posix.hpp>
 
 #if BOOST_HTTP_PROTO_USE_POSIX_FILE
 
@@ -36,6 +36,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace detail {
 
 int
 file_posix::
@@ -274,7 +275,7 @@ seek(std::uint64_t offset,
 std::size_t
 file_posix::
 read(void* buffer, std::size_t n,
-    system::error_code& ec) const
+    system::error_code& ec)
 {
     if(fd_ == -1)
     {
@@ -350,6 +351,7 @@ write(void const* buffer, std::size_t n,
     return nwritten;
 }
 
+} // detail
 } // http_proto
 } // boost
 

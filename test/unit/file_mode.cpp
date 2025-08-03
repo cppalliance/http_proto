@@ -8,4 +8,4 @@
 //
 
 // Test that header file is self-contained.
-#include <boost/http_proto/file_base.hpp>
+#include <boost/http_proto/file_mode.hpp>
