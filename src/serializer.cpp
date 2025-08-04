@@ -299,6 +299,7 @@ serializer(rts::context& ctx)
     : ctx_(ctx)
     , svc_(ctx.get_service<serializer_service>())
     , ws_(svc_.space_needed)
+    , is_done_(true)
 {
 }
 
@@ -307,8 +308,7 @@ serializer::
 reset() noexcept
 {
     ws_.clear();
-    is_done_ = false;
-    is_header_done_ = false;
+    is_done_ = true;
 }
 
 //------------------------------------------------
@@ -341,9 +341,7 @@ prepare() ->
         switch(st_)
         {
         case style::empty:
-            return const_buffers_type(
-                prepped_.begin(),
-                prepped_.size());
+            break;
 
         case style::buffers:
         {
@@ -415,9 +413,32 @@ prepare() ->
         switch(st_)
         {
         case style::empty:
-            return const_buffers_type(
-                prepped_.begin(),
-                prepped_.size());
+        {
+            if(out_capacity() == 0 || filter_done_)
+                break;
+
+            const auto rs = filter_->process(
+                buffers::mutable_buffer_span(
+                    out_prepare()),
+                {}, // empty input
+                false);
+
+            if(rs.ec.failed())
+            {
+                is_done_ = true;
+                return rs.ec;
+            }
+
+            out_commit(rs.out_bytes);
+
+            if(rs.finished)
+            {
+                filter_done_ = true;
+                out_finish();
+            }
+
+            break;
+        }
 
         case style::buffers:
         {
@@ -588,6 +609,7 @@ consume(
     if(needs_exp100_continue_)
         return;
 
+    ws_.clear();
     is_done_ = true;
 }
 
@@ -612,10 +634,14 @@ start_init(
     message_view_base const& m)
 {
     // Precondition violation
-    // if(!is_done_)
-    //     detail::throw_logic_error();
+    if(!is_done_)
+        detail::throw_logic_error();
 
-    reset();
+    // TODO: to hold strong exception guarantee
+    // `is_done_` should be set to true if an
+    // exception is thrown during the start operation.
+    is_done_ = false;
+    is_header_done_ = false;
 
     // VFALCO what do we do with
     // metadata error code failures?
@@ -677,31 +703,17 @@ serializer::
 start_empty(
     message_view_base const& m)
 {
-    using mutable_buffer =
-        buffers::mutable_buffer;
-
     start_init(m);
     st_ = style::empty;
 
-    if(!is_chunked_)
-    {
-        prepped_ = make_array(
-            1); // header
-    }
-    else
-    {
-        prepped_ = make_array(
-            1 + // header
-            1); // final chunk
+    prepped_ = make_array(
+        1 + // header
+        2); // out buffer pairs
 
-        mutable_buffer final_chunk = {
-            ws_.reserve_front(
-                final_chunk_len),
-            final_chunk_len };
-        write_final_chunk({ final_chunk, {} });
+    out_init();
 
-        prepped_[1] = final_chunk;
-    }
+    if(!filter_)
+        out_finish();
 
     prepped_[0] = { m.ph_->cbuf, m.ph_->size };
     more_input_ = false;

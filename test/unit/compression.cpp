@@ -344,6 +344,28 @@ struct zlib_test
         }while(!sr.is_done());
     }
 
+    static
+    void
+    serializer_empty(
+        response_view res,
+        serializer& sr,
+        buffers::const_buffer body,
+        buffers::string_buffer out)
+    {
+        BOOST_TEST(body.size() == 0);
+        // empty body
+        sr.start(res);
+        do
+        {
+            auto cbs = sr.prepare();
+            auto n = buffers::size(cbs.value());
+            BOOST_TEST_GT(n, 0);
+            buffers::copy(out.prepare(n), cbs.value());
+            sr.consume(n);
+            out.commit(n);
+        }while(!sr.is_done());
+    }
+
     void
     test_serializer()
     {
@@ -374,8 +396,11 @@ struct zlib_test
         for(core::string_view encoding : encodings) 
         for(auto chunked : { true, false })
         for(auto body_size : { 0, 7, 64 * 1024, 1024 * 1024 })
-        for(auto driver : { serializer_buffers, serializer_stream, serializer_source })
+        for(auto driver : { serializer_empty, serializer_buffers, serializer_stream, serializer_source })
         {
+            if(driver == serializer_empty && body_size != 0)
+                continue;
+
             response resp;
             resp.set(field::content_encoding, encoding);
             if(chunked)
