@@ -36,22 +36,12 @@ response(
 
 response::
 response(
-    std::size_t storage_size)
-    : fields_view_base(
-        &this->fields_base::h_)
-    , response_base(storage_size)
+    std::size_t cap,
+    std::size_t max_cap)
+    : response()
 {
-}
-
-response::
-response(
-    std::size_t storage_size,
-    std::size_t max_storage_size)
-    : fields_view_base(
-        &this->fields_base::h_)
-    , response_base(
-        storage_size, max_storage_size)
-{
+    reserve_bytes(cap);
+    set_max_capacity_in_bytes(max_cap);
 }
 
 response::
@@ -105,9 +95,7 @@ response(
     http_proto::version v)
     : response()
 {
-    if( sc != h_.res.status ||
-        v != h_.version)
-        set_start_line(sc, v);
+    set_start_line(sc, v);
 }
 
 } // http_proto

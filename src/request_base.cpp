@@ -77,12 +77,13 @@ set_expect_100_continue(bool b)
 
 void
 request_base::
-set_impl(
+set_start_line_impl(
     http_proto::method m,
     core::string_view ms,
     core::string_view t,
     http_proto::version v)
 {
+    // TODO: check validity
     auto const vs = to_string(v);
     auto const new_prefix =
         ms.size() + 1 + // method SP

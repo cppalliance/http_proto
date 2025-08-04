@@ -260,7 +260,7 @@ bool
 header::
 is_default() const noexcept
 {
-    return buf != cbuf;
+    return buf == nullptr;
 }
 
 std::size_t

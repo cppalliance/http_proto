@@ -43,13 +43,7 @@ consume(std::size_t n)
         n -= p->size();
         ++pos_;
         --size_;
-        if(n == 0)
-            return;
     }
-
-    // n exceeded available size
-    if(n > 0)
-        detail::throw_logic_error();
 }
 
 void

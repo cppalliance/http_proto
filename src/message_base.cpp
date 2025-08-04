@@ -85,12 +85,12 @@ set_keep_alive(bool value)
         switch(ph_->version)
         {
         default:
-        case version::http_1_1:
+        case http_proto::version::http_1_1:
             if(! value)
                 set(field::connection, "close");
             break;
 
-        case version::http_1_0:
+        case http_proto::version::http_1_0:
             if(value)
                 set(field::connection, "keep-alive");
             break;
@@ -166,7 +166,7 @@ set_keep_alive(bool value)
     switch(ph_->version)
     {
     default:
-    case version::http_1_1:
+    case http_proto::version::http_1_1:
         if(! value)
         {
             // add one "close" token if needed
@@ -175,7 +175,7 @@ set_keep_alive(bool value)
         }
         break;
 
-    case version::http_1_0:
+    case http_proto::version::http_1_0:
         if(value)
         {
             // add one "keep-alive" token if needed

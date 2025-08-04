@@ -16,14 +16,16 @@
 #include <boost/http_proto/detail/file_stdio.hpp>
 #include <boost/http_proto/detail/file_win32.hpp>
 #include <boost/http_proto/file_mode.hpp>
-
 namespace boost {
 namespace http_proto {
 
-/** A file stream.
+/** A platform-independent file stream.
 
-    This class is intended for use with
-    @ref file_sink and @ref file_source.
+    This class provides a portable interface for
+    reading from and writing to files. It is
+    intended for use with @ref file_sink and @ref
+    file_source to enable streaming HTTP message
+    bodies to and from files.
 
     @par Example
     @code
@@ -33,8 +35,13 @@ namespace http_proto {
     f.open("example.zip", file_mode::write_new, ec);
     if(ec.failed())
         throw system::system_error(ec);
-    parser.set_body<file_sink>(std::move(file));
+
+    parser.set_body<file_sink>(std::move(f));
     @endcode
+
+    @see
+        @ref file_sink,
+        @ref file_source.
 */
 class file
 {
@@ -49,28 +56,25 @@ class file
     impl_type impl_;
 
 public:
-    /** The type of the underlying file handle.
+    /** The type of the underlying native file handle.
 
-        This is platform-specific.
+        This type is platform-specific.
     */
-    using native_handle_type =
-        impl_type::native_handle_type;
+    using native_handle_type = impl_type::native_handle_type;
 
-    /** Constructor
-
-        There is no open file initially.
+    /** Constructor.
     */
     file() = default;
 
-    /** Constructor
+    /** Constructor.
 
-        The moved-from object behaves as if default constructed.
+        The moved-from object behaves as if default-constructed.
     */
     file(file&& other) noexcept = default;
 
     /** Assignment
 
-        The moved-from object behaves as if default constructed.
+        The moved-from object behaves as if default-constructed.
     */
     file&
     operator=(
@@ -84,11 +88,11 @@ public:
         return impl_.native_handle();
     }
 
-    /** Set the native handle associated with the file.
+    /** Set the native file handle.
 
         If the file is open it is first closed.
 
-        @param fd The native file handle to assign.
+        @param h The native handle to assign.
     */
     void
     native_handle(native_handle_type h)
@@ -96,7 +100,7 @@ public:
         impl_.native_handle(h);
     }
 
-    /** Returns `true` if the file is open
+    /** Return true if the file is open.
     */
     bool
     is_open() const
@@ -104,7 +108,7 @@ public:
         return impl_.is_open();
     }
 
-    /** Close the file if open
+    /** Close the file if open.
 
         @param ec Set to the error, if any occurred.
     */
@@ -114,13 +118,13 @@ public:
         impl_.close(ec);
     }
 
-    /** Open a file at the given path with the specified mode
+    /** Open a file at the given path with the specified mode.
 
-        @param path The utf-8 encoded path to the file
+        @param path The UTF-8 encoded path to the file.
 
-        @param mode The file mode to use
+        @param mode The file mode to use.
 
-        @param ec Set to the error, if any occurred
+        @param ec Set to the error, if any occurred.
     */
     void
     open(char const* path, file_mode mode, system::error_code& ec)
@@ -128,11 +132,9 @@ public:
         impl_.open(path, mode, ec);
     }
 
-    /** Return the size of the open file
+    /** Return the size of the open file in bytes.
 
-        @param ec Set to the error, if any occurred
-
-        @return The size in bytes
+        @param ec Set to the error, if any occurred.
     */
     std::uint64_t
     size(system::error_code& ec) const
@@ -140,11 +142,9 @@ public:
         return impl_.size(ec);
     }
 
-    /** Return the current position in the open file
+    /** Return the current position in the file, in bytes from the beginning.
 
-        @param ec Set to the error, if any occurred
-
-        @return The offset in bytes from the beginning of the file
+        @param ec Set to the error, if any occurred.
     */
     std::uint64_t
     pos(system::error_code& ec) const
@@ -152,25 +152,29 @@ public:
         return impl_.pos(ec);
     }
 
-    /** Adjust the current position in the open file
+    /** Set the current position in the file.
 
-        @param offset The offset in bytes from the beginning of the file
+        @param offset The byte offset from the beginning of the file.
 
-        @param ec Set to the error, if any occurred
+        @param ec Set to the error, if any occurred.
     */
     void
     seek(std::uint64_t offset, system::error_code& ec)
     {
-        return impl_.seek(offset, ec);
+        impl_.seek(offset, ec);
     }
 
-    /** Read from the open file
+    /** Read data from the file.
 
-        @param buffer The buffer for storing the result of the read
+        @return The number of bytes read. Returns
+        0 on end-of-file or if an error occurs (in
+        which case @p ec is set).
 
-        @param n The number of bytes to read
+        @param buffer The buffer to store the read data.
 
-        @param ec Set to the error, if any occurred
+        @param n The number of bytes to read.
+
+        @param ec Set to the error, if any occurred.
     */
     std::size_t
     read(void* buffer, std::size_t n, system::error_code& ec)
@@ -178,25 +182,23 @@ public:
         return impl_.read(buffer, n, ec);
     }
 
-    /** Write to the open file
+    /** Write data to the file.
 
-        @param buffer The buffer holding the data to write
+        @return The number of bytes written.
+        Returns 0 on error (in which case @p ec is
+        set).
 
-        @param n The number of bytes to write
+        @param buffer The buffer containing the data to write.
 
-        @param ec Set to the error, if any occurred
+        @param n The number of bytes to write.
+
+        @param ec Set to the error, if any occurred.
     */
     std::size_t
     write(void const* buffer, std::size_t n, system::error_code& ec)
     {
         return impl_.write(buffer, n, ec);
     }
-
-    /** Destructor
-
-        If the file is open it is first closed.
-    */
-    ~file() = default;
 };
 
 } // http_proto

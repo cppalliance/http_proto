@@ -20,11 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-namespace detail {
-struct prefix_op;
-} // detail
-
-/** Mixin for modifiable HTTP fields
+/** Mixin for modifiable HTTP fields.
 
     @par Iterators
 
@@ -38,10 +34,9 @@ class fields_base
     : public virtual fields_view_base
 {
     detail::header h_;
-    bool static_storage_ = false;
     std::size_t max_cap_ =
-        std::numeric_limits<
-            std::size_t>::max();
+        std::numeric_limits<std::size_t>::max();
+    bool external_storage_ = false;
 
     using entry =
         detail::header::entry;
@@ -78,57 +73,44 @@ class fields_base
     friend class response;
     template<std::size_t>
     friend class static_response;
-    friend class serializer;
     friend class message_base;
-    friend struct detail::prefix_op;
 
     BOOST_HTTP_PROTO_DECL
     explicit
     fields_base(
-        detail::kind) noexcept;
+        detail::kind k) noexcept;
 
     BOOST_HTTP_PROTO_DECL
     fields_base(
-        detail::kind,
-        char*,
-        std::size_t) noexcept;
+        detail::kind k,
+        char* storage,
+        std::size_t cap) noexcept;
 
     BOOST_HTTP_PROTO_DECL
     fields_base(
-        detail::kind,
-        std::size_t);
+        detail::kind k,
+        core::string_view s);
 
     BOOST_HTTP_PROTO_DECL
     fields_base(
-        detail::kind,
-        std::size_t,
-        std::size_t);
-
-    BOOST_HTTP_PROTO_DECL
-    fields_base(
-        detail::kind,
-        core::string_view);
-
-    BOOST_HTTP_PROTO_DECL
-    fields_base(
-        detail::kind,
-        char*,
-        std::size_t,
-        core::string_view);
+        detail::kind k,
+        char* storage,
+        std::size_t cap,
+        core::string_view s);
 
     BOOST_HTTP_PROTO_DECL
     explicit
     fields_base(
-        detail::header const&);
+        detail::header const& h);
 
     BOOST_HTTP_PROTO_DECL
     fields_base(
-        detail::header const&,
-        char*,
-        std::size_t);
+        detail::header const& h,
+        char* storage,
+        std::size_t cap);
 
 public:
-    /** Destructor
+    /** Destructor.
     */
     BOOST_HTTP_PROTO_DECL
     ~fields_base();
@@ -139,7 +121,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Returns the largest permissible capacity in bytes
+    /** Return the maximum allowed capacity in bytes.
     */
     std::size_t
     max_capacity_in_bytes() noexcept
@@ -147,7 +129,7 @@ public:
         return max_cap_;
     }
 
-    /** Returns the total number of bytes allocated by the container
+    /** Return the total number of bytes allocated by the container.
     */
     std::size_t
     capacity_in_bytes() const noexcept
@@ -155,23 +137,88 @@ public:
         return h_.cap;
     }
 
-    /** Clear the contents, but not the capacity
+    /** Clear contents while preserving the capacity.
+
+        In the case of response and request
+        containers the start-line also resets to
+        default.
+
+        @par Postconditions
+        @code
+        this->size() == 0
+        @endcode
+
+        @par Complexity
+        Constant.
     */
     BOOST_HTTP_PROTO_DECL
     void
     clear() noexcept;
 
-    /** Reserve a minimum capacity
+    /** Adjust the capacity without changing the size.
+
+        This function adjusts the capacity
+        of the container in bytes, without
+        affecting the current contents. Has
+        no effect if `n <= this->capacity_in_bytes()`.
+
+        @par Postconditions
+        @code
+        this->capacity_in_bytes() >= n
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param n The capacity in bytes.
     */
     BOOST_HTTP_PROTO_DECL
     void
     reserve_bytes(std::size_t n);
 
-    /** Remove excess capacity
+    /** Set the maximum allowed capacity in bytes.
+
+        Prevents the container from growing beyond
+        `n` bytes. Exceeding this limit will throw
+        an exception.
+
+        @par Preconditions
+        @code
+        this->capacity_in_bytes() <= n
+        @endcode
+
+        @par Postconditions
+        @code
+        this->max_capacity_in_bytes() == n
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+        Exception thrown on invalid input.
+
+        @throw std::invalid_argument
+        `n < this->capacity_in_bytes()`
+
+        @param n The maximum allowed capacity in bytes.
     */
     BOOST_HTTP_PROTO_DECL
     void
-    shrink_to_fit() noexcept;
+    set_max_capacity_in_bytes(std::size_t n);
+
+    /** Remove excess capacity.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    shrink_to_fit();
 
     //--------------------------------------------
     //
@@ -179,7 +226,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Append a header
+    /** Append a header.
 
         This function appends a new header.
         Existing headers with the same name are
@@ -202,19 +249,20 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @param id The field name constant.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if value
-        is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     void
     append(
@@ -227,7 +275,7 @@ public:
             detail::throw_system_error(ec);
     }
 
-    /** Append a header
+    /** Append a header.
 
         This function appends a new header.
         Existing headers with the same name are
@@ -250,18 +298,18 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @param id The field name constant.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     void
     append(
@@ -277,7 +325,7 @@ public:
             ec);
     }
 
-    /** Append a header
+    /** Append a header.
 
         This function appends a new header.
         Existing headers with the same name are
@@ -300,19 +348,20 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @param name The header name.
 
-        @param value A value, which must be semantically
-        valid for the message.
-
-        @throw boost::system::system_error if name or
-        value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param value The header value, which must
+        be semantically valid for the message.
     */
     void
     append(
@@ -325,7 +374,7 @@ public:
             detail::throw_system_error(ec);
     }
 
-    /** Append a header
+    /** Append a header.
 
         This function appends a new header.
         Existing headers with the same name are
@@ -348,19 +397,18 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @param name The header name.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if name or value is
-        invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     void
     append(
@@ -376,7 +424,7 @@ public:
             ec);
     }
 
-    /** Insert a header
+    /** Insert a header.
 
         If a matching header with the same name
         exists, it is not replaced. Instead, an
@@ -400,6 +448,15 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @return An iterator to the newly inserted header.
 
@@ -407,16 +464,8 @@ public:
 
         @param id The field name constant.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if value
-        is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     iterator
     insert(
@@ -432,12 +481,13 @@ public:
         return it;
     }
 
-    /** Insert a header
+    /** Insert a header.
 
         If a matching header with the same name
         exists, it is not replaced. Instead, an
         additional header with the same name is
         inserted. Names are not case-sensitive.
+
         Any leading or trailing whitespace in
         the new value is ignored.
 
@@ -456,6 +506,11 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @return An iterator to the newly inserted header.
 
@@ -463,15 +518,10 @@ public:
 
         @param id The field name constant.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     iterator
     insert(
@@ -489,12 +539,13 @@ public:
         return before;
     }
 
-    /** Insert a header
+    /** Insert a header.
 
         If a matching header with the same name
         exists, it is not replaced. Instead, an
         additional header with the same name is
         inserted. Names are not case-sensitive.
+
         Any leading or trailing whitespace in
         the new value is ignored.
 
@@ -513,6 +564,15 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @return An iterator to the newly inserted header.
 
@@ -520,16 +580,8 @@ public:
 
         @param name The header name.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if name or
-        value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     iterator
     insert(
@@ -544,12 +596,13 @@ public:
         return before;
     }
 
-    /** Insert a header
+    /** Insert a header.
 
         If a matching header with the same name
         exists, it is not replaced. Instead, an
         additional header with the same name is
         inserted. Names are not case-sensitive.
+
         Any leading or trailing whitespace in
         the new value is ignored.
 
@@ -568,6 +621,11 @@ public:
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
 
         @return An iterator to the newly inserted header.
 
@@ -575,16 +633,10 @@ public:
 
         @param name The header name.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if name or value is
-        invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     iterator
     insert(
@@ -604,35 +656,32 @@ public:
 
     //--------------------------------------------
 
-    /** Erase headers
+    /** Erase headers.
 
         This function removes the header pointed
         to by `it`.
-        <br>
+
         All iterators that are equal to `it`
         or come after are invalidated.
 
         @par Complexity
         Linear in `name.size() + value.size()`.
 
-        @par Exception Safety
-        Throws nothing.
-
         @return An iterator to one past the
         removed element.
 
-        @param it An iterator to the element
+        @param it The iterator to the element
         to erase.
     */
     BOOST_HTTP_PROTO_DECL
     iterator
     erase(iterator it) noexcept;
 
-    /** Erase headers
+    /** Erase headers.
 
         This removes all headers whose name
         constant is equal to `id`.
-        <br>
+
         If any headers are erased, then all
         iterators equal to or that come after
         the first erased element are invalidated.
@@ -640,9 +689,6 @@ public:
 
         @par Complexity
         Linear in `this->string().size()`.
-
-        @par Exception Safety
-        Throws nothing.
 
         @return The number of headers erased.
 
@@ -652,11 +698,11 @@ public:
     std::size_t
     erase(field id) noexcept;
 
-    /** Erase all matching fields
+    /** Erase all matching fields.
 
         This removes all headers with a matching
         name, using a case-insensitive comparison.
-        <br>
+
         If any headers are erased, then all
         iterators equal to or that come after
         the first erased element are invalidated.
@@ -664,9 +710,6 @@ public:
 
         @par Complexity
         Linear in `this->string().size()`.
-
-        @par Exception Safety
-        Throws nothing.
 
         @return The number of fields erased
 
@@ -679,32 +722,35 @@ public:
 
     //--------------------------------------------
 
-    /** Set a header value
+    /** Set a header value.
 
         Uses the given value to overwrite the
-        current one in the header field pointed to by the
-        iterator. The value must be syntactically
-        valid or else an error is returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+        current one in the header field pointed to
+        by the iterator. The value must be
+        syntactically valid or else an error is
+        returned.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Complexity
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
 
-        @param it An iterator to the header.
+        @throw system_error
+        Input is invalid.
 
-        @param value A value, which must be semantically
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param it The iterator to the header.
+
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if value is
-        invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     void
     set(
@@ -717,31 +763,33 @@ public:
             detail::throw_system_error(ec);
     }
 
-    /** Set a header value
+    /** Set a header value.
 
         Uses the given value to overwrite the
-        current one in the header field pointed to by the
-        iterator. The value must be syntactically
-        valid or else an error is returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+        current one in the header field pointed to
+        by the iterator. The value must be
+        syntactically valid or else an error is
+        returned.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Complexity
 
         @par Exception Safety
         Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
 
-        @param it An iterator to the header.
+        @throw std::length_error
+        Max capacity would be exceeded.
 
-        @param value A value, which must be semantically
+        @param it The iterator to the header.
+
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -750,14 +798,16 @@ public:
         core::string_view value,
         system::error_code& ec);
 
-    /** Set a header value
+    /** Set a header value.
 
-        The container is modified to contain exactly
-        one field with the specified id set to the given value,
-        which must be syntactically valid or else an error is
+        The container is modified to contain
+        exactly one field with the specified id
+        set to the given value, which must be
+        syntactically valid or else an error is
         returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Postconditions
         @code
@@ -766,19 +816,23 @@ public:
 
         @par Complexity
 
-        @param id The field constant of the
-        header to set.
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
 
-        @param value A value, which must be semantically
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param id The field constant of the header
+        to set.
+
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if value is
-        invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     void
     set(
@@ -791,14 +845,16 @@ public:
             detail::throw_system_error(ec);
     }
 
-    /** Set a header value
+    /** Set a header value.
 
-        The container is modified to contain exactly
-        one field with the specified id set to the given value,
-        which must be syntactically valid or else an error is
+        The container is modified to contain
+        exactly one field with the specified id
+        set to the given value, which must be
+        syntactically valid or else an error is
         returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Postconditions
         @code
@@ -807,17 +863,20 @@ public:
 
         @par Complexity
 
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
         @param id The field name constant.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -826,32 +885,40 @@ public:
         core::string_view value,
         system::error_code& ec);
 
-    /** Set a header value
+    /** Set a header value.
 
-        The container is modified to contain exactly
-        one field with the specified name set to the given value,
-        which must be syntactically valid or else an error is
+        The container is modified to contain
+        exactly one field with the specified name
+        set to the given value, which must be
+        syntactically valid or else an error is
         returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Postconditions
         @code
         this->count( name ) == 1 && this->at( name ) == value
         @endcode
 
+        @par Complexity
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
         @param name The field name.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
-
-        @throw boost::system::system_error if name or value is
-        invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
     */
     void
     set(
@@ -864,31 +931,38 @@ public:
             detail::throw_system_error(ec);
     }
 
-    /** Set a header value
+    /** Set a header value.
 
-        The container is modified to contain exactly
-        one field with the specified name set to the given value,
-        which must be syntactically valid or else an error is
+        The container is modified to contain
+        exactly one field with the specified name
+        set to the given value, which must be
+        syntactically valid or else an error is
         returned.
-        Any leading or trailing whitespace in the new value
-        is ignored.
+
+        Any leading or trailing whitespace in the
+        new value is ignored.
 
         @par Postconditions
         @code
         this->count( name ) == 1 && this->at( name ) == value
         @endcode
 
+        @par Complexity
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
         @param name The field name.
 
-        @param value A value, which must be semantically
+        @param value The value which must be semantically
         valid for the message.
 
-        @param ec Set to the error, if name or value is invalid.
-
-        @throw std::length_error if the required space
-        exceeds the maximum capacity.
-
-        @throw std::bad_alloc if the allocation fails.
+        @param ec Set to the error if input is invalid.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -897,21 +971,11 @@ public:
         core::string_view value,
         system::error_code& ec);
 
-    //--------------------------------------------
-
 private:
     BOOST_HTTP_PROTO_DECL
     void
     copy_impl(
         detail::header const&);
-
-    void
-    insert_unchecked_impl(
-        optional<field> id,
-        core::string_view name,
-        core::string_view value,
-        std::size_t before,
-        bool has_obs_fold);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -922,23 +986,28 @@ private:
         std::size_t before,
         system::error_code& ec);
 
-    BOOST_HTTP_PROTO_DECL
     void
-    erase_impl(
-        std::size_t i,
-        field id) noexcept;
+    insert_unchecked(
+        optional<field> id,
+        core::string_view name,
+        core::string_view value,
+        std::size_t before,
+        bool has_obs_fold);
 
     void
     raw_erase(
         std::size_t) noexcept;
 
+    void
+    raw_erase_n(field, std::size_t) noexcept;
+
     std::size_t
-    erase_all_impl(
+    erase_all(
         std::size_t i0,
         field id) noexcept;
 
     std::size_t
-    erase_all_impl(
+    erase_all(
         std::size_t i0,
         core::string_view name) noexcept;
 
@@ -949,8 +1018,6 @@ private:
     std::size_t
     length(
         std::size_t i) const noexcept;
-
-    void raw_erase_n(field, std::size_t) noexcept;
 };
 
 } // http_proto

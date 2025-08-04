@@ -17,7 +17,20 @@
 namespace boost {
 namespace http_proto {
 
-/** A reference to an HTTP response header
+/** A view to a valid HTTP response.
+
+    Objects of this type represent a view to
+    a HTTP response container. That is, it acts
+    like a `core::string_view` in terms of
+    ownership. The caller is responsible for
+    ensuring that the lifetime of the underlying
+    buffer extends until it is no
+    longer referenced.
+
+    @see
+        @ref response,
+        @ref static_response,
+        @ref response_parser,
 */
 class response_view
     : public message_view_base
@@ -35,7 +48,31 @@ class response_view
     }
 
 public:
-    /** Constructor
+
+    //--------------------------------------------
+    //
+    // Special Members
+    //
+    //--------------------------------------------
+
+    /** Constructor.
+
+        A default-constructed response view refer
+        to a valid HTTP 200 OK response with no
+        headers, which always remains valid.
+
+        @par Example
+        @code
+        response_view resv;
+        @endcode
+
+        @par Postconditions
+        @code
+        this->buffer() == "HTTP/1.1 200 OK\r\n\r\n"
+        @endcode
+
+        @par Complexity
+        Constant.
     */
     response_view() noexcept
         : fields_view_base(
@@ -44,16 +81,53 @@ public:
     {
     }
 
-    /** Constructor
+    /** Constructor.
+
+        After construction, both response views
+        reference the same underlying buffer.
+        Ownership is not transferred.
+
+        @par Postconditions
+        @code
+        this->buffer().data() == other.buffer().data()
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param other The other view.
     */
     response_view(
-        response_view const&) noexcept = default;
+        response_view const& other) noexcept = default;
 
-    /** Assignment
+    /** Assignment.
+
+        After assignment, both response views
+        reference the same underlying buffer.
+        Ownership is not transferred.
+
+        @par Postconditions
+        @code
+        this->buffer().data() == other.buffer().data()
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param other The other view.
+        @return A reference to this object.
     */
     response_view&
     operator=(
-        response_view const&) noexcept = default;
+        response_view const& other) noexcept = default;
+
+    /** Destructor
+
+        Any reference, iterators, or other views
+        which reference the same underlying
+        buffer remain valid.
+    */
+    ~response_view() = default;
 
     //--------------------------------------------
     //
@@ -63,7 +137,7 @@ public:
 
     /** Return the reason string
 
-        This field is obsolete in HTTP/1
+        This field is obsolete in `HTTP/1.1`
         and should only be used for display
         purposes.
     */
@@ -75,7 +149,7 @@ public:
             ph_->prefix - 15);
     }
 
-    /** Return the status code
+    /** Return the status code.
     */
     http_proto::status
     status() const noexcept
@@ -83,7 +157,7 @@ public:
         return ph_->res.status;
     }
 
-    /** Return the status code integer
+    /** Return the status code integer.
     */
     unsigned short
     status_int() const noexcept
@@ -91,15 +165,30 @@ public:
         return ph_->res.status_int;
     }
 
-    /** Return the HTTP-version
-    */
-    http_proto::version
-    version() const noexcept
-    {
-        return ph_->version;
-    }
+    //--------------------------------------------
 
-    /** Swap this with another instance
+    /** Swap.
+
+        Exchanges the view with that of `other`.
+        All iterators and references remain valid.
+
+        If `this == &other`, this function call has no effect.
+
+        @par Example
+        @code
+        response r1(status::ok);
+        response r2(status::bad_request);
+        response_view v1 = r1;
+        response_view v2 = r2;
+        v1.swap(v2);
+        assert(v1.buffer() == "HTTP/1.1 400 Bad Request\r\n\r\n" );
+        assert(v2.buffer() == "HTTP/1.1 200 OK\r\n\r\n" );
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param other The object to swap with.
     */
     void
     swap(response_view& other) noexcept
@@ -109,16 +198,46 @@ public:
         ph_ = ph;
     }
 
-    /** Swap two instances
+    /** Swap.
+
+        Exchanges the view of `v0` with
+        another `v1`. All iterators and
+        references remain valid.
+
+        If `&v0 == &v1`, this function call has no effect.
+
+        @par Example
+        @code
+        response r1(status::ok);
+        response r2(status::bad_request);
+        response_view v1 = r1;
+        response_view v2 = r2;
+        std::swap(v1, v2);
+        assert(v1.buffer() == "HTTP/1.1 400 Bad Request\r\n\r\n" );
+        assert(v2.buffer() == "HTTP/1.1 200 OK\r\n\r\n" );
+        @endcode
+
+        @par Effects
+        @code
+        v0.swap(v1);
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param v0 The first object to swap.
+        @param v1 The second object to swap.
+
+        @see
+            @ref response_view::swap.
     */
-    // hidden friend
     friend
     void
     swap(
-        response_view& t0,
-        response_view& t1) noexcept
+        response_view& v0,
+        response_view& v1) noexcept
     {
-        t0.swap(t1);
+        v0.swap(v1);
     }
 };
 

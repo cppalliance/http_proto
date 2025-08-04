@@ -408,6 +408,8 @@ private:
 
 } // namespace
 
+namespace detail {
+
 class parser_service
     : public rts::service
 {
@@ -496,6 +498,9 @@ public:
             cfg.min_buffer;
     }
 };
+} //detail
+
+//------------------------------------------------
 
 void
 install_parser_service(
@@ -503,7 +508,7 @@ install_parser_service(
     parser::config_base const& cfg)
 {
     ctx.make_service<
-        parser_service>(cfg);
+        detail::parser_service>(cfg);
 }
 
 //------------------------------------------------
@@ -515,7 +520,7 @@ install_parser_service(
 parser::
 parser(rts::context& ctx, detail::kind k)
     : ctx_(ctx)
-    , svc_(ctx.get_service<parser_service>())
+    , svc_(ctx.get_service<detail::parser_service>())
     , ws_(svc_.space_needed)
     , h_(detail::empty{ k })
     , st_(state::reset)
@@ -950,7 +955,7 @@ commit_eof()
         detail::throw_logic_error();
 
     case state::start:
-        // forgot to call prepare()
+        // forgot to call start()
         detail::throw_logic_error();
 
     case state::header:
@@ -1575,19 +1580,15 @@ consume_body(std::size_t n)
 
 core::string_view
 parser::
-body() const noexcept
+body() const
 {
+    // Precondition violation
     if(st_ != state::complete_in_place)
-    {
-        // Precondition violation
         detail::throw_logic_error();
-    }
 
+    // Precondition violation
     if(body_avail_ != body_total_)
-    {
-        // Precondition violation
         detail::throw_logic_error();
-    }
 
     auto cbp = (is_plain() ? cb0_ : cb1_).data();
     BOOST_ASSERT(cbp[1].size() == 0);
@@ -1601,6 +1602,7 @@ core::string_view
 parser::
 release_buffered_data() noexcept
 {
+    // TODO
     return {};
 }
 

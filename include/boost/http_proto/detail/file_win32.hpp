@@ -24,9 +24,7 @@
 
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/file_mode.hpp>
-#include <boost/winapi/basic_types.hpp>
 #include <boost/winapi/handles.hpp>
-#include <cstdio>
 #include <cstdint>
 
 namespace boost {

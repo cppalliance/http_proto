@@ -18,6 +18,20 @@
 namespace boost {
 namespace http_proto {
 
+namespace implementation_defined {
+struct quoted_token_rule_t
+{
+    using value_type = quoted_token_view;
+
+    BOOST_HTTP_PROTO_DECL
+    auto
+    parse(
+        char const*& it,
+        char const* end) const noexcept ->
+            system::result<value_type>;
+};
+} // implementation_defined
+
 /** Rule matching quoted-token
 
     @par Value Type
@@ -45,25 +59,9 @@ namespace http_proto {
         >3.2.6.  Field Value Components (rfc7230)</a>
 
     @see
-        @ref quoted_token_view
+        @ref quoted_token_view.
 */
-#ifdef BOOST_HTTP_PROTO_DOCS
-constexpr __implementation_defined__ quoted_token_rule;
-#else
-struct quoted_token_rule_t
-{
-    using value_type = quoted_token_view;
-
-    BOOST_HTTP_PROTO_DECL
-    auto
-    parse(
-        char const*& it,
-        char const* end) const noexcept ->
-            system::result<value_type>;
-};
-
-constexpr quoted_token_rule_t quoted_token_rule{};
-#endif
+BOOST_INLINE_CONSTEXPR implementation_defined::quoted_token_rule_t quoted_token_rule{};
 
 } // http_proto
 } // boost

@@ -367,7 +367,7 @@ struct fields_test
             std::size_t init = 4096;
             std::size_t cap = init;
 
-            fields f(init);
+            fields f(init, cap);
             check(f, init, cap);
         }
 
@@ -377,18 +377,6 @@ struct fields_test
 
             fields f(init, cap);
             check(f, init, cap);
-        }
-
-        {
-            std::size_t init = 4096;
-
-            fields f(init);
-            fields f2(2 * init);
-            check(f, init, init);
-
-            f = f2;
-            // check(f, init, 2 * init);
-            // check(f2, 2 * init, 2 * init);
         }
 
         {
@@ -418,10 +406,10 @@ struct fields_test
 
         {
             BOOST_TEST_THROWS(
-                fields(1024, 0), std::length_error);
+                fields(1024, 0), std::logic_error);
 
             BOOST_TEST_THROWS(
-                fields(1024, 512), std::length_error);
+                fields(1024, 512), std::logic_error);
         }
     }
 

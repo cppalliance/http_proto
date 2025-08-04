@@ -39,22 +39,12 @@ fields(
 
 fields::
 fields(
-    std::size_t storage_size)
-    : fields_view_base(&this->fields_base::h_)
-    , fields_base(
-        detail::kind::fields, storage_size)
+    std::size_t cap,
+    std::size_t max_cap)
+    : fields()
 {
-}
-
-fields::
-fields(
-    std::size_t storage_size,
-    std::size_t max_storage_size)
-    : fields_view_base(&this->fields_base::h_)
-    , fields_base(
-        detail::kind::fields,
-        storage_size, max_storage_size)
-{
+    reserve_bytes(cap);
+    set_max_capacity_in_bytes(max_cap);
 }
 
 fields::

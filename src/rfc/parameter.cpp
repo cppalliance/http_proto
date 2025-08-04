@@ -12,7 +12,7 @@
 
 namespace boost {
 namespace http_proto {
-
+namespace implementation_defined {
 auto
 parameter_rule_t::
 parse(
@@ -24,6 +24,6 @@ parse(
     (void)end;
     return system::error_code{};
 }
-
+} // implementation_defined
 } // http_proto
 } // boost

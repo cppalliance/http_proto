@@ -37,6 +37,20 @@ struct upgrade_protocol
 
 //------------------------------------------------
 
+namespace implementation_defined {
+struct upgrade_protocol_rule_t
+{
+    using value_type = upgrade_protocol;
+
+    BOOST_HTTP_PROTO_DECL
+    auto
+    parse(
+        char const*& it,
+        char const* end) const noexcept ->
+            system::result<value_type>;
+};
+} // implementation_defined
+
 /** Rule to match Upgrade protocol
 
     @par Value Type
@@ -62,23 +76,7 @@ struct upgrade_protocol
     @see
         @ref upgrade_protocol.
 */
-#ifdef BOOST_HTTP_PROTO_DOCS
-constexpr __implementation_defined__ upgrade_protocol_rule;
-#else
-struct upgrade_protocol_rule_t
-{
-    using value_type = upgrade_protocol;
-
-    BOOST_HTTP_PROTO_DECL
-    auto
-    parse(
-        char const*& it,
-        char const* end) const noexcept ->
-            system::result<value_type>;
-};
-
-constexpr upgrade_protocol_rule_t upgrade_protocol_rule{};
-#endif
+BOOST_INLINE_CONSTEXPR implementation_defined::upgrade_protocol_rule_t upgrade_protocol_rule{};
 
 //------------------------------------------------
 
@@ -109,7 +107,7 @@ constexpr upgrade_protocol_rule_t upgrade_protocol_rule{};
     @see
         @ref upgrade_protocol.
 */
-constexpr auto upgrade_rule = list_rule( upgrade_protocol_rule, 1 );
+BOOST_INLINE_CONSTEXPR auto upgrade_rule = list_rule( upgrade_protocol_rule, 1 );
 
 } // http_proto
 } // boost

@@ -737,7 +737,7 @@ struct request_test
             std::size_t init = 4096;
             std::size_t cap = init;
 
-            request f(init);
+            request f(init, cap);
             check(f, init, cap);
         }
 
@@ -747,18 +747,6 @@ struct request_test
 
             request f(init, cap);
             check(f, init, cap);
-        }
-
-        {
-            std::size_t init = 4096;
-
-            request f(init);
-            request f2(2 * init);
-            check(f, init, init);
-
-            f = f2;
-            // check(f, init, 2 * init);
-            // check(f2, 2 * init, 2 * init);
         }
 
         {
@@ -788,10 +776,10 @@ struct request_test
 
         {
             BOOST_TEST_THROWS(
-                request(1024, 0), std::length_error);
+                request(1024, 0), std::logic_error);
 
             BOOST_TEST_THROWS(
-                request(1024, 512), std::length_error);
+                request(1024, 512), std::logic_error);
         }
     }
 

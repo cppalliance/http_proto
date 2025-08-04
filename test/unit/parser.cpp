@@ -349,19 +349,6 @@ struct parser_test
     }
 
     void
-    testConfig()
-    {
-    #ifdef BOOST_HTTP_PROTO_HAS_ZLIB
-        rts::context ctx;
-        zlib::install_deflate_service(ctx);
-
-        request_parser::config_base cfg1;
-        cfg1.apply_deflate_decoder = true;
-        install_parser_service(ctx, cfg1);
-    #endif
-    }
-
-    void
     testReset()
     {
     }
@@ -2159,7 +2146,6 @@ struct parser_test
     {
 #if 1
         testSpecial();
-        testConfig();
         testReset();
         testStart();
         testPrepare();

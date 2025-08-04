@@ -14,13 +14,13 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <boost/optional.hpp>
-#include <cstdint>
 #include <iosfwd>
-#include <type_traits>
 
 namespace boost {
 namespace http_proto {
 
+/** HTTP field name constants.
+*/
 enum class field : unsigned short
 {
     a_im = 1,
@@ -383,27 +383,33 @@ enum class field : unsigned short
 
 //------------------------------------------------
 
-/** Return the header name for a field id.
+/** Return the header name for a field name constant.
 
-    @param f The field to convert
+    @param f The field name constant to convert.
 */
 BOOST_HTTP_PROTO_DECL
 core::string_view
-to_string(field f);
+to_string(field f) noexcept;
 
-/** Return the field id for  a header name
+/** Return the field name constant for a header name.
 
     The string comparison is case-insensitive.
 
-    @return The corresponding field, or
-        @ref field::unknown if there is no match.
+    @param s The string representing a header name.
 */
 BOOST_HTTP_PROTO_DECL
 boost::optional<field>
 string_to_field(
     core::string_view s) noexcept;
 
-/// Write the text for a field name to an output stream.
+/** Write the header name for a field name constant to an output stream.
+
+    @return A reference to the output stream.
+
+    @param os The output stream to write to.
+
+    @param f The field name constant to use.
+*/
 BOOST_HTTP_PROTO_DECL
 std::ostream&
 operator<<(std::ostream& os, field f);

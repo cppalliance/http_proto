@@ -14,36 +14,37 @@
 namespace boost {
 namespace http_proto {
 
-/*
-
-file_mode           acesss          sharing     seeking     file              std mode
---------------------------------------------------------------------------------------
-read                read-only       shared      random      must exist          "rb"
-scan                read-only       shared      sequential  must exist          "rbS"
-write               read/write      exclusive   random      create/truncate     "wb+"
-write_new           read/write      exclusive   random      must not exist      "wbx"
-write_existing      read/write      exclusive   random      must exist          "rb+"
-append              write-only      exclusive   sequential  create/truncate     "ab"
-append_existing     write-only      exclusive   sequential  must exist          "ab"
-
-*/
-
 /** File open modes
 
     These modes are used when opening files using
-    instances of the <em>File</em> concept.
+    instances of the @ref file.
 
-    @see file_stdio
+    @code
+    file_mode           acesss          sharing     seeking     file              std mode
+    --------------------------------------------------------------------------------------
+    read                read-only       shared      random      must exist          "rb"
+    scan                read-only       shared      sequential  must exist          "rbS"
+    write               read/write      exclusive   random      create/truncate     "wb+"
+    write_new           read/write      exclusive   random      must not exist      "wbx"
+    write_existing      read/write      exclusive   random      must exist          "rb+"
+    append              write-only      exclusive   sequential  create/truncate     "ab"
+    append_existing     write-only      exclusive   sequential  must exist          "ab"
+    @endcode
+
+    @see
+        @ref file.
 */
 enum class file_mode
 {
-    /// Random read-only access to an existing file
+    /** Random read-only access to an existing file.
+    */
     read,
 
-    /// Sequential read-only access to an existing file
+    /** Sequential read-only access to an existing file.
+    */
     scan,
 
-    /** Random reading and writing to a new or truncated file
+    /** Random reading and writing to a new or truncated file.
 
         This mode permits random-access reading and writing
         for the specified file. If the file does not exist
@@ -53,7 +54,7 @@ enum class file_mode
     */
     write,
 
-    /** Random reading and writing to a new file only
+    /** Random reading and writing to a new file only.
 
         This mode permits random-access reading and writing
         for the specified file. The file will be created with
@@ -63,13 +64,13 @@ enum class file_mode
     */
     write_new,
 
-    /** Random write-only access to existing file
+    /** Random write-only access to existing file.
 
         If the file does not exist, an error is generated.
     */
     write_existing,
 
-    /** Appending to a new or truncated file
+    /** Appending to a new or truncated file.
 
         The current file position shall be set to the end of
         the file prior to each write.
@@ -81,7 +82,7 @@ enum class file_mode
     */
     append,
 
-    /** Appending to an existing file
+    /** Appending to an existing file.
 
         The current file position shall be set to the end of
         the file prior to each write.

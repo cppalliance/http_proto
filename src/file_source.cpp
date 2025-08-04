@@ -22,9 +22,9 @@ file_source(file_source&&) noexcept = default;
 file_source::
 file_source(
     file&& f,
-    std::uint64_t size) noexcept
+    std::uint64_t limit) noexcept
     : f_(std::move(f))
-    , n_(size)
+    , n_(limit)
 {
 }
 

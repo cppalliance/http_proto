@@ -19,7 +19,20 @@
 namespace boost {
 namespace http_proto {
 
-/** Provides message metadata for requests and responses
+/** Mixin for modifiing common metadata
+    in HTTP request and response messages.
+
+    This type is useful for modifying common
+    properties shared by both requests
+    and responses.
+
+    @see
+        @ref message_view_base,
+        @ref response,
+        @ref request,
+        @ref static_response,
+        @ref static_request,
+        @ref metadata.
 */
 class message_base
     : public fields_base
@@ -40,31 +53,10 @@ class message_base
     message_base(
         detail::kind k,
         char* storage,
-        std::size_t storage_size) noexcept
+        std::size_t cap) noexcept
         : fields_view_base(&this->fields_base::h_)
         , fields_base(
-            k, storage, storage_size)
-    {
-    }
-
-    message_base(
-        detail::kind k,
-        std::size_t storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(
-            k, storage_size)
-    {
-    }
-
-    message_base(
-        detail::kind k,
-        std::size_t storage_size,
-        std::size_t max_storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(
-            k, storage_size, max_storage_size)
+            k, storage, cap)
     {
     }
 
@@ -80,12 +72,12 @@ class message_base
     message_base(
         detail::kind k,
         char* storage,
-        std::size_t storage_size,
+        std::size_t cap,
         core::string_view s)
         : fields_view_base(
             &this->fields_base::h_)
         , fields_base(
-            k, storage, storage_size, s)
+            k, storage, cap, s)
     {
     }
 
@@ -101,10 +93,10 @@ class message_base
     message_base(
         detail::header const& ph,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
-        , fields_base(ph, storage, storage_size)
+        , fields_base(ph, storage, cap)
     {
     }
 
@@ -115,14 +107,34 @@ public:
     //
     //--------------------------------------------
 
-    /** Set the payload size
+    /** Set the payload size.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param n The payload size to set.
     */
     BOOST_HTTP_PROTO_DECL
     void
     set_payload_size(
         std::uint64_t n);
 
-    /** Set the Content-Length to the specified value
+    /** Set the Content-Length to the specified value.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param n The Content-Length to set.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -130,6 +142,16 @@ public:
         std::uint64_t n);
 
     /** Set whether the payload is chunked.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param value The value to set.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -142,6 +164,16 @@ public:
         require the connection to be closed. For
         example when there is no content length
         specified in a response.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param value The value to set.
     */
     BOOST_HTTP_PROTO_DECL
     void

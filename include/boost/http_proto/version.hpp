@@ -27,13 +27,21 @@ enum class version : char
     http_1_1 = 11
 };
 
-/** Return the serialized string representing the HTTP version
+/** Return the serialized string representing the HTTP version.
+
+    @param v The version to use.
 */
 BOOST_HTTP_PROTO_DECL
 core::string_view
 to_string(version v) noexcept;
 
 /** Format the version to an output stream.
+
+    @return A reference to the output stream.
+
+    @param os The output stream to write to.
+
+    @param v The version to use.
 */
 BOOST_HTTP_PROTO_DECL
 std::ostream&

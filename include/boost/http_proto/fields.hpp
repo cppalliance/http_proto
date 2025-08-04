@@ -1,6 +1,7 @@
 //
 // Copyright (c) 2021 Vinnie Falco (vinnie.falco@gmail.com)
 // Copyright (c) 2024 Christian Mazakas
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,12 +16,38 @@
 #include <boost/http_proto/fields_base.hpp>
 #include <boost/http_proto/fields_view.hpp>
 #include <boost/core/detail/string_view.hpp>
-#include <initializer_list>
 
 namespace boost {
 namespace http_proto {
 
-/** A modifiable container of HTTP fields
+/** A modifiable container of HTTP fields.
+
+    This container owns a collection of HTTP
+    fields, represented by a buffer which is
+    managed by performing dynamic memory
+    allocations as needed. The contents may be
+    inspected and modified, and the implementation
+    maintains a useful invariant: changes to the
+    fields always leave it in a valid state.
+
+    @par Example
+    @code
+    fields fs;
+
+    fs.set(field::host, "example.com");
+    fs.set(field::accept_encoding, "gzip, deflate, br");
+    fs.set(field::cache_control, "no-cache");
+
+    assert(fs.buffer() ==
+        "Host: example.com\r\n"
+        "Accept-Encoding: gzip, deflate, br\r\n"
+        "Cache-Control: no-cache\r\n"
+        "\r\n");
+    @endcode
+
+    @see
+        @ref static_fields,
+        @ref fields_view.
 */
 class fields final
     : public fields_base
@@ -33,151 +60,214 @@ public:
     //
     //--------------------------------------------
 
-    /** Constructor
+    /** Constructor.
 
-        Default-constructed fields have no
-        name-value pairs.
+        A default-constructed fields container
+        contain no name-value pairs.
+
+        @par Example
+        @code
+        fields fs;
+        @endcode
+
+        @par Postconditions
+        @code
+        this->buffer() == "\r\n"
+        @endcode
+
+        @par Complexity
+        Constant.
     */
     BOOST_HTTP_PROTO_DECL
     fields() noexcept;
 
-    /** Constructor
+    /** Constructor.
+
+        Constructs a fields container from the string
+        `s`, which must contain valid HTTP headers or
+        else an exception is thrown.
+        The new fields container retains ownership by
+        allocating a copy of the passed string.
+
+        @par Example
+        @code
+        fields f(
+            "Server: Boost.HttpProto\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 73\r\n"
+            "\r\n");
+        @endcode
+
+        @par Postconditions
+        @code
+        this->buffer() == s && this->buffer().data() != s.data()
+        @endcode
+
+        @par Complexity
+        Linear in `s.size()`.
+
+        @par Exception Safety
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+
+        @throw system_error
+        Input is invalid.
+
+        @param s The string to parse.
     */
     BOOST_HTTP_PROTO_DECL
     explicit
     fields(
         core::string_view s);
 
-    /** Constructor
+    /** Constructor.
 
-        Construct a fields container which allocates
-        `storage_size` bytes for storing the header.
-        Attempting to grow the container beyond
-        this amount will result in an exception.
-        The storage is also used internally to store
-        instances of an implementation-defined type.
-        The requested number of bytes will be aligned
-        accordingly (currently the alignment requirement is 4).
+        Allocates `cap` bytes initially, with an
+        upper limit of `max_cap`. Growing beyond
+        `max_cap` will throw an exception.
 
-        <br/>
+        Useful when an estimated initial size is
+        known, but further growth up to a
+        maximum is allowed.
 
-        This constructor is useful when an upper-bound size
-        of the fields is known ahead of time and we want
-        to prevent reallocations.
-
-        <br/>
-
-        Passing an initial storage size of `0` does not
-        throw and the maximum capacity is set to an
-        implementation-defined limit observable via
-        @ref max_capacity_in_bytes().
-
-        @param storage_size The initial and final size of
-        the storage.
-
+        @par Preconditions
         @code
-        boost::http_proto::fields
-        make_fields(std::string_view server)
-        {
-            std::size_t size = 4096;
-            // flds.buffer() is now stable
-            boost::http_proto::fields flds(size);
-            BOOST_ASSERT(
-                flds.max_capacity_in_bytes(), 4096);
-
-            // uses spare capacity so that reallocations
-            // are avoided
-            flds.append(
-                boost::http_proto::field::server, server);
-            flds.append(
-                boost::http_proto::field::connection, "close");
-            return flds;
-        }
+        max_cap >= cap
         @endcode
+
+        @par Exception Safety
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+
+        @throw system_error
+        Input is invalid.
+
+        @param cap Initial capacity in bytes (may be `0`).
+
+        @param max_cap Maximum allowed capacity in bytes.
     */
     BOOST_HTTP_PROTO_DECL
     explicit
     fields(
-        std::size_t storage_size);
+        std::size_t cap,
+        std::size_t max_cap = std::size_t(-1));
 
-    /** Constructor
+    /** Constructor.
 
-        Construct a fields container which allocates
-        `storage_size` bytes for storing the header, with an
-        upper limit of `max_storage_size`. Attempting to
-        grow the container beyond its maximum will result in
-        an exception. The storage is also used internally to
-        store instances of an implementation-defined type.
-        Both values will be aligned accordingly (currently
-        the alignment requirement is 4).
+        The contents of `f` are transferred
+        to the newly constructed object,
+        which includes the underlying
+        character buffer.
+        After construction, the moved-from
+        object is as if default-constructed.
 
-        <br/>
-
-        This constructor is useful when there's a best-fit
-        guess for an initial header size but we still wish
-        to permit reallocating and growing the container to
-        some upper limit.
-
-        <br/>
-
-        Passing an initial size of `0` does not throw.
-
-        @param storage_size The initial size of the storage.
-
-        @param max_storage_size The maximum size of the
-        allocated storage. Any operation that attempts to
-        grow the container beyond this value throws
-        `std::length_error`.
-
-        @throws std::length_error Thrown if `size > max_size`
-
+        @par Postconditions
         @code
-        boost::http_proto::fields
-        make_fields(std::string_view host)
-        {
-            std::size_t size = 4096;
-            boost::http_proto::fields flds(size, 2 * size);
-            BOOST_ASSERT(
-                flds.max_capacity_in_bytes(), 2 * 4096);
-
-            // uses spare capacity so that reallocations
-            // are avoided
-            flds.append(
-                boost::http_proto::field::host, host);
-            flds.append(
-                boost::http_proto::field::connection, "close");
-            return flds;
-        }
+        f.buffer() == "\r\n"
         @endcode
+
+        @par Complexity
+        Constant.
+
+        @param f The fields to move from.
     */
     BOOST_HTTP_PROTO_DECL
-    explicit
-    fields(
-        std::size_t storage_size,
-        std::size_t max_storage_size);
+    fields(fields&& f) noexcept;
 
-    /** Constructor
+    /** Constructor.
+
+        The newly constructed object contains
+        a copy of `f`.
+
+        @par Postconditions
+        @code
+        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `f.size()`.
+
+        @par Exception Safety
+        Calls to allocate may throw.
+
+        @param f The fields to copy.
     */
     BOOST_HTTP_PROTO_DECL
-    fields(fields&& other) noexcept;
+    fields(fields const& f);
 
-    /** Constructor
+    /** Constructor.
+
+        The newly constructed object contains
+        a copy of `f`.
+
+        @par Postconditions
+        @code
+        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `f.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+
+        @param f The fields to copy.
     */
     BOOST_HTTP_PROTO_DECL
-    fields(fields const& other);
+    fields(fields_view const& f);
 
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields_view const& other);
+    /** Assignment.
 
-    /** Assignment
+        The contents of `f` are transferred to
+        `this`, including the underlying
+        character buffer. The previous contents
+        of `this` are destroyed.
+        After assignment, the moved-from
+        object is as if default-constructed.
+
+        @par Postconditions
+        @code
+        f.buffer() == "\r\n"
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param f The fields to assign from.
+
+        @return A reference to this object.
     */
     BOOST_HTTP_PROTO_DECL
     fields&
     operator=(fields&& f) noexcept;
 
-    /** Assignment
+    /** Assignment.
+
+        The contents of `f` are copied and
+        the previous contents of `this` are
+        discarded.
+
+        @par Postconditions
+        @code
+        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `f.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @return A reference to this object.
+
+        @param f The fields to copy.
     */
     fields&
     operator=(fields const& f) noexcept
@@ -186,7 +276,31 @@ public:
         return *this;
     }
 
-    /** Assignment
+    /** Assignment.
+
+        The contents of `f` are copied and
+        the previous contents of `this` are
+        discarded.
+
+        @par Postconditions
+        @code
+        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `r.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @return A reference to this object.
+
+        @param f The fields to copy.
     */
     fields&
     operator=(fields_view const& f)
@@ -195,7 +309,12 @@ public:
         return *this;
     }
 
-    /** Conversion
+    /** Conversion.
+
+        @see
+            @ref fields_view.
+
+        @return A view of the fields.
     */
     operator fields_view() const noexcept
     {
@@ -203,12 +322,30 @@ public:
     }
 
     //--------------------------------------------
-    //
-    // Modifiers
-    //
-    //--------------------------------------------
 
-    /** Swap this with another instance
+    /** Swap.
+
+        Exchanges the contents of this fields
+        object with another. All views, iterators
+        and references remain valid.
+
+        If `this == &other`, this function call has no effect.
+
+        @par Example
+        @code
+        fields f1;
+        f1.set(field::accept, "text/html");
+        fields f2;
+        f2.set(field::connection, "keep-alive");
+        f1.swap(f2);
+        assert(f1.buffer() == "Connection: keep-alive\r\n\r\n" );
+        assert(f2.buffer() == "Accept: text/html\r\n\r\n" );
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param other The object to swap with.
     */
     void
     swap(fields& other) noexcept
@@ -217,16 +354,46 @@ public:
         std::swap(max_cap_, other.max_cap_);
     }
 
-    /** Swap two instances
+    /** Swap.
+
+        Exchanges the contents of `v0` with
+        another `v1`. All views, iterators and
+        references remain valid.
+
+        If `&v0 == &v1`, this function call has no effect.
+
+        @par Example
+        @code
+        fields f1;
+        f1.set(field::accept, "text/html");
+        fields f2;
+        f2.set(field::connection, "keep-alive");
+        std::swap(f1, f2);
+        assert(f1.buffer() == "Connection: keep-alive\r\n\r\n" );
+        assert(f2.buffer() == "Accept: text/html\r\n\r\n" );
+        @endcode
+
+        @par Effects
+        @code
+        v0.swap(v1);
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @param v0 The first object to swap.
+        @param v1 The second object to swap.
+
+        @see
+            @ref fields::swap.
     */
-    // hidden friend
     friend
     void
     swap(
-        fields& t0,
-        fields& t1) noexcept
+        fields& v0,
+        fields& v1) noexcept
     {
-        t0.swap(t1);
+        v0.swap(v1);
     }
 };
 

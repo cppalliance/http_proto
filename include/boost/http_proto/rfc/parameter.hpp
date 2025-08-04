@@ -36,6 +36,20 @@ struct parameter
 
 //------------------------------------------------
 
+namespace implementation_defined {
+struct parameter_rule_t
+{
+    using value_type = parameter;
+
+    BOOST_HTTP_PROTO_DECL
+    auto
+    parse(
+        char const*&,
+        char const*) const noexcept ->
+            system::result<value_type>;
+};
+} // implementation_defined
+
 /** Rule matching parameter
 
     @par Value Type
@@ -57,25 +71,9 @@ struct parameter
         >3.1.1.1.  Media Type (rfc7231)</a>
 
     @see
-        @ref quoted_token_view
+        @ref parameter.
 */
-#ifdef BOOST_HTTP_PROTO_DOCS
-constexpr __implementation_defined__ parameter_rule;
-#else
-struct parameter_rule_t
-{
-    using value_type = parameter;
-
-    BOOST_HTTP_PROTO_DECL
-    auto
-    parse(
-        char const*&,
-        char const*) const noexcept ->
-            system::result<value_type>;
-};
-
-constexpr parameter_rule_t parameter_rule{};
-#endif
+BOOST_INLINE_CONSTEXPR implementation_defined::parameter_rule_t parameter_rule{};
 
 } // http_proto
 } // boost
