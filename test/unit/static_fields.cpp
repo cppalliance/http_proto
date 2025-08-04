@@ -52,17 +52,6 @@ struct static_fields_test
             "Set-Cookie: 1\r\n"
             "\r\n";
 
-        // ~fields()
-        // static_fields()
-        {
-            static_fields<256> f;
-            BOOST_TEST_EQ(
-                f.buffer(), "\r\n");
-            BOOST_TEST_EQ(
-                f.buffer().data(),
-                static_fields<256>().buffer().data());
-        }
-
         // static_fields(static_fields<256> const&)
         {
             {
@@ -71,15 +60,6 @@ struct static_fields_test
                 test_fields(f1, cs1);
                 test_fields(f2, cs1);
                 BOOST_TEST_NE(
-                    f1.buffer().data(),
-                    f2.buffer().data());
-            }
-            {
-                static_fields<256> f1;
-                static_fields<256> f2(f1);
-                test_fields(f1, "\r\n");
-                test_fields(f2, "\r\n");
-                BOOST_TEST_EQ(
                     f1.buffer().data(),
                     f2.buffer().data());
             }
@@ -102,13 +82,9 @@ struct static_fields_test
 
             // default buffer
             {
-                fields_view fv;
-                static_fields<256> f(fv);
+                static_fields<256> f;
                 BOOST_TEST_EQ(
                     f.buffer(), "\r\n");
-                BOOST_TEST_EQ(
-                    f.buffer().data(),
-                    fv.buffer().data());
             }
         }
 
@@ -144,7 +120,7 @@ struct static_fields_test
                 f2 = f1;
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
-                BOOST_TEST_EQ(
+                BOOST_TEST_NE(
                     f1.buffer().data(),
                     f2.buffer().data());
             }
@@ -184,7 +160,7 @@ struct static_fields_test
                 f2 = f1;
                 test_fields(f1, "\r\n");
                 test_fields(f2, "\r\n");
-                BOOST_TEST_EQ(
+                BOOST_TEST_NE(
                     f1.buffer().data(),
                     f2.buffer().data());
             }
@@ -198,8 +174,8 @@ struct static_fields_test
                 f2 = static_cast<
                     fields_view>(f1);
                 test_fields(f2, cs1);
-                BOOST_TEST(
-                    f1.buffer().data() !=
+                BOOST_TEST_NE(
+                    f1.buffer().data(),
                     f2.buffer().data());
             }
         }
@@ -248,11 +224,11 @@ struct static_fields_test
     testInitialSize()
     {
         {
-            static_fields<16> f{};
+            static_fields<32> f{};
             BOOST_TEST_THROWS(
                 f.append(field::host, "www.google.com"), std::length_error);
             BOOST_TEST_EQ(
-                f.max_capacity_in_bytes(), 16);
+                f.max_capacity_in_bytes(), 32);
         }
     }
 

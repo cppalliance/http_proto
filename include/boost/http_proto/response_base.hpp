@@ -20,7 +20,12 @@
 namespace boost {
 namespace http_proto {
 
-/** Provides message metadata for HTTP responses
+/** Mixin for modifiing HTTP responses.
+
+    @see
+        @ref message_base,
+        @ref response,
+        @ref static_response.
 */
 class response_base
     : public message_base
@@ -33,27 +38,6 @@ class response_base
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(detail::kind::response)
-    {
-    }
-
-    response_base(std::size_t storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::response,
-            storage_size)
-    {
-    }
-
-    response_base(
-        std::size_t storage_size,
-        std::size_t max_storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::response,
-            storage_size,
-            max_storage_size)
     {
     }
 
@@ -76,46 +60,51 @@ class response_base
     response_base(
         detail::header const& ph,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
-        , message_base(ph, storage, storage_size)
+        , message_base(ph, storage, cap)
     {
     }
 
 public:
     response_base(
         char* storage,
-        std::size_t storage_size) noexcept
+        std::size_t cap) noexcept
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(
-            detail::kind::response, storage, storage_size)
+            detail::kind::response, storage, cap)
     {
     }
 
     response_base(
         core::string_view s,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(
-            detail::kind::response, storage, storage_size, s)
+            detail::kind::response, storage, cap, s)
     {
     }
 
     response_base(
         response_view const& other,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
-        , message_base(*other.ph_, storage, storage_size)
+        , message_base(*other.ph_, storage, cap)
     {
     }
 
-    /** Return a read-only view to the response
+    /** Conversion.
+
+        @see
+            @ref response_view.
+
+        @return A view of the response.
     */
     operator response_view() const noexcept
     {
@@ -128,7 +117,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Return the reason string
+    /** Return the reason string.
 
         This field is obsolete in HTTP/1
         and should only be used for display
@@ -142,7 +131,7 @@ public:
             ph_->prefix - 15);
     }
 
-    /** Return the status code
+    /** Return the status code.
     */
     http_proto::status
     status() const noexcept
@@ -150,20 +139,12 @@ public:
         return ph_->res.status;
     }
 
-    /** Return the status code
+    /** Return the status code as an integral.
     */
     unsigned short
     status_int() const noexcept
     {
         return ph_->res.status_int;
-    }
-
-    /** Return the HTTP version
-    */
-    http_proto::version
-    version() const noexcept
-    {
-        return ph_->version;
     }
 
     //--------------------------------------------
@@ -172,16 +153,27 @@ public:
     //
     //--------------------------------------------
 
-    /** Set the version, status code of the response
+    /** Set the status code and version of the response.
 
-        The reason phrase will be set to the
+        The reason-phrase will be set to the
         standard text for the specified status
         code.
 
-        @par sc The status code. This must not be
-                @ref http_proto::status::unknown.
+        This is more efficient than setting the
+        properties individually.
 
-        @par v The HTTP-version.
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param sc The status code to set. This
+        must not be @ref status::unknown.
+
+        @param v The version to set.
     */
     void
     set_start_line(
@@ -189,7 +181,7 @@ public:
         http_proto::version v =
             http_proto::version::http_1_1)
     {
-        set_impl(
+        set_start_line_impl(
             sc,
             static_cast<
                 unsigned short>(sc),
@@ -197,13 +189,43 @@ public:
             v);
     }
 
+    /** Set the status code and version of the response.
+
+        The reason-phrase will be set to the
+        standard text for the specified status
+        code.
+
+        This is more efficient than setting the
+        properties individually.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param si An integral representing the
+        status code to set.
+
+        @param reason A string view representing the
+        reason string to set.
+
+        @param v The version to set.
+    */
     void
     set_start_line(
         unsigned short si,
         core::string_view reason,
-        http_proto::version v)
+        http_proto::version v =
+            http_proto::version::http_1_1)
     {
-        set_impl(
+        set_start_line_impl(
             int_to_status(si),
             si,
             reason,
@@ -213,7 +235,7 @@ public:
 private:
     BOOST_HTTP_PROTO_DECL
     void
-    set_impl(
+    set_start_line_impl(
         http_proto::status sc,
         unsigned short si,
         core::string_view reason,

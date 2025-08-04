@@ -40,7 +40,7 @@ message(
 {
     switch(static_cast<error>(code))
     {
-    case error::expect_100_continue: return "expect continue";
+    case error::expect_100_continue: return "expect 100 continue";
     case error::end_of_message: return "end of message";
     case error::end_of_stream: return "end of stream";
     case error::in_place_overflow: return "in place overflow";

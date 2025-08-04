@@ -78,6 +78,7 @@ constexpr ows_comma_t ows_comma{};
     next        => "" / ( 1*( OWS "," ) [ OWS element ] )
 */
 
+namespace implementation_defined {
 template<class Rule>
 struct list_rule_t<Rule>::
     first_rule : empty_value<Rule>
@@ -192,6 +193,7 @@ parse(
             next_rule{this->get()},
                 n_, m_));
 }
+} // implementation_defined
 
 } // http_proto
 } // boost

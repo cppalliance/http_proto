@@ -164,15 +164,9 @@ struct static_request_test
                 req2.buffer(),
                 "GET / HTTP/1.1\r\n\r\n");
 
-            // default-constructed recycles the same string literal
-            BOOST_TEST_EQ(
+            BOOST_TEST_NE(
                 req2.buffer().data(),
                 req.buffer().data());
-
-            BOOST_TEST_EQ(
-                req2.buffer().data(),
-                req_view.buffer().data());
-
         }
 
         {
@@ -571,12 +565,12 @@ struct static_request_test
     testInitialSize()
     {
         {
-            static_request<16> f;
+            static_request<32> f;
             BOOST_TEST_THROWS(
                 f.append(field::host, "www.google.com"),
                 std::length_error);
             BOOST_TEST_EQ(
-                f.max_capacity_in_bytes(), 16);
+                f.max_capacity_in_bytes(), 32);
         }
     }
 

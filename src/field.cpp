@@ -9,10 +9,10 @@
 //
 
 #include <boost/http_proto/field.hpp>
-#include <boost/core/detail/string_view.hpp>
 #include <boost/assert.hpp>
-#include <algorithm>
+#include <boost/core/detail/string_view.hpp>
 #include <array>
+#include <cstdint>
 #include <cstring>
 #include <ostream>
 
@@ -552,7 +552,7 @@ get_field_table() noexcept
 } // detail
 
 core::string_view
-to_string(field f)
+to_string(field f) noexcept
 {
     auto const& v = detail::get_field_table();
     BOOST_ASSERT(static_cast<unsigned>(f) < v.size());

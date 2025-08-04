@@ -18,12 +18,39 @@
 namespace boost {
 namespace http_proto {
 
+/** Writes a message body to a file.
+
+    This class implements the @ref sink interface,
+    enabling message bodies to be written directly
+    to a file. It is typically used with @ref parser
+    to handle large payloads efficiently.
+
+    @par Example
+    @code
+    file f;
+    system::error_code ec;
+    f.open("example.zip", file_mode::write_new, ec);
+    if(ec.failed())
+        throw system::system_error(ec);
+    parser.set_body<file_sink>(std::move(f));
+    @endcode
+
+    @see
+        @ref file,
+        @ref parser,
+        @ref sink.
+*/
 class file_sink
     : public sink
 {
     file f_;
 
 public:
+    /** Constructor.
+
+        @param f An open @ref file object that
+        will receive the body data.
+    */
     BOOST_HTTP_PROTO_DECL
     explicit
     file_sink(file&& f) noexcept;
@@ -31,9 +58,13 @@ public:
     file_sink() = delete;
     file_sink(file_sink const&) = delete;
 
+    /** Constructor.
+    */
     BOOST_HTTP_PROTO_DECL
     file_sink(file_sink&&) noexcept;
 
+    /** Destructor.
+    */
     BOOST_HTTP_PROTO_DECL
     ~file_sink();
 

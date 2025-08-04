@@ -16,12 +16,13 @@ namespace http_proto {
 
 void
 response_base::
-set_impl(
+set_start_line_impl(
     http_proto::status sc,
     unsigned short si,
     core::string_view rs,
     http_proto::version v)
 {
+    // TODO: check validity
     auto const vs = to_string(v);
     auto const new_prefix =
         vs.size() + 1 + // HTTP-version SP

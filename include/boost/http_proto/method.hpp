@@ -17,7 +17,7 @@
 namespace boost {
 namespace http_proto {
 
-/** HTTP request methods
+/** HTTP request methods.
 
     Each item corresponds to a particular method string
     used in HTTP request messages.
@@ -131,24 +131,32 @@ enum class method : char
 
     If the string does not match a known request method,
     @ref method::unknown is returned.
+
+    @param s The string representing a request method.
 */
 BOOST_HTTP_PROTO_DECL
 method
 string_to_method(
     core::string_view s);
 
-/// Return the string for a method enum.
+/** Return the string for a method enum.
+
+    @param v The method to use.
+*/
 BOOST_HTTP_PROTO_DECL
 core::string_view
 to_string(method v);
 
-/// Write the text for a method enum to an output stream.
-inline
+/** Write the string for a method enum to an output stream.
+
+    @return A reference to the output stream.
+
+    @param os The output stream to write to.
+
+    @param v The method to use.
+*/
 std::ostream&
-operator<<(std::ostream& os, method m)
-{
-    return os << to_string(m);
-}
+operator<<(std::ostream& os, method v);
 
 } // http_proto
 } // boost

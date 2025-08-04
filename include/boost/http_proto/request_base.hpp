@@ -18,7 +18,12 @@
 namespace boost {
 namespace http_proto {
 
-/** Provides message metadata for HTTP requests
+/** Mixin for modifiing HTTP requests.
+
+    @see
+        @ref message_base,
+        @ref request,
+        @ref static_request.
 */
 class request_base
     : public message_base
@@ -31,27 +36,6 @@ class request_base
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(detail::kind::request)
-    {
-    }
-
-    request_base(std::size_t storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::request,
-            storage_size)
-    {
-    }
-
-    request_base(
-        std::size_t storage_size,
-        std::size_t max_storage_size)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::request,
-            storage_size,
-            max_storage_size)
     {
     }
 
@@ -74,46 +58,51 @@ class request_base
     request_base(
         detail::header const& ph,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
-        , message_base(ph, storage, storage_size)
+        , message_base(ph, storage, cap)
     {
     }
 
 public:
     request_base(
         char* storage,
-        std::size_t storage_size) noexcept
+        std::size_t cap) noexcept
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(
-            detail::kind::request, storage, storage_size)
+            detail::kind::request, storage, cap)
     {
     }
 
     request_base(
         core::string_view s,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
         , message_base(
-            detail::kind::request, storage, storage_size, s)
+            detail::kind::request, storage, cap, s)
     {
     }
 
     request_base(
         request_view const& other,
         char* storage,
-        std::size_t storage_size)
+        std::size_t cap)
         : fields_view_base(
             &this->fields_base::h_)
-        , message_base(*other.ph_, storage, storage_size)
+        , message_base(*other.ph_, storage, cap)
     {
     }
 
-    /** Return a read-only view to the request
+    /** Conversion.
+
+        @see
+            @ref request_view.
+
+        @return A view of the request.
     */
     operator request_view() const noexcept
     {
@@ -126,7 +115,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Return the method as an integral constant
+    /** Return the method as a name constant.
 
         If the method returned is equal to
         @ref method::unknown, the method may
@@ -139,7 +128,7 @@ public:
         return ph_->req.method;
     }
 
-    /** Return the method as a string
+    /** Return the method as a string.
     */
     core::string_view
     method_text() const noexcept
@@ -149,7 +138,7 @@ public:
             ph_->req.method_len);
     }
 
-    /** Return the request-target string
+    /** Return the request-target string.
     */
     core::string_view
     target() const noexcept
@@ -160,106 +149,200 @@ public:
             ph_->req.target_len);
     }
 
-    /** Return the HTTP-version
-    */
-    http_proto::version
-    version() const noexcept
-    {
-        return ph_->version;
-    }
-
     //--------------------------------------------
     //
     // Modifiers
     //
     //--------------------------------------------
 
-    /** Set the method of the request to the enum
+    /** Set the method of the request to the enum.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param m The method to set.
     */
     void
     set_method(
         http_proto::method m)
     {
-        set_impl(
+        set_start_line_impl(
             m,
             to_string(m),
             target(),
             version());
     }
 
-    /** Set the method of the request to the string
+    /** Set the method of the request to the string.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param s A string view representing the
+        method to set.
     */
     void
     set_method(
         core::string_view s)
     {
-        set_impl(
+        set_start_line_impl(
             string_to_method(s),
             s,
             target(),
             version());
     }
 
-    /** Set the target string of the request
+    /** Set the target string of the request.
 
         This function sets the request-target.
         The caller is responsible for ensuring
         that the string passed is syntactically
         valid.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param s A string view representing the
+        target to set.
     */
     void
     set_target(
         core::string_view s)
     {
-        set_impl(
+        set_start_line_impl(
             ph_->req.method,
             method_text(),
             s,
             version());
     }
 
-    /** Set the HTTP version of the request
+    /** Set the HTTP version of the request.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param v The version to set.
     */
     void
     set_version(
         http_proto::version v)
     {
-        set_impl(
+        set_start_line_impl(
             ph_->req.method,
             method_text(),
             target(),
             v);
     }
 
-    /** Set the method, target, and version of the request
+    /** Set the method, target, and version of the request.
 
         This is more efficient than setting the
         properties individually.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param m The method to set.
+
+        @param t A string view representing the
+        target to set.
+
+        @param v The version to set.
     */
     void
     set_start_line(
         http_proto::method m,
         core::string_view t,
-        http_proto::version v)
+        http_proto::version v =
+            http_proto::version::http_1_1)
     {
-        set_impl(m, to_string(m), t, v);
+        set_start_line_impl(m, to_string(m), t, v);
     }
 
-    /** Set the method, target, and version of the request
+    /** Set the method, target, and version of the request.
 
         This is more efficient than setting the
         properties individually.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown on invalid input.
+        Exception thrown if max capacity exceeded.
+
+        @throw system_error
+        Input is invalid.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param m A string view representing the
+        method to set.
+
+        @param t A string view representing the
+        target to set.
+
+        @param v The version to set.
     */
     void
     set_start_line(
         core::string_view m,
         core::string_view t,
-        http_proto::version v)
+        http_proto::version v =
+            http_proto::version::http_1_1)
     {
-        set_impl(string_to_method(m), m, t, v);
+        set_start_line_impl(string_to_method(m), m, t, v);
     }
 
-    /** Set the Expect header
+    /** Set the `Expect: 100-continue` header.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param b If `true` sets `Expect: 100-continue`
+        header otherwise erase it.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -268,7 +351,7 @@ public:
 private:
     BOOST_HTTP_PROTO_DECL
     void
-    set_impl(
+    set_start_line_impl(
         http_proto::method m,
         core::string_view ms,
         core::string_view t,

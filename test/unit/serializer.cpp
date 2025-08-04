@@ -11,7 +11,6 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/response.hpp>
-#include <boost/http_proto/string_body.hpp>
 
 #include <boost/buffers/const_buffer.hpp>
 #include <boost/buffers/copy.hpp>
@@ -67,9 +66,16 @@ struct serializer_test
 
     struct faulty_source : source
     {
-        faulty_source(system::error_code ec)
+        faulty_source(
+            system::error_code ec)
             : ec_{ ec }
         {
+        }
+
+        bool
+        is_done() const
+        {
+            return is_done_;
         }
 
         results
@@ -577,12 +583,25 @@ struct serializer_test
             install_serializer_service(ctx, {});
             serializer sr(ctx);
 
-            sr.start<faulty_source>(
+            auto& source = sr.start<faulty_source>(
                 res, system::error_code(4224, system::system_category()));
 
             auto rs = sr.prepare();
             BOOST_TEST(rs.has_error());
             BOOST_TEST_EQ(rs.error().value(), 4224);
+            BOOST_TEST(source.is_done());
+            BOOST_TEST(sr.is_done() == false);
+            BOOST_TEST_THROWS(
+                sr.prepare(),
+                std::logic_error);
+            BOOST_TEST_THROWS(
+                sr.start(res),
+                std::logic_error);
+            // reset faulty state and serialize a new message
+            sr.reset();
+            BOOST_TEST(sr.is_done() == true);
+            sr.start(res);
+            BOOST_TEST(sr.is_done() == false);
         }
 
         // source chunked
@@ -946,6 +965,19 @@ struct serializer_test
     }
 
     void
+    testOverConsume()
+    {
+        rts::context ctx;
+        install_serializer_service(ctx, {});
+        serializer sr(ctx);
+        request req;
+        sr.start(req);
+        auto cbs = sr.prepare().value();
+        sr.consume(buffers::size(cbs) + 1);
+        BOOST_TEST(sr.is_done());
+    }
+
+    void
     run()
     {
         testSyntax();
@@ -954,6 +986,7 @@ struct serializer_test
         testOutput();
         testExpect100Continue();
         testStreamErrors();
+        testOverConsume();
     }
 };
 

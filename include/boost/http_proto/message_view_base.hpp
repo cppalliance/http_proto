@@ -18,7 +18,20 @@
 namespace boost {
 namespace http_proto {
 
-/** Provides message metadata for requests and responses
+/** Provides read-only access to common metadata
+    in HTTP request and response messages.
+
+    This type is useful for accessing common
+    properties shared by request and response
+    messages.
+
+    @see
+        @ref message_base,
+        @ref response_view,
+        @ref request_view,
+        @ref metadata,
+        @ref response_parser,
+        @ref request_parser.
 */
 class message_view_base
     : public virtual fields_view_base
@@ -49,7 +62,7 @@ public:
     //
     //--------------------------------------------
 
-    /** Return the type of payload of this message
+    /** Return the type of payload of this message.
     */
     auto
     payload() const noexcept ->
@@ -58,11 +71,14 @@ public:
         return ph_->md.payload;
     }
 
-    /** Return the payload size
+    /** Return the payload size.
 
         When @ref payload returns @ref payload::size,
         this function returns the number of octets
         in the actual message payload.
+
+        @return The number of octets in the
+        actual message payload.
     */
     std::uint64_t
     payload_size() const noexcept
@@ -72,7 +88,8 @@ public:
         return ph_->md.payload_size;
     }
 
-    /** Return true if semantics indicate connection persistence
+    /** Return true if semantics indicate
+        connection persistence.
     */
     bool
     keep_alive() const noexcept
@@ -80,7 +97,7 @@ public:
         return ph_->keep_alive();
     }
 
-    /** Return metadata about the message
+    /** Return metadata about the message.
     */
     auto
     metadata() const noexcept ->
@@ -96,6 +113,14 @@ public:
     chunked() const noexcept
     {
         return ph_->md.transfer_encoding.is_chunked;
+    }
+
+    /** Return the HTTP-version.
+    */
+    http_proto::version
+    version() const noexcept
+    {
+        return ph_->version;
     }
 };
 

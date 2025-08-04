@@ -14,6 +14,7 @@
 
 namespace boost {
 namespace http_proto {
+namespace implementation_defined {
 
 auto
 upgrade_protocol_rule_t::
@@ -44,5 +45,6 @@ parse(
     return t;
 }
 
+} // implementation_defined
 } // http_proto
 } // boost

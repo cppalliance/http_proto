@@ -19,39 +19,32 @@
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
-
-/** Identifies the payload type of a message
+/** Identifies the payload type of a message.
 */
 enum class payload
 {
-    /**
-      * This message has no payload
+    /** This message has no payload.
     */
-    none
+    none,
 
-    /**
-      * The payload is unknown due to errors
+    /** The payload is unknown due to errors.
     */
-    ,error
+    error,
 
-    /**
-      * This message has a known payload size
+    /** This message has a known payload size.
     */
-    ,size
+    size,
 
-    /**
-      * This message contains a chunked payload
+    /** This message contains a chunked payload.
     */
-    ,chunked
+    chunked,
 
-    /**
-      * The payload for this message continues until EOF
+    /** The payload for this message continues until EOF.
     */
-    ,to_eof
+    to_eof
 };
 
-/** Standard content-codings for HTTP message bodies
+/** Standard content-codings for HTTP message bodies.
 */
 enum class content_coding
 {
@@ -66,33 +59,31 @@ enum class content_coding
     zstd,
 };
 
-//------------------------------------------------
-
-/** Metadata about a request or response
+/** Metadata about a request or response.
 */
 struct metadata
 {
-    /** Metadata for the Connection field
+    /** Metadata for the Connection field.
     */
     struct connection_t
     {
-        /** Error status of Connection
+        /** Error status of Connection.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
-        /** true if a close token is present
+        /** true if a close token is present.
         */
         bool close = false;
 
-        /** true if a keep-alive token is present
+        /** true if a keep-alive token is present.
         */
         bool keep_alive = false;
 
-        /** true if an upgrade token is present
+        /** true if an upgrade token is present.
         */
         bool upgrade = false;
 
@@ -119,15 +110,15 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Metadata for the Content-Encoding field
+    /** Metadata for the Content-Encoding field.
     */
     struct content_encoding_t
     {
-        /** Error status of Content-Encoding
+        /** Error status of Content-Encoding.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
@@ -155,19 +146,19 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Metadata for the Content-Length field
+    /** Metadata for the Content-Length field.
     */
     struct content_length_t
     {
-        /** Error status of Content-Length
+        /** Error status of Content-Length.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
-        /** The value as an integer
+        /** The value as an integer.
 
             This is only valid when ec does
             not hold a failure, and when
@@ -194,19 +185,19 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Metadata for the Expect field
+    /** Metadata for the Expect field.
     */
     struct expect_t
     {
-        /** Error status of Expect
+        /** Error status of Expect.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
-        /** True if Expect is 100-continue
+        /** True if Expect is 100-continue.
         */
         bool is_100_continue = false;
 
@@ -229,19 +220,19 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Metadata for the Transfer-Encoding field
+    /** Metadata for the Transfer-Encoding field.
     */
     struct transfer_encoding_t
     {
-        /** Error status of Content-Length
+        /** Error status of Content-Length.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
-        /** True if valid and chunked is specified last
+        /** True if valid and chunked is specified last.
         */
         bool is_chunked = false;
 
@@ -264,19 +255,19 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Metadata for Upgrade field
+    /** Metadata for Upgrade field.
     */
     struct upgrade_t
     {
-        /** Error status of Upgrade
+        /** Error status of Upgrade.
         */
         system::error_code ec;
 
-        /** The total number of fields
+        /** The total number of fields.
         */
         std::size_t count = 0;
 
-        /** True if websocket appears at least once
+        /** True if websocket appears at least once.
         */
         bool websocket = false;
 
@@ -299,7 +290,7 @@ struct metadata
 
     //--------------------------------------------
 
-    /** True if payload is manually specified
+    /** True if payload is manually specified.
 
         This flag is used to allow the caller
         to resolve problems with non-compliant
@@ -307,12 +298,12 @@ struct metadata
     */
     bool payload_override = false;
 
-    /** The type of payload
+    /** The type of payload.
     */
     http_proto::payload payload =
         http_proto::payload::none;
 
-    /** The size of the payload if known
+    /** The size of the payload if known.
 
         This is only valid when @ref payload
         equals @ref http_proto::payload::size.
@@ -349,7 +340,7 @@ struct metadata
 
     //--------------------------------------------
 
-    /** Constructor
+    /** Constructor.
     */
     constexpr metadata() = default;
 };

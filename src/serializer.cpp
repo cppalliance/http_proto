@@ -239,7 +239,7 @@ private:
 
 } // namespace
 
-//------------------------------------------------
+namespace detail {
 
 class serializer_service
     : public rts::service
@@ -274,13 +274,17 @@ public:
     }
 };
 
+} // detail
+
+//------------------------------------------------
+
 void
 install_serializer_service(
     rts::context& ctx,
     serializer::config const& cfg)
 {
     ctx.make_service<
-        serializer_service>(cfg);
+        detail::serializer_service>(cfg);
 }
 
 //------------------------------------------------
@@ -294,6 +298,7 @@ serializer::
 serializer(
     serializer&& other) noexcept
     : ctx_(other.ctx_)
+    , svc_(other.svc_)
     , ws_(std::move(other.ws_))
     , filter_(other.filter_)
     , buf_gen_(other.buf_gen_)
@@ -302,16 +307,21 @@ serializer(
     , in_(other.in_)
     , prepped_(other.prepped_)
     , tmp_(other.tmp_)
-    , st_(other.st_)
+    , state_(other.state_)
+    , style_(other.style_)
     , chunk_header_len_(other.chunk_header_len_)
     , more_input_(other.more_input_)
-    , is_done_(other.is_done_)
-    , is_header_done_(other.is_header_done_)
     , is_chunked_(other.is_chunked_)
     , needs_exp100_continue_(other.needs_exp100_continue_)
     , filter_done_(other.filter_done_)
 {
-    other.is_done_ = true;
+    // TODO: make state a class type and default
+    // move ctor and assignment.
+    
+    // TODO: use an indirection for stream
+    // interface so it stays valid after move.
+
+    other.state_ = state::start;
 }
 
 serializer&
@@ -320,6 +330,7 @@ operator=(
     serializer&& other) noexcept
 {
     ctx_ = other.ctx_;
+    svc_ = other.svc_;
     ws_ = std::move(other.ws_);
     filter_ = other.filter_;
     buf_gen_ = other.buf_gen_;
@@ -328,16 +339,15 @@ operator=(
     in_ = other.in_;
     prepped_ = other.prepped_;
     tmp_ = other.tmp_;
-    st_ = other.st_;
+    state_ = other.state_;
+    style_ = other.style_;
     chunk_header_len_ = other.chunk_header_len_;
     more_input_ = other.more_input_;
-    is_done_ = other.is_done_;
-    is_header_done_ = other.is_header_done_;
     is_chunked_ = other.is_chunked_;
     needs_exp100_continue_ = other.needs_exp100_continue_;
     filter_done_ = other.filter_done_;
 
-    other.is_done_ = true;
+    other.state_ = state::start;
 
     return *this;
 }
@@ -345,9 +355,9 @@ operator=(
 serializer::
 serializer(const rts::context& ctx)
     : ctx_(&ctx)
-    , ws_(ctx_->get_service<
-        serializer_service>().space_needed)
-    , is_done_(true)
+    , svc_(&ctx_->get_service<
+        detail::serializer_service>())
+    , ws_(svc_->space_needed)
 {
 }
 
@@ -356,7 +366,7 @@ serializer::
 reset() noexcept
 {
     ws_.clear();
-    is_done_ = true;
+    state_ = state::start;
 }
 
 //------------------------------------------------
@@ -367,13 +377,13 @@ prepare() ->
     system::result<const_buffers_type>
 {
     // Precondition violation
-    if(is_done_)
+    if(state_ < state::header)
         detail::throw_logic_error();
 
     // Expect: 100-continue
     if(needs_exp100_continue_)
     {
-        if(!is_header_done_)
+        if(!is_header_done())
             return const_buffers_type(
                 prepped_.begin(),
                 1); // limit to header
@@ -386,7 +396,7 @@ prepare() ->
 
     if(!filter_)
     {
-        switch(st_)
+        switch(style_)
         {
         case style::empty:
             break;
@@ -436,7 +446,8 @@ prepare() ->
 
             if(rs.ec.failed())
             {
-                is_done_ = true;
+                ws_.clear();
+                state_ = state::reset;
                 return rs.ec;
             }
 
@@ -450,7 +461,7 @@ prepare() ->
         }
 
         case style::stream:
-            if(out_.size() == 0 && is_header_done_ && more_input_)
+            if(out_.size() == 0 && is_header_done() && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
             break;
@@ -458,7 +469,7 @@ prepare() ->
     }
     else // filter
     {
-        switch(st_)
+        switch(style_)
         {
         case style::empty:
         {
@@ -473,7 +484,8 @@ prepare() ->
 
             if(rs.ec.failed())
             {
-                is_done_ = true;
+                ws_.clear();
+                state_ = state::reset;
                 return rs.ec;
             }
 
@@ -504,9 +516,11 @@ prepare() ->
                         out_prepare()),
                     { tmp_, {} },
                     more_input_);
+
                 if(rs.ec.failed())
                 {
-                    is_done_ = true;
+                    ws_.clear();
+                    state_ = state::reset;
                     return rs.ec;
                 }
 
@@ -536,7 +550,8 @@ prepare() ->
                         in_.prepare(in_.capacity()));
                     if(rs.ec.failed())
                     {
-                        is_done_ = true;
+                        ws_.clear();
+                        state_ = state::reset;
                         return rs.ec;
                     }
                     if(rs.finished)
@@ -552,7 +567,8 @@ prepare() ->
 
                 if(rs.ec.failed())
                 {
-                    is_done_ = true;
+                    ws_.clear();
+                    state_ = state::reset;
                     return rs.ec;
                 }
 
@@ -584,7 +600,8 @@ prepare() ->
 
             if(rs.ec.failed())
             {
-                is_done_ = true;
+                ws_.clear();
+                state_ = state::reset;
                 return rs.ec;
             }
 
@@ -597,7 +614,7 @@ prepare() ->
                 out_finish();
             }
 
-            if(out_.size() == 0 && is_header_done_ && more_input_)
+            if(out_.size() == 0 && is_header_done() && more_input_)
                 BOOST_HTTP_PROTO_RETURN_EC(
                     error::need_data);
             break;
@@ -605,7 +622,7 @@ prepare() ->
         }
     }
 
-    prepped_.reset(!is_header_done_);
+    prepped_.reset(!is_header_done());
     const auto cbp = out_.data();
     if(cbp[0].size() != 0)
         prepped_.append(cbp[0]);
@@ -623,10 +640,10 @@ consume(
     std::size_t n)
 {
     // Precondition violation
-    if(is_done_)
+    if(state_ < state::header)
         detail::throw_logic_error();
 
-    if(!is_header_done_)
+    if(!is_header_done())
     {
         const auto header_remain =
             prepped_[0].size();
@@ -637,7 +654,7 @@ consume(
         }
         n -= header_remain;
         prepped_.consume(header_remain);
-        is_header_done_ = true;
+        state_ = state::body;
     }
 
     prepped_.consume(n);
@@ -682,14 +699,13 @@ start_init(
     message_view_base const& m)
 {
     // Precondition violation
-    if(!is_done_)
+    if(state_ != state::start)
         detail::throw_logic_error();
 
     // TODO: to hold strong exception guarantee
-    // `is_done_` should be set to true if an
+    // `state_` should be set to state::start if an
     // exception is thrown during the start operation.
-    is_done_ = false;
-    is_header_done_ = false;
+    state_ = state::header;
 
     // VFALCO what do we do with
     // metadata error code failures?
@@ -701,44 +717,41 @@ start_init(
     // Transfer-Encoding
     is_chunked_ = md.transfer_encoding.is_chunked;
 
-    auto& cfg = ctx_->get_service<
-        serializer_service>().cfg;
-
     // Content-Encoding
     switch (md.content_encoding.coding)
     {
     case content_coding::deflate:
-        if(!cfg.apply_deflate_encoder)
+        if(!svc_->cfg.apply_deflate_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
-            cfg.zlib_comp_level,
-            cfg.zlib_window_bits,
-            cfg.zlib_mem_level);
+            svc_->cfg.zlib_comp_level,
+            svc_->cfg.zlib_window_bits,
+            svc_->cfg.zlib_mem_level);
         filter_done_ = false;
         break;
 
     case content_coding::gzip:
-        if(!cfg.apply_gzip_encoder)
+        if(!svc_->cfg.apply_gzip_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
-            cfg.zlib_comp_level,
-            cfg.zlib_window_bits + 16,
-            cfg.zlib_mem_level);
+            svc_->cfg.zlib_comp_level,
+            svc_->cfg.zlib_window_bits + 16,
+            svc_->cfg.zlib_mem_level);
         filter_done_ = false;
         break;
 
     case content_coding::br:
-        if(!cfg.apply_brotli_encoder)
+        if(!svc_->cfg.apply_brotli_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<brotli_filter>(
             ctx_,
             ws_,
-            cfg.brotli_comp_quality,
-            cfg.brotli_comp_window);
+            svc_->cfg.brotli_comp_quality,
+            svc_->cfg.brotli_comp_window);
         filter_done_ = false;
         break;
 
@@ -755,7 +768,7 @@ start_empty(
     message_view_base const& m)
 {
     start_init(m);
-    st_ = style::empty;
+    style_ = style::empty;
 
     prepped_ = make_array(
         1 + // header
@@ -779,7 +792,7 @@ start_buffers(
         buffers::mutable_buffer;
 
     // start_init() already called 
-    st_ = style::buffers;
+    style_ = style::buffers;
 
     const auto buffers_max = (std::min)(
         std::size_t{ 16 },
@@ -905,7 +918,7 @@ start_source(
     message_view_base const& m)
 {
     // start_init() already called 
-    st_ = style::source;
+    style_ = style::source;
 
     prepped_ = make_array(
         1 + // header
@@ -931,7 +944,7 @@ start_stream(
         stream
 {
     start_init(m);
-    st_ = style::stream;
+    style_ = style::stream;
 
     prepped_ = make_array(
         1 + // header
@@ -949,6 +962,13 @@ start_stream(
     prepped_[0] = { m.ph_->cbuf, m.ph_->size };
     more_input_ = true;
     return stream{ *this };
+}
+
+bool
+serializer::
+is_header_done() const noexcept
+{
+    return state_ == state::body;
 }
 
 void
@@ -1097,7 +1117,7 @@ commit(std::size_t n)
 void
 serializer::
 stream::
-close()
+close() noexcept
 {
     if(!is_open())
         return; // no-op;

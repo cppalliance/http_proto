@@ -66,15 +66,6 @@ public:
                 BOOST_TEST(res.capacity_in_bytes() == 64);
             }
 
-            // same buffer
-            {
-                static_response<64> r1(status::ok);
-                static_response<64> r2(status::ok);
-                BOOST_TEST(r1.buffer().data() == r2.buffer().data());
-                BOOST_TEST(r1.capacity_in_bytes() == 64);
-                BOOST_TEST(r2.capacity_in_bytes() == 64);
-            }
-
             // different buffer
             {
                 static_response<64> r1(status::not_found);
@@ -92,16 +83,6 @@ public:
                 check(res, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(res.capacity_in_bytes() == 64);
             }
-
-            // same buffer
-            {
-                static_response<64> r1;
-                static_response<64> r2;
-                BOOST_TEST(
-                    r1.buffer().data() == r2.buffer().data());
-                BOOST_TEST(r1.capacity_in_bytes() == 64);
-                BOOST_TEST(r2.capacity_in_bytes() == 64);
-            }
         }
 
         // static_response(static_response<64> const&)
@@ -111,8 +92,9 @@ public:
                 static_response<64> r2(r1);
                 check(r1, status::ok, 200, "OK", version::http_1_1);
                 check(r2, status::ok, 200, "OK", version::http_1_1);
-                BOOST_TEST(
-                    r1.buffer().data() == r2.buffer().data());
+                BOOST_TEST_NE(
+                    r1.buffer().data(),
+                    r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 64);
                 BOOST_TEST(r2.capacity_in_bytes() == 64);
             }
@@ -285,12 +267,12 @@ public:
     void
     testInitialSize()
     {
-        static_response<16> f;
+        static_response<32> f;
         BOOST_TEST_THROWS(
             f.append(field::host, "www.google.com"),
             std::length_error);
         BOOST_TEST_EQ(
-            f.max_capacity_in_bytes(), 16);
+            f.max_capacity_in_bytes(), 32);
     }
 
     void

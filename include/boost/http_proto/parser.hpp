@@ -34,15 +34,13 @@
 namespace boost {
 namespace http_proto {
 
-#ifndef BOOST_HTTP_PROTO_DOCS
-class parser_service;
+// Forward declaration
 class request_parser;
 class response_parser;
-class context;
 namespace detail {
+class parser_service;
 class filter;
 } // detail
-#endif
 
 /** A parser for HTTP/1 messages.
 
@@ -74,102 +72,15 @@ class filter;
     The parser is strict. Any malformed inputs
     according to the documented HTTP ABNFs is treated
     as an unrecoverable error.
+
+    @see
+        @ref response_parser,
+        @ref request_parser.
 */
 class parser
 {
 public:
-    /** Parser configuration settings.
-    */
-    struct config_base
-    {
-        /** Configurable limits for HTTP headers.
-        */
-        header_limits headers;
-
-        /** Largest allowed size for a content body.
-
-            The size of the body is measured
-            after removing any transfer encodings,
-            including a chunked encoding.
-        */
-        std::uint64_t body_limit = 64 * 1024;
-
-
-        /** True if parser can decode br Content-Encoding.
-
-            The @ref rts::brotli::decode_service must already be
-            installed thusly, or else an exception
-            is thrown.
-        */
-        bool apply_brotli_decoder = false;
-
-        /** True if parser can decode deflate Content-Encoding.
-
-            The @ref rts::zlib::inflate_service must already be
-            installed thusly, or else an exception
-            is thrown.
-        */
-        bool apply_deflate_decoder = false;
-
-        /** True if parser can decode gzip Content-Encoding.
-
-            The @ref zrts::lib::inflate_service must already be
-            installed thusly, or else an exception
-            is thrown.
-        */
-        bool apply_gzip_decoder = false;
-
-        /** Specifies the zlib windows bits 9..15.
-
-            The windows bits must be greater than or equal to
-            the windows bits value used for compression.
-
-            If a compressed message has a larger window size,
-            parsing ends with @ref zlib::error::data_err instead
-            of allocating a bigger window.
-        */
-        int zlib_window_bits = 15;
-
-        /** Minimum space for payload buffering.
-
-            This value controls the following
-            settings:
-
-            @li The smallest allocated size of
-                the buffers used for reading
-                and decoding the payload.
-
-            @li The lowest guaranteed size of
-                an in-place body.
-
-            @li The largest size used to reserve
-                space in dynamic buffer bodies
-                when the payload size is not
-                known ahead of time.
-
-            This cannot be zero.
-        */
-        std::size_t min_buffer = 4096;
-
-        /** Largest permissible output size in prepare.
-
-            This cannot be zero.
-        */
-        std::size_t max_prepare = std::size_t(-1);
-
-        /** Space to reserve for type-erasure.
-
-            This space is used for the following
-            purposes:
-
-            @li Storing an instance of the user-provided
-                @ref sink objects.
-
-            @li Storing an instance of the user-provided
-                ElasticBuffer.
-        */
-        std::size_t max_type_erase = 1024;
-    };
+    struct config_base;
 
     /** The type of buffer returned from @ref prepare.
     */
@@ -189,13 +100,18 @@ public:
 
     /** Constructor (deleted)
     */
+    // TODO
     parser(parser&&) = delete;
 
     /** Assignment (deleted)
     */
+    // TODO
     parser& operator=(parser&&) = delete;
 
     /** Destructor.
+
+        Any views or buffers obtained from this
+        parser become invalid.
     */
     BOOST_HTTP_PROTO_DECL
     ~parser();
@@ -206,18 +122,26 @@ public:
     //
     //--------------------------------------------
 
-    /** Returns `true` if a complete header has been
+    /** Return true if a complete header has been
         parsed.
+
+        @see
+            @ref response_parser::get,
+            @ref request_parser::get.
     */
     BOOST_HTTP_PROTO_DECL
     bool
     got_header() const noexcept;
 
-    /** Returns `true` if a complete message has been
+    /** Return true if a complete message has been
         parsed.
 
-        Calling @ref start prepares the parser
-        to process the next message in the stream.
+        Calling @ref start prepares the parser to
+        process the next message in the stream.
+
+        @see
+            @ref body,
+            @ref start.
     */
     BOOST_HTTP_PROTO_DECL
     bool
@@ -230,7 +154,7 @@ public:
     bool
     got_some() const noexcept;
 
-    /** Returns `true` if the end of the stream was reached.
+    /** Return true if the end of the stream was reached.
 
         The end of the stream is encountered
         when @ref commit_eof was called and there
@@ -264,10 +188,10 @@ public:
     void
     reset() noexcept;
 
-    /** Prepare for a new message on the stream.
+    /** Prepare for a new message.
 
         This function must be called before parsing
-        a new message in a stream.
+        a new message.
 
         @par Preconditions
         This function may only be called if it is the
@@ -281,13 +205,20 @@ public:
     /** Prepares the input buffer.
 
         The returned buffer sequence will either
-        reference the internal buffer or, if available,
+        reference the internal buffer or, if in use,
         the attached elastic buffer.
+
+        A call to @ref commit is required to
+        report the number of written bytes used,
+        if any.
 
         @par Preconditions
         This function may only be called after a call
         to @ref parse completes with an error code
         equal to @ref condition::need_more_input.
+
+        @par Exception Safety
+        Strong guarantee.
 
         @return A non-empty mutable buffer.
 
@@ -305,21 +236,23 @@ public:
         is required to process the input.
 
         @par Preconditions
-        @li `n` must be less than or equal to
-            the size of the buffer returned
-            by @ref prepare.
-        @li No previous call to @ref commit.
-        @li No previous call to @ref commit_eof.
+        @li `n <= buffers::size(this->prepare())`
+        @li No previous call to @ref commit
+        @li No previous call to @ref commit_eof
 
         @par Postconditions
         All buffer sequences previously obtained  
         from @ref prepare are invalidated.
 
+        @par Exception Safety
+        Strong guarantee.
+
         @param n The number of bytes written to
         the input buffer.
 
         @see
-            @ref parse.
+            @ref parse,
+            @ref prepare.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -332,8 +265,12 @@ public:
         All buffer sequences previously obtained
         from @ref prepare are invalidated.
 
+        @par Exception Safety
+        Strong guarantee.
+
         @see
-            @ref parse.
+            @ref parse,
+            @ref prepare.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -393,26 +330,53 @@ public:
 
         The parser takes ownership of the `eb` object and
         will destroy it when one of the following occurs:
-        @li The message body is completely received, or
-        @li An unrecoverable parsing error occurs, or
-        @li The parser is destroyed.
+        @li `this->is_complete() == true`
+        @li An unrecoverable parsing error occurs
+        @li The parser is destroyed
+
+        @par Example
+        @code
+        response_parser pr{ctx};
+        pr.start();
+
+        read_header(stream, pr);
+
+        std::string body;
+        pr.set_body(buffers::string_buffer{&body});
+
+        read(stream, pr);
+        @endcode
 
         @par Preconditions
-        @li Header has been completely parsed.
-        @li No body is already attached.
+        @li `this->got_header() == true`
+        @li No previous call to @ref set_body
+
+        @par Constraints
+        @code
+        buffers::is_dynamic_buffer<ElasticBuffer>::value == true
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+        Exceptions thrown if there is insufficient
+        internal buffer to emplace the type-erased
+        object of the ElasticBuffer.
+
+        @throw std::length_error if there is
+        insufficient internal buffer space to to
+        emplace the type-erased object of the
+        ElasticBuffer.
+
+        @param eb The elastic buffer.
 
         @see
             @ref parse.
     */
     template<class ElasticBuffer>
-#ifndef BOOST_HTTP_PROTO_DOCS
     typename std::enable_if<
         ! detail::is_reference_wrapper<
             ElasticBuffer>::value &&
         ! is_sink<ElasticBuffer>::value>::type
-#else
-    void
-#endif
     set_body(ElasticBuffer&& eb);
 
     /** Attach a reference to an elastic buffer body.
@@ -429,13 +393,45 @@ public:
         Ownership is not transferred; the caller must
         ensure that the lifetime of the object
         reference by `eb` extends until:
-        @li The message body is completely received, or
-        @li An unrecoverable parsing error occurs, or
-        @li The parser is destroyed.
+        @li `this->is_complete() == true`
+        @li An unrecoverable parsing error occurs
+        @li The parser is destroyed
+
+        @par Example
+        @code
+        response_parser pr{ctx};
+        pr.start();
+
+        read_header(stream, pr);
+
+        std::string body;
+        buffers::string_buffer buffer(&body);
+        pr.set_body(std::ref(buffer));
+
+        read(stream, pr);
+        @endcode
 
         @par Preconditions
-        @li Header has been completely parsed.
-        @li No body is already attached.
+        @li `this->got_header() == true`
+        @li No previous call to @ref set_body
+
+        @par Constraints
+        @code
+        buffers::is_dynamic_buffer<ElasticBuffer>::value == true
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+        Exceptions thrown if there is insufficient
+        internal buffer to emplace the type-erased
+        object of the ElasticBuffer.
+
+        @throw std::length_error if there is
+        insufficient internal buffer space to to
+        emplace the type-erased object of the
+        ElasticBuffer.
+
+        @param eb A reference to an elastic buffer.
 
         @see
             @ref parse.
@@ -455,13 +451,48 @@ public:
         IO layer call when reading the body.
 
         The parser destroys Sink object when:
-        @li The message body is completely received, or
-        @li An unrecoverable parsing error occurs, or
-        @li The parser is destroyed.
+        @li `this->is_complete() == true`
+        @li An unrecoverable parsing error occurs
+        @li The parser is destroyed
+
+        @par Example
+        @code
+        response_parser pr{ctx};
+        pr.start();
+
+        read_header(stream, pr);
+
+        http_proto::file file;
+        system::error_code ec;
+        file.open("./index.html", file_mode::write_new, ec);
+        if(ec.failed())
+            return ec;
+
+        pr.set_body<file_body>(std::move(file));
+
+        read(stream, pr);
+        @endcode
 
         @par Preconditions
-        @li Header has been completely parsed.
-        @li No body is already attached.
+        @li `this->got_header() == true`
+        @li No previous call to @ref set_body
+
+        @par Constraints
+        @code
+        is_sink<Sink>::value == true
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+        Exceptions thrown if there is insufficient
+        internal buffer to emplace the Sink object.
+
+        @throw std::length_error if there is
+        insufficient internal buffer space to to
+        emplace the Sink object.
+
+        @param args Arguments to be passed to the
+        `Sink` constructor.
 
         @return A reference to the costructed Sink object.
 
@@ -470,28 +501,32 @@ public:
     */
     template<
         class Sink,
-        class... Args
-#ifndef BOOST_HTTP_PROTO_DOCS
-        ,class = typename std::enable_if<
-            is_sink<Sink>::value>::type
-#endif
-    >
+        class... Args,
+        class = typename std::enable_if<
+            is_sink<Sink>::value>::type>
     Sink&
     set_body(Args&&... args);
 
-    /** Sets the maximum allowed body size for
-        the current message.
+    /** Sets a maximum body size for the current message.
 
-        This overrides the default value specified by
-        @ref config_base::body_limit, but only for
-        the current message. The limit automatically
-        resets to the default for the next message.
+        This value overrides the default limit
+        defined by @ref config_base::body_limit,
+        but applies *only* to the current message.
+        The limit is automatically reset to the
+        default for subsequent messages.
+
+        @par Exception Safety
+        Strong guarantee.
 
         @par Preconditions
-        This function can be called after
-        @ref start and before parsing the body.
+        Can be called after @ref start and before
+        parsing the message body. It can be called
+        right after `this->got_header() == true`.
 
-        @param n The new body size limit in bytes.  
+        @param n The body size limit in bytes.
+
+        @see
+            @ref config_base::body_limit.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -499,15 +534,37 @@ public:
 
     /** Return the available body data.
 
-        The returned buffer span may become invalid if
+        The returned buffer may become invalid if
         any modifying member function is called.
 
+        @par Example
+        @code
+        request_parser pr{ctx};
+        pr.start();
+
+        read_header(stream, pr);
+
+        while(!pr.is_complete())
+        {
+            read_some(stream, pr);
+            buffers::const_buffer_span cbs = pr.pull_body();
+            // Do something with cbs ...
+            pr.consume_body(buffer::buffer_size(cbs));
+        }
+        @endcode
+
         @par Preconditions
-        This function can be called only after the
-        header is fully parsed and no body is attached.
+        @li `this->got_header() == true`
+        @li No previous call to @ref set_body
+
+        @par Exception Safety
+        Strong guarantee.
 
         @return An instance of @ref const_buffers_type
-        containing the parsed body data.  
+        containing the parsed body data.
+
+        @see
+            @ref consume_body.
     */
     BOOST_HTTP_PROTO_DECL
     const_buffers_type
@@ -516,11 +573,18 @@ public:
     /** Consumes bytes from the available body data.
 
         @par Preconditions
-        `n` must be less than or equal to the size of
-        the buffer returned by @ref pull_body.
+        @code
+        this->got_header() == true && n <= buffers::size(this->pull_body())
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
 
         @param n The number of bytes to consume from
         the available body data.
+
+        @see
+            @ref pull_body.
     */
     BOOST_HTTP_PROTO_DECL
     void
@@ -528,17 +592,39 @@ public:
 
     /** Return the complete body as a contiguous buffer.
 
-        @par Preconditions
-        @li The message has been fully parsed.
-        @li No body is currently attached.
-        @li @ref consume_body has not been called before.
+        This function is useful when the entire
+        parsed message fits within the internal
+        buffer allocated by the parser.
 
-        @return A contiguous character buffer containing
-        the complete body data.
+        @par Example
+        @code
+        request_parser pr{ctx};
+        pr.start();
+
+        read_header(stream, pr);
+        // Read the entire body
+        read(stream, pr);
+
+        string_view body = pr.body();
+        @endcode
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @par Preconditions
+        @li `this->is_complete() == true`
+        @li No previous call to @ref set_body
+        @li No previous call to @ref consume_body
+
+        @return A string view to the complete body
+        data.
+
+        @see
+            @ref is_complete.
     */
     BOOST_HTTP_PROTO_DECL
     core::string_view
-    body() const noexcept;
+    body() const;
 
     /** Return any leftover data
 
@@ -547,6 +633,11 @@ public:
         For example on a CONNECT request there
         could be additional protocol-dependent
         data that we want to retrieve.
+
+        @return A string view to leftover data.
+
+        @see
+            @ref metadata::upgrade, @ref metadata::connection.
     */
     // VFALCO rename to get_leftovers()?
     BOOST_HTTP_PROTO_DECL
@@ -558,7 +649,9 @@ private:
     friend class response_parser;
 
     BOOST_HTTP_PROTO_DECL
-    parser(rts::context&, detail::kind);
+    parser(
+        rts::context&,
+        detail::kind);
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -605,7 +698,7 @@ private:
     };
 
     rts::context& ctx_;
-    parser_service& svc_;
+    detail::parser_service& svc_;
 
     detail::workspace ws_;
     detail::header h_;
@@ -639,7 +732,119 @@ private:
 
 //------------------------------------------------
 
+/** Parser configuration settings.
+*/
+struct parser::config_base
+{
+    /** Configurable limits for HTTP headers.
+    */
+    header_limits headers;
+
+    /** Maximum allowed size of the content body.
+
+        Measured after decoding.
+    */
+    std::uint64_t body_limit = 64 * 1024;
+
+    /** Enable Brotli Content-Encoding decoding.
+
+        Requires `boost::rts::brotli::decode_service` to be
+        installed, otherwise an exception is thrown.
+    */
+    bool apply_brotli_decoder = false;
+
+    /** Enable Deflate Content-Encoding decoding.
+
+        Requires `boost::zlib::inflate_service` to be
+        installed, otherwise an exception is thrown.
+    */
+    bool apply_deflate_decoder = false;
+
+    /** Enable Gzip Content-Encoding decoding.
+
+        Requires `boost::zlib::inflate_service` to be
+        installed, otherwise an exception is thrown.
+    */
+    bool apply_gzip_decoder = false;
+
+    /** Zlib window bits (9–15).
+
+        Must be >= the value used during compression.
+        Larger windows improve decompression at the cost
+        of memory. If a larger window is required than
+        allowed, decoding fails with
+        `rts::zlib::error::data_err`.
+    */
+    int zlib_window_bits = 15;
+
+    /** Minimum space for payload buffering.
+
+        This value controls the following
+        settings:
+
+        @li The smallest allocated size of
+            the buffers used for reading
+            and decoding the payload.
+
+        @li The lowest guaranteed size of
+            an in-place body.
+
+        @li The largest size used to reserve
+            space in dynamic buffer bodies
+            when the payload size is not
+            known ahead of time.
+
+        This cannot be zero.
+    */
+    std::size_t min_buffer = 4096;
+
+    /** Largest permissible output size in prepare.
+
+        This cannot be zero.
+    */
+    std::size_t max_prepare = std::size_t(-1);
+
+    /** Space to reserve for type-erasure.
+
+        This space is used for the following
+        purposes:
+
+        @li Storing an instance of the user-provided
+            @ref sink objects.
+
+        @li Storing an instance of the user-provided
+            ElasticBuffer.
+    */
+    std::size_t max_type_erase = 1024;
+};
+
 /** Install the parser service.
+
+    @par Example
+    @code
+    // default configuration settings for response_parser
+    install_parser_service(ctx, response_parser::config{});
+
+    response_parser pr(ctx);
+    @endcode
+
+    @par Exception Safety
+    Strong guarantee.
+
+    @throw std::invalid_argument If the service is
+    already installed on the context.
+
+    @param ctx Reference to the context on which
+    the service should be installed.
+
+    @param cfg Configuration settings for the
+    @ref response_parser or @ref request_parser.
+
+    @see
+        @ref response_parser::config,
+        @ref response_parser,
+        @ref request_parser::config,
+        @ref request_parser.
 */
 BOOST_HTTP_PROTO_DECL
 void

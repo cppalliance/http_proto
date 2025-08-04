@@ -10,7 +10,6 @@
 #ifndef BOOST_HTTP_PROTO_HPP
 #define BOOST_HTTP_PROTO_HPP
 
-#include <boost/http_proto/deflate.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields.hpp>
@@ -39,7 +38,6 @@
 #include <boost/http_proto/static_request.hpp>
 #include <boost/http_proto/static_response.hpp>
 #include <boost/http_proto/status.hpp>
-#include <boost/http_proto/string_body.hpp>
 #include <boost/http_proto/version.hpp>
 
 #include <boost/http_proto/rfc/combine_field_values.hpp>

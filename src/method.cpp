@@ -11,7 +11,6 @@
 #include <boost/http_proto/detail/sv.hpp>
 #include <boost/throw_exception.hpp>
 #include <ostream>
-#include <stdexcept>
 
 namespace boost {
 namespace http_proto {
@@ -294,6 +293,15 @@ string_to_method(
     }
 
     return method::unknown;
+}
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    method v)
+{
+    os << to_string(v);
+    return os;
 }
 
 } // http_proto

@@ -46,7 +46,7 @@ public:
         // response(status, version)
         {
             {
-                response res(status::ok);
+                response res;
                 check(res, status::ok, 200, "OK", version::http_1_1);
                 BOOST_TEST(res.capacity_in_bytes() == 0);
                 BOOST_TEST_EQ(res.buffer(), "HTTP/1.1 200 OK\r\n\r\n");
@@ -67,8 +67,8 @@ public:
 
             // same buffer
             {
-                response r1(status::ok);
-                response r2(status::ok);
+                response r1;
+                response r2;
                 BOOST_TEST(r1.buffer().data() == r2.buffer().data());
                 BOOST_TEST(r1.capacity_in_bytes() == 0);
                 BOOST_TEST(r2.capacity_in_bytes() == 0);
@@ -385,7 +385,7 @@ public:
             std::size_t init = 4096;
             std::size_t cap = init;
 
-            response f(init);
+            response f(init, cap);
             check(f, init, cap);
         }
 
@@ -395,18 +395,6 @@ public:
 
             response f(init, cap);
             check(f, init, cap);
-        }
-
-        {
-            std::size_t init = 4096;
-
-            response f(init);
-            response f2(2 * init);
-            check(f, init, init);
-
-            // f = f2;
-            // check(f, init, 2 * init);
-            // check(f2, 2 * init, 2 * init);
         }
 
         {
@@ -436,10 +424,10 @@ public:
 
         {
             BOOST_TEST_THROWS(
-                response(1024, 0), std::length_error);
+                response(1024, 0), std::logic_error);
 
             BOOST_TEST_THROWS(
-                response(1024, 512), std::length_error);
+                response(1024, 512), std::logic_error);
         }
     }
 

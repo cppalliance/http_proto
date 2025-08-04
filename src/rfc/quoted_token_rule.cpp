@@ -18,7 +18,7 @@
 namespace boost {
 namespace http_proto {
 
-namespace detail {
+namespace {
 
 struct obs_text
 {
@@ -55,10 +55,10 @@ constexpr auto qpchars =
     grammar::lut_chars(grammar::vchars) +
     grammar::lut_chars(obs_text{}) + '\t' + ' ';
 
-} // detail
+} // namespace
 
-//------------------------------------------------
 
+namespace implementation_defined {
 auto
 quoted_token_rule_t::
 parse(
@@ -87,7 +87,7 @@ parse(
     {
         auto it1 = it;
         it = grammar::find_if_not(
-            it, end, detail::qdtext_chars);
+            it, end, qdtext_chars);
         if(it == end)
         {
             BOOST_HTTP_PROTO_RETURN_EC(
@@ -107,7 +107,7 @@ parse(
             BOOST_HTTP_PROTO_RETURN_EC(
                 grammar::error::need_more);
         }
-        if(! detail::qpchars(*it))
+        if(! qpchars(*it))
         {
             BOOST_HTTP_PROTO_RETURN_EC(
                 grammar::error::syntax);
@@ -119,5 +119,6 @@ parse(
         it0, ++it - it0), n);
 }
 
+} // implementation_defined
 } // http_proto
 } // boost

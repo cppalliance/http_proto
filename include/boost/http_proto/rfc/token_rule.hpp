@@ -35,15 +35,11 @@ namespace http_proto {
     @li <a href="https://datatracker.ietf.org/doc/html/rfc5234#appendix-B.1"
         >B.1. Core Rules (rfc5234)</a>
 */
-constexpr grammar::lut_chars tchars =
-#ifdef BOOST_HTTP_PROTO_DOCS
-    __see_below__
-#else
+BOOST_INLINE_CONSTEXPR grammar::lut_chars tchars =
     "!#$%&'*+-.^_`|~"
     "0123456789"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
-#endif
     ;
 
 /** Match a token
@@ -62,7 +58,7 @@ constexpr grammar::lut_chars tchars =
     token           = 1*tchar
     @endcode
 */
-constexpr auto token_rule = grammar::token_rule( tchars );
+BOOST_INLINE_CONSTEXPR auto token_rule = grammar::token_rule( tchars );
 
 } // http_proto
 } // boost

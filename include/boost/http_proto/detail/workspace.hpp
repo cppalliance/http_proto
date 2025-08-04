@@ -95,9 +95,9 @@ public:
 
     /** Allocate internal storage.
 
-        @throws std::logic_error this->size() > 0
+        @throw std::logic_error this->size() > 0
 
-        @throws std::invalid_argument n == 0
+        @throw std::invalid_argument n == 0
     */
     void
     allocate(
@@ -127,7 +127,7 @@ public:
 
     /** Convert unused storage to reserved storage.
 
-        @throws std::invalid_argument n >= this->size()
+        @throw std::invalid_argument n >= this->size()
     */
     BOOST_HTTP_PROTO_DECL
     unsigned char*

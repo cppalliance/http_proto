@@ -17,49 +17,7 @@
 namespace boost {
 namespace http_proto {
 
-/** Rule for a comma-delimited list of elements
-
-    This rule defines a list containing
-    at least n and at most m of Element,
-    each separated by at least one comma
-    and optional whitespace.
-
-    @par BNF
-    @code
-    #element       => [ 1#element ]
-    1#element      => element *( OWS "," OWS element )
-    <n>#<m>element => element <n-1>*<m-1>( OWS "," OWS element )
-    @endcode
-
-    Senders must emit compliant values, but
-    receivers should accept values generated
-    with the legacy production rules:
-
-    @par Legacy BNF
-    @code
-    #element    => [ ( "," / element ) *( OWS "," [ OWS element ] ) ]
-
-    1#element   => *( "," OWS ) element *( OWS "," [ OWS element ] )
-    @endcode
-
-    @tparam R The rule to use for elements
-    @tparam N The minimum number of elements, which may be zero
-    @tparam M The maximum number of elements.
-
-    @par Specification
-    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-7"
-        >5.6.1. Lists (#rule ABNF Extension) (rfc7230)</a>
-*/
-#ifdef BOOST_HTTP_PROTO_DOCS
-template<class Rule>
-constexpr
-__implementation_defined__
-list_rule(
-    Rule element,
-    std::size_t N = 0,
-    std::size_t M =
-        std::size_t(-1)) noexcept;
-#else
+namespace implementation_defined {
 template<class Rule>
 struct list_rule_t
     : private empty_value<Rule>
@@ -92,20 +50,57 @@ private:
     std::size_t n_;
     std::size_t m_;
 };
+} // implementation_defined
 
+/** Rule for a comma-delimited list of elements
+
+    This rule defines a list containing
+    at least n and at most m of Element,
+    each separated by at least one comma
+    and optional whitespace.
+
+    @par BNF
+    @code
+    #element       => [ 1#element ]
+    1#element      => element *( OWS "," OWS element )
+    <n>#<m>element => element <n-1>*<m-1>( OWS "," OWS element )
+    @endcode
+
+    Senders must emit compliant values, but
+    receivers should accept values generated
+    with the legacy production rules:
+
+    @par Legacy BNF
+    @code
+    #element    => [ ( "," / element ) *( OWS "," [ OWS element ] ) ]
+
+    1#element   => *( "," OWS ) element *( OWS "," [ OWS element ] )
+    @endcode
+
+    @tparam Rule The rule type.
+
+    @param r The rule to use for elements.
+    @param n The minimum number of elements, which may be zero.
+    @param m The maximum number of elements.
+
+    @return A rule that matches the list.
+
+    @par Specification
+    @li <a href="https://datatracker.ietf.org/doc/html/rfc7230#section-7"
+        >5.6.1. Lists (#rule ABNF Extension) (rfc7230)</a>
+*/
 template<class Rule>
 constexpr
 auto
 list_rule(
     Rule const& r,
-    std::size_t N = 0,
-    std::size_t M =
+    std::size_t n = 0,
+    std::size_t m =
         std::size_t(-1)) noexcept ->
-    list_rule_t<Rule>
+    implementation_defined::list_rule_t<Rule>
 {
-    return list_rule_t<Rule>(r, N, M);
+    return implementation_defined::list_rule_t<Rule>(r, n, m);
 }
-#endif
 
 } // http_proto
 } // boost

@@ -20,7 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-/** An algorithm for consuming buffers of data.
+/** An interface for consuming buffers of data.
 
     This interface abstracts the consumption of
     a finite stream of data, passed by reading
@@ -30,6 +30,11 @@ namespace http_proto {
     @par Thread Safety
     Non-const member functions may not be
     called concurrently on the same instance.
+
+    @see
+        @ref file_sink,
+        @ref source,
+        @ref parser.
 */
 struct BOOST_SYMBOL_VISIBLE
     sink
@@ -63,9 +68,9 @@ struct BOOST_SYMBOL_VISIBLE
         error if any occurred.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li This is the first call to @ref write,
-            or the last value of `more` was `true`.
+        @li This is the first call to `write`, or
+        the last value of `more` was `true`.
+        @li buffer_size(bs) != 0
 
         @par Postconditions
         @code
@@ -75,12 +80,12 @@ struct BOOST_SYMBOL_VISIBLE
         @return The result of the operation.
 
         @param bs The buffers to use.
-            Each buffer in the sequence will be
-            consumed completely before the next
-            buffer is accessed.
+        Each buffer in the sequence will be
+        consumed completely before the next
+        buffer is accessed.
 
         @param more `true` if there will be one
-            or more subsequent calls to @ref write.
+        or more subsequent calls to @ref write.
     */
     template<class ConstBufferSequence>
     results
@@ -96,11 +101,7 @@ struct BOOST_SYMBOL_VISIBLE
         return write_impl(bs, more);
     }
 
-#ifdef BOOST_HTTP_PROTO_DOCS
 protected:
-#else
-private:
-#endif
     /** Derived class override.
 
         This pure virtual function is called by
@@ -112,20 +113,24 @@ private:
         buffers, and the error if any occurred.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li This is the first call to @ref on_write,
-            or the last value of `more` was `true`.
+        @li This is the first call to `write`, or
+        the last value of `more` was `true`.
+        @li buffer_size(bs) != 0
+
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.bytes == buffer_size(bs)
+        @endcode
 
         @return The result of the operation.
 
-        @param b The buffer to use.
-            If `more` is true then the results
-            must indicate that the buffer was
-            consumed completely, or that an error
-            occurred.
+        @param b The buffer to cosume.
+        The result must indicate that the buffer
+        was consumed completely, or that an
+        error occurred.
 
         @param more `true` if there will be one
-            or more subsequent calls to @ref write.
+        or more subsequent calls.
     */
     virtual
     results
@@ -144,23 +149,30 @@ private:
         buffers, and the error if any occurred.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li This is the first call to @ref on_write,
-            or the last value of `more` was `true`.
+        @li This is the first call to `write`, or
+        the last value of `more` was `true`.
+        @li
+            @code
+            buffer_size(bs) != 0
+            @endcode
+
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.bytes == buffer_size(bs)
+        @endcode
 
         @return The result of the operation.
 
         @param bs The buffer sequence to use.
-            Each buffer in the sequence must
-            be completely consumed before data
-            is consumed from the next buffer.
-            If `more` is true then the results
-            must indicate that the buffer was
-            consumed completely, or that an error
-            occurred.
+        Each buffer in the sequence must
+        be completely consumed before data
+        is consumed from the next buffer.
+        The result must indicate that the buffer
+        was consumed completely, or that an
+        error occurred.
 
         @param more `true` if there will be one
-            or more subsequent calls to @ref write.
+        or more subsequent calls.
     */
     BOOST_HTTP_PROTO_DECL
     virtual
@@ -201,21 +213,18 @@ private:
 
 //------------------------------------------------
 
-/** Metafunction which determines if T is a sink
+/** A type trait that determines if T is a sink.
+
+    @tparam T The type to check.
 
     @see
         @ref sink.
 */
-#ifdef BOOST_HTTP_PROTO_DOCS
-template<class T>
-using is_sink = __see_below__;
-#else
 template<class T>
 using is_sink =
     std::is_convertible<
         typename std::decay<T>::type*,
         sink*>;
-#endif
 
 } // http_proto
 } // boost

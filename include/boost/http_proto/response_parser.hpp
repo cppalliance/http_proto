@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2019 Vinnie Falco (vinnie.falco@gmail.com)
+// Copyright (c) 2025 Mohammad Nejati
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,20 +16,26 @@
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/status.hpp>
-#include <cstddef>
 
 namespace boost {
 namespace http_proto {
 
+/// @copydoc parser
+/// @brief A parser for HTTP/1 responses.
+/// @see @ref request_parser.
 class response_parser
     : public parser
 {
 public:
-    /** Configuration settings for parsing requests
+    /** Configuration settings for response_parser.
+
+        @see
+            @ref install_parser_service,
+            @ref response_parser.
     */
     struct config : config_base
     {
-        /** Constructor
+        /** Constructor.
         */
         config() noexcept
         {
@@ -36,11 +43,51 @@ public:
         }
     };
 
-    /** Constructor
+    /** Constructor.
+
+        Constructs a parser that uses the @ref
+        config parameters installed on the
+        provided `ctx`.
+
+        The parser will attempt to allocate
+        the required space on startup, with the
+        amount depending on the @ref config
+        parameters, and will not perform any
+        further allocations, except for Brotli
+        decoder instances, if enabled.
+
+        Depending on which compression algorithms
+        are enabled in the @ref config, the parser
+        will attempt to access the corresponding
+        decoder services on the same `ctx`.
+
+        @par Example
+        @code
+        response_parser sr(ctx);
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Calls to allocate may throw.
+
+        @param ctx Context from which the
+        response_parser will access registered
+        services. The caller is responsible for
+        ensuring that the provided ctx remains
+        valid for the lifetime of the response_parser.
+
+        @see
+            @ref install_parser_service,
+            @ref config.
     */
     BOOST_HTTP_PROTO_DECL
     explicit
     response_parser(rts::context& ctx);
+
+    /// @copydoc parser::~parser
+    ~response_parser() = default;
 
     /** Prepare for the next message on the stream.
 
@@ -60,9 +107,7 @@ public:
         been received.
 
         @par Preconditions
-
-        This function must called before any calls to parse
-        the current message.
+        No previous call to @ref start for the new message.
 
         @see
             https://datatracker.ietf.org/doc/html/rfc7230#section-3.3
@@ -75,14 +120,21 @@ public:
 
     /** Return a read-only view to the parsed response headers.
 
-        The returned view becomes invalid after calling 
-        @ref start or @ref reset.
+        The returned view remains valid until:
+        @li @ref start or @ref start_head_response is called
+        @li @ref reset is called
+        @li The parser instance is destroyed
 
         @par Preconditions
-        This function can be called only after the
-        header is fully parsed.
+        @code
+        this->got_header() == true
+        @endcode
 
-        @return A read-only view to the parsed response headers.
+        @par Exception Safety
+        Strong guarantee.
+
+        @see
+            @ref got_header.
     */
     BOOST_HTTP_PROTO_DECL
     response_view

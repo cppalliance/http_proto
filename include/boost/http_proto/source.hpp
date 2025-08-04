@@ -20,7 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-/** An algorithm for producing buffers of data.
+/** An interface for producing buffers of data.
 
     This interface abstracts the production of
     a finite stream of data, returned by writing
@@ -30,6 +30,11 @@ namespace http_proto {
     @par Thread Safety
     Non-const member functions may not be
     called concurrently on the same instance.
+
+    @see
+        @ref file_source,
+        @ref sink,
+        @ref serializer.
 */
 struct BOOST_SYMBOL_VISIBLE
     source
@@ -69,15 +74,21 @@ struct BOOST_SYMBOL_VISIBLE
         remaining in the source.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li There is more data remaining.
+        @code
+        buffer_size(bs) != 0
+        @endcode
+
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.finished == true || rv.bytes == buffer_size(bs)
+        @endcode
 
         @return The result of the operation.
 
         @param bs The buffers to use.
-            Each buffer in the sequence will
-            be filled completely before data
-            is placed in the next buffer.
+        Each buffer in the sequence will
+        be filled completely before data
+        is placed in the next buffer.
     */
     template<class MutableBufferSequence>
     results
@@ -91,11 +102,7 @@ struct BOOST_SYMBOL_VISIBLE
         return read_impl(bs);
     }
 
-#ifdef BOOST_HTTP_PROTO_DOCS
 protected:
-#else
-private:
-#endif
     /** Derived class override.
 
         This pure virtual function is called by
@@ -108,17 +115,26 @@ private:
         and a `bool` indicating whether or
         not there is more data remaining
         in the source.
+        The implementation must fill the
+        provided buffer completly, report
+        an error or set `rv.finished` to true.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li There is more data remaining.
+        @code
+        buffer_size(bs) != 0
+        @endcode
+
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.finished == true || rv.bytes == buffer_size(bs)
+        @endcode
 
         @return The result of the operation.
 
         @param b The buffer to use.
-            If this is not filled completely,
-            then the result must indicate failure
-            or that no more data remains (or both).
+        If this is not filled completely,
+        then the result must indicate failure
+        or that no more data remains (or both).
     */
     virtual
     results
@@ -139,19 +155,25 @@ private:
         in the source.
 
         @par Preconditions
-        @li @ref init was called, and
-        @li There is more data remaining.
+        @code
+        buffer_size(bs) != 0
+        @endcode
+
+        @par Postconditions
+        @code
+        rv.ec.failed() == true || rv.finished == true || rv.bytes == buffer_size(bs)
+        @endcode
 
         @return The result of the operation.
 
         @param bs The buffer sequence to use.
-            Each buffer in the sequence must
-            be filled completely before data
-            is placed in the next buffer.
-            If the buffers are not filled
-            completely, then the result must
-            indicate failure or that no more
-            data remains (or both).
+        Each buffer in the sequence must
+        be filled completely before data
+        is placed in the next buffer.
+        If the buffers are not filled
+        completely, then the result must
+        indicate failure or that no more
+        data remains (or both).
     */
     BOOST_HTTP_PROTO_DECL
     virtual
@@ -181,21 +203,18 @@ private:
 
 //------------------------------------------------
 
-/** Metafunction which determines if T is a source
+/** A type trait that determines if T is a source.
+
+    @tparam T The type to check.
 
     @see
         @ref source.
 */
-#ifdef BOOST_HTTP_PROTO_DOCS
-template<class T>
-using is_source = __see_below__;
-#else
 template<class T>
 using is_source =
     std::is_convertible<
         typename std::decay<T>::type*,
         source*>;
-#endif
 
 } // http_proto
 } // boost

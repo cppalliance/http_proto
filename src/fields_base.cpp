@@ -290,7 +290,6 @@ prefix_op_t::
             self_.h_.cbuf + self_.h_.prefix,
             self_.h_.size - self_.h_.prefix);
 
-        self_.h_.cbuf = self_.h_.buf;
         self_.h_.size =
             self_.h_.size - self_.h_.prefix + new_prefix_;
         self_.h_.prefix = new_prefix_;
@@ -306,7 +305,8 @@ prefix_op_t::
 fields_base::
 fields_base(
     detail::kind k) noexcept
-    : fields_base(k, 0)
+    : fields_view_base(&h_)
+    , h_(k)
 {
 }
 
@@ -314,46 +314,10 @@ fields_base::
 fields_base(
     detail::kind k,
     char* storage,
-    std::size_t storage_size) noexcept
-    : fields_view_base(&h_)
-    , h_(k)
-    , static_storage_(true)
+    std::size_t cap) noexcept
+    : fields_base(
+        *detail::header::get_default(k), storage, cap)
 {
-    h_.buf = storage;
-    h_.cap = align_down(
-        storage,
-        storage_size,
-        alignof(detail::header::entry));
-    max_cap_ = h_.cap;
-}
-
-fields_base::
-fields_base(
-    detail::kind k,
-    std::size_t storage_size)
-    : fields_view_base(&h_)
-    , h_(k)
-{
-    if(storage_size != 0)
-    {
-        reserve_bytes(storage_size);
-        max_cap_ = h_.cap;
-    }
-}
-
-fields_base::
-fields_base(
-    detail::kind k,
-    std::size_t storage_size,
-    std::size_t max_storage_size)
-    : fields_view_base(&h_)
-    , h_(k)
-{
-    if(storage_size > max_storage_size)
-        detail::throw_length_error();
-
-    reserve_bytes(storage_size);
-    max_cap_ = max_storage_size;
 }
 
 // copy s and parse it
@@ -393,17 +357,17 @@ fields_base::
 fields_base(
     detail::kind k,
     char* storage,
-    std::size_t storage_size,
+    std::size_t cap,
     core::string_view s)
     : fields_view_base(&h_)
     , h_(detail::empty{k})
-    , static_storage_(true)
+    , external_storage_(true)
 {
     h_.cbuf = storage;
     h_.buf = storage;
     h_.cap = align_down(
         storage,
-        storage_size,
+        cap,
         alignof(detail::header::entry));
     max_cap_ = h_.cap;
 
@@ -459,22 +423,18 @@ fields_base::
 fields_base(
     detail::header const& h,
     char* storage,
-    std::size_t storage_size)
+    std::size_t cap)
     : fields_view_base(&h_)
     , h_(h.kind)
-    , static_storage_(true)
+    , external_storage_(true)
 {
+    h_.cbuf = storage;
     h_.buf = storage;
     h_.cap = align_down(
         storage,
-        storage_size,
+        cap,
         alignof(detail::header::entry));
     max_cap_ = h_.cap;
-
-    if(h.is_default())
-        return;
-
-    h_.cbuf = storage;
 
     if(detail::header::bytes_needed(
         h.size, h.count)
@@ -492,7 +452,7 @@ fields_base(
 fields_base::
 ~fields_base()
 {
-    if(h_.buf && !static_storage_)
+    if(h_.buf && !external_storage_)
         delete[] h_.buf;
 }
 
@@ -541,18 +501,28 @@ reserve_bytes(
 
 void
 fields_base::
-shrink_to_fit() noexcept
+shrink_to_fit()
 {
     if(detail::header::bytes_needed(
         h_.size, h_.count) >=
             h_.cap)
         return;
 
-    if(static_storage_)
+    if(external_storage_)
         return;
 
     fields_base tmp(h_);
     tmp.h_.swap(h_);
+}
+
+
+void
+fields_base::
+set_max_capacity_in_bytes(std::size_t n)
+{
+    if(n < h_.cap)
+        detail::throw_invalid_argument();
+    max_cap_ = n;
 }
 
 //------------------------------------------------
@@ -581,7 +551,7 @@ erase(
     auto const i0 = h_.find(id);
     if(i0 == h_.count)
         return 0;
-    return erase_all_impl(i0, id);
+    return erase_all(i0, id);
 }
 
 std::size_t
@@ -595,8 +565,8 @@ erase(
     auto const ft = h_.tab();
     auto const id = ft[i0].id;
     if(id == detail::header::unknown_field)
-        return erase_all_impl(i0, name);
-    return erase_all_impl(i0, id);
+        return erase_all(i0, name);
+    return erase_all(i0, id);
 }
 
 //------------------------------------------------
@@ -691,8 +661,6 @@ set(
             h_.size - pos1);
         *dest++ = '\r';
         *dest++ = '\n';
-
-        h_.cbuf = h_.buf;
     }
     {
         // update tab
@@ -756,10 +724,10 @@ set(
             // VFALCO missing overflow check
             reserve_bytes(n0 + n);
         }
-        erase_all_impl(i0, id);
+        erase_all(i0, id);
     }
 
-    insert_unchecked_impl(
+    insert_unchecked(
         id,
         to_string(id),
         rv->value,
@@ -806,11 +774,11 @@ set(
         // VFALCO simple algorithm but
         // costs one extra memmove
         if(id != detail::header::unknown_field)
-            erase_all_impl(i0, id);
+            erase_all(i0, id);
         else
-            erase_all_impl(i0, name);
+            erase_all(i0, name);
     }
-    insert_unchecked_impl(
+    insert_unchecked(
         string_to_field(name),
         name,
         rv->value,
@@ -836,10 +804,9 @@ copy_impl(
     auto const n =
         detail::header::bytes_needed(
             h.size, h.count);
-    if(n <= h_.cap && !h.is_default())
+    if(n <= h_.cap && (!h.is_default() || external_storage_))
     {
         // no realloc
-        h_.cbuf = h_.buf;
         h.assign_to(h_);
         h.copy_table(
             h_.buf + h_.cap);
@@ -850,17 +817,9 @@ copy_impl(
         return;
     }
 
-    if(static_storage_)
-    {
-        if(h.is_default())
-        {
-            h.assign_to(h_);
-            h_.cbuf = h.cbuf;
-            return;
-        }
-        // static storages cannot reallocate
+    // static storages cannot reallocate
+    if(external_storage_)
         detail::throw_length_error();
-    }
 
     fields_base tmp(h);
     tmp.h_.swap(h_);
@@ -868,7 +827,35 @@ copy_impl(
 
 void
 fields_base::
-insert_unchecked_impl(
+insert_impl(
+    optional<field> id,
+    core::string_view name,
+    core::string_view value,
+    std::size_t before,
+    system::error_code& ec)
+{
+    verify_field_name(name, ec);
+    if(ec.failed())
+        return;
+
+    auto rv = verify_field_value(value);
+    if(rv.has_error())
+    {
+        ec = rv.error();
+        return;
+    }
+
+    insert_unchecked(
+        id,
+        name,
+        rv->value,
+        before,
+        rv->has_obs_fold);
+}
+
+void
+fields_base::
+insert_unchecked(
     optional<field> id,
     core::string_view name,
     core::string_view value,
@@ -909,7 +896,6 @@ insert_unchecked_impl(
             h_.buf + pos + n,
             h_.buf + pos,
             h_.size - pos);
-        h_.cbuf = h_.buf;
     }
 
     // serialize
@@ -970,36 +956,6 @@ insert_unchecked_impl(
 
 void
 fields_base::
-insert_impl(
-    optional<field> id,
-    core::string_view name,
-    core::string_view value,
-    std::size_t before,
-    system::error_code& ec)
-{
-    verify_field_name(name, ec);
-    if(ec.failed())
-        return;
-
-    auto rv = verify_field_value(value);
-    if(rv.has_error())
-    {
-        ec = rv.error();
-        return;
-    }
-
-    insert_unchecked_impl(
-        id,
-        name,
-        rv->value,
-        before,
-        rv->has_obs_fold);
-}
-
-//------------------------------------------------
-
-void
-fields_base::
 raw_erase(
     std::size_t i) noexcept
 {
@@ -1020,13 +976,34 @@ raw_erase(
         offset_type>(h_.size - n);
 }
 
-//------------------------------------------------
+// erase n fields matching id
+// without updating metadata
+void
+fields_base::
+raw_erase_n(
+    field id,
+    std::size_t n) noexcept
+{
+    // iterate in reverse
+    auto e = &h_.tab()[h_.count];
+    auto const e0 = &h_.tab()[0];
+    while(n > 0)
+    {
+        BOOST_ASSERT(e != e0);
+        ++e; // decrement
+        if(e->id == id)
+        {
+            raw_erase(e0 - e);
+            --n;
+        }
+    }
+}
 
 // erase all fields with id
 // and update metadata
 std::size_t
 fields_base::
-erase_all_impl(
+erase_all(
     std::size_t i0,
     field id) noexcept
 {
@@ -1055,7 +1032,7 @@ erase_all_impl(
 // when id == detail::header::unknown_field
 std::size_t
 fields_base::
-erase_all_impl(
+erase_all(
     std::size_t i0,
     core::string_view name) noexcept
 {
@@ -1103,31 +1080,6 @@ length(
     return
         offset(i + 1) -
         offset(i);
-}
-
-//------------------------------------------------
-
-// erase n fields matching id
-// without updating metadata
-void
-fields_base::
-raw_erase_n(
-    field id,
-    std::size_t n) noexcept
-{
-    // iterate in reverse
-    auto e = &h_.tab()[h_.count];
-    auto const e0 = &h_.tab()[0];
-    while(n > 0)
-    {
-        BOOST_ASSERT(e != e0);
-        ++e; // decrement
-        if(e->id == id)
-        {
-            raw_erase(e0 - e);
-            --n;
-        }
-    }
 }
 
 } // http_proto

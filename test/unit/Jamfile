@@ -61,7 +61,6 @@ local SOURCES =
     static_request.cpp
     static_response.cpp
     status.cpp
-    string_body.cpp
     test_helpers.cpp
     version.cpp
     rfc/combine_field_values.cpp
