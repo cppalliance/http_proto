@@ -70,6 +70,8 @@ public:
     using const_buffers_type =
         buffers::const_buffer_span;
 
+    class stream;
+
     /** Serializer configuration settings.
     */
     struct config
@@ -159,27 +161,75 @@ public:
         std::size_t max_type_erase = 1024;
     };
 
-    class stream;
-
-    /** Destructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    ~serializer();
-
-    /** Constructor
-    */
-    BOOST_HTTP_PROTO_DECL
-    serializer(
-        serializer&&) noexcept;
-
-    /** Constructor
+    /** Constructor.
 
         @param ctx The serializer will access services
             registered with this context.
     */
     BOOST_HTTP_PROTO_DECL
     serializer(
-        rts::context& ctx);
+        const rts::context& ctx);
+
+    /** Constructor.
+
+        The states of `other` are transferred
+        to the newly constructed object,
+        which includes the allocated buffer.
+        After construction, the moved-from object
+        left in a valid but unspecified state.
+
+        Buffer sequences previously obtained
+        using @ref prepare or @ref stream::prepare
+        remain valid.
+
+        @par Postconditions
+        @code
+        other.is_done() == true
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @param other The serializer to move from.
+    */
+    BOOST_HTTP_PROTO_DECL
+    serializer(
+        serializer&& other) noexcept;
+
+    /** Assignment.
+
+        The states of `other` are transferred
+        `this`, which includes the allocated buffer.
+        The previous state of `this` are destroyed.
+        After assignment, the moved-from object
+        left in a valid but unspecified state.
+
+        @par Postconditions
+        @code
+        other.is_done() == true
+        @endcode
+
+        @par Complexity
+        Constant.
+
+        @par Exception Safety
+        Throws nothing.
+
+        @param other The serializer to assign from.
+        @return A reference to this object.
+    */
+    BOOST_HTTP_PROTO_DECL
+    serializer&
+    operator=(
+        serializer&& other) noexcept;
+
+    /** Destructor
+    */
+    BOOST_HTTP_PROTO_DECL
+    ~serializer();
 
     //--------------------------------------------
 
@@ -381,9 +431,7 @@ private:
         stream
     };
 
-    rts::context& ctx_;
-    serializer_service& svc_;
-
+    const rts::context* ctx_;
     detail::workspace ws_;
 
     detail::filter* filter_;

@@ -113,13 +113,13 @@ class zlib_filter
 
 public:
     zlib_filter(
-        rts::context& ctx,
+        const rts::context* ctx,
         http_proto::detail::workspace& ws,
         int comp_level,
         int window_bits,
         int mem_level)
         : zlib_filter_base(ws)
-        , svc_(ctx.get_service<rts::zlib::deflate_service>())
+        , svc_(ctx->get_service<rts::zlib::deflate_service>())
     {
         system::error_code ec = static_cast<rts::zlib::error>(svc_.init2(
             strm_,
@@ -179,11 +179,11 @@ class brotli_filter
 
 public:
     brotli_filter(
-        rts::context& ctx,
+        const rts::context* ctx,
         http_proto::detail::workspace&,
         std::uint32_t comp_quality,
         std::uint32_t comp_window)
-        : svc_(ctx.get_service<rts::brotli::encode_service>())
+        : svc_(ctx->get_service<rts::brotli::encode_service>())
     {
         // TODO: use custom allocator
         state_ = svc_.create_instance(nullptr, nullptr, nullptr);
@@ -292,13 +292,61 @@ serializer::
 
 serializer::
 serializer(
-    serializer&&) noexcept = default;
+    serializer&& other) noexcept
+    : ctx_(other.ctx_)
+    , ws_(std::move(other.ws_))
+    , filter_(other.filter_)
+    , buf_gen_(other.buf_gen_)
+    , source_(other.source_)
+    , out_(other.out_)
+    , in_(other.in_)
+    , prepped_(other.prepped_)
+    , tmp_(other.tmp_)
+    , st_(other.st_)
+    , chunk_header_len_(other.chunk_header_len_)
+    , more_input_(other.more_input_)
+    , is_done_(other.is_done_)
+    , is_header_done_(other.is_header_done_)
+    , is_chunked_(other.is_chunked_)
+    , needs_exp100_continue_(other.needs_exp100_continue_)
+    , filter_done_(other.filter_done_)
+{
+    other.is_done_ = true;
+}
+
+serializer&
+serializer::
+operator=(
+    serializer&& other) noexcept
+{
+    ctx_ = other.ctx_;
+    ws_ = std::move(other.ws_);
+    filter_ = other.filter_;
+    buf_gen_ = other.buf_gen_;
+    source_ = other.source_;
+    out_ = other.out_;
+    in_ = other.in_;
+    prepped_ = other.prepped_;
+    tmp_ = other.tmp_;
+    st_ = other.st_;
+    chunk_header_len_ = other.chunk_header_len_;
+    more_input_ = other.more_input_;
+    is_done_ = other.is_done_;
+    is_header_done_ = other.is_header_done_;
+    is_chunked_ = other.is_chunked_;
+    needs_exp100_continue_ = other.needs_exp100_continue_;
+    filter_done_ = other.filter_done_;
+
+    other.is_done_ = true;
+
+    return *this;
+}
 
 serializer::
-serializer(rts::context& ctx)
-    : ctx_(ctx)
-    , svc_(ctx.get_service<serializer_service>())
-    , ws_(svc_.space_needed)
+serializer(const rts::context& ctx)
+    : ctx_(&ctx)
+    , ws_(ctx_->get_service<
+        serializer_service>().space_needed)
     , is_done_(true)
 {
 }
@@ -609,8 +657,8 @@ consume(
     if(needs_exp100_continue_)
         return;
 
-    ws_.clear();
-    is_done_ = true;
+    // ready for next message
+    reset();
 }
 
 //------------------------------------------------
@@ -653,41 +701,44 @@ start_init(
     // Transfer-Encoding
     is_chunked_ = md.transfer_encoding.is_chunked;
 
+    auto& cfg = ctx_->get_service<
+        serializer_service>().cfg;
+
     // Content-Encoding
     switch (md.content_encoding.coding)
     {
     case content_coding::deflate:
-        if(!svc_.cfg.apply_deflate_encoder)
+        if(!cfg.apply_deflate_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
-            svc_.cfg.zlib_comp_level,
-            svc_.cfg.zlib_window_bits,
-            svc_.cfg.zlib_mem_level);
+            cfg.zlib_comp_level,
+            cfg.zlib_window_bits,
+            cfg.zlib_mem_level);
         filter_done_ = false;
         break;
 
     case content_coding::gzip:
-        if(!svc_.cfg.apply_gzip_encoder)
+        if(!cfg.apply_gzip_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
             ctx_,
             ws_,
-            svc_.cfg.zlib_comp_level,
-            svc_.cfg.zlib_window_bits + 16,
-            svc_.cfg.zlib_mem_level);
+            cfg.zlib_comp_level,
+            cfg.zlib_window_bits + 16,
+            cfg.zlib_mem_level);
         filter_done_ = false;
         break;
 
     case content_coding::br:
-        if(!svc_.cfg.apply_brotli_encoder)
+        if(!cfg.apply_brotli_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<brotli_filter>(
             ctx_,
             ws_,
-            svc_.cfg.brotli_comp_quality,
-            svc_.cfg.brotli_comp_window);
+            cfg.brotli_comp_quality,
+            cfg.brotli_comp_window);
         filter_done_ = false;
         break;
 

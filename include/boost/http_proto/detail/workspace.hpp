@@ -88,6 +88,11 @@ public:
     */
     workspace(workspace&&) noexcept;
 
+    /** Assignment.
+    */
+    workspace&
+    operator=(workspace&&) noexcept;
+
     /** Allocate internal storage.
 
         @throws std::logic_error this->size() > 0

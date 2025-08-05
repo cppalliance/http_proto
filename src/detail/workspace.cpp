@@ -11,6 +11,7 @@
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
+#include <utility>
 
 namespace boost {
 namespace http_proto {
@@ -46,7 +47,7 @@ workspace(
     workspace&& other) noexcept
     : begin_(other.begin_)
     , front_(other.front_)
-    , head_(other.end_)
+    , head_(other.head_)
     , back_(other.back_)
     , end_(other.end_)
 {
@@ -55,6 +56,25 @@ workspace(
     other.head_ = nullptr;
     other.back_ = nullptr;
     other.end_ = nullptr;
+}
+
+workspace&
+workspace::
+operator=(
+    workspace&& other) noexcept
+{
+    if(begin_)
+    {
+        clear();
+        delete[] begin_;
+        begin_ = nullptr;
+    }
+    std::swap(begin_, other.begin_);
+    std::swap(front_, other.front_);
+    std::swap(head_, other.head_);
+    std::swap(back_, other.back_);
+    std::swap(end_, other.end_);
+    return *this;
 }
 
 void
