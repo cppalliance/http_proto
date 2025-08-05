@@ -13,12 +13,13 @@
 #include <boost/http_proto/response.hpp>
 #include <boost/http_proto/string_body.hpp>
 
-#include <boost/buffers/copy.hpp>
-#include <boost/buffers/prefix.hpp>
-#include <boost/buffers/size.hpp>
 #include <boost/buffers/const_buffer.hpp>
+#include <boost/buffers/copy.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/mutable_buffer.hpp>
+#include <boost/buffers/prefix.hpp>
+#include <boost/buffers/size.hpp>
+#include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/rts/context.hpp>
 
@@ -28,10 +29,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
-#include <zlib.h>
-#endif
 
 namespace boost {
 namespace http_proto {
@@ -205,14 +202,86 @@ struct serializer_test
 
         sr.start_stream(res);
         sr.reset();
+    }
 
-#ifdef BOOST_HTTP_PROTO_HAS_ZLIB
-#if 0
-        serializer(65536, gzip_decoder);
-        serializer(65536, gzip_encoder);
-        serializer(65536, gzip_decoder, gzip_encoder);
-#endif
-#endif
+    void
+    testSpecialMembers()
+    {
+        rts::context ctx;
+        install_serializer_service(ctx, {});
+        response res;
+        res.set_chunked(true);
+
+        std::string expected = res.buffer();
+        // empty body final chunk
+        expected.append("0\r\n\r\n");
+
+        // serializer(serializer&&)
+        {
+            std::string message;
+            buffers::string_buffer buf(&message);
+            serializer sr1(ctx);
+            sr1.start(res);
+
+            // consume 5 bytes
+            {
+                auto cbs = sr1.prepare().value();
+                auto n = buffers::copy(buf.prepare(5), cbs);
+                sr1.consume(n);
+                buf.commit(n);
+                BOOST_TEST_EQ(n, 5);
+            }
+
+            serializer sr2(std::move(sr1));
+            BOOST_TEST(sr1.is_done());
+
+            // consume the reset from sr2
+            {
+                auto cbs = sr2.prepare().value();
+                auto n = buffers::copy(
+                    buf.prepare(buffers::size(cbs)),
+                    cbs);
+                sr2.consume(n);
+                buf.commit(n);
+            }
+
+            BOOST_TEST(sr2.is_done());
+            BOOST_TEST(message == expected);
+        }
+
+        // serializer& operator=(serializer&&)
+        {
+            std::string message;
+            buffers::string_buffer buf(&message);
+            serializer sr1(ctx);
+            sr1.start(res);
+    
+            // consume 5 bytes
+            {
+                auto cbs = sr1.prepare().value();
+                auto n = buffers::copy(buf.prepare(5), cbs);
+                sr1.consume(n);
+                buf.commit(n);
+                BOOST_TEST_EQ(n, 5);
+            }
+
+            serializer sr2(ctx);
+            sr2 = std::move(sr1);
+            BOOST_TEST(sr1.is_done());
+
+            // consume the reset from sr2
+            {
+                auto cbs = sr2.prepare().value();
+                auto n = buffers::copy(
+                    buf.prepare(buffers::size(cbs)),
+                    cbs);
+                sr2.consume(n);
+                buf.commit(n);
+            }
+
+            BOOST_TEST(sr2.is_done());
+            BOOST_TEST(message == expected);
+        }
     }
 
     //--------------------------------------------
@@ -880,6 +949,7 @@ struct serializer_test
     run()
     {
         testSyntax();
+        testSpecialMembers();
         testEmptyBody();
         testOutput();
         testExpect100Continue();
