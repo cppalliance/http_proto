@@ -86,8 +86,7 @@ write_crlf(
 {
     auto n = buffers::copy(
         mbs,
-        buffers::const_buffer(
-            "\r\n", 2));
+        buffers::const_buffer("\r\n", 2));
     ignore_unused(n);
     BOOST_ASSERT(n == 2);
 }
@@ -794,19 +793,21 @@ start_buffers(
     // start_init() already called 
     style_ = style::buffers;
 
-    const auto buffers_max = (std::min)(
-        std::size_t{ 16 },
-        buf_gen_->count());
-
     if(!filter_)
     {
+        // limit the batch size. any remaining buffers will
+        // be appended to incrementally in subsequent calls
+        // to the prepare function.
+        const auto batch_size = (std::min)(
+            std::size_t{ 16 },
+            buf_gen_->count());
+
+        // none-chunked
         if(!is_chunked_)
         {
-            // no filter and no chunked
-
             prepped_ = make_array(
-                1 +            // header
-                buffers_max ); // buffers
+                1 +          // header
+                batch_size); // buffers
 
             prepped_[0] = { m.ph_->cbuf, m.ph_->size };
             std::generate(
@@ -817,9 +818,8 @@ start_buffers(
             return;
         }
 
-        // no filter and chunked
-
-        if(buf_gen_->is_empty())
+        // chunked with length 0
+        if(batch_size == 0)
         {
             prepped_ = make_array(
                 1 + // header
@@ -838,8 +838,8 @@ start_buffers(
             return;
         }
 
-        // Write entire buffers as a single chunk
-        // since total size is known
+        // write all buffers as a single chunk, since
+        // the total size is known in advance.
 
         auto const buf_size = buf_gen_->size();
         auto const header_len = 
@@ -871,7 +871,7 @@ start_buffers(
         prepped_ = make_array(
             1 + // header
             1 + // chunk header
-            buffers_max + // buffers
+            batch_size + // buffers
             1); // buffer or (crlf and final chunk)
 
         prepped_[0] = { m.ph_->cbuf, m.ph_->size };
@@ -882,7 +882,7 @@ start_buffers(
             [this](){ return buf_gen_->next(); });
 
         more_input_ = !buf_gen_->is_empty();
-        // assigning the last slot
+        // assign the last slot
         if(more_input_)
         {
             prepped_[prepped_.size() - 1] =

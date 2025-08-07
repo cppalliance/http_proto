@@ -535,6 +535,20 @@ struct serializer_test
             std::string(2048, '*') +
             std::string("\r\n0\r\n\r\n"));
 
+        // buffers chunked empty
+        check_buffers(
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n",
+            "",
+            //--------------------------
+            "HTTP/1.1 200 OK\r\n"
+            "Server: test\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n",
+            "0\r\n\r\n");
+
         // source
         check_src(
             "HTTP/1.1 200 OK\r\n"
