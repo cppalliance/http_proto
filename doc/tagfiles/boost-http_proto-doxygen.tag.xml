@@ -34,6 +34,7 @@
   <class kind="class">boost::http_proto::static_fields</class>
   <class kind="class">boost::http_proto::static_request</class>
   <class kind="class">boost::http_proto::static_response</class>
+  <class kind="class">boost::http_proto::string_body</class>
   <class kind="class">boost::http_proto::upgrade_protocol</class>
   <class kind="class">boost::http_proto::condition</class>
   <class kind="class">boost::http_proto::content_coding</class>
@@ -206,8 +207,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -322,8 +323,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -493,13 +494,6 @@
 <compound kind="class">
   <name>boost::http_proto::file</name>
   <filename>boost/http_proto/file.adoc</filename>
-  <member kind="function">
-    <type>void</type>
-    <name>~file</name>
-    <anchorfile>boost/http_proto/file/2destructor.adoc</anchorfile>
-    <anchor/>
-    <arglist>()</arglist>
-  </member>
   <member kind="function">
     <type>file&amp;</type>
     <name>operator=</name>
@@ -735,8 +729,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -1382,8 +1376,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -1603,8 +1597,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -2077,8 +2071,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -2277,8 +2271,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -2840,8 +2834,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -3019,8 +3013,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -3219,8 +3213,8 @@
   </member>
   <member kind="function">
     <type>void</type>
-    <name>set_max_capacity</name>
-    <anchorfile>boost/http_proto/fields_base/set_max_capacity.adoc</anchorfile>
+    <name>set_max_capacity_in_bytes</name>
+    <anchorfile>boost/http_proto/fields_base/set_max_capacity_in_bytes.adoc</anchorfile>
     <anchor/>
     <arglist>(std::size_t n)</arglist>
   </member>
@@ -3277,6 +3271,24 @@
     <type>std::size_t</type>
     <name>max_size</name>
     <anchorfile>boost/http_proto/fields_view_base/max_size.adoc</anchorfile>
+    <anchor/>
+    <arglist>()</arglist>
+  </member>
+</compound>
+<compound kind="class">
+  <name>boost::http_proto::string_body</name>
+  <filename>boost/http_proto/string_body.adoc</filename>
+  <member kind="function">
+    <type>const_iterator</type>
+    <name>begin</name>
+    <anchorfile>boost/http_proto/string_body/begin.adoc</anchorfile>
+    <anchor/>
+    <arglist>()</arglist>
+  </member>
+  <member kind="function">
+    <type>const_iterator</type>
+    <name>end</name>
+    <anchorfile>boost/http_proto/string_body/end.adoc</anchorfile>
     <anchor/>
     <arglist>()</arglist>
   </member>
