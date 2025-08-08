@@ -53,9 +53,9 @@ cpp:boost::http_proto::response[response]
 
 cpp:boost::http_proto::response_base[response_base]
 
-| **Types (2/2)**
-
 cpp:boost::http_proto::response_parser[response_parser]
+
+| **Types (2/2)**
 
 cpp:boost::http_proto::response_view[response_view]
 
@@ -70,6 +70,8 @@ cpp:boost::http_proto::static_fields[static_fields]
 cpp:boost::http_proto::static_request[static_request]
 
 cpp:boost::http_proto::static_response[static_response]
+
+cpp:boost::http_proto::string_body[string_body]
 
 **Functions**
 
