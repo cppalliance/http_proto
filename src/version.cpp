@@ -15,7 +15,7 @@ namespace http_proto {
 
 core::string_view
 to_string(
-    version v) noexcept
+    version v)
 {
     switch(v)
     {

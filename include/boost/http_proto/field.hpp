@@ -389,7 +389,7 @@ enum class field : unsigned short
 */
 BOOST_HTTP_PROTO_DECL
 core::string_view
-to_string(field f) noexcept;
+to_string(field f);
 
 /** Return the field name constant for a header name.
 
