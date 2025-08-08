@@ -33,7 +33,7 @@ enum class version : char
 */
 BOOST_HTTP_PROTO_DECL
 core::string_view
-to_string(version v) noexcept;
+to_string(version v);
 
 /** Format the version to an output stream.
 

@@ -552,7 +552,7 @@ get_field_table() noexcept
 } // detail
 
 core::string_view
-to_string(field f) noexcept
+to_string(field f)
 {
     auto const& v = detail::get_field_table();
     BOOST_ASSERT(static_cast<unsigned>(f) < v.size());
