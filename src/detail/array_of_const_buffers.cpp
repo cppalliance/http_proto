@@ -20,11 +20,11 @@ namespace detail {
 array_of_const_buffers::
 array_of_const_buffers(
     value_type* p,
-    std::uint16_t n) noexcept
+    std::uint16_t capacity) noexcept
     : base_(p)
-    , cap_(n)
+    , cap_(capacity)
     , pos_(0)
-    , size_(n)
+    , size_(0)
 {
 }
 

@@ -553,9 +553,9 @@ public:
     }
 
 private:
-    class const_buf_gen_base;
+    class cbs_gen;
     template<class>
-    class const_buf_gen;
+    class cbs_gen_impl;
 
     detail::array_of_const_buffers
     make_array(std::size_t n);
@@ -648,7 +648,7 @@ private:
     detail::workspace ws_;
 
     detail::filter* filter_ = nullptr;
-    const_buf_gen_base* buf_gen_ = nullptr;
+    cbs_gen* cbs_gen_ = nullptr;
     source* source_ = nullptr;
 
     buffers::circular_buffer out_;

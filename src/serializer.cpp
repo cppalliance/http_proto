@@ -37,9 +37,17 @@ namespace http_proto {
 
 namespace {
 
-constexpr
-std::size_t
-crlf_len = 2;
+const
+buffers::const_buffer
+crlf_and_final_chunk = {"\r\n0\r\n\r\n", 7};
+
+const
+buffers::const_buffer
+crlf = {"\r\n", 2};
+
+const
+buffers::const_buffer
+final_chunk = {"0\r\n\r\n", 5};
 
 constexpr
 std::uint8_t
@@ -49,12 +57,8 @@ chunk_header_len(
     return
         static_cast<uint8_t>(
             (core::bit_width(max_chunk_size) + 3) / 4 +
-            crlf_len);
+            2); // crlf
 };
-
-constexpr
-std::size_t
-final_chunk_len = 1 + crlf_len + crlf_len;
 
 void
 write_chunk_header(
@@ -66,7 +70,7 @@ write_chunk_header(
     char buf[18];
     auto p = buf + 16;
     auto const n = buffers::size(mbs);
-    for(std::size_t i = n - crlf_len; i--;)
+    for(std::size_t i = n - 2; i--;)
     {
         *--p = hexdig[size & 0xf];
         size >>= 4;
@@ -78,29 +82,6 @@ write_chunk_header(
         buffers::const_buffer(p, n));
     ignore_unused(copied);
     BOOST_ASSERT(copied == n);
-}
-
-void
-write_crlf(
-    const buffers::mutable_buffer_pair& mbs) noexcept
-{
-    auto n = buffers::copy(
-        mbs,
-        buffers::const_buffer("\r\n", 2));
-    ignore_unused(n);
-    BOOST_ASSERT(n == 2);
-}
-
-void
-write_final_chunk(
-    const buffers::mutable_buffer_pair& mbs) noexcept
-{
-    auto n = buffers::copy(
-        mbs,
-        buffers::const_buffer(
-            "0\r\n\r\n", 5));
-    ignore_unused(n);
-    BOOST_ASSERT(n == 5);
 }
 
 //------------------------------------------------
@@ -236,6 +217,18 @@ private:
     }
 };
 
+template<class UInt>
+std::size_t
+clamp(
+    UInt x,
+    std::size_t limit = (std::numeric_limits<
+        std::size_t>::max)()) noexcept
+{
+    if(x >= limit)
+        return limit;
+    return static_cast<std::size_t>(x);
+}
+
 } // namespace
 
 namespace detail {
@@ -300,7 +293,7 @@ serializer(
     , svc_(other.svc_)
     , ws_(std::move(other.ws_))
     , filter_(other.filter_)
-    , buf_gen_(other.buf_gen_)
+    , cbs_gen_(other.cbs_gen_)
     , source_(other.source_)
     , out_(other.out_)
     , in_(other.in_)
@@ -332,7 +325,7 @@ operator=(
     svc_ = other.svc_;
     ws_ = std::move(other.ws_);
     filter_ = other.filter_;
-    buf_gen_ = other.buf_gen_;
+    cbs_gen_ = other.cbs_gen_;
     source_ = other.source_;
     out_ = other.out_;
     in_ = other.in_;
@@ -409,24 +402,27 @@ prepare() ->
                 prepped_.slide_to_front();
                 while(prepped_.capacity() != 0)
                 {
-                    auto buf = buf_gen_->next();
-                    if(buf.size() != 0)
+                    auto buf = cbs_gen_->next();
+                    if(buf.size() == 0)
+                        break;
+                    prepped_.append(buf);
+                }
+                if(cbs_gen_->is_empty())
+                {
+                    if(is_chunked_)
                     {
-                        prepped_.append(buf);
-                    }
-                    else // buf_gen_ is empty
-                    {
-                        // append crlf and final chunk
-                        if(is_chunked_)
+                        if(prepped_.capacity() != 0)
                         {
-                            prepped_.append(tmp_);
+                            prepped_.append(
+                                crlf_and_final_chunk);
                             more_input_ = false;
                         }
-                        break;
+                    }
+                    else
+                    {
+                        more_input_ = false;
                     }
                 }
-                if(buf_gen_->is_empty() && !is_chunked_)
-                    more_input_ = false;
             }
             return const_buffers_type(
                 prepped_.begin(),
@@ -505,8 +501,8 @@ prepare() ->
             {
                 if(more_input_ && tmp_.size() == 0)
                 {
-                    tmp_ = buf_gen_->next();
-                    if(tmp_.size() == 0) // buf_gen_ is empty
+                    tmp_ = cbs_gen_->next();
+                    if(tmp_.size() == 0) // cbs_gen_ is empty
                         more_input_ = false;
                 }
 
@@ -683,8 +679,7 @@ detail::array_of_const_buffers
 serializer::
 make_array(std::size_t n)
 {
-    if(n > std::numeric_limits<std::uint16_t>::max())
-        detail::throw_length_error();
+    BOOST_ASSERT(n <= std::uint16_t(-1));
 
     return {
         ws_.push_array(n,
@@ -701,8 +696,8 @@ start_init(
     if(state_ != state::start)
         detail::throw_logic_error();
 
-    // TODO: to hold strong exception guarantee
-    // `state_` should be set to state::start if an
+    // TODO: To uphold the strong exception guarantee,
+    // `state_` must be reset to `state::start` if an
     // exception is thrown during the start operation.
     state_ = state::header;
 
@@ -778,7 +773,7 @@ start_empty(
     if(!filter_)
         out_finish();
 
-    prepped_[0] = { m.ph_->cbuf, m.ph_->size };
+    prepped_.append({ m.ph_->cbuf, m.ph_->size });
     more_input_ = false;
 }
 
@@ -795,106 +790,30 @@ start_buffers(
 
     if(!filter_)
     {
-        // limit the batch size. any remaining buffers will
-        // be appended to incrementally in subsequent calls
-        // to the prepare function.
-        const auto batch_size = (std::min)(
-            std::size_t{ 16 },
-            buf_gen_->count());
-
-        // none-chunked
-        if(!is_chunked_)
-        {
-            prepped_ = make_array(
-                1 +          // header
-                batch_size); // buffers
-
-            prepped_[0] = { m.ph_->cbuf, m.ph_->size };
-            std::generate(
-                prepped_.begin() + 1,
-                prepped_.end(),
-                [this](){ return buf_gen_->next(); });
-            more_input_ = !buf_gen_->is_empty();
-            return;
-        }
-
-        // chunked with length 0
-        if(batch_size == 0)
-        {
-            prepped_ = make_array(
-                1 + // header
-                1); // final chunk
-
-            mutable_buffer final_chunk = {
-                ws_.reserve_front(
-                    final_chunk_len),
-                final_chunk_len };
-            write_final_chunk(
-                { final_chunk, {} });
-
-            prepped_[0] = { m.ph_->cbuf, m.ph_->size };
-            prepped_[1] = final_chunk;
-            more_input_ = false;
-            return;
-        }
-
-        // write all buffers as a single chunk, since
-        // the total size is known in advance.
-
-        auto const buf_size = buf_gen_->size();
-        auto const header_len = 
-            chunk_header_len(buf_size);
-
-        mutable_buffer chunk_header = {
-            ws_.reserve_front(header_len),
-            header_len };
-
-        write_chunk_header({ chunk_header, {} }, buf_size);
-
-        mutable_buffer crlf_and_final_chunk = {
-                ws_.reserve_front(
-                    crlf_len + final_chunk_len),
-                crlf_len + final_chunk_len };
-
-        write_crlf({
-            buffers::prefix(
-                crlf_and_final_chunk,
-                crlf_len)
-            , {} });
-
-        write_final_chunk({
-            buffers::sans_prefix(
-                crlf_and_final_chunk,
-                crlf_len)
-            , {}});
+        auto stats = cbs_gen_->stats();
+        auto batch_size = clamp(stats.count, 16);
 
         prepped_ = make_array(
             1 + // header
-            1 + // chunk header
             batch_size + // buffers
-            1); // buffer or (crlf and final chunk)
+            (is_chunked_ ? 2 : 0)); // chunk header + final chunk
 
-        prepped_[0] = { m.ph_->cbuf, m.ph_->size };
-        prepped_[1] = chunk_header;
-        std::generate(
-            prepped_.begin() + 2,
-            prepped_.end() - 1,
-            [this](){ return buf_gen_->next(); });
+        prepped_.append({ m.ph_->cbuf, m.ph_->size });
+        more_input_ = (batch_size != 0);
 
-        more_input_ = !buf_gen_->is_empty();
-        // assign the last slot
-        if(more_input_)
+        if(is_chunked_)
         {
-            prepped_[prepped_.size() - 1] =
-                buf_gen_->next();
-
-            // deferred until buf_gen_ is drained
-            tmp_ = crlf_and_final_chunk;
-        }
-        else
-        {
-            prepped_[prepped_.size() - 1] =
-                crlf_and_final_chunk;
+            if(!more_input_)
+            {
+                prepped_.append(final_chunk);
+            }
+            else
+            {
+                auto h_len = chunk_header_len(stats.size);
+                mutable_buffer mb(ws_.reserve_front(h_len), h_len);
+                write_chunk_header({ mb, {} }, stats.size);    
+                prepped_.append(mb);
+            }
         }
         return;
     }
@@ -907,7 +826,7 @@ start_buffers(
 
     out_init();
 
-    prepped_[0] = { m.ph_->cbuf, m.ph_->size };
+    prepped_.append({ m.ph_->cbuf, m.ph_->size });
     tmp_ = {};
     more_input_ = true;
 }
@@ -933,7 +852,7 @@ start_source(
 
     out_init();
 
-    prepped_[0] = { m.ph_->cbuf, m.ph_->size };
+    prepped_.append({ m.ph_->cbuf, m.ph_->size });
     more_input_ = true;
 }
 
@@ -959,7 +878,7 @@ start_stream(
 
     out_init();
 
-    prepped_[0] = { m.ph_->cbuf, m.ph_->size };
+    prepped_.append({ m.ph_->cbuf, m.ph_->size });
     more_input_ = true;
     return stream{ *this };
 }
@@ -994,7 +913,7 @@ out_prepare() noexcept
             buffers::sans_prefix(
                 out_.prepare(out_.capacity()),
                 chunk_header_len_),
-            crlf_len + final_chunk_len );
+            crlf_and_final_chunk.size());
     }
     return out_.prepare(out_.capacity());
 }
@@ -1015,8 +934,8 @@ out_commit(
         out_.prepare(n);
         out_.commit(n);
 
-        write_crlf(out_.prepare(crlf_len));
-        out_.commit(crlf_len);
+        buffers::copy(out_.prepare(crlf.size()), crlf);
+        out_.commit(crlf.size());
     }
     else
     {
@@ -1030,10 +949,8 @@ out_capacity() const noexcept
 {
     if(is_chunked_)
     {
-        auto const overhead =
-            chunk_header_len_ +
-            crlf_len +
-            final_chunk_len;
+        auto const overhead = chunk_header_len_ +
+            crlf_and_final_chunk.size();
         if(out_.capacity() < overhead)
             return 0;
         return out_.capacity() - overhead;
@@ -1047,9 +964,9 @@ out_finish() noexcept
 {
     if(is_chunked_)
     {
-        write_final_chunk(
-            out_.prepare(final_chunk_len));
-        out_.commit(final_chunk_len);
+        buffers::copy(
+            out_.prepare(final_chunk.size()), final_chunk);
+        out_.commit(final_chunk.size());
     }
 }
 
