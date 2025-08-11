@@ -22,6 +22,7 @@
 #include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/rts/brotli/decode.hpp>
+#include <boost/rts/context.hpp>
 #include <boost/rts/zlib/error.hpp>
 #include <boost/rts/zlib/inflate.hpp>
 #include <boost/url/grammar/ci_string.hpp>

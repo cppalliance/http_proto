@@ -16,6 +16,7 @@
 #include <boost/core/detail/string_view.hpp>
 #include <boost/core/span.hpp>
 #include <boost/rts/brotli.hpp>
+#include <boost/rts/context.hpp>
 #include <boost/rts/zlib.hpp>
 
 #include "test_helpers.hpp"
