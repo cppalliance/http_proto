@@ -778,7 +778,14 @@ prepare() ->
                 {
                     BOOST_ASSERT(
                         h_.md.payload == payload::to_eof);
-                    n = clamp(body_limit_remain() + 1, n);
+                    // No more messages can be pipelined, so
+                    // limit the output buffer to the remaining
+                    // body limit plus one byte to detect
+                    // exhaustion.
+                    std::uint64_t r = body_limit_remain();
+                    if(r != std::uint64_t(-1))
+                        r += 1;
+                    n = clamp(r, n);
                 }
 
                 nprepare_ = n;
@@ -803,7 +810,14 @@ prepare() ->
                 {
                     BOOST_ASSERT(
                         h_.md.payload == payload::to_eof);
-                    n = clamp(body_limit_remain() + 1, n);
+                    // No more messages can be pipelined, so
+                    // limit the output buffer to the remaining
+                    // body limit plus one byte to detect
+                    // exhaustion.
+                    std::uint64_t r = body_limit_remain();
+                    if(r != std::uint64_t(-1))
+                        r += 1;
+                    n = clamp(r, n);
                     n = clamp(n, eb_->max_size() - eb_->size());
                     // fill capacity first to avoid an allocation
                     std::size_t avail =
