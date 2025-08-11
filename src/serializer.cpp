@@ -24,6 +24,7 @@
 #include <boost/core/bit.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/rts/brotli/encode.hpp>
+#include <boost/rts/context.hpp>
 #include <boost/rts/zlib/compression_method.hpp>
 #include <boost/rts/zlib/compression_strategy.hpp>
 #include <boost/rts/zlib/deflate.hpp>
