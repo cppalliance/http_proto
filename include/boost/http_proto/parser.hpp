@@ -494,7 +494,7 @@ public:
         @param args Arguments to be passed to the
         `Sink` constructor.
 
-        @return A reference to the costructed Sink object.
+        @return A reference to the constructed Sink object.
 
         @see
             @ref parse.

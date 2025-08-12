@@ -20,7 +20,7 @@ namespace http_proto {
     instances of the @ref file.
 
     @code
-    file_mode           acesss          sharing     seeking     file              std mode
+    file_mode           access          sharing     seeking     file              std mode
     --------------------------------------------------------------------------------------
     read                read-only       shared      random      must exist          "rb"
     scan                read-only       shared      sequential  must exist          "rbS"

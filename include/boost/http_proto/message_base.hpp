@@ -19,7 +19,7 @@
 namespace boost {
 namespace http_proto {
 
-/** Mixin for modifiing common metadata
+/** Mixin for modifing common metadata
     in HTTP request and response messages.
 
     This type is useful for modifying common

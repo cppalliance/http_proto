@@ -15,7 +15,7 @@
 namespace boost {
 namespace http_proto {
 
-/** A modfiable static container for HTTP requests.
+/** A modifiable static container for HTTP requests.
 
     This container owns a request, represented
     by an inline buffer with fixed capacity.

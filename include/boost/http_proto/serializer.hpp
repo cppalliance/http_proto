@@ -352,7 +352,7 @@ public:
         @param args Arguments to be passed to the
         `Source` constructor.
 
-        @return A reference to the costructed Source object.
+        @return A reference to the constructed Source object.
 
         @see
             @ref source,
@@ -910,7 +910,7 @@ public:
 
     /** Commit data to the serializer.
 
-        Makes `n` bytes avialable to the serializer.
+        Makes `n` bytes available to the serializer.
 
         All buffer sequences previously obtained
         using @ref prepare are invalidated.
