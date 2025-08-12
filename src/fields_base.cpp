@@ -162,6 +162,7 @@ op_t::
 reserve(
     std::size_t n)
 {
+    // TODO: consider using a growth factor
     if(n > self_.max_cap_)
     {
         // max capacity exceeded
@@ -236,18 +237,18 @@ prefix_op_t(
     auto new_size = static_cast<offset_type>(
         self.h_.size - self.h_.prefix + new_prefix_);
 
-    if(new_size > self.h_.cap)
+    auto bytes_needed =
+        detail::header::bytes_needed(
+            new_size,
+            self.h_.count);
+
+    if(bytes_needed > self.h_.cap)
     {
         // static storage will always throw which is
         // intended since they cannot reallocate.
-        if(self.max_cap_ < new_size)
+        if(self.max_cap_ < bytes_needed)
             detail::throw_length_error();
-
-        auto bytes_needed =
-            detail::header::bytes_needed(
-                new_size,
-                self.h_.count);
-
+        // TODO: consider using a growth factor
         char* p = new char[bytes_needed];
         std::memcpy(
             p + new_prefix_,

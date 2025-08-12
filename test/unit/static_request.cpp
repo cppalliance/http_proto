@@ -564,14 +564,20 @@ struct static_request_test
     void
     testInitialSize()
     {
-        {
-            static_request<32> f;
-            BOOST_TEST_THROWS(
-                f.append(field::host, "www.google.com"),
-                std::length_error);
-            BOOST_TEST_EQ(
-                f.max_capacity_in_bytes(), 32);
-        }
+        static_request<96> r;
+        r.append("T", "*");
+        r.append("T", "*");
+        r.append("T", "*");
+
+        BOOST_TEST_THROWS(
+            r.append("T", "*"),
+            std::length_error);
+
+        BOOST_TEST_THROWS(
+            r.set_target("/index.html"),
+            std::length_error);
+
+        r.set_target("/");
     }
 
     void
