@@ -20,7 +20,7 @@
 namespace boost {
 namespace http_proto {
 
-/** Mixin for modifiing HTTP responses.
+/** Mixin for modifing HTTP responses.
 
     @see
         @ref message_base,

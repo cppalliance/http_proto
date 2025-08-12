@@ -116,7 +116,7 @@ protected:
         not there is more data remaining
         in the source.
         The implementation must fill the
-        provided buffer completly, report
+        provided buffer completely, report
         an error or set `rv.finished` to true.
 
         @par Preconditions

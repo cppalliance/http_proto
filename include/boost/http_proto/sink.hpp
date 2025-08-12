@@ -124,7 +124,7 @@ protected:
 
         @return The result of the operation.
 
-        @param b The buffer to cosume.
+        @param b The buffer to consume.
         The result must indicate that the buffer
         was consumed completely, or that an
         error occurred.

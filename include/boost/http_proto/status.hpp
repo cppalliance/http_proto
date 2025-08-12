@@ -25,7 +25,7 @@ enum class status : unsigned short
 
         This value indicates that the value for the status code
         is not in the list of commonly recognized status codes.
-        Callers interested in the exactl value should use the
+        Callers interested in the exact value should use the
         interface which provides the raw integer.
     */
     unknown = 0,

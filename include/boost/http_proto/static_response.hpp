@@ -15,7 +15,7 @@
 namespace boost {
 namespace http_proto {
 
-/** A modfiable static container for HTTP responses.
+/** A modifiable static container for HTTP responses.
 
     This container owns a response, represented
     by an inline buffer with fixed capacity.

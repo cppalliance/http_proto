@@ -15,7 +15,7 @@
 namespace boost {
 namespace http_proto {
 
-/** A modfiable container for HTTP requests.
+/** A modifiable container for HTTP requests.
 
     This container owns a request, represented by
     a buffer which is managed by performing
