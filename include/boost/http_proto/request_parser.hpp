@@ -84,7 +84,7 @@ public:
     */
     BOOST_HTTP_PROTO_DECL
     explicit
-    request_parser(rts::context& ctx);
+    request_parser(const rts::context& ctx);
 
     /// @copydoc parser
     ~request_parser() = default;

@@ -646,7 +646,7 @@ private:
 
     BOOST_HTTP_PROTO_DECL
     parser(
-        rts::context&,
+        const rts::context&,
         detail::kind);
 
     BOOST_HTTP_PROTO_DECL
@@ -693,7 +693,7 @@ private:
         elastic,
     };
 
-    rts::context& ctx_;
+    const rts::context& ctx_;
     detail::parser_service& svc_;
 
     detail::workspace ws_;
