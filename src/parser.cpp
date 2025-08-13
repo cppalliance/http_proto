@@ -304,7 +304,7 @@ class zlib_filter
 
 public:
     zlib_filter(
-        rts::context& ctx,
+        const rts::context& ctx,
         http_proto::detail::workspace& ws,
         int window_bits)
         : zlib_filter_base(ws)
@@ -354,7 +354,7 @@ class brotli_filter
 
 public:
     brotli_filter(
-        rts::context& ctx,
+        const rts::context& ctx,
         http_proto::detail::workspace&)
         : svc_(ctx.get_service<rts::brotli::decode_service>())
     {
@@ -420,7 +420,7 @@ public:
     std::size_t max_codec = 0;
 
     parser_service(
-        rts::context&,
+        const rts::context&,
         parser::config_base const& cfg_)
         : cfg(cfg_)
     {
@@ -519,7 +519,7 @@ install_parser_service(
 //------------------------------------------------
 
 parser::
-parser(rts::context& ctx, detail::kind k)
+parser(const rts::context& ctx, detail::kind k)
     : ctx_(ctx)
     , svc_(ctx.get_service<detail::parser_service>())
     , ws_(svc_.space_needed)

@@ -94,13 +94,13 @@ class zlib_filter
 
 public:
     zlib_filter(
-        const rts::context* ctx,
+        const rts::context& ctx,
         http_proto::detail::workspace& ws,
         int comp_level,
         int window_bits,
         int mem_level)
         : zlib_filter_base(ws)
-        , svc_(ctx->get_service<rts::zlib::deflate_service>())
+        , svc_(ctx.get_service<rts::zlib::deflate_service>())
     {
         system::error_code ec = static_cast<rts::zlib::error>(svc_.init2(
             strm_,
@@ -160,11 +160,11 @@ class brotli_filter
 
 public:
     brotli_filter(
-        const rts::context* ctx,
+        const rts::context& ctx,
         http_proto::detail::workspace&,
         std::uint32_t comp_quality,
         std::uint32_t comp_window)
-        : svc_(ctx->get_service<rts::brotli::encode_service>())
+        : svc_(ctx.get_service<rts::brotli::encode_service>())
     {
         // TODO: use custom allocator
         state_ = svc_.create_instance(nullptr, nullptr, nullptr);
@@ -242,7 +242,7 @@ public:
     std::size_t space_needed = 0;
 
     serializer_service(
-        rts::context&,
+        const rts::context&,
         serializer::config const& cfg_)
         : cfg(cfg_)
     {
@@ -719,7 +719,7 @@ start_init(
         if(!svc_->cfg.apply_deflate_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
-            ctx_,
+            *ctx_,
             ws_,
             svc_->cfg.zlib_comp_level,
             svc_->cfg.zlib_window_bits,
@@ -731,7 +731,7 @@ start_init(
         if(!svc_->cfg.apply_gzip_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<zlib_filter>(
-            ctx_,
+            *ctx_,
             ws_,
             svc_->cfg.zlib_comp_level,
             svc_->cfg.zlib_window_bits + 16,
@@ -743,7 +743,7 @@ start_init(
         if(!svc_->cfg.apply_brotli_encoder)
             goto no_filter;
         filter_ = &ws_.emplace<brotli_filter>(
-            ctx_,
+            *ctx_,
             ws_,
             svc_->cfg.brotli_comp_quality,
             svc_->cfg.brotli_comp_window);
