@@ -11,7 +11,6 @@
 #include <boost/http_proto/detail/file_stdio.hpp>
 
 #include "file_test.hpp"
-#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -33,7 +32,7 @@ public:
 
 TEST_SUITE(
     file_stdio_test,
-    "boost.http_proto.file_stdio");
+    "boost.http_proto.detail.file_stdio");
 
 } // detail
 } // http_proto

@@ -313,12 +313,9 @@ public:
 
         @par Example
         @code
-        file f;
-        system::error_code ec;
-        f.open("example.zip", file_mode::scan, ec);
-        if(ec.failed())
-            throw system::system_error(ec);
-        serializer.start<file_source>(response, std::move(file));
+        file f("example.zip", file_mode::scan);
+        response.set_payload_size(f.size());
+        serializer.start<file_source>(response, std::move(f));
         @endcode
 
         @par Preconditions

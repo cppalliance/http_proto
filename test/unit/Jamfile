@@ -39,7 +39,6 @@ local SOURCES =
     fields_view.cpp
     fields.cpp
     file_mode.cpp
-    file.cpp
     header_limits.cpp
     http_proto.cpp
     message_base.cpp
@@ -81,6 +80,7 @@ for local f in $(SOURCES)
 # file tests
 
 local FILE_TESTS =
+    file.cpp
     file_sink.cpp
     file_source.cpp
     detail/file_posix.cpp

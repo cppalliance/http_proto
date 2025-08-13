@@ -12,6 +12,7 @@
 #define BOOST_HTTP_PROTO_FILE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
+#include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/file_posix.hpp>
 #include <boost/http_proto/detail/file_stdio.hpp>
 #include <boost/http_proto/detail/file_win32.hpp>
@@ -27,19 +28,20 @@ namespace http_proto {
     file_source to enable streaming HTTP message
     bodies to and from files.
 
-    @par Example
+    @par Example 1
     @code
-    file f;
-    system::error_code ec;
+    file f("example.zip", file_mode::scan);
+    response.set_payload_size(f.size());
+    serializer.start<file_source>(response, std::move(f));
+    @endcode
 
-    f.open("example.zip", file_mode::write_new, ec);
-    if(ec.failed())
-        throw system::system_error(ec);
-
-    parser.set_body<file_sink>(std::move(f));
+    @par Example 2
+    @code
+    parser.set_body<file_sink>("example.zip", file_mode::write_new);
     @endcode
 
     @see
+        @ref file_mode,
         @ref file_sink,
         @ref file_source.
 */
@@ -63,8 +65,33 @@ public:
     using native_handle_type = impl_type::native_handle_type;
 
     /** Constructor.
+
+        There is no open file initially.
     */
     file() = default;
+
+    /** Constructor.
+
+        Open a file at the given path with the specified mode.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+
+        @param path The UTF-8 encoded path to the file.
+
+        @param mode The file mode to use.
+
+        @see
+            @ref file_mode,
+            @ref open.
+    */
+    file(char const* path, file_mode mode)
+    {
+        open(path, mode);
+    }
 
     /** Constructor.
 
@@ -79,6 +106,12 @@ public:
     file&
     operator=(
         file&& other) noexcept = default;
+
+    /** Destructor
+
+        If the file is open it is first closed.
+    */
+    ~file() = default;
 
     /** Returns the native handle associated with the file.
     */
@@ -110,12 +143,35 @@ public:
 
     /** Close the file if open.
 
+        Note that, The descriptor is closed even if the function
+        reports an error.
+
         @param ec Set to the error, if any occurred.
     */
     void
     close(system::error_code& ec)
     {
         impl_.close(ec);
+    }
+
+    /** Close the file if open.
+
+        Note that, The descriptor is closed even if the function
+        reports an error.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+    */
+    void
+    close()
+    {
+        system::error_code ec;
+        impl_.close(ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
     }
 
     /** Open a file at the given path with the specified mode.
@@ -125,11 +181,38 @@ public:
         @param mode The file mode to use.
 
         @param ec Set to the error, if any occurred.
+
+        @see
+            @ref file_mode.
     */
     void
     open(char const* path, file_mode mode, system::error_code& ec)
     {
         impl_.open(path, mode, ec);
+    }
+
+    /** Open a file at the given path with the specified mode.
+
+        @param path The UTF-8 encoded path to the file.
+
+        @param mode The file mode to use.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+
+        @see
+            @ref file_mode.
+    */
+    void
+    open(char const* path, file_mode mode)
+    {
+        system::error_code ec;
+        impl_.open(path, mode, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
     }
 
     /** Return the size of the open file in bytes.
@@ -142,6 +225,24 @@ public:
         return impl_.size(ec);
     }
 
+    /** Return the size of the open file in bytes.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+    */
+    std::uint64_t
+    size() const
+    {
+        system::error_code ec;
+        auto r = impl_.size(ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return r;
+    }
+
     /** Return the current position in the file, in bytes from the beginning.
 
         @param ec Set to the error, if any occurred.
@@ -150,6 +251,24 @@ public:
     pos(system::error_code& ec) const
     {
         return impl_.pos(ec);
+    }
+
+    /** Return the current position in the file, in bytes from the beginning.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+    */
+    std::uint64_t
+    pos() const
+    {
+        system::error_code ec;
+        auto r = impl_.pos(ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return r;
     }
 
     /** Set the current position in the file.
@@ -162,6 +281,25 @@ public:
     seek(std::uint64_t offset, system::error_code& ec)
     {
         impl_.seek(offset, ec);
+    }
+
+    /** Set the current position in the file.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+
+        @param offset The byte offset from the beginning of the file.
+    */
+    void
+    seek(std::uint64_t offset)
+    {
+        system::error_code ec;
+        impl_.seek(offset, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
     }
 
     /** Read data from the file.
@@ -182,6 +320,31 @@ public:
         return impl_.read(buffer, n, ec);
     }
 
+    /** Read data from the file.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+
+        @return The number of bytes read. Returns
+        0 on end-of-file.
+
+        @param buffer The buffer to store the read data.
+
+        @param n The number of bytes to read.
+    */
+    std::size_t
+    read(void* buffer, std::size_t n)
+    {
+        system::error_code ec;
+        auto r = impl_.read(buffer, n, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return r;
+    }
+
     /** Write data to the file.
 
         @return The number of bytes written.
@@ -198,6 +361,30 @@ public:
     write(void const* buffer, std::size_t n, system::error_code& ec)
     {
         return impl_.write(buffer, n, ec);
+    }
+
+    /** Write data to the file.
+
+        @par Exception Safety
+        Exception thrown if operation fails.
+
+        @throw system_error
+        Operation fails.
+
+        @return The number of bytes written.
+
+        @param buffer The buffer containing the data to write.
+
+        @param n The number of bytes to write.
+    */
+    std::size_t
+    write(void const* buffer, std::size_t n)
+    {
+        system::error_code ec;
+        auto r = impl_.write(buffer, n, ec);
+        if(ec.failed())
+            detail::throw_system_error(ec);
+        return r;
     }
 };
 

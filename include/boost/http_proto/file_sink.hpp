@@ -27,15 +27,11 @@ namespace http_proto {
 
     @par Example
     @code
-    file f;
-    system::error_code ec;
-    f.open("example.zip", file_mode::write_new, ec);
-    if(ec.failed())
-        throw system::system_error(ec);
-    parser.set_body<file_sink>(std::move(f));
+    parser.set_body<file_sink>("example.zip", file_mode::write_new);
     @endcode
 
     @see
+        @ref file_source,
         @ref file,
         @ref parser,
         @ref sink.
