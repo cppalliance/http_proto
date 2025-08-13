@@ -13,7 +13,6 @@
 #if BOOST_HTTP_PROTO_USE_WIN32_FILE
 
 #include "file_test.hpp"
-#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -31,7 +30,7 @@ public:
 
 TEST_SUITE(
     file_win32_test,
-    "boost.http_proto.file_win32");
+    "boost.http_proto.detail.file_win32");
 
 } // detail
 } // http_proto

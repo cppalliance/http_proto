@@ -13,7 +13,6 @@
 #if BOOST_HTTP_PROTO_USE_POSIX_FILE
 
 #include "file_test.hpp"
-#include "test_suite.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -31,7 +30,7 @@ public:
 
 TEST_SUITE(
     file_posix_test,
-    "boost.http_proto.file_posix");
+    "boost.http_proto.detail.file_posix");
 
 } // detail
 } // http_proto

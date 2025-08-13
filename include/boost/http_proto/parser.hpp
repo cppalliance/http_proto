@@ -462,13 +462,7 @@ public:
 
         read_header(stream, pr);
 
-        http_proto::file file;
-        system::error_code ec;
-        file.open("./index.html", file_mode::write_new, ec);
-        if(ec.failed())
-            return ec;
-
-        pr.set_body<file_body>(std::move(file));
+        pr.set_body<file_sink>("example.zip", file_mode::write_new);
 
         read(stream, pr);
         @endcode
@@ -497,6 +491,8 @@ public:
         @return A reference to the constructed Sink object.
 
         @see
+            @ref sink,
+            @ref file_sink,
             @ref parse.
     */
     template<

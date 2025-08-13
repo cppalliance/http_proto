@@ -27,15 +27,13 @@ namespace http_proto {
 
     @par Example
     @code
-    file f;
-    system::error_code ec;
-    f.open("example.zip", file_mode::scan, ec);
-    if(ec.failed())
-        throw system::system_error(ec);
+    file f("example.zip", file_mode::scan);
+    response.set_payload_size(f.size());
     serializer.start<file_source>(response, std::move(f));
     @endcode
 
     @see
+        @ref file_sink,
         @ref file,
         @ref serializer,
         @ref source.
