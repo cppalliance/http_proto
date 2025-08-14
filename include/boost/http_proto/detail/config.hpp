@@ -43,7 +43,7 @@ namespace http_proto {
 
 //------------------------------------------------
 
-#if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI) || defined(BOOST_MSVC)
+#if defined(BOOST_NO_CXX14_AGGREGATE_NSDMI)
 # define BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
 #endif
 
