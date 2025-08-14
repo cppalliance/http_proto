@@ -60,6 +60,22 @@ struct BOOST_SYMBOL_VISIBLE
         results&
         operator+=(
             results const& rv) noexcept;
+
+    #ifdef BOOST_HTTP_PROTO_AGGREGATE_WORKAROUND
+        constexpr
+        results() = default;
+
+        constexpr
+        results(
+            system::error_code ec_,
+            std::size_t bytes_,
+            bool finished_) noexcept
+            : ec(ec_)
+            , bytes(bytes_)
+            , finished(finished_)
+        {
+        }
+    #endif
     };
 
     /** Produce data.

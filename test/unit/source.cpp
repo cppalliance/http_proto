@@ -106,6 +106,12 @@ struct source_test
             BOOST_TEST(! rv.ec.failed());
             BOOST_TEST_EQ(rv.bytes, 0);
         }
+
+        // source::results aggregate workaround
+        {
+            source::results rs{ {}, 0, false };
+            (void)rs;
+        }
     }
 
     void
