@@ -112,6 +112,12 @@ struct sink_test
             BOOST_TEST(! rv.ec.failed());
             BOOST_TEST_EQ(rv.bytes, 0);
         }
+
+        // sink::results aggregate workaround
+        {
+            sink::results rs{ {}, 0 };
+            (void)rs;
+        }
     }
 
     void
