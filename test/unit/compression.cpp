@@ -246,6 +246,7 @@ struct zlib_test
         class source_t : public source
         {
             buffers::const_buffer body_;
+            bool done_ = false;
 
         public:
             source_t(buffers::const_buffer body)
@@ -256,11 +257,14 @@ struct zlib_test
             results
             on_read(buffers::mutable_buffer b)
             {
+                BOOST_TEST_NOT(done_);
+
                 results rs;
                 auto n = buffers::copy(b, body_);
                 body_ = buffers::sans_prefix(body_, n);
                 rs.bytes = n;
                 rs.finished = (body_.size() == 0);
+                done_ = rs.finished;
                 return rs;
             }
         };
@@ -561,6 +565,7 @@ struct zlib_test
         class sink_t : public sink
         {
             std::string body_;
+            bool done_ = false;
 
         public:
             std::string
@@ -572,8 +577,11 @@ struct zlib_test
             results
             on_write(
                 buffers::const_buffer b,
-                bool) override
+                bool more) override
             {
+                BOOST_TEST_NOT(done_);
+                done_ = !more;
+
                 body_.append(
                     static_cast<const char*>(b.data()),
                     b.size());

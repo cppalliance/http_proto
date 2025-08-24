@@ -28,7 +28,6 @@ namespace http_proto {
     @code
     serializer sr(ctx);
     response res(status::not_found);
-
     std::string body =
         "<html>\n"
         "    <body>\n"
@@ -36,6 +35,7 @@ namespace http_proto {
         "        <p>Sorry, the page does not exist.</p>\n"
         "    </body>\n"
         "</html>\n";
+    res.set_payload_size(body.size());
     sr.start<string_body>(res, std::move(body));
     @endcode
 

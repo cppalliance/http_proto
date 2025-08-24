@@ -1116,7 +1116,7 @@ parse(
             break;
 
         case content_coding::gzip:
-            if(!svc_.cfg.apply_deflate_decoder)
+            if(!svc_.cfg.apply_gzip_decoder)
                 goto no_filter;
             filter_ = &ws_.emplace<zlib_filter>(
                 ctx_, ws_, svc_.cfg.zlib_window_bits + 16);
@@ -1735,7 +1735,7 @@ apply_filter(
         {
             cb1_.commit(f_rs.out_bytes);
             auto sink_rs = sink_->write(
-                cb1_.data(), !f_rs.finished);
+                cb1_.data(), !f_rs.finished || more);
             cb1_.consume(sink_rs.bytes);
             if(sink_rs.ec.failed())
             {
