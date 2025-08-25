@@ -14,6 +14,7 @@
 #include <boost/http_proto/detail/array_of_const_buffers.hpp>
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/header.hpp>
+#include <boost/http_proto/detail/managed.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/source.hpp>
 
@@ -653,7 +654,8 @@ private:
     detail::array_of_const_buffers prepped_;
     buffers::const_buffer tmp_;
 
-    state state_ = state::start;
+    detail::managed<
+        state, state::start> state_;
     style style_ = style::empty;
     uint8_t chunk_header_len_ = 0;
     bool more_input_ = false;

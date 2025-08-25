@@ -239,7 +239,12 @@ struct serializer_test
             }
 
             serializer sr2(std::move(sr1));
+
+            // valid moved-from state
             BOOST_TEST(sr1.is_done());
+            BOOST_TEST_THROWS(
+                sr1.start(res),
+                std::length_error);
 
             // consume the reset from sr2
             {
@@ -273,7 +278,12 @@ struct serializer_test
 
             serializer sr2(ctx);
             sr2 = std::move(sr1);
+
+            // valid moved-from state
             BOOST_TEST(sr1.is_done());
+            BOOST_TEST_THROWS(
+                sr1.start(res),
+                std::length_error);
 
             // consume the reset from sr2
             {

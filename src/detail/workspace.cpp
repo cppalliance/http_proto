@@ -11,6 +11,7 @@
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
+#include <boost/core/exchange.hpp>
 #include <utility>
 
 namespace boost {
@@ -24,11 +25,8 @@ any::
 workspace::
 ~workspace()
 {
-    if(begin_)
-    {
-        clear();
-        delete[] begin_;
-    }
+    clear();
+    delete[] begin_;
 }
 
 workspace::
@@ -45,17 +43,12 @@ workspace(
 workspace::
 workspace(
     workspace&& other) noexcept
-    : begin_(other.begin_)
-    , front_(other.front_)
-    , head_(other.head_)
-    , back_(other.back_)
-    , end_(other.end_)
+    : begin_(boost::exchange(other.begin_, nullptr))
+    , front_(boost::exchange(other.front_, nullptr))
+    , head_(boost::exchange(other.head_, nullptr))
+    , back_(boost::exchange(other.back_, nullptr))
+    , end_(boost::exchange(other.end_, nullptr))
 {
-    other.begin_ = nullptr;
-    other.front_ = nullptr;
-    other.head_ = nullptr;
-    other.back_ = nullptr;
-    other.end_ = nullptr;
 }
 
 workspace&
@@ -63,17 +56,16 @@ workspace::
 operator=(
     workspace&& other) noexcept
 {
-    if(begin_)
+    if(this != &other)
     {
-        clear();
         delete[] begin_;
-        begin_ = nullptr;
+
+        begin_ = boost::exchange(other.begin_, nullptr);
+        front_ = boost::exchange(other.front_, nullptr);
+        head_  = boost::exchange(other.head_, nullptr);
+        back_  = boost::exchange(other.back_, nullptr);
+        end_   = boost::exchange(other.end_, nullptr);
     }
-    std::swap(begin_, other.begin_);
-    std::swap(front_, other.front_);
-    std::swap(head_, other.head_);
-    std::swap(back_, other.back_);
-    std::swap(end_, other.end_);
     return *this;
 }
 
@@ -156,9 +148,9 @@ workspace::
 reserve_back(
     std::size_t n)
 {
-    // can't reserve after acquire
-    if(head_ != end_)
-        detail::throw_logic_error();
+    // // can't reserve after acquire
+    // if(head_ != end_)
+    //     detail::throw_logic_error();
 
     // can't reserve twice
     if(back_ != end_)
@@ -185,7 +177,6 @@ bump_down(
     BOOST_ASSERT(align > 0);
     BOOST_ASSERT(
         (align & (align - 1)) == 0);
-    BOOST_ASSERT(front_);
 
     auto ip0 = reinterpret_cast<
         std::uintptr_t>(front_);
@@ -197,7 +188,7 @@ bump_down(
     // for your workload. Increase the
     // buffer size.
     if(size > ip - ip0)
-        detail::throw_bad_alloc();
+        detail::throw_length_error();
 
     ip -= size;
     ip &= ~(align - 1);
@@ -207,7 +198,7 @@ bump_down(
     // for your workload. Increase the
     // buffer size.
     if(ip < ip0)
-        detail::throw_bad_alloc();
+        detail::throw_length_error();
 
     return reinterpret_cast<
         unsigned char*>(ip);

@@ -15,18 +15,14 @@
 #include <boost/http_proto/detail/header.hpp>
 #include <boost/http_proto/detail/type_traits.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
-#include <boost/http_proto/error.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/sink.hpp>
 
 #include <boost/buffers/any_dynamic_buffer.hpp>
-#include <boost/buffers/circular_buffer.hpp>
-#include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/mutable_buffer_span.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/rts/context_fwd.hpp>
-#include <boost/url/grammar/error.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -37,10 +33,6 @@ namespace http_proto {
 // Forward declaration
 class request_parser;
 class response_parser;
-namespace detail {
-class parser_service;
-class filter;
-} // detail
 
 /** A parser for HTTP/1 messages.
 
@@ -91,30 +83,6 @@ public:
     */
     using const_buffers_type =
         buffers::const_buffer_span;
-
-    //--------------------------------------------
-    //
-    // Special Members
-    //
-    //--------------------------------------------
-
-    /** Constructor (deleted)
-    */
-    // TODO
-    parser(parser&&) = delete;
-
-    /** Assignment (deleted)
-    */
-    // TODO
-    parser& operator=(parser&&) = delete;
-
-    /** Destructor.
-
-        Any views or buffers obtained from this
-        parser become invalid.
-    */
-    BOOST_HTTP_PROTO_DECL
-    ~parser();
 
     //--------------------------------------------
     //
@@ -643,6 +611,7 @@ public:
 private:
     friend class request_parser;
     friend class response_parser;
+    class impl;
 
     BOOST_HTTP_PROTO_DECL
     parser(
@@ -650,80 +619,39 @@ private:
         detail::kind);
 
     BOOST_HTTP_PROTO_DECL
-    void
-    start_impl(bool);
+    parser(parser&& other) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    parser& operator=(parser&& other) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    ~parser();
 
     BOOST_HTTP_PROTO_DECL
     void
-    on_set_body() noexcept;
-
-    std::size_t
-    apply_filter(
-        system::error_code&,
-        std::size_t,
-        bool);
+    start_impl(bool);
 
     detail::header const*
     safe_get_header() const;
 
-    bool
-    is_plain() const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    detail::workspace&
+    ws() noexcept;
 
-    std::uint64_t
-    body_limit_remain() const noexcept;
+    BOOST_HTTP_PROTO_DECL
+    bool
+    is_body_set() const noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_body_impl(buffers::any_dynamic_buffer&) noexcept;
+
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_body_impl(sink&) noexcept;
 
     static constexpr unsigned buffers_N = 8;
-
-    enum class state
-    {
-        reset,
-        start,
-        header,
-        header_done,
-        body,
-        set_body,
-        complete_in_place,
-        complete
-    };
-
-    enum class how
-    {
-        in_place,
-        sink,
-        elastic,
-    };
-
-    const rts::context& ctx_;
-    detail::parser_service& svc_;
-
-    detail::workspace ws_;
-    detail::header h_;
-    std::uint64_t body_limit_;
-    std::uint64_t body_total_;
-    std::uint64_t payload_remain_;
-    std::uint64_t chunk_remain_;
-    std::size_t body_avail_;
-    std::size_t nprepare_;
-
-    buffers::flat_buffer fb_;
-    buffers::circular_buffer cb0_;
-    buffers::circular_buffer cb1_;
-
-    buffers::mutable_buffer_pair mbp_;
-    buffers::const_buffer_pair cbp_;
-
-    detail::filter* filter_;
-    buffers::any_dynamic_buffer* eb_;
-    sink* sink_;
-
-    state st_;
-    how how_;
-    bool got_header_;
-    bool got_eof_;
-    bool head_response_;
-    bool needs_chunk_close_;
-    bool trailer_headers_;
-    bool chunked_body_ended;
+    impl* impl_;
 };
 
 //------------------------------------------------

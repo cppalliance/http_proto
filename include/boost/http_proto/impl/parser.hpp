@@ -21,8 +21,6 @@
 namespace boost {
 namespace http_proto {
 
-//------------------------------------------------
-
 template<class ElasticBuffer>
 typename std::enable_if<
     ! detail::is_reference_wrapper<
@@ -44,21 +42,20 @@ set_body(
         buffers::is_dynamic_buffer<ElasticBuffer>::value,
         "Type requirements not met.");
 
-    // body must not be set already
-    if(how_ != how::in_place)
+    // body must not already be set
+    if(is_body_set())
         detail::throw_logic_error();
 
     // headers must be complete
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& dyn = ws_.emplace<
+    auto& dyn = ws().emplace<
         buffers::any_dynamic_buffer_impl<typename
             std::decay<ElasticBuffer>::type,
                 buffers_N>>(std::forward<ElasticBuffer>(eb));
-    eb_ = &dyn;
-    how_ = how::elastic;
-    on_set_body();
+
+    set_body_impl(dyn);
 }
 
 template<class ElasticBuffer>
@@ -72,24 +69,21 @@ set_body(
         buffers::is_dynamic_buffer<ElasticBuffer>::value,
         "Type requirements not met.");
 
-    // body must not be set already
-    if(how_ != how::in_place)
+    // body must not already be set
+    if(is_body_set())
         detail::throw_logic_error();
 
     // headers must be complete
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& dyn = ws_.emplace<
+    auto& dyn = ws().emplace<
         buffers::any_dynamic_buffer_impl<typename
             std::decay<ElasticBuffer>::type&,
                 buffers_N>>(eb);
-    eb_ = &dyn;
-    how_ = how::elastic;
-    on_set_body();
-}
 
-//------------------------------------------------
+    set_body_impl(dyn);
+}
 
 template<
     class Sink,
@@ -99,19 +93,18 @@ Sink&
 parser::
 set_body(Args&&... args)
 {
-    // body must not be set already
-    if(how_ != how::in_place)
+    // body must not already be set
+    if(is_body_set())
         detail::throw_logic_error();
 
     // headers must be complete
     if(! got_header())
         detail::throw_logic_error();
 
-    auto& s = ws_.emplace<Sink>(
+    auto& s = ws().emplace<Sink>(
         std::forward<Args>(args)...);
-    sink_ = &s;
-    how_ = how::sink;
-    on_set_body();
+
+    set_body_impl(s);
     return s;
 }
 

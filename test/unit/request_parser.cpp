@@ -200,12 +200,29 @@ struct request_parser_test
     void
     testSpecial()
     {
-        // request_parser()
+        // request_parser(rts::context&)
         {
             rts::context ctx;
             request_parser::config cfg;
             install_parser_service(ctx, cfg);
             request_parser pr(ctx);
+        }
+
+        // request_parser(request_parser&&)
+        {
+            rts::context ctx;
+            install_parser_service(ctx, {});
+            request_parser pr1(ctx);
+            request_parser pr2(std::move(pr1));
+        }
+
+        // request_parser& operator=(request_parser&&)
+        {
+            rts::context ctx;
+            install_parser_service(ctx, {});
+            request_parser pr1(ctx);
+            request_parser pr2(ctx);
+            pr2 = std::move(pr1);
         }
     }
 
