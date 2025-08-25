@@ -336,16 +336,68 @@ struct parser_test
     void
     testSpecial()
     {
-        // ~parser
+        // parser(parser&&)
+        {
+            rts::context ctx;
+            install_parser_service(ctx, {});
+        
+            core::string_view header =
+                "POST / HTTP/1.1\r\n"
+                "Content-Length: 3\r\n"
+                "\r\n";
+            core::string_view body = "123";
+            pieces in = { header, body };
 
+            request_parser pr1(ctx);
+            pr1.reset();
+            pr1.start();
+            system::error_code ec;
+            read_header(pr1, in, ec);
+            BOOST_TEST_NOT(ec.failed());
+
+            request_parser pr2(std::move(pr1));
+
+            BOOST_TEST_EQ(pr2.get().buffer(), header);
+            read(pr2, in, ec);
+            BOOST_TEST_NOT(ec.failed());
+            BOOST_TEST_EQ(pr2.body(), body);
+        }
+
+        // parser& operator=(parser&&)
+        {
+            rts::context ctx;
+            install_parser_service(ctx, {});
+        
+            core::string_view header =
+                "POST / HTTP/1.1\r\n"
+                "Content-Length: 3\r\n"
+                "\r\n";
+            core::string_view body = "123";
+            pieces in = { header, body };
+
+            request_parser pr1(ctx);
+            request_parser pr2(ctx);
+
+            pr1.reset();
+            pr1.start();
+            system::error_code ec;
+            read_header(pr1, in, ec);
+
+            pr2 = std::move(pr1);
+
+            BOOST_TEST_EQ(pr2.get().buffer(), header);
+            read(pr2, in, ec);
+            BOOST_TEST_NOT(ec.failed());
+            BOOST_TEST_EQ(pr2.body(), body);
+        }
+
+        // ~parser
         {
             request_parser pr(ctx_);
         }
-
         {
             response_parser pr(ctx_);
         }
-
     }
 
     void

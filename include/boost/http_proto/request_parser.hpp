@@ -86,7 +86,55 @@ public:
     explicit
     request_parser(const rts::context& ctx);
 
-    /// @copydoc parser
+    /** Constructor.
+
+        The states of `other` are transferred
+        to the newly constructed object,
+        including the allocated buffer.
+        After construction, the only valid
+        operations on the moved-from object
+        are destruction and assignment.
+
+        Buffer sequences previously obtained
+        using @ref prepare or @ref pull_body
+        remain valid.
+
+        @par Complexity
+        Constant.
+
+        @param other The parser to move from.
+    */
+    request_parser(
+        request_parser&& other) noexcept = default;
+
+    /** Assignment.
+
+        The states of `other` are transferred to
+        `this`, including the allocated buffer.
+        The previous states of `this` are
+        destroyed. After assignment, the only
+        valid operations on the moved-from object
+        are destruction and assignment.
+
+        Buffer sequences previously obtained
+        using @ref prepare or @ref pull_body
+        remain valid.
+
+        @par Complexity
+        Constant.
+
+        @return A reference to this object.
+
+        @param other The parser to assign from.
+    */
+    request_parser& operator=(
+        request_parser&& other) noexcept = default;
+
+    /** Destructor.
+
+        Any views or buffers obtained from this
+        parser become invalid.
+    */
     ~request_parser() = default;
 
     /** Return a read-only view to the parsed request headers.

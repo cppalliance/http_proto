@@ -287,63 +287,16 @@ serializer::
 {
 }
 
+// TODO: use an indirection for stream
+// interface so it stays valid after move.
 serializer::
-serializer(
-    serializer&& other) noexcept
-    : ctx_(other.ctx_)
-    , svc_(other.svc_)
-    , ws_(std::move(other.ws_))
-    , filter_(other.filter_)
-    , cbs_gen_(other.cbs_gen_)
-    , source_(other.source_)
-    , out_(other.out_)
-    , in_(other.in_)
-    , prepped_(other.prepped_)
-    , tmp_(other.tmp_)
-    , state_(other.state_)
-    , style_(other.style_)
-    , chunk_header_len_(other.chunk_header_len_)
-    , more_input_(other.more_input_)
-    , is_chunked_(other.is_chunked_)
-    , needs_exp100_continue_(other.needs_exp100_continue_)
-    , filter_done_(other.filter_done_)
-{
-    // TODO: make state a class type and default
-    // move ctor and assignment.
-    
-    // TODO: use an indirection for stream
-    // interface so it stays valid after move.
+serializer(serializer&&) noexcept = default;
 
-    other.state_ = state::start;
-}
-
+// TODO: use an indirection for stream
+// interface so it stays valid after move.
 serializer&
 serializer::
-operator=(
-    serializer&& other) noexcept
-{
-    ctx_ = other.ctx_;
-    svc_ = other.svc_;
-    ws_ = std::move(other.ws_);
-    filter_ = other.filter_;
-    cbs_gen_ = other.cbs_gen_;
-    source_ = other.source_;
-    out_ = other.out_;
-    in_ = other.in_;
-    prepped_ = other.prepped_;
-    tmp_ = other.tmp_;
-    state_ = other.state_;
-    style_ = other.style_;
-    chunk_header_len_ = other.chunk_header_len_;
-    more_input_ = other.more_input_;
-    is_chunked_ = other.is_chunked_;
-    needs_exp100_continue_ = other.needs_exp100_continue_;
-    filter_done_ = other.filter_done_;
-
-    other.state_ = state::start;
-
-    return *this;
-}
+operator=(serializer&&) noexcept = default;
 
 serializer::
 serializer(const rts::context& ctx)
