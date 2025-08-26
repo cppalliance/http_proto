@@ -8,7 +8,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/detail/array_of_const_buffers.hpp>
+#include "src/detail/array_of_const_buffers.hpp"
+
 #include <boost/http_proto/detail/except.hpp>
 
 #include <boost/buffers/sans_prefix.hpp>

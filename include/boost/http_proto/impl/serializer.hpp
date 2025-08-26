@@ -13,8 +13,6 @@
 
 #include <boost/http_proto/detail/except.hpp>
 
-#include <numeric>
-
 namespace boost {
 namespace http_proto {
 
@@ -127,11 +125,11 @@ start(
         "ConstBufferSequence type requirements not met");
 
     start_init(m);
-    cbs_gen_ = std::addressof(
-        ws_.emplace<cbs_gen_impl<typename
-        std::decay<ConstBufferSequence>::type>>(
+    start_buffers(
+        m,
+        ws().emplace<cbs_gen_impl<typename
+            std::decay<ConstBufferSequence>::type>>(
                 std::forward<ConstBufferSequence>(cbs)));
-    start_buffers(m);
 }
 
 template<
@@ -152,11 +150,10 @@ start(
         "The Source cannot be constructed with the given arguments");
 
     start_init(m);
-    auto& src = construct_source<Source>(
+    auto& source = ws().emplace<Source>(
         std::forward<Args>(args)...);
-    source_ = std::addressof(src);
-    start_source(m);
-    return src;
+    start_source(m, source);
+    return source;
 }
 
 } // http_proto
