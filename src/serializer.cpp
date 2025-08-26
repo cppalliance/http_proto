@@ -958,16 +958,6 @@ serializer(serializer&& other) noexcept
     other.impl_ = nullptr;
 }
 
-serializer&
-serializer::
-operator=(serializer&&other) noexcept
-{
-    delete impl_;
-    impl_ = other.impl_;
-    other.impl_ = nullptr;
-    return *this;
-}
-
 serializer::
 ~serializer()
 {

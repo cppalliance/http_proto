@@ -38,15 +38,6 @@ public:
             response_parser pr1(ctx);
             response_parser pr2(std::move(pr1));
         }
-
-        // response_parser& operator=(response_parser&&)
-        {
-            rts::context ctx;
-            install_parser_service(ctx, {});
-            response_parser pr1(ctx);
-            response_parser pr2(ctx);
-            pr2 = std::move(pr1);
-        }
     }
 
     void

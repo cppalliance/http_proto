@@ -107,29 +107,6 @@ public:
     response_parser(
         response_parser&& other) noexcept = default;
 
-    /** Assignment.
-
-        The states of `other` are transferred to
-        `this`, including the allocated buffer.
-        The previous states of `this` are
-        destroyed. After assignment, the only
-        valid operations on the moved-from object
-        are destruction and assignemt.
-
-        Buffer sequences previously obtained
-        using @ref prepare or @ref pull_body
-        remain valid.
-
-        @par Complexity
-        Constant.
-
-        @return A reference to this object.
-
-        @param other The parser to assign from.
-    */
-    response_parser& operator=(
-        response_parser&& other) noexcept = default;
-
     /** Destructor.
 
         Any views or buffers obtained from this

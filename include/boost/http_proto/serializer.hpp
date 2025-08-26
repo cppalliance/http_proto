@@ -144,35 +144,6 @@ public:
     serializer(
         serializer&& other) noexcept;
 
-    /** Assignment.
-
-        The states of `other` are transferred
-        `this`, which includes the allocated buffer.
-        The previous state of `this` are destroyed.
-        After assignment, the only valid
-        operations on the moved-from object are
-        destruction and assignment.
-
-        Buffer sequences previously obtained
-        using @ref prepare or @ref stream::prepare
-        remain valid.
-
-        @par Postconditions
-        @code
-        other.is_done() == true
-        @endcode
-
-        @par Complexity
-        Constant.
-
-        @param other The serializer to assign from.
-        @return A reference to this object.
-    */
-    BOOST_HTTP_PROTO_DECL
-    serializer&
-    operator=(
-        serializer&& other) noexcept;
-
     /** Destructor
     */
     BOOST_HTTP_PROTO_DECL

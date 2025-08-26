@@ -622,9 +622,6 @@ private:
     parser(parser&& other) noexcept;
 
     BOOST_HTTP_PROTO_DECL
-    parser& operator=(parser&& other) noexcept;
-
-    BOOST_HTTP_PROTO_DECL
     ~parser();
 
     BOOST_HTTP_PROTO_DECL
