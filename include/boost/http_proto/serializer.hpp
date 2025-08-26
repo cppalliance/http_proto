@@ -11,15 +11,12 @@
 #ifndef BOOST_HTTP_PROTO_SERIALIZER_HPP
 #define BOOST_HTTP_PROTO_SERIALIZER_HPP
 
-#include <boost/http_proto/detail/array_of_const_buffers.hpp>
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/detail/header.hpp>
-#include <boost/http_proto/detail/managed.hpp>
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/source.hpp>
 
-#include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/const_buffer_span.hpp>
+#include <boost/buffers/mutable_buffer_pair.hpp>
 #include <boost/buffers/type_traits.hpp>
 #include <boost/rts/context_fwd.hpp>
 #include <boost/system/result.hpp>
@@ -32,10 +29,6 @@ namespace http_proto {
 
 // Forward declaration
 class message_view_base;
-namespace detail {
-class serializer_service;
-class filter;
-} // detail
 
 /** A serializer for HTTP/1 messages
 
@@ -129,8 +122,9 @@ public:
         The states of `other` are transferred
         to the newly constructed object,
         which includes the allocated buffer.
-        After construction, the moved-from object
-        left in a valid but unspecified state.
+        After construction, the only valid
+        operations on the moved-from object
+        are destruction and assignment.
 
         Buffer sequences previously obtained
         using @ref prepare or @ref stream::prepare
@@ -155,8 +149,13 @@ public:
         The states of `other` are transferred
         `this`, which includes the allocated buffer.
         The previous state of `this` are destroyed.
-        After assignment, the moved-from object
-        left in a valid but unspecified state.
+        After assignment, the only valid
+        operations on the moved-from object are
+        destruction and assignment.
+
+        Buffer sequences previously obtained
+        using @ref prepare or @ref stream::prepare
+        remain valid.
 
         @par Postconditions
         @code
@@ -225,11 +224,8 @@ public:
             @ref message_view_base.
     */
     void
-    start(
-        message_view_base const& m)
-    {
-        start_empty(m);
-    }
+    BOOST_HTTP_PROTO_DECL
+    start(message_view_base const& m);
 
     /** Prepare the serializer for a new message with a ConstBufferSequence body.
 
@@ -544,48 +540,19 @@ public:
 
     /** Return true if serialization is complete.
     */
+    BOOST_HTTP_PROTO_DECL
     bool
-    is_done() const noexcept
-    {
-        return state_ == state::start;
-    }
+    is_done() const noexcept;
 
 private:
+    class impl;
     class cbs_gen;
     template<class>
     class cbs_gen_impl;
 
-    detail::array_of_const_buffers
-    make_array(std::size_t n);
-
-    template<
-        class Source,
-        class... Args,
-        typename std::enable_if<
-            std::is_constructible<
-                Source,
-                Args...>::value>::type* = nullptr>
-    Source&
-    construct_source(Args&&... args)
-    {
-        return ws_.emplace<Source>(
-            std::forward<Args>(args)...);
-    }
-
-    template<
-        class Source,
-        class... Args,
-        typename std::enable_if<
-            std::is_constructible<
-                Source,
-                detail::workspace&,
-                Args...>::value>::type* = nullptr>
-    Source&
-    construct_source(Args&&... args)
-    {
-        return ws_.emplace<Source>(
-            ws_, std::forward<Args>(args)...);
-    }
+    BOOST_HTTP_PROTO_DECL
+    detail::workspace&
+    ws();
 
     BOOST_HTTP_PROTO_DECL
     void
@@ -594,74 +561,17 @@ private:
 
     BOOST_HTTP_PROTO_DECL
     void
-    start_empty(
-        message_view_base const&);
-
-    BOOST_HTTP_PROTO_DECL
-    void
     start_buffers(
-        message_view_base const&);
+        message_view_base const&,
+        cbs_gen&);
 
     BOOST_HTTP_PROTO_DECL
     void
     start_source(
-        message_view_base const&);
+        message_view_base const&,
+        source&);
 
-    bool
-    is_header_done() const noexcept;
-
-    void
-    out_init();
-
-    buffers::mutable_buffer_pair
-    out_prepare() noexcept;
-
-    void
-    out_commit(std::size_t) noexcept;
-
-    std::size_t
-    out_capacity() const noexcept;
-
-    void
-    out_finish() noexcept;
-
-    enum class state
-    {
-        reset,
-        start,
-        header,
-        body
-    };
-
-    enum class style
-    {
-        empty,
-        buffers,
-        source,
-        stream
-    };
-
-    const rts::context* ctx_;
-    detail::serializer_service* svc_;
-    detail::workspace ws_;
-
-    detail::filter* filter_ = nullptr;
-    cbs_gen* cbs_gen_ = nullptr;
-    source* source_ = nullptr;
-
-    buffers::circular_buffer out_;
-    buffers::circular_buffer in_;
-    detail::array_of_const_buffers prepped_;
-    buffers::const_buffer tmp_;
-
-    detail::managed<
-        state, state::start> state_;
-    style style_ = style::empty;
-    uint8_t chunk_header_len_ = 0;
-    bool more_input_ = false;
-    bool is_chunked_ = false;
-    bool needs_exp100_continue_ = false;
-    bool filter_done_ = false;
+    impl* impl_;
 };
 
 /** Serializer configuration settings.
@@ -828,9 +738,9 @@ public:
         @param other The object to move from.
     */
     stream(stream&& other) noexcept
-        : sr_(other.sr_)
+        : impl_(other.impl_)
     {
-        other.sr_ = nullptr;
+        other.impl_ = nullptr;
     }
 
     /** Move assignment.
@@ -849,15 +759,17 @@ public:
     stream&
     operator=(stream&& other) noexcept
     {
-        std::swap(sr_, other.sr_);
+        std::swap(impl_, other.impl_);
         return *this;
     }
 
     /** Return true if the stream is open.
     */
-    BOOST_HTTP_PROTO_DECL
     bool
-    is_open() const noexcept;
+    is_open() const noexcept
+    {
+        return impl_ != nullptr;
+    }
 
     /** Return the available capacity.
 
@@ -961,20 +873,21 @@ public:
 
         Closes the stream if open.
     */
-    BOOST_HTTP_PROTO_DECL
-    ~stream();
+    ~stream()
+    {
+        close();
+    }
 
 private:
     friend class serializer;
 
     explicit
-    stream(
-        serializer& sr) noexcept
-        : sr_(&sr)
+    stream(serializer::impl* impl) noexcept
+        : impl_(impl)
     {
     }
 
-    serializer* sr_ = nullptr;
+    serializer::impl* impl_ = nullptr;
 };
 
 } // http_proto
