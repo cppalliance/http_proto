@@ -215,15 +215,6 @@ struct request_parser_test
             request_parser pr1(ctx);
             request_parser pr2(std::move(pr1));
         }
-
-        // request_parser& operator=(request_parser&&)
-        {
-            rts::context ctx;
-            install_parser_service(ctx, {});
-            request_parser pr1(ctx);
-            request_parser pr2(ctx);
-            pr2 = std::move(pr1);
-        }
     }
 
     //--------------------------------------------

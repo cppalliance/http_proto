@@ -253,39 +253,6 @@ struct serializer_test
             BOOST_TEST(sr2.is_done());
             BOOST_TEST(message == expected);
         }
-
-        // serializer& operator=(serializer&&)
-        {
-            std::string message;
-            buffers::string_buffer buf(&message);
-            serializer sr1(ctx);
-            sr1.start(res);
-    
-            // consume 5 bytes
-            {
-                auto cbs = sr1.prepare().value();
-                auto n = buffers::copy(buf.prepare(5), cbs);
-                sr1.consume(n);
-                buf.commit(n);
-                BOOST_TEST_EQ(n, 5);
-            }
-
-            serializer sr2(ctx);
-            sr2 = std::move(sr1);
-
-            // consume the reset from sr2
-            {
-                auto cbs = sr2.prepare().value();
-                auto n = buffers::copy(
-                    buf.prepare(buffers::size(cbs)),
-                    cbs);
-                sr2.consume(n);
-                buf.commit(n);
-            }
-
-            BOOST_TEST(sr2.is_done());
-            BOOST_TEST(message == expected);
-        }
     }
 
     //--------------------------------------------

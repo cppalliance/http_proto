@@ -1857,16 +1857,6 @@ parser(parser&& other) noexcept
     other.impl_ = nullptr;
 }
 
-parser&
-parser::
-operator=(parser&&other) noexcept
-{
-    delete impl_;
-    impl_ = other.impl_;
-    other.impl_ = nullptr;
-    return *this;
-}
-
 parser::
 ~parser()
 {
