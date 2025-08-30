@@ -13,9 +13,12 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/detail/header.hpp>
+
+#include <boost/core/detail/string_view.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/url/grammar/type_traits.hpp>
-#include <boost/core/detail/string_view.hpp>
+
+#include <iosfwd>
 #include <string>
 
 namespace boost {
@@ -428,6 +431,42 @@ public:
     find_all(
         core::string_view name) const noexcept;
 };
+
+/** Format the container to the output stream
+
+    This function serializes the container to
+    the specified output stream.
+
+    @par Example
+    @code
+    request req;
+    std::stringstream ss;
+    ss << req;
+    assert( ss.str() == "GET / HTTP/1.1\r\n\r\n" );
+    @endcode
+
+    @par Effects
+    @code
+    return os << f.buffer();
+    @endcode
+
+    @par Complexity
+    Linear in `f.buffer().size()`
+
+    @par Exception Safety
+    Basic guarantee.
+
+    @return A reference to the output stream, for chaining
+
+    @param os The output stream to write to.
+
+    @param f The container to write.
+*/
+BOOST_HTTP_PROTO_DECL
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const fields_view_base& f);
 
 } // http_proto
 } // boost

@@ -383,5 +383,13 @@ find_all(
 
 //------------------------------------------------
 
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const fields_view_base& f)
+{
+    return os << f.buffer();
+}
+
 } // http_proto
 } // boost
