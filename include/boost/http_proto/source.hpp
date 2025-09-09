@@ -195,6 +195,7 @@ protected:
     virtual
     results
     on_read(
+        bool boost_span_issue_202_workaround,
         boost::span<buffers::mutable_buffer const> bs);
 
 private:
@@ -205,12 +206,12 @@ private:
         return on_read(b);
     }
 
-    results
-    read_impl(
-        boost::span<buffers::mutable_buffer const> const& bs)
-    {
-        return on_read(bs);
-    }
+    // results
+    // read_impl(
+    //     boost::span<buffers::mutable_buffer const> const& bs)
+    // {
+    //     return on_read(bs);
+    // }
 
     template<class T>
     results
