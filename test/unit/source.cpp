@@ -10,6 +10,9 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/source.hpp>
 
+#include <boost/buffers/slice.hpp>
+#include <boost/buffers/range.hpp>
+
 #include "test_helpers.hpp"
 
 namespace boost {
@@ -43,9 +46,8 @@ struct source_test
                     boost::system::generic_category());
                 return rv;
             }
-            auto const n =
-                buffers::copy(b, cb_);
-            cb_ = buffers::sans_prefix(cb_, n);
+            auto n = buffers::copy(b, cb_);
+            buffers::trim_front(cb_, n);
             rv.bytes += n;
             rv.finished = cb_.size() == 0;
             return rv;
@@ -67,7 +69,7 @@ struct source_test
                 { &s[0], 3 },
                 { &s[3], 5 },
                 { &s[8], 7 } };
-            buffers::mutable_buffer_span bs(mb, 3);
+            boost::span<buffers::mutable_buffer const> bs(mb);
             auto rv = src.read(bs);
             if(rv.ec.failed())
                 continue;
@@ -101,8 +103,8 @@ struct source_test
         // empty sequence
         {
             test_source src(99);
-            buffers::mutable_buffer_span bs;
-            auto rv = src.read(bs);
+            auto rv = src.read(
+                boost::span<buffers::mutable_buffer const>{});
             BOOST_TEST(! rv.ec.failed());
             BOOST_TEST_EQ(rv.bytes, 0);
         }

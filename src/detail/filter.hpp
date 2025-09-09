@@ -11,8 +11,9 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
 #define BOOST_HTTP_PROTO_DETAIL_FILTER_HPP
 
-#include <boost/buffers/const_buffer_pair.hpp>
-#include <boost/buffers/mutable_buffer_subspan.hpp>
+#include <boost/buffers/buffer_pair.hpp>
+#include <boost/buffers/slice.hpp>
+#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 
 namespace boost {
@@ -62,7 +63,8 @@ public:
 
     results
     process(
-        buffers::mutable_buffer_subspan out,
+        buffers::slice_of<
+            boost::span<const buffers::mutable_buffer>> out,
         buffers::const_buffer_pair in,
         bool more);
 

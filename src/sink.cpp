@@ -15,7 +15,7 @@ namespace http_proto {
 auto
 sink::
 on_write(
-    buffers::const_buffer_span bs,
+    boost::span<buffers::const_buffer const> bs,
     bool more) ->
         results
 {
@@ -27,9 +27,9 @@ on_write(
     do
     {
         buffers::const_buffer b(*it++);
-        rv += on_write(b,
-            it != end_ ||
-            more);
+        rv += on_write(
+            b,
+            it != end_ || more);
         if(rv.ec.failed())
             return rv;
     }

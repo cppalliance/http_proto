@@ -13,6 +13,7 @@
 #include <boost/http_proto/parser.hpp>
 
 #include "src/detail/brotli_filter_base.hpp"
+#include "src/detail/buffer_utils.hpp"
 #include "src/detail/zlib_filter_base.hpp"
 
 #include <boost/assert.hpp>
@@ -20,9 +21,6 @@
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/front.hpp>
-#include <boost/buffers/make_buffer.hpp>
-#include <boost/buffers/prefix.hpp>
-#include <boost/buffers/size.hpp>
 #include <boost/rts/brotli/decode.hpp>
 #include <boost/rts/context.hpp>
 #include <boost/rts/zlib/error.hpp>
@@ -789,7 +787,7 @@ public:
                 n = clamp(n, svc_.cfg.max_prepare);
                 nprepare_ = n;
                 mbp_ = cb0_.prepare(n);
-                return mutable_buffers_type(mbp_);
+                return detail::make_span(mbp_);
             }
             else
             {
@@ -829,7 +827,7 @@ public:
 
                     nprepare_ = n;
                     mbp_ = cb0_.prepare(n);
-                    return mutable_buffers_type(mbp_);
+                    return detail::make_span(mbp_);
                 }
                 case style::elastic:
                 {
@@ -871,7 +869,7 @@ public:
                             // we can detect overflow
                             nprepare_ = 1;
                             mbp_ = cb0_.prepare(1);
-                            return mutable_buffers_type(mbp_);
+                            return detail::make_span(mbp_);
                         }
                     }
 
@@ -1319,7 +1317,7 @@ public:
                         const std::size_t chunk_avail =
                             clamp(chunk_remain_, cb0_.size());
                         const auto chunk =
-                            buffers::prefix(cb0_.data(), chunk_avail);
+                            detail::prefix(cb0_.data(), chunk_avail);
 
                         if(body_limit_remain() < chunk_avail)
                         {
@@ -1461,9 +1459,7 @@ public:
                         payload_remain_ -= payload_avail;
                         body_total_     += payload_avail;
                         auto sink_rs = sink_->write(
-                            buffers::prefix(
-                                cb0_.data(),
-                                payload_avail),
+                            detail::prefix(cb0_.data(), payload_avail),
                             !is_complete);
                         cb0_.consume(sink_rs.bytes);
                         if(sink_rs.ec.failed())
@@ -1541,9 +1537,7 @@ public:
             case style::sink:
             {
                 auto rs = sink_->write(
-                    buffers::prefix(
-                        body_buf.data(),
-                        body_avail_),
+                    detail::prefix(body_buf.data(), body_avail_),
                     state_ == state::set_body);
                 body_buf.consume(rs.bytes);
                 body_avail_ -= rs.bytes;
@@ -1600,10 +1594,10 @@ public:
             return {};
         case state::body:
         case state::complete_in_place:
-            cbp_ = buffers::prefix(
+            cbp_ = detail::prefix(
                 (is_plain() ? cb0_ : cb1_).data(),
                 body_avail_);
-            return const_buffers_type(cbp_);
+            return detail::make_span(cbp_);
         default:
             detail::throw_logic_error();
         }
@@ -1736,9 +1730,7 @@ private:
 
                     return filter_->process(
                         eb_->prepare(n),
-                        buffers::prefix(
-                            cb0_.data(),
-                            payload_avail),
+                        detail::prefix(cb0_.data(), payload_avail),
                         more);
                 }
                 else // in-place and sink 
@@ -1747,10 +1739,8 @@ private:
                     n = clamp(n, cb1_.capacity());
 
                     return filter_->process(
-                        buffers::mutable_buffer_span{ cb1_.prepare(n) },
-                        buffers::prefix(
-                            cb0_.data(),
-                            payload_avail),
+                        detail::make_span(cb1_.prepare(n)),
+                        detail::prefix(cb0_.data(), payload_avail),
                         more);
                 }
             }();

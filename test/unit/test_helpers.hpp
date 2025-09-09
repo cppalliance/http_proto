@@ -14,10 +14,9 @@
 #include <boost/http_proto/request.hpp>
 #include <boost/http_proto/response.hpp>
 #include <boost/buffers/copy.hpp>
-#include <boost/buffers/size.hpp>
 #include <boost/buffers/make_buffer.hpp>
-#include <boost/url/grammar/parse.hpp>
 #include <boost/core/detail/string_view.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 #include "test_suite.hpp"
 

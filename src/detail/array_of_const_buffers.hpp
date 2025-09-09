@@ -11,7 +11,8 @@
 #ifndef BOOST_HTTP_PROTO_DETAIL_ARRAY_OF_BUFFERS_HPP
 #define BOOST_HTTP_PROTO_DETAIL_ARRAY_OF_BUFFERS_HPP
 
-#include <boost/buffers/const_buffer.hpp>
+#include <boost/assert.hpp>
+#include <boost/buffers/buffer.hpp>
 
 #include <cstdint>
 

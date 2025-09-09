@@ -261,7 +261,7 @@ struct zlib_test
 
                 results rs;
                 auto n = buffers::copy(b, body_);
-                body_ = buffers::sans_prefix(body_, n);
+                buffers::trim_front(body_, n);
                 rs.bytes = n;
                 rs.finished = (body_.size() == 0);
                 done_ = rs.finished;
@@ -296,7 +296,7 @@ struct zlib_test
             {
                 auto mbs = stream.prepare();
                 auto n = buffers::copy(mbs, body);
-                body = buffers::sans_prefix(body, n);
+                buffers::trim_front(body, n);
                 stream.commit(n);
                 if(body.size() == 0)
                     stream.close();
@@ -333,8 +333,10 @@ struct zlib_test
             auto buf_size = std::min(body.size() / 23, body.size());
             if(buf_size == 0)
                 buf_size = 1;
-            buf_seq.push_back(buffers::prefix(body, buf_size));
-            body = buffers::sans_prefix(body, buf_size);
+            buf_seq.emplace_back(
+                body.data(),
+                body.size() ? buf_size : 0);
+            buffers::trim_front(body, buf_size);
         } while(body.size() != 0);
 
         sr.start(res, buf_seq);
@@ -481,8 +483,8 @@ struct zlib_test
             if(input.size() != 0)
             {
                 auto n1 = buffers::copy(pr.prepare(), input);
+                buffers::trim_front(input, n1);
                 pr.commit(n1);
-                input = buffers::sans_prefix(input, n1);
             }
 
             boost::system::error_code ec;
@@ -519,9 +521,8 @@ struct zlib_test
         buffers::const_buffer input)
     {
         std::string rs;
-        std::size_t n1 = buffers::copy(
-                pr.prepare(), input);
-        input = buffers::sans_prefix(input, n1);
+        auto n1 = buffers::copy(pr.prepare(), input);
+        buffers::trim_front(input, n1);
         pr.commit(n1);
         system::error_code ec;
         pr.parse(ec);
@@ -533,9 +534,8 @@ struct zlib_test
 
         while(ec == error::need_data)
         {
-            std::size_t n2 = buffers::copy(
-                    pr.prepare(), input);
-            input = buffers::sans_prefix(input, n2);
+            auto n2 = buffers::copy(pr.prepare(), input);
+            buffers::trim_front(input, n2);
             pr.commit(n2);
             pr.parse(ec);
             if(n2 == 0)
@@ -554,9 +554,8 @@ struct zlib_test
         response_parser& pr,
         buffers::const_buffer input)
     {
-        std::size_t n1 = buffers::copy(
-                pr.prepare(), input);
-        input = buffers::sans_prefix(input, n1);
+        auto n1 = buffers::copy(pr.prepare(), input);
+        buffers::trim_front(input, n1);
         pr.commit(n1);
         system::error_code ec;
         pr.parse(ec);
@@ -596,9 +595,8 @@ struct zlib_test
 
         while(ec == error::need_data)
         {
-            std::size_t n2 = buffers::copy(
-                    pr.prepare(), input);
-            input = buffers::sans_prefix(input, n2);
+            auto n2 = buffers::copy(pr.prepare(), input);
+            buffers::trim_front(input, n2);
             pr.commit(n2);
             pr.parse(ec);
             if(n2 == 0)

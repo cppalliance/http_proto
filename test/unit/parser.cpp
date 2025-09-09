@@ -14,7 +14,6 @@
 #include <boost/http_proto/response_parser.hpp>
 
 #include <boost/buffers/copy.hpp>
-#include <boost/buffers/size.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/make_buffer.hpp>
 #include <boost/buffers/string_buffer.hpp>

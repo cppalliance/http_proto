@@ -18,10 +18,9 @@
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/sink.hpp>
 
-#include <boost/buffers/any_dynamic_buffer.hpp>
-#include <boost/buffers/mutable_buffer_pair.hpp>
-#include <boost/buffers/mutable_buffer_span.hpp>
-#include <boost/buffers/type_traits.hpp>
+#include <boost/buffers/dynamic_buffer.hpp>
+#include <boost/buffers/buffer_pair.hpp>
+#include <boost/core/span.hpp>
 #include <boost/rts/context_fwd.hpp>
 
 #include <cstddef>
@@ -77,12 +76,12 @@ public:
     /** The type of buffer returned from @ref prepare.
     */
     using mutable_buffers_type =
-        buffers::mutable_buffer_span;
+        boost::span<buffers::mutable_buffer const>;
 
     /** The type of buffer returned from @ref pull_body.
     */
     using const_buffers_type =
-        buffers::const_buffer_span;
+        boost::span<buffers::const_buffer const>;
 
     //--------------------------------------------
     //

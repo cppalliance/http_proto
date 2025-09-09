@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_SINK_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/buffers/const_buffer_span.hpp>
-#include <boost/buffers/type_traits.hpp>
+#include <boost/buffers/buffer.hpp>
+#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 #include <cstddef>
 #include <type_traits>
@@ -192,7 +192,7 @@ protected:
     virtual
     results
     on_write(
-        buffers::const_buffer_span bs,
+        boost::span<const buffers::const_buffer> bs,
         bool more);
 
 private:
@@ -214,7 +214,7 @@ private:
 
     results
     write_impl(
-        buffers::const_buffer_span const& bs,
+        boost::span<const buffers::const_buffer> const& bs,
         bool more)
     {
         return on_write(bs, more);

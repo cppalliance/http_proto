@@ -10,7 +10,7 @@
 #ifndef BOOST_HTTP_PROTO_IMPL_SINK_HPP
 #define BOOST_HTTP_PROTO_IMPL_SINK_HPP
 
-#include <boost/buffers/mutable_buffer.hpp>
+#include <boost/buffers/buffer.hpp>
 #include <boost/buffers/range.hpp>
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/assert.hpp>
@@ -58,11 +58,10 @@ write_impl(
         while(
             p != tmp_end &&
             it != end_);
-        rv += on_write(
-            buffers::const_buffer_span(
+        rv += on_write(boost::span<
+            buffers::const_buffer const>(
                 tmp, p - tmp),
-            it != end_ ||
-                more);
+            it != end_ || more);
         if(rv.ec.failed())
             return rv;
     }

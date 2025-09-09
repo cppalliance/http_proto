@@ -12,7 +12,7 @@
 
 #include <boost/http_proto/detail/except.hpp>
 
-#include <boost/buffers/sans_prefix.hpp>
+#include <boost/buffers/slice.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -38,7 +38,7 @@ consume(std::size_t n)
         auto* p = base_ + pos_;
         if(n < p->size())
         {
-            *p = buffers::sans_prefix(*p, n);
+            buffers::trim_front(*p, n);
             return;
         }
         n -= p->size();
