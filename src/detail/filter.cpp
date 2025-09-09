@@ -11,8 +11,6 @@
 #include "src/detail/filter.hpp"
 
 #include <boost/buffers/front.hpp>
-#include <boost/buffers/sans_prefix.hpp>
-#include <boost/buffers/size.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -21,7 +19,8 @@ namespace detail {
 auto
 filter::
 process(
-    buffers::mutable_buffer_subspan out,
+    buffers::slice_of<
+        boost::span<const buffers::mutable_buffer>> out,
     buffers::const_buffer_pair in,
     bool more) -> results
 {
@@ -58,8 +57,8 @@ process(
             return rv;
         }
 
-        out = buffers::sans_prefix(out, rs.out_bytes);
-        in  = buffers::sans_prefix(in, rs.in_bytes);
+        buffers::trim_front(out, rs.out_bytes);
+        buffers::trim_front(in, rs.in_bytes);
 
         if(buffers::size(out) == 0)
             return rv;

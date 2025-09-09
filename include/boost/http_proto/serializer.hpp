@@ -15,9 +15,8 @@
 #include <boost/http_proto/detail/workspace.hpp>
 #include <boost/http_proto/source.hpp>
 
-#include <boost/buffers/const_buffer_span.hpp>
-#include <boost/buffers/mutable_buffer_pair.hpp>
-#include <boost/buffers/type_traits.hpp>
+#include <boost/buffers/buffer_pair.hpp>
+#include <boost/core/span.hpp>
 #include <boost/rts/context_fwd.hpp>
 #include <boost/system/result.hpp>
 
@@ -65,7 +64,7 @@ public:
         area.
     */
     using const_buffers_type =
-        buffers::const_buffer_span;
+        boost::span<buffers::const_buffer const>;
 
     /** Constructor.
 

@@ -12,12 +12,9 @@
 #include <boost/http_proto/serializer.hpp>
 #include <boost/http_proto/response.hpp>
 
-#include <boost/buffers/const_buffer.hpp>
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/make_buffer.hpp>
-#include <boost/buffers/mutable_buffer.hpp>
-#include <boost/buffers/prefix.hpp>
-#include <boost/buffers/size.hpp>
+#include <boost/buffers/slice.hpp>
 #include <boost/buffers/string_buffer.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/rts/context.hpp>
@@ -114,14 +111,17 @@ struct serializer_test
     std::string
     read_some(serializer& sr)
     {
-        auto cbs = sr.prepare().value();
+        buffers::slice_of<
+            serializer::const_buffers_type> cbs
+                = sr.prepare().value();
         BOOST_TEST(!sr.is_done());
         // We limit buffer consumption to necessitate
         // multiple calls to serializer::prepare() and
         // serializer::consume(), allowing tests to cover
         // state management within these functions
         std::string s;
-        for( auto buf : buffers::prefix(cbs, 256) )
+        buffers::keep_front(cbs, 256);
+        for( auto buf : cbs)
         {
             s.append(
                 reinterpret_cast<char const*>(buf.data()),
@@ -326,9 +326,7 @@ struct serializer_test
         rts::context ctx;
         install_serializer_service(ctx, {});
         serializer sr(ctx);
-        buffers::const_buffer_span cbs(
-            buf.data(), buf.size());
-        sr.start(res, cbs);
+        sr.start(res, buf);
         std::string s = read(sr);
         core::string_view sv(s);
 
@@ -412,17 +410,15 @@ struct serializer_test
 
             while( buf.size() > 0 )
             {
-                auto num_copied =
-                    buffers::copy(out_buf, buf);
-
-                buf = buffers::sans_prefix(buf, num_copied);
+                auto n = buffers::copy(out_buf, buf);
+                buffers::trim_front(buf, n);
 
                 s.insert(
                     s.end(),
                     storage.begin(),
-                    storage.begin() + num_copied);
+                    storage.begin() + n);
 
-                sr.consume(num_copied);
+                sr.consume(n);
             }
         };
 

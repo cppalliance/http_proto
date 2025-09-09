@@ -11,7 +11,6 @@
 #include <boost/http_proto/file_source.hpp>
 
 #include <boost/buffers/make_buffer.hpp>
-#include <boost/buffers/prefix.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
 
@@ -63,7 +62,7 @@ struct file_source_test
             file_source fsource(std::move(f));
             char buf[16] = {};
             auto rs = fsource.read(
-                buffers::mutable_buffer(buf, 16));
+                buffers::make_buffer(buf));
             BOOST_TEST_EQ(rs.bytes, 0);
             BOOST_TEST(rs.ec.failed());
             BOOST_TEST(!rs.finished);
@@ -86,8 +85,7 @@ struct file_source_test
             core::string_view
         {
             auto rs = fsource.read(
-                buffers::prefix(
-                    buffers::make_buffer(buf), n));
+                buffers::mutable_buffer{ buf, n });
             BOOST_TEST_EQ(rs.finished, !more);
             BOOST_TEST(!rs.ec);
             return { buf, rs.bytes };
@@ -112,7 +110,8 @@ struct file_source_test
 
         {
             char buf[5] = {};
-            auto rs = fsource.read(buffers::make_buffer(buf));
+            auto rs = fsource.read(
+                buffers::make_buffer(buf));
             BOOST_TEST_EQ(rs.bytes, 5);
             BOOST_TEST(!rs.ec);
             BOOST_TEST(!rs.finished);
@@ -123,7 +122,8 @@ struct file_source_test
 
         {
             char buf[5] = {};
-            auto rs = fsource.read(buffers::make_buffer(buf));
+            auto rs = fsource.read(
+                buffers::make_buffer(buf));
             BOOST_TEST_EQ(rs.bytes, 1);
             BOOST_TEST(!rs.ec);
             BOOST_TEST(rs.finished);

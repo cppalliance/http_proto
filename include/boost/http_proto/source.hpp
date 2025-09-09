@@ -11,8 +11,8 @@
 #define BOOST_HTTP_PROTO_SOURCE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/buffers/mutable_buffer_span.hpp>
-#include <boost/buffers/type_traits.hpp>
+#include <boost/buffers/buffer.hpp>
+#include <boost/core/span.hpp>
 #include <boost/system/error_code.hpp>
 #include <cstddef>
 #include <type_traits>
@@ -195,7 +195,7 @@ protected:
     virtual
     results
     on_read(
-        buffers::mutable_buffer_span bs);
+        boost::span<buffers::mutable_buffer const> bs);
 
 private:
     results
@@ -207,7 +207,7 @@ private:
 
     results
     read_impl(
-        buffers::mutable_buffer_span const& bs)
+        boost::span<buffers::mutable_buffer const> const& bs)
     {
         return on_read(bs);
     }

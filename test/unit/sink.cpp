@@ -69,7 +69,7 @@ struct sink_test
                 { &pat[0], 3 },
                 { &pat[3], 5 },
                 { &pat[8], 7 } };
-            buffers::const_buffer_span bs(cb, 3);
+            boost::span<buffers::const_buffer const> bs(cb);
             auto rv = dest.write(bs, false);
             if(rv.ec.failed())
                 continue;
@@ -107,8 +107,9 @@ struct sink_test
         // empty sequence
         {
             test_sink dest(99);
-            buffers::const_buffer_span bs;
-            auto rv = dest.write(bs, true);
+            auto rv = dest.write(
+                boost::span<buffers::const_buffer const>{},
+                true);
             BOOST_TEST(! rv.ec.failed());
             BOOST_TEST_EQ(rv.bytes, 0);
         }

@@ -16,14 +16,11 @@
 
 #include "src/detail/array_of_const_buffers.hpp"
 #include "src/detail/brotli_filter_base.hpp"
+#include "src/detail/buffer_utils.hpp"
 #include "src/detail/zlib_filter_base.hpp"
 
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/copy.hpp>
-#include <boost/buffers/prefix.hpp>
-#include <boost/buffers/sans_prefix.hpp>
-#include <boost/buffers/sans_suffix.hpp>
-#include <boost/buffers/size.hpp>
 #include <boost/core/bit.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/rts/brotli/encode.hpp>
@@ -396,9 +393,7 @@ public:
                         }
                     }
                 }
-                return const_buffers_type(
-                    prepped_.begin(),
-                    prepped_.size());
+                return detail::make_span(prepped_);
             }
 
             case style::source:
@@ -444,8 +439,7 @@ public:
                     break;
 
                 const auto rs = filter_->process(
-                    buffers::mutable_buffer_span(
-                        out_prepare()),
+                    detail::make_span(out_prepare()),
                     {}, // empty input
                     false);
 
@@ -479,8 +473,7 @@ public:
                     }
 
                     const auto rs = filter_->process(
-                        buffers::mutable_buffer_span(
-                            out_prepare()),
+                        detail::make_span(out_prepare()),
                         { tmp_, {} },
                         more_input_);
 
@@ -491,8 +484,7 @@ public:
                         return rs.ec;
                     }
 
-                    tmp_ = buffers::sans_prefix(
-                        tmp_, rs.in_bytes);
+                    buffers::trim_front(tmp_, rs.in_bytes);
                     out_commit(rs.out_bytes);
 
                     if(rs.out_short)
@@ -527,8 +519,7 @@ public:
                     }
 
                     const auto rs = filter_->process(
-                        buffers::mutable_buffer_span(
-                            out_prepare()),
+                        detail::make_span(out_prepare()),
                         in_.data(),
                         more_input_);
 
@@ -560,8 +551,7 @@ public:
                     break;
 
                 const auto rs = filter_->process(
-                    buffers::mutable_buffer_span(
-                        out_prepare()),
+                    detail::make_span(out_prepare()),
                     in_.data(),
                     more_input_);
 
@@ -590,15 +580,12 @@ public:
         }
 
         prepped_.reset(!is_header_done());
-        const auto cbp = out_.data();
-        if(cbp[0].size() != 0)
-            prepped_.append(cbp[0]);
-        if(cbp[1].size() != 0)
-            prepped_.append(cbp[1]);
-
-        return const_buffers_type(
-            prepped_.begin(),
-            prepped_.size());
+        for(auto const& cb : out_.data())
+        {
+            if(cb.size() != 0)
+                prepped_.append(cb);
+        }
+        return detail::make_span(prepped_);
     }
 
     void
@@ -880,15 +867,15 @@ private:
     buffers::mutable_buffer_pair
     out_prepare() noexcept
     {
+        auto mbp = out_.prepare(out_.capacity());
         if(is_chunked_)
         {
-            return buffers::sans_suffix(
-                buffers::sans_prefix(
-                    out_.prepare(out_.capacity()),
-                    chunk_header_len_),
-                crlf_and_final_chunk.size());
+            buffers::trim_front(
+                mbp, chunk_header_len_);
+            buffers::trim_back(
+                mbp, crlf_and_final_chunk.size());
         }
-        return out_.prepare(out_.capacity());
+        return mbp;
     }
 
     void

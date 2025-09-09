@@ -11,8 +11,6 @@
 #define BOOST_BUFFERS_IMPL_SOURCE_HPP
 
 #include <boost/http_proto/detail/except.hpp>
-#include <boost/buffers/range.hpp>
-#include <boost/buffers/type_traits.hpp>
 #include <boost/assert.hpp>
 
 namespace boost {
@@ -60,8 +58,8 @@ read_impl(
         while(
             p != tmp_end &&
             it != end_);
-        rv += on_read(
-            buffers::mutable_buffer_span(
+        rv += on_read(boost::span<
+            buffers::mutable_buffer const>(
                 tmp, p - tmp));
         if(rv.ec.failed())
             return rv;
