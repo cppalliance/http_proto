@@ -192,6 +192,7 @@ protected:
     virtual
     results
     on_write(
+        bool boost_span_issue_202_workaround,
         boost::span<const buffers::const_buffer> bs,
         bool more);
 
@@ -212,13 +213,13 @@ private:
         return on_write(b, more);
     }
 
-    results
-    write_impl(
-        boost::span<const buffers::const_buffer> const& bs,
-        bool more)
-    {
-        return on_write(bs, more);
-    }
+    // results
+    // write_impl(
+    //     boost::span<const buffers::const_buffer> const& bs,
+    //     bool more)
+    // {
+    //     return on_write(bs, more);
+    // }
 
     template<class T>
     results

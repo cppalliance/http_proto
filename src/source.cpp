@@ -16,6 +16,7 @@ namespace http_proto {
 auto
 source::
 on_read(
+    bool,
     boost::span<buffers::mutable_buffer const> bs) ->
         results
 {

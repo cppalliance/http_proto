@@ -15,6 +15,7 @@ namespace http_proto {
 auto
 sink::
 on_write(
+    bool,
     boost::span<buffers::const_buffer const> bs,
     bool more) ->
         results
