@@ -28,16 +28,16 @@ target_include_directories(boost_http_proto_tests PRIVATE . ../../../url/extra/t
 target_include_directories(boost_http_proto_tests PRIVATE . ../../)
 target_link_libraries(
     boost_http_proto_tests PRIVATE
-    boost_http_proto
-    boost_filesystem
+    Boost::http_proto
+    Boost::filesystem
     )
 
-if (TARGET boost_rts_zlib)
-    target_link_libraries(boost_http_proto_tests PRIVATE boost_rts_zlib)
+if (TARGET Boost::rts_zlib)
+    target_link_libraries(boost_http_proto_tests PRIVATE Boost::rts_zlib)
 endif ()
 
-if (TARGET boost_rts_brotli)
-    target_link_libraries(boost_http_proto_tests PRIVATE boost_rts_brotli)
+if (TARGET Boost::rts_brotli)
+    target_link_libraries(boost_http_proto_tests PRIVATE Boost::rts_brotli)
 endif ()
 
 add_test(NAME boost_http_proto_tests COMMAND boost_http_proto_tests)
