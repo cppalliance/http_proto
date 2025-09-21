@@ -34,6 +34,7 @@ base-url: https://www.github.com/cppalliance/http_proto/blob/develop/
 verbose: true
 multipage: true
 use-system-libc: true
+use-system-stdlib: true
 
 # Warnings
 warn-unnamed-param: true
