@@ -9,33 +9,46 @@
 
 = Boost.HTTP.Proto
 
-Boost.HTTP.Proto is a portable C++ library which provides containers and
-algorithms which implement the HTTP/1.1 protocol, widely used to deliver content
-on the Internet. It adheres strictly to the HTTP/1.1 RFC specification
-(henceforth referred to as https://datatracker.ietf.org/doc/html/rfc9110[rfc9110,window=blank_]).
+This is a portable C++ library offering containers and algorithms for implementing
+the HTTP/1.1 protocol. The format is widely used to deliver content on the Internet,
+and this implementation adheres strictly to the
+https://datatracker.ietf.org/doc/html/rfc9110[HTTP/1.1 RFC specification],
+henceform referred to as the RFC. The library is distinguished by these
+provided features:
 
-This library understands the grammars related to HTTP nessages and provides
-functionality to validate, parse, examine, and modify messages.
+* Sans-I/O approach
+* Requires only C++11
+* Works without exceptions
+* Fast compilation, few templates
+* Advanced handling of memory (RAM)
 
-== Features
+== Sans-I/O
+
+While this library implements the HTTP protocol, it does so without performing
+any actual network activity as the logic is completely isolated from the
+underlying I/O operations. The implementation manages state, ensures RFC
+compliance, and provides the application-level interface for building and
+inspecting HTTP messages and their payloads, and it is necessary to use or
+write the interfacing network implementation on top of HTTP.Proto.
+
+The companion library Boost.HTTP.IO uses Boost.HTTP.Proto to implement network
+I/O using Boost.Asio. The
+https://sans-io.readthedocs.io/[sans-I/O] website goes into more depth regarding
+this innovative approach to designing protocol libraries.
 
 == Requirements
 
-The library requires a compiler supporting at least C++11.
-
-Standard types such as `error_code` or `string_view` use their Boost equivalents.
+* Requires Boost and a compiler supporting at least C++11
+* Link to a static or dynamically linked version of this library
+* Supports `-fno-exceptions`, detected automatically
 
 == Tested Compilers
 
-Boost.HTTP.Proto has been tested with the following compilers:
+Boost.HTTP.Proto is tested with the following compiler versions:
 
-* clang:
-* gcc:
-* msvc:
-
-and these architectures: x86, x64
-
-We do not test and support gcc 8.0.1.
+* gcc: 5 to 14 (except 8.0.1)
+* clang: 3.9, 4 to 18
+* msvc: 14.1 to 14.42
 
 == Quality Assurance
 
@@ -43,7 +56,6 @@ The development infrastructure for the library includes these per-commit analyse
 
 * Coverage reports
 * Compilation and tests on Drone.io and GitHub Actions
-* Regular code audits for security
 
 == ABNF
 
@@ -52,58 +64,13 @@ https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form[Backus-Naur Form,window=b
 (ABNF) notation of
 https://datatracker.ietf.org/doc/html/rfc5234[rfc5234,window=blank_]
 to specify particular grammars used by algorithms and containers.
-While a complete understanding of the notation is not a requirement for using the
-library, it may help for an understanding of how valid components of URLs are defined.
-In particular, this is of interest to users who wish to compose parsing algorithms
-using the combinators provided by the library.
+While a complete understanding of the notation is not a requirement for using
+the library, it may help for an understanding of how valid components of HTTP
+messages are defined. In particular, this is of interest to users who wish to
+compose parsing algorithms using the combinators provided by the library.
 
 == Acknowledgments
 
 This library wouldn't be where it is today without the help of
 https://github.com/pdimov[Peter Dimov,window=blank_]
 for design advice and general assistance.
-
-== Design
-
-=== Comparison to Boost.Beast
-
-This library builds on the experiences learned from Boost.Beast's seven years
-of success. Beast brings these unique design strengths:
-
-* Body type named requirements
-* First-class message container
-* Individual parser and serializer objects
-
-The message container suffers from these problems:
-
-* Templated on the body type.
-* Templated on Allocator
-* Node-based implementation
-* Serialization is too costly
-
-Meanwhile parsers and serializes suffer from these problems:
-
-* Buffer-at-a-time operation is clumsy.
-* Objects are not easily re-used
-* Parser is a class template because of body types
-
-==== Message Container
-
-In HTTP.Proto the message container implementation always stores the complete
-message or fields in its correctly serialized form. Insertions and modifications
-are performed in linear time. When the container is reused, the amortized cost
-of reallocation becomes zero. A small lookup table is stored past the end of
-the serialized message, permitting iteration in constant time.
-
-==== Parser
-
-The HTTP.Proto parser is designed to persist for the lifetime of the connection
-or application. It allocates a fixed size memory buffer upon construction and
-uses this memory region to perform type-erasure and apply or remove content
-encodings to the body. The parser is a regular class instead of a class
-template, which greatly improves its ease of use over the Beast parser design.
-
-==== Serializer
-
-As with the parser, the serializer is designed to persist for the lifetime of
-the connection or application and also allocates a fixed size buffer.

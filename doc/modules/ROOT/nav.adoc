@@ -1,20 +1,14 @@
+* xref:1.primer.adoc[]
+* xref:2.messages.adoc[]
 * xref:sans_io_philosophy.adoc[]
-
 * xref:http_protocol_basics.adoc[]
-
 * xref:header_containers.adoc[]
-
 * xref:message_bodies.adoc[]
-
 * Serializing
-
 * Parsing
-
 * xref:Message.adoc[]
-
 * Design Requirements
 ** xref:design_requirements/serializer.adoc[Serializer]
 ** xref:design_requirements/parser.adoc[Parser]
-
 // * xref:reference:boost/http_proto.adoc[Reference]
 * xref:reference.adoc[Reference]
