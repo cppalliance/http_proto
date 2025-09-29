@@ -47,7 +47,7 @@ struct source_test
                 return rv;
             }
             auto n = buffers::copy(b, cb_);
-            buffers::trim_front(cb_, n);
+            buffers::remove_prefix(cb_, n);
             rv.bytes += n;
             rv.finished = cb_.size() == 0;
             return rv;

@@ -57,8 +57,8 @@ process(
             return rv;
         }
 
-        buffers::trim_front(out, rs.out_bytes);
-        buffers::trim_front(in, rs.in_bytes);
+        buffers::remove_prefix(out, rs.out_bytes);
+        buffers::remove_prefix(in, rs.in_bytes);
 
         if(buffers::size(out) == 0)
             return rv;

@@ -474,7 +474,7 @@ public:
 
                     const auto rs = filter_->process(
                         detail::make_span(out_prepare()),
-                        { tmp_, {} },
+                        {{ {tmp_}, {} }},
                         more_input_);
 
                     if(rs.ec.failed())
@@ -484,7 +484,7 @@ public:
                         return rs.ec;
                     }
 
-                    buffers::trim_front(tmp_, rs.in_bytes);
+                    buffers::remove_prefix(tmp_, rs.in_bytes);
                     out_commit(rs.out_bytes);
 
                     if(rs.out_short)
@@ -752,7 +752,7 @@ public:
                     auto h_len = chunk_header_len(stats.size);
                     buffers::mutable_buffer mb(
                         ws_.reserve_front(h_len), h_len);
-                    write_chunk_header({ mb, {} }, stats.size);    
+                    write_chunk_header({{ {mb}, {} }}, stats.size);    
                     prepped_.append(mb);
                 }
             }
@@ -870,9 +870,9 @@ private:
         auto mbp = out_.prepare(out_.capacity());
         if(is_chunked_)
         {
-            buffers::trim_front(
+            buffers::remove_prefix(
                 mbp, chunk_header_len_);
-            buffers::trim_back(
+            buffers::remove_suffix(
                 mbp, crlf_and_final_chunk.size());
         }
         return mbp;

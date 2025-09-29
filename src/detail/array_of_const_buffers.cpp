@@ -38,7 +38,7 @@ consume(std::size_t n)
         auto* p = base_ + pos_;
         if(n < p->size())
         {
-            buffers::trim_front(*p, n);
+            buffers::remove_prefix(*p, n);
             return;
         }
         n -= p->size();

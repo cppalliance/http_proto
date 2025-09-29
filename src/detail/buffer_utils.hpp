@@ -11,30 +11,20 @@
 #define BOOST_HTTP_PROTO_DETAIL_BUFFER_UTILS_HPP
 
 #include <boost/buffers/buffer.hpp>
-#include <boost/buffers/slice.hpp>
 #include <boost/core/span.hpp>
+#include <iterator>
 
 namespace boost {
 namespace http_proto {
 namespace detail {
 
-template<
-    typename BufferSequence,
-    typename Buffer = typename BufferSequence::value_type>
-boost::span<Buffer const>
-make_span(BufferSequence const& mbp)
-{
-    return { mbp.begin(), mbp.end() };
-}
-
 template<typename BufferSequence>
-BufferSequence
-prefix(
-    BufferSequence cbp,
-    std::size_t n)
+auto
+make_span(BufferSequence const& bs) ->
+    boost::span<typename std::iterator_traits<decltype(buffers::begin(bs))>::value_type const>
 {
-    buffers::keep_front(cbp, n);
-    return cbp;
+    return { &*buffers::begin(bs),
+        std::size_t(std::distance(buffers::begin(bs), buffers::end(bs))) };
 }
 
 } // detail

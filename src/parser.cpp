@@ -12,15 +12,12 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
 
-#include "src/detail/brotli_filter_base.hpp"
-#include "src/detail/buffer_utils.hpp"
-#include "src/detail/zlib_filter_base.hpp"
-
 #include <boost/assert.hpp>
 #include <boost/buffers/circular_buffer.hpp>
 #include <boost/buffers/copy.hpp>
 #include <boost/buffers/flat_buffer.hpp>
 #include <boost/buffers/front.hpp>
+#include <boost/buffers/slice.hpp>
 #include <boost/rts/brotli/decode.hpp>
 #include <boost/rts/context.hpp>
 #include <boost/rts/zlib/error.hpp>
@@ -28,6 +25,10 @@
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/hexdig_chars.hpp>
+
+#include "src/detail/brotli_filter_base.hpp"
+#include "src/detail/buffer_utils.hpp"
+#include "src/detail/zlib_filter_base.hpp"
 
 namespace boost {
 namespace http_proto {
@@ -1317,7 +1318,7 @@ public:
                         const std::size_t chunk_avail =
                             clamp(chunk_remain_, cb0_.size());
                         const auto chunk =
-                            detail::prefix(cb0_.data(), chunk_avail);
+                            buffers::prefix(cb0_.data(), chunk_avail);
 
                         if(body_limit_remain() < chunk_avail)
                         {
@@ -1459,7 +1460,7 @@ public:
                         payload_remain_ -= payload_avail;
                         body_total_     += payload_avail;
                         auto sink_rs = sink_->write(
-                            detail::prefix(cb0_.data(), payload_avail),
+                            buffers::prefix(cb0_.data(), payload_avail),
                             !is_complete);
                         cb0_.consume(sink_rs.bytes);
                         if(sink_rs.ec.failed())
@@ -1537,7 +1538,7 @@ public:
             case style::sink:
             {
                 auto rs = sink_->write(
-                    detail::prefix(body_buf.data(), body_avail_),
+                    buffers::prefix(body_buf.data(), body_avail_),
                     state_ == state::set_body);
                 body_buf.consume(rs.bytes);
                 body_avail_ -= rs.bytes;
@@ -1594,7 +1595,7 @@ public:
             return {};
         case state::body:
         case state::complete_in_place:
-            cbp_ = detail::prefix(
+            cbp_ = buffers::prefix(
                 (is_plain() ? cb0_ : cb1_).data(),
                 body_avail_);
             return detail::make_span(cbp_);
@@ -1730,7 +1731,7 @@ private:
 
                     return filter_->process(
                         eb_->prepare(n),
-                        detail::prefix(cb0_.data(), payload_avail),
+                        buffers::prefix(cb0_.data(), payload_avail),
                         more);
                 }
                 else // in-place and sink 
@@ -1740,7 +1741,7 @@ private:
 
                     return filter_->process(
                         detail::make_span(cb1_.prepare(n)),
-                        detail::prefix(cb0_.data(), payload_avail),
+                        buffers::prefix(cb0_.data(), payload_avail),
                         more);
                 }
             }();

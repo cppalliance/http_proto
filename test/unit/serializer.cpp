@@ -120,7 +120,7 @@ struct serializer_test
         // serializer::consume(), allowing tests to cover
         // state management within these functions
         std::string s;
-        buffers::keep_front(cbs, 256);
+        buffers::keep_prefix(cbs, 256);
         for( auto buf : cbs)
         {
             s.append(
@@ -411,7 +411,7 @@ struct serializer_test
             while( buf.size() > 0 )
             {
                 auto n = buffers::copy(out_buf, buf);
-                buffers::trim_front(buf, n);
+                buffers::remove_prefix(buf, n);
 
                 s.insert(
                     s.end(),
