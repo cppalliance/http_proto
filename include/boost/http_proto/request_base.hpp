@@ -13,7 +13,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/message_base.hpp>
-#include <boost/http_proto/request_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -29,86 +28,28 @@ class request_base
     : public message_base
 {
     friend class request;
-    template<std::size_t>
     friend class static_request;
 
     request_base() noexcept
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(detail::kind::request)
+        : message_base(detail::kind::request)
     {
     }
 
     explicit
     request_base(core::string_view s)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(detail::kind::request, s)
-    {
-    }
-
-    explicit
-    request_base(detail::header const& ph)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(ph)
+        : message_base(detail::kind::request, s)
     {
     }
 
     request_base(
-        detail::header const& ph,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(ph, storage, cap)
-    {
-    }
-
-public:
-    request_base(
-        char* storage,
+        void* storage,
         std::size_t cap) noexcept
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
+        : message_base(
             detail::kind::request, storage, cap)
     {
     }
 
-    request_base(
-        core::string_view s,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::request, storage, cap, s)
-    {
-    }
-
-    request_base(
-        request_view const& other,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(*other.ph_, storage, cap)
-    {
-    }
-
-    /** Conversion.
-
-        @see
-            @ref request_view.
-
-        @return A view of the request.
-    */
-    operator request_view() const noexcept
-    {
-        return request_view(ph_);
-    }
-
+public:
     //--------------------------------------------
     //
     // Observers
@@ -125,7 +66,7 @@ public:
     http_proto::method
     method() const noexcept
     {
-        return ph_->req.method;
+        return h_.req.method;
     }
 
     /** Return the method as a string.
@@ -134,8 +75,8 @@ public:
     method_text() const noexcept
     {
         return core::string_view(
-            ph_->cbuf,
-            ph_->req.method_len);
+            h_.cbuf,
+            h_.req.method_len);
     }
 
     /** Return the request-target string.
@@ -144,9 +85,9 @@ public:
     target() const noexcept
     {
         return core::string_view(
-            ph_->cbuf +
-                ph_->req.method_len + 1,
-            ph_->req.target_len);
+            h_.cbuf +
+                h_.req.method_len + 1,
+            h_.req.target_len);
     }
 
     //--------------------------------------------
@@ -233,7 +174,7 @@ public:
         core::string_view s)
     {
         set_start_line_impl(
-            ph_->req.method,
+            h_.req.method,
             method_text(),
             s,
             version());
@@ -256,7 +197,7 @@ public:
         http_proto::version v)
     {
         set_start_line_impl(
-            ph_->req.method,
+            h_.req.method,
             method_text(),
             target(),
             v);

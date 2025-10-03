@@ -238,7 +238,7 @@ struct zlib_test
     static
     void
     serializer_source(
-        response_view res,
+        response const& res,
         serializer& sr,
         buffers::const_buffer body,
         buffers::string_buffer out)
@@ -284,7 +284,7 @@ struct zlib_test
     static
     void
     serializer_stream(
-        response_view res,
+        response const& res,
         serializer& sr,
         buffers::const_buffer body,
         buffers::string_buffer out)
@@ -322,7 +322,7 @@ struct zlib_test
     static
     void
     serializer_buffers(
-        response_view res,
+        response const& res,
         serializer& sr,
         buffers::const_buffer body,
         buffers::string_buffer out)
@@ -354,7 +354,7 @@ struct zlib_test
     static
     void
     serializer_empty(
-        response_view res,
+        response const& res,
         serializer& sr,
         buffers::const_buffer body,
         buffers::string_buffer out)

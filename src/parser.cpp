@@ -11,6 +11,8 @@
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
+#include <boost/http_proto/static_request.hpp>
+#include <boost/http_proto/static_response.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/buffers/circular_buffer.hpp>
@@ -538,7 +540,7 @@ class parser::impl
     parser_service& svc_;
 
     detail::workspace ws_;
-    detail::header h_;
+    static_request m_;
     std::uint64_t body_limit_;
     std::uint64_t body_total_;
     std::uint64_t payload_remain_;
@@ -571,10 +573,11 @@ public:
         : ctx_(ctx)
         , svc_(ctx.get_service<parser_service>())
         , ws_(svc_.space_needed)
-        , h_(detail::empty{ k })
+        , m_(ws_.data(), ws_.size())
         , state_(state::reset)
         , got_header_(false)
     {
+        m_.h_ = detail::header(detail::empty{ k });
     }
 
     bool
@@ -589,14 +592,25 @@ public:
         return state_ >= state::complete_in_place;
     }
 
-    detail::header const*
-    safe_get_header() const
+    static_request const&
+    safe_get_request() const
     {
         // headers must be received
         if(! got_header_)
             detail::throw_logic_error();
 
-        return &h_;
+        return m_;
+    }
+
+    static_response const&
+    safe_get_response() const
+    {
+        // headers must be received
+        if(! got_header_)
+            detail::throw_logic_error();
+
+        // TODO: use a union
+        return reinterpret_cast<static_response const&>(m_);
     }
 
     bool
@@ -710,12 +724,12 @@ public:
 
         BOOST_ASSERT(
             head_response == false ||
-            h_.kind == detail::kind::response);
+            m_.h_.kind == detail::kind::response);
 
-        h_ = detail::header(detail::empty{h_.kind});
-        h_.buf = reinterpret_cast<char*>(ws_.data());
-        h_.cbuf = h_.buf;
-        h_.cap = ws_.size();
+        m_.h_ = detail::header(detail::empty{m_.h_.kind});
+        m_.h_.buf = reinterpret_cast<char*>(ws_.data());
+        m_.h_.cbuf = m_.h_.buf;
+        m_.h_.cap = ws_.size();
 
         state_ = state::header;
         style_ = style::in_place;
@@ -760,7 +774,7 @@ public:
         case state::header:
         {
             BOOST_ASSERT(
-                h_.size < svc_.cfg.headers.max_size);
+                m_.h_.size < svc_.cfg.headers.max_size);
             std::size_t n = fb_.capacity() - fb_.size();
             BOOST_ASSERT(n <= svc_.max_overread());
             n = clamp(n, svc_.cfg.max_prepare);
@@ -801,7 +815,7 @@ public:
                     std::size_t n = cb0_.capacity();
                     n = clamp(n, svc_.cfg.max_prepare);
 
-                    if(h_.md.payload == payload::size)
+                    if(m_.payload() == payload::size)
                     {
                         if(n > payload_remain_)
                         {
@@ -815,7 +829,7 @@ public:
                     else
                     {
                         BOOST_ASSERT(
-                            h_.md.payload == payload::to_eof);
+                            m_.payload() == payload::to_eof);
                         // No more messages can be pipelined, so
                         // limit the output buffer to the remaining
                         // body limit plus one byte to detect
@@ -837,7 +851,7 @@ public:
 
                     std::size_t n = svc_.cfg.min_buffer;
 
-                    if(h_.md.payload == payload::size)
+                    if(m_.payload() == payload::size)
                     {
                         // Overreads are not allowed, or
                         // else the caller will see extra
@@ -847,7 +861,7 @@ public:
                     else
                     {
                         BOOST_ASSERT(
-                            h_.md.payload == payload::to_eof);
+                            m_.payload() == payload::to_eof);
                         // No more messages can be pipelined, so
                         // limit the output buffer to the remaining
                         // body limit plus one byte to detect
@@ -1050,12 +1064,12 @@ public:
 
         case state::header:
         {
-            BOOST_ASSERT(h_.buf == static_cast<
+            BOOST_ASSERT(m_.h_.buf == static_cast<
                 void const*>(ws_.data()));
-            BOOST_ASSERT(h_.cbuf == static_cast<
+            BOOST_ASSERT(m_.h_.cbuf == static_cast<
                 void const*>(ws_.data()));
 
-            h_.parse(fb_.size(), svc_.cfg.headers, ec);
+            m_.h_.parse(fb_.size(), svc_.cfg.headers, ec);
 
             if(ec == condition::need_more_input)
             {
@@ -1095,15 +1109,15 @@ public:
             got_header_ = true;
 
             // reserve headers + table
-            ws_.reserve_front(h_.size);
-            ws_.reserve_back(h_.table_space());
+            ws_.reserve_front(m_.h_.size);
+            ws_.reserve_back(m_.h_.table_space());
 
             // no payload
-            if(h_.md.payload == payload::none ||
+            if(m_.payload() == payload::none ||
                 head_response_)
             {
                 // octets of the next message
-                auto overread = fb_.size() - h_.size;
+                auto overread = fb_.size() - m_.h_.size;
                 cb0_ = { ws_.data(), overread, overread };
                 ws_.reserve_front(overread);
                 state_ = state::complete_in_place;
@@ -1117,7 +1131,7 @@ public:
         case state::header_done:
         {
             // metadata error
-            if(h_.md.payload == payload::error)
+            if(m_.payload() == payload::error)
             {
                 // VFALCO This needs looking at
                 ec = BOOST_HTTP_PROTO_ERR(
@@ -1131,7 +1145,7 @@ public:
             // this can include associated body octets for the
             // current message or octets of the next message in the
             // stream, e.g. pipelining is being used
-            auto const overread = fb_.size() - h_.size;
+            auto const overread = fb_.size() - m_.h_.size;
             BOOST_ASSERT(overread <= svc_.max_overread());
 
             auto cap = fb_.capacity() + overread +
@@ -1141,7 +1155,7 @@ public:
             // must be installed after them.
             auto const p = ws_.reserve_front(cap);
 
-            switch(h_.md.content_encoding.coding)
+            switch(m_.metadata().content_encoding.coding)
             {
             case content_coding::deflate:
                 if(!svc_.cfg.apply_deflate_decoder)
@@ -1188,17 +1202,17 @@ public:
                 cb1_ = { p + n0 , n1 };
             }
 
-            if(h_.md.payload == payload::size)
+            if(m_.payload() == payload::size)
             {
                 if(!filter_ &&
-                    body_limit_ < h_.md.payload_size)
+                    body_limit_ < m_.payload_size())
                 {
                     ec = BOOST_HTTP_PROTO_ERR(
                         error::body_too_large);
                     state_ = state::reset;
                     return;
                 }
-                payload_remain_ = h_.md.payload_size;
+                payload_remain_ = m_.payload_size();
             }
 
             state_ = state::body;
@@ -1209,8 +1223,8 @@ public:
         {
         do_body:
             BOOST_ASSERT(state_ == state::body);
-            BOOST_ASSERT(h_.md.payload != payload::none);
-            BOOST_ASSERT(h_.md.payload != payload::error);
+            BOOST_ASSERT(m_.payload() != payload::none);
+            BOOST_ASSERT(m_.payload() != payload::error);
 
             auto set_state_to_complete = [&]()
             {
@@ -1222,7 +1236,7 @@ public:
                 state_ = state::complete;
             };
 
-            if(h_.md.payload == payload::chunked)
+            if(m_.payload() == payload::chunked)
             {
                 for(;;)
                 {
@@ -1404,7 +1418,7 @@ public:
                     auto ret = cb0_.size();
                     if(!filter_)
                         ret -= body_avail_;
-                    if(h_.md.payload == payload::size)
+                    if(m_.payload() == payload::size)
                         return clamp(payload_remain_, ret);
                     // payload::eof
                     return ret;
@@ -1412,7 +1426,7 @@ public:
 
                 const bool is_complete = [&]()
                 {
-                    if(h_.md.payload == payload::size)
+                    if(m_.payload() == payload::size)
                         return payload_avail == payload_remain_;
                     // payload::eof
                     return got_eof_;
@@ -1429,7 +1443,7 @@ public:
                 {
                     // plain body
 
-                    if(h_.md.payload == payload::to_eof)
+                    if(m_.payload() == payload::to_eof)
                     {
                         if(body_limit_remain() < payload_avail)
                         {
@@ -1510,7 +1524,7 @@ public:
                     }
                 }
 
-                if(h_.md.payload == payload::size && got_eof_)
+                if(m_.payload() == payload::size && got_eof_)
                 {
                     ec = BOOST_HTTP_PROTO_ERR(
                         error::incomplete);
@@ -1693,7 +1707,7 @@ private:
     is_plain() const noexcept
     {
         return ! filter_ &&
-            h_.md.payload != payload::chunked;
+            m_.payload() != payload::chunked;
     }
 
     std::uint64_t
@@ -1985,12 +1999,20 @@ start_impl(bool head_response)
     impl_->start(head_response);
 }
 
-detail::header const*
+static_request const&
 parser::
-safe_get_header() const
+safe_get_request() const
 {
     BOOST_ASSERT(impl_);
-    return impl_->safe_get_header();
+    return impl_->safe_get_request();
+}
+
+static_response const&
+parser::
+safe_get_response() const
+{
+    BOOST_ASSERT(impl_);
+    return impl_->safe_get_response();
 }
 
 detail::workspace&

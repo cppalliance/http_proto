@@ -306,15 +306,14 @@ prefix_op_t::
 fields_base::
 fields_base(
     detail::kind k) noexcept
-    : fields_view_base(&h_)
-    , h_(k)
+    : h_(k)
 {
 }
 
 fields_base::
 fields_base(
     detail::kind k,
-    char* storage,
+    void* storage,
     std::size_t cap) noexcept
     : fields_base(
         *detail::header::get_default(k), storage, cap)
@@ -326,8 +325,7 @@ fields_base::
 fields_base(
     detail::kind k,
     core::string_view s)
-    : fields_view_base(&h_)
-    , h_(detail::empty{k})
+    : h_(detail::empty{k})
 {
     auto n = detail::header::count_crlf(s);
     if(h_.kind == detail::kind::fields)
@@ -353,59 +351,11 @@ fields_base(
         detail::throw_system_error(ec);
 }
 
-// copy s and parse it
-fields_base::
-fields_base(
-    detail::kind k,
-    char* storage,
-    std::size_t cap,
-    core::string_view s)
-    : fields_view_base(&h_)
-    , h_(detail::empty{k})
-    , external_storage_(true)
-{
-    h_.cbuf = storage;
-    h_.buf = storage;
-    h_.cap = align_down(
-        storage,
-        cap,
-        alignof(detail::header::entry));
-    max_cap_ = h_.cap;
-
-    auto n = detail::header::count_crlf(s);
-    if(h_.kind == detail::kind::fields)
-    {
-        if(n < 1)
-            detail::throw_invalid_argument();
-        n -= 1;
-    }
-    else
-    {
-        if(n < 2)
-            detail::throw_invalid_argument();
-        n -= 2;
-    }
-
-    if(detail::header::bytes_needed(
-        s.size(), n)
-            >= h_.cap)
-        detail::throw_length_error();
-
-    s.copy(h_.buf, s.size());
-    system::error_code ec;
-    // VFALCO This is using defaults?
-    header_limits lim;
-    h_.parse(s.size(), lim, ec);
-    if(ec.failed())
-        detail::throw_system_error(ec);
-}
-
 // construct a complete copy of h
 fields_base::
 fields_base(
     detail::header const& h)
-    : fields_view_base(&h_)
-    , h_(h.kind)
+    : h_(h.kind)
 {
     if(h.is_default())
         return;
@@ -423,14 +373,13 @@ fields_base(
 fields_base::
 fields_base(
     detail::header const& h,
-    char* storage,
+    void* storage,
     std::size_t cap)
-    : fields_view_base(&h_)
-    , h_(h.kind)
+    : h_(h.kind)
     , external_storage_(true)
 {
-    h_.cbuf = storage;
-    h_.buf = storage;
+    h_.cbuf = static_cast<char*>(storage);
+    h_.buf = static_cast<char*>(storage);
     h_.cap = align_down(
         storage,
         cap,
@@ -449,6 +398,12 @@ fields_base(
 }
 
 //------------------------------------------------
+
+fields_base::
+fields_base(fields_base const& other)
+    : fields_base(other.h_)
+{
+}
 
 fields_base::
 ~fields_base()
@@ -524,6 +479,385 @@ set_max_capacity_in_bytes(std::size_t n)
     if(n < h_.cap)
         detail::throw_invalid_argument();
     max_cap_ = n;
+}
+
+//--------------------------------------------
+//
+// Observers
+//
+//--------------------------------------------
+
+
+fields_base::
+value_type::
+value_type(
+    reference const& other)
+    : id(other.id)
+    , name(other.name)
+    , value(other.value)
+{
+}
+
+//------------------------------------------------
+
+auto
+fields_base::
+iterator::
+operator*() const noexcept ->
+    reference
+{
+    BOOST_ASSERT(i_ < ph_->count);
+    auto tab =
+        ph_->tab();
+    auto const& e =
+        tab[i_];
+    auto const* p =
+        ph_->cbuf + ph_->prefix;
+    return {
+        (e.id == detail::header::unknown_field)
+            ? optional<field>{} : e.id,
+        core::string_view(
+            p + e.np, e.nn),
+        core::string_view(
+            p + e.vp, e.vn) };
+}
+
+//------------------------------------------------
+
+auto
+fields_base::
+reverse_iterator::
+operator*() const noexcept ->
+    reference
+{
+    BOOST_ASSERT(i_ > 0);
+    auto tab =
+      ph_->tab();
+    auto const& e =
+        tab[i_-1];
+    auto const* p =
+        ph_->cbuf + ph_->prefix;
+    return {
+        (e.id == detail::header::unknown_field)
+            ? optional<field>{} : e.id,
+        core::string_view(
+            p + e.np, e.nn),
+        core::string_view(
+            p + e.vp, e.vn) };
+}
+
+//------------------------------------------------
+
+fields_base::
+subrange::
+iterator::
+iterator(
+    detail::header const* ph,
+    std::size_t i) noexcept
+    : ph_(ph)
+    , i_(i)
+{
+    BOOST_ASSERT(i <= ph_->count);
+}
+
+fields_base::
+subrange::
+iterator::
+iterator(
+    detail::header const* ph) noexcept
+    : ph_(ph)
+    , i_(ph->count)
+{
+}
+
+auto
+fields_base::
+subrange::
+iterator::
+operator*() const noexcept ->
+    reference const
+{
+    auto tab =
+        ph_->tab();
+    auto const& e =
+        tab[i_];
+    auto const p =
+        ph_->cbuf + ph_->prefix;
+    return core::string_view(
+        p + e.vp, e.vn);
+}
+
+auto
+fields_base::
+subrange::
+iterator::
+operator++() noexcept ->
+    iterator&
+{
+    BOOST_ASSERT(i_ < ph_->count);
+    auto const* e = &ph_->tab()[i_];
+    auto const id = e->id;
+    if(id != detail::header::unknown_field)
+    {
+        ++i_;
+        --e;
+        while(i_ != ph_->count)
+        {
+            if(e->id == id)
+                break;
+            ++i_;
+            --e;
+        }
+        return *this;
+    }
+    auto const p =
+        ph_->cbuf + ph_->prefix;
+    auto name = core::string_view(
+        p + e->np, e->nn);
+    ++i_;
+    --e;
+    while(i_ != ph_->count)
+    {
+        if(grammar::ci_is_equal(
+            name, core::string_view(
+                p + e->np, e->nn)))
+            break;
+        ++i_;
+        --e;
+    }
+    return *this;
+}
+
+//------------------------------------------------
+//
+// fields_base
+//
+//------------------------------------------------
+
+core::string_view
+fields_base::
+at(
+    field id) const
+{
+    auto const it = find(id);
+    if(it == end())
+        BOOST_THROW_EXCEPTION(
+            std::out_of_range{ "field not found" });
+    return it->value;
+}
+
+core::string_view
+fields_base::
+at(
+    core::string_view name) const
+{
+    auto const it = find(name);
+    if(it == end())
+        BOOST_THROW_EXCEPTION(
+            std::out_of_range{ "field not found" });
+    return it->value;
+}
+
+bool
+fields_base::
+exists(
+    field id) const noexcept
+{
+    return find(id) != end();
+}
+
+bool
+fields_base::
+exists(
+    core::string_view name) const noexcept
+{
+    return find(name) != end();
+}
+
+std::size_t
+fields_base::
+count(field id) const noexcept
+{
+    std::size_t n = 0;
+    for(auto v : *this)
+        if(v.id == id)
+            ++n;
+    return n;
+}
+
+std::size_t
+fields_base::
+count(
+    core::string_view name) const noexcept
+{
+    std::size_t n = 0;
+    for(auto v : *this)
+        if(grammar::ci_is_equal(
+                v.name, name))
+            ++n;
+    return n;
+}
+
+auto
+fields_base::
+find(field id) const noexcept ->
+    iterator
+{
+    auto it = begin();
+    auto const last = end();
+    while(it != last)
+    {
+        if(it->id == id)
+            break;
+        ++it;
+    }
+    return it;
+}
+
+auto
+fields_base::
+find(
+    core::string_view name) const noexcept ->
+    iterator
+{
+    auto it = begin();
+    auto const last = end();
+    while(it != last)
+    {
+        if(grammar::ci_is_equal(
+                it->name, name))
+            break;
+        ++it;
+    }
+    return it;
+}
+
+auto
+fields_base::
+find(
+    iterator from,
+    field id) const noexcept ->
+        iterator
+{
+    auto const last = end();
+    while(from != last)
+    {
+        if(from->id == id)
+            break;
+        ++from;
+    }
+    return from;
+}
+
+auto
+fields_base::
+find(
+    iterator from,
+    core::string_view name) const noexcept ->
+        iterator
+{
+    auto const last = end();
+    while(from != last)
+    {
+        if(grammar::ci_is_equal(
+                name, from->name))
+            break;
+        ++from;
+    }
+    return from;
+}
+
+auto
+fields_base::
+find_last(
+    iterator it,
+    field id) const noexcept ->
+        iterator
+{
+    auto const it0 = begin();
+    for(;;)
+    {
+        if(it == it0)
+            return end();
+        --it;
+        if(it->id == id)
+            return it;
+    }
+}
+
+auto
+fields_base::
+find_last(
+    iterator it,
+    core::string_view name) const noexcept ->
+        iterator
+{
+    auto const it0 = begin();
+    for(;;)
+    {
+        if(it == it0)
+            return end();
+        --it;
+        if(grammar::ci_is_equal(
+                it->name, name))
+            return it;
+    }
+}
+
+core::string_view
+fields_base::
+value_or(
+    field id,
+    core::string_view s) const noexcept
+{
+    auto it = find(id);
+    if(it != end())
+        return it->value;
+    return s;
+}
+
+core::string_view
+fields_base::
+value_or(
+    core::string_view name,
+    core::string_view s) const noexcept
+{
+    auto it = find(name);
+    if(it != end())
+        return it->value;
+    return s;
+}
+
+//------------------------------------------------
+
+auto
+fields_base::
+find_all(
+    field id) const noexcept ->
+        subrange
+{
+    return subrange(
+        &h_, find(id).i_);
+}
+
+auto
+fields_base::
+find_all(
+    core::string_view name) const noexcept ->
+        subrange
+{
+    return subrange(
+        &h_, find(name).i_);
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const fields_base& f)
+{
+    return os << f.buffer();
 }
 
 //------------------------------------------------
@@ -787,6 +1121,83 @@ set(
         rv->has_obs_fold);
 }
 
+auto
+fields_base::
+insert(
+    iterator before,
+    field id,
+    core::string_view value)
+    -> iterator
+{
+    system::error_code ec;
+    auto const it = insert(before, id, value, ec);
+    if(ec.failed())
+        detail::throw_system_error(ec);
+    return it;
+}
+
+auto
+fields_base::
+insert(
+    iterator before,
+    field id,
+    core::string_view value,
+    system::error_code& ec)
+    -> iterator
+{
+    insert_impl(
+        id,
+        to_string(id),
+        value,
+        before.i_, ec);
+    return before;
+}
+
+auto
+fields_base::
+insert(
+    iterator before,
+    core::string_view name,
+    core::string_view value)
+    -> iterator
+{
+    system::error_code ec;
+    insert(before, name, value, ec);
+    if(ec.failed())
+        detail::throw_system_error(ec);
+    return before;
+}
+
+auto
+fields_base::
+insert(
+    iterator before,
+    core::string_view name,
+    core::string_view value,
+    system::error_code& ec)
+    -> iterator
+{
+    insert_impl(
+        string_to_field(name),
+        name,
+        value,
+        before.i_,
+        ec);
+    return before;
+}
+
+void
+fields_base::
+set(
+    iterator it,
+    core::string_view value)
+{
+    system::error_code ec;
+    set(it, value, ec);
+    if(ec.failed())
+        detail::throw_system_error(ec);
+}
+
 //------------------------------------------------
 //
 // (implementation)
@@ -800,7 +1211,7 @@ copy_impl(
     detail::header const& h)
 {
     BOOST_ASSERT(
-        h.kind == ph_->kind);
+        h.kind == h_.kind);
 
     auto const n =
         detail::header::bytes_needed(

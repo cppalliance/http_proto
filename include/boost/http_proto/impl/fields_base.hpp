@@ -7,8 +7,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
-#define BOOST_HTTP_PROTO_IMPL_FIELDS_VIEW_BASE_HPP
+#ifndef BOOST_HTTP_PROTO_IMPL_FIELDS_BASE_HPP
+#define BOOST_HTTP_PROTO_IMPL_FIELDS_BASE_HPP
 
 #include <boost/core/detail/string_view.hpp>
 #include <boost/assert.hpp>
@@ -22,13 +22,12 @@ namespace http_proto {
 //
 //------------------------------------------------
 
-class fields_view_base::iterator
+class fields_base::iterator
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
     friend class fields_base;
-    friend class fields_view_base;
 
     iterator(
         detail::header const* ph,
@@ -40,9 +39,9 @@ class fields_view_base::iterator
 
 public:
     using value_type =
-        fields_view_base::value_type;
+        fields_base::value_type;
     using reference =
-        fields_view_base::reference;
+        fields_base::reference;
     using pointer = reference;
     using difference_type =
         std::ptrdiff_t;
@@ -118,13 +117,12 @@ public:
 
 //------------------------------------------------
 
-class fields_view_base::reverse_iterator
+class fields_base::reverse_iterator
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
     friend class fields_base;
-    friend class fields_view_base;
 
     reverse_iterator(
         detail::header const* ph,
@@ -136,9 +134,9 @@ class fields_view_base::reverse_iterator
 
 public:
     using value_type =
-        fields_view_base::value_type;
+        fields_base::value_type;
     using reference =
-        fields_view_base::reference;
+        fields_base::reference;
     using pointer = reference;
     using difference_type =
         std::ptrdiff_t;
@@ -226,13 +224,12 @@ public:
 //
 //------------------------------------------------
 
-class fields_view_base::subrange
+class fields_base::subrange
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
-    friend class fields_view;
-    friend class fields_view_base;
+    friend class fields_base;
     friend struct detail::header;
 
     subrange(
@@ -273,13 +270,13 @@ public:
 //
 //------------------------------------------------
 
-class fields_view_base::subrange::
+class fields_base::subrange::
     iterator
 {
     detail::header const* ph_ = nullptr;
     std::size_t i_ = 0;
 
-    friend class fields_view_base::subrange;
+    friend class fields_base::subrange;
 
     BOOST_HTTP_PROTO_DECL
     iterator(
@@ -307,7 +304,7 @@ public:
 
     // conversion to regular iterator
     operator
-    fields_view_base::
+    fields_base::
     iterator() const noexcept
     {
         return {ph_, i_};
@@ -357,7 +354,7 @@ public:
 
 inline
 auto
-fields_view_base::
+fields_base::
 subrange::
 begin() const noexcept ->
     iterator
@@ -367,7 +364,7 @@ begin() const noexcept ->
 
 inline
 auto
-fields_view_base::
+fields_base::
 subrange::
 end() const noexcept ->
     iterator
@@ -378,10 +375,10 @@ end() const noexcept ->
 //------------------------------------------------
 
 inline
-fields_view_base::
+fields_base::
 value_type::
 operator
-fields_view_base::
+fields_base::
 reference() const noexcept
 {
     return reference{
@@ -392,25 +389,25 @@ reference() const noexcept
 
 inline
 auto
-fields_view_base::
+fields_base::
 begin() const noexcept ->
     iterator
 {
-    return iterator(ph_, 0);
+    return iterator(&h_, 0);
 }
 
 inline
 auto
-fields_view_base::
+fields_base::
 end() const noexcept ->
     iterator
 {
-    return iterator(ph_, ph_->count);
+    return iterator(&h_, h_.count);
 }
 
 inline
 auto
-fields_view_base::
+fields_base::
 rbegin() const noexcept ->
     reverse_iterator
 {
@@ -419,7 +416,7 @@ rbegin() const noexcept ->
 
 inline
 auto
-fields_view_base::
+fields_base::
 rend() const noexcept ->
     reverse_iterator
 {

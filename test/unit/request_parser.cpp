@@ -99,8 +99,8 @@ struct request_parser_test
                 BOOST_TEST( pr.got_header() );
                 if( expected.data() )
                 {
-                    auto req_view = pr.get();
-                    BOOST_TEST_EQ(req_view.buffer(), expected);
+                    auto const& req = pr.get();
+                    BOOST_TEST_EQ(req.buffer(), expected);
                 }
             }
         }
@@ -127,7 +127,7 @@ struct request_parser_test
         auto const f =
             [&](request_parser const& pr)
         {
-            auto const req = pr.get();
+            auto const& req = pr.get();
             BOOST_TEST(req.method() == m);
             BOOST_TEST(req.method_text() ==
                 to_string(m));
@@ -320,40 +320,40 @@ struct request_parser_test
         pr.start();
         feed(pr, s);
 
-        auto const rv = pr.get();
+        auto const& req = pr.get();
         BOOST_TEST(
-            rv.method() == method::get);
+            req.method() == method::get);
         BOOST_TEST(
-            rv.method_text() == "GET");
-        BOOST_TEST(rv.target() == "/");
-        BOOST_TEST(rv.version() ==
+            req.method_text() == "GET");
+        BOOST_TEST(req.target() == "/");
+        BOOST_TEST(req.version() ==
             version::http_1_1);
 
-        BOOST_TEST(rv.buffer() == s);
-        BOOST_TEST(rv.size() == 7);
+        BOOST_TEST(req.buffer() == s);
+        BOOST_TEST(req.size() == 7);
         BOOST_TEST(
-            rv.exists(field::connection));
-        BOOST_TEST(! rv.exists(field::age));
-        BOOST_TEST(rv.exists("Connection"));
-        BOOST_TEST(rv.exists("CONNECTION"));
-        BOOST_TEST(! rv.exists("connector"));
-        BOOST_TEST(rv.count(field::accept) == 1);
+            req.exists(field::connection));
+        BOOST_TEST(! req.exists(field::age));
+        BOOST_TEST(req.exists("Connection"));
+        BOOST_TEST(req.exists("CONNECTION"));
+        BOOST_TEST(! req.exists("connector"));
+        BOOST_TEST(req.count(field::accept) == 1);
         BOOST_TEST(
-            rv.count(field::age) == 0);
+            req.count(field::age) == 0);
         BOOST_TEST(
-            rv.count("connection") == 1);
-        BOOST_TEST(rv.count("a") == 2);
-        BOOST_TEST(rv.find(
+            req.count("connection") == 1);
+        BOOST_TEST(req.count("a") == 2);
+        BOOST_TEST(req.find(
             field::connection)->id ==
                 field::connection);
         BOOST_TEST(
-            rv.find("a")->value == "1");
+            req.find("a")->value == "1");
         grammar::recycled_ptr<std::string> temp;
-        BOOST_TEST(combine_field_values(rv.find_all(
+        BOOST_TEST(combine_field_values(req.find_all(
             field::user_agent), temp) == "x");
-        BOOST_TEST(combine_field_values(rv.find_all(
+        BOOST_TEST(combine_field_values(req.find_all(
             "b"), temp) == "2");
-        BOOST_TEST(combine_field_values(rv.find_all(
+        BOOST_TEST(combine_field_values(req.find_all(
             "a"), temp) == "1,3");
     }
 

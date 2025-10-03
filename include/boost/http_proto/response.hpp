@@ -45,13 +45,12 @@ namespace http_proto {
 
     @see
         @ref static_response,
-        @ref response_view.
+        @ref response_base.
 */
 class response
     : public response_base
 {
 public:
-
     //--------------------------------------------
     //
     // Special Members
@@ -76,8 +75,7 @@ public:
         @par Complexity
         Constant.
     */
-    BOOST_HTTP_PROTO_DECL
-    response() noexcept;
+    response() noexcept = default;
 
     /** Constructor.
 
@@ -113,10 +111,12 @@ public:
 
         @param s The string to parse.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     response(
-        core::string_view s);
+        core::string_view s)
+        : response_base(s)
+    {
+    }
 
     /** Constructor.
 
@@ -143,10 +143,15 @@ public:
 
         @param max_cap Maximum allowed capacity in bytes.
     */
-    BOOST_HTTP_PROTO_DECL
+    explicit
     response(
         std::size_t cap,
-        std::size_t max_cap = std::size_t(-1));
+        std::size_t max_cap = std::size_t(-1))
+        : response()
+    {
+        reserve_bytes(cap);
+        set_max_capacity_in_bytes(max_cap);
+    }
 
     /** Constructor.
 
@@ -169,10 +174,13 @@ public:
 
         @param v The HTTP version.
     */
-    BOOST_HTTP_PROTO_DECL
     response(
         http_proto::status sc,
-        http_proto::version v);
+        http_proto::version v)
+        : response()
+    {
+        set_start_line(sc, v);
+    }
 
     /** Constructor.
 
@@ -194,10 +202,13 @@ public:
 
         @param sc The status code.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     response(
-        http_proto::status sc);
+        http_proto::status sc)
+        : response(
+            sc, http_proto::version::http_1_1)
+    {
+    }
 
     /** Constructor.
 
@@ -218,8 +229,11 @@ public:
 
         @param r The response to move from.
     */
-    BOOST_HTTP_PROTO_DECL
-    response(response&& r) noexcept;
+    response(response&& r) noexcept
+        : response()
+    {
+        swap(r);
+    }
 
     /** Constructor.
 
@@ -239,8 +253,7 @@ public:
 
         @param r The response to copy.
     */
-    BOOST_HTTP_PROTO_DECL
-    response(response const& r);
+    response(response const&) = default;
 
     /** Constructor.
 
@@ -256,14 +269,14 @@ public:
         Linear in `r.size()`.
 
         @par Exception Safety
-        Strong guarantee.
         Calls to allocate may throw.
 
         @param r The response to copy.
     */
-    BOOST_HTTP_PROTO_DECL
-    response(
-        response_view const& r);
+    response(response_base const& r)
+        : response_base(r)
+    {
+    }
 
     /** Assignment
 
@@ -286,42 +299,12 @@ public:
 
         @return A reference to this object.
     */
-    BOOST_HTTP_PROTO_DECL
     response&
     operator=(
-        response&& r) noexcept;
-
-    /** Assignment.
-
-        The contents of `r` are copied and
-        the previous contents of `this` are
-        discarded.
-
-        @par Postconditions
-        @code
-        this->buffer() == r.buffer() && this->buffer().data() != r.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `r.size()`.
-
-        @par Exception Safety
-        Strong guarantee.
-        Calls to allocate may throw.
-        Exception thrown if max capacity exceeded.
-
-        @throw std::length_error
-        Max capacity would be exceeded.
-
-        @param r The response to copy.
-
-        @return A reference to this object.
-    */
-    response&
-    operator=(
-        response const& r)
+        response&& r) noexcept
     {
-        copy_impl(*r.ph_);
+        response temp(std::move(r));
+        temp.swap(*this);
         return *this;
     }
 
@@ -353,9 +336,43 @@ public:
     */
     response&
     operator=(
-        response_view const& r)
+        response const& r)
     {
-        copy_impl(*r.ph_);
+        copy_impl(r.h_);
+        return *this;
+    }
+
+    /** Assignment.
+
+        The contents of `r` are copied and
+        the previous contents of `this` are
+        discarded.
+
+        @par Postconditions
+        @code
+        this->buffer() == r.buffer() && this->buffer().data() != r.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `r.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param r The response to copy.
+
+        @return A reference to this object.
+    */
+    response&
+    operator=(
+        response_base const& r)
+    {
+        copy_impl(r.h_);
         return *this;
     }
 

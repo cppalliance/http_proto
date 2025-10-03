@@ -11,7 +11,7 @@
 #define BOOST_HTTP_PROTO_RFC_COMBINE_FIELD_VALUES_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/fields_view_base.hpp>
+#include <boost/http_proto/fields_base.hpp>
 #include <boost/url/grammar/recycled.hpp>
 #include <boost/core/detail/string_view.hpp>
 #include <string>
@@ -55,7 +55,7 @@ namespace http_proto {
 BOOST_HTTP_PROTO_DECL
 core::string_view
 combine_field_values(
-    fields_view_base::subrange const& vr,
+    fields_base::subrange const& vr,
     grammar::recycled_ptr<std::string>& temp);
 
 } // http_proto

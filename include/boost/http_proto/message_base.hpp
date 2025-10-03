@@ -13,7 +13,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
-#include <boost/http_proto/message_view_base.hpp>
 #include <boost/core/detail/string_view.hpp>
 
 namespace boost {
@@ -27,7 +26,6 @@ namespace http_proto {
     and responses.
 
     @see
-        @ref message_view_base,
         @ref response,
         @ref request,
         @ref static_response,
@@ -36,74 +34,83 @@ namespace http_proto {
 */
 class message_base
     : public fields_base
-    , public message_view_base
 {
     friend class request_base;
     friend class response_base;
 
-    explicit
-    message_base(
-        detail::kind k) noexcept
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(k)
-    {
-    }
-
-    message_base(
-        detail::kind k,
-        char* storage,
-        std::size_t cap) noexcept
-        : fields_view_base(&this->fields_base::h_)
-        , fields_base(
-            k, storage, cap)
-    {
-    }
-
-    message_base(
-        detail::kind k,
-        core::string_view s)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(k, s)
-    {
-    }
-
-    message_base(
-        detail::kind k,
-        char* storage,
-        std::size_t cap,
-        core::string_view s)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(
-            k, storage, cap, s)
-    {
-    }
-
-    explicit
-    message_base(
-        detail::header const& ph)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(ph)
-    {
-    }
-
-    message_base(
-        detail::header const& ph,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , fields_base(ph, storage, cap)
-    {
-    }
+    using fields_base::fields_base;
 
 public:
     //--------------------------------------------
     //
-    // Metadata
+    // Observers
+    //
+    //--------------------------------------------
+
+    /** Return the type of payload of this message.
+    */
+    auto
+    payload() const noexcept ->
+        http_proto::payload
+    {
+        return h_.md.payload;
+    }
+
+    /** Return the payload size.
+
+        When @ref payload returns @ref payload::size,
+        this function returns the number of octets
+        in the actual message payload.
+
+        @return The number of octets in the
+        actual message payload.
+    */
+    std::uint64_t
+    payload_size() const noexcept
+    {
+        BOOST_ASSERT(
+            payload() == payload::size);
+        return h_.md.payload_size;
+    }
+
+    /** Return true if semantics indicate
+        connection persistence.
+    */
+    bool
+    keep_alive() const noexcept
+    {
+        return h_.keep_alive();
+    }
+
+    /** Return metadata about the message.
+    */
+    auto
+    metadata() const noexcept ->
+        http_proto::metadata const&
+    {
+        return h_.md;
+    }
+
+    /** Return true if the message is using a chunked
+        transfer encoding.
+    */
+    bool
+    chunked() const noexcept
+    {
+        return h_.md.transfer_encoding.is_chunked;
+    }
+
+    /** Return the HTTP-version.
+    */
+    http_proto::version
+    version() const noexcept
+    {
+        return h_.version;
+    }
+
+    //--------------------------------------------
+    //
+    // Modifiers
     //
     //--------------------------------------------
 

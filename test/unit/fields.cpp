@@ -12,7 +12,6 @@
 #include <boost/http_proto/fields.hpp>
 
 #include <boost/http_proto/field.hpp>
-#include <boost/http_proto/fields_view.hpp>
 #include <boost/core/detail/string_view.hpp>
 
 #include "test_helpers.hpp"
@@ -110,33 +109,6 @@ struct fields_test
             }
         }
 
-        // fields(fields_view const&)
-        {
-            {
-                fields f1(cs1);
-                fields f2(static_cast<
-                    fields_view>(f1));
-
-                BOOST_TEST_EQ(
-                    f2.buffer(), cs1);
-                BOOST_TEST_NE(
-                    f2.buffer().data(),
-                    cs1.data());
-                test_fields(f2, cs1);
-            }
-
-            // default buffer
-            {
-                fields_view fv;
-                fields f(fv);
-                BOOST_TEST_EQ(
-                    f.buffer(), "\r\n");
-                BOOST_TEST_EQ(
-                    f.buffer().data(),
-                    fv.buffer().data());
-            }
-        }
-
         // operator=(fields&&)
         {
             {
@@ -199,60 +171,6 @@ struct fields_test
                 test_fields(f2, "\r\n");
                 BOOST_TEST_EQ(
                     f1.buffer().data(),
-                    f2.buffer().data());
-            }
-        }
-
-        // operator=(fields_view)
-        {
-            {
-                fields f1(cs1);
-                fields f2;
-                f2 = static_cast<
-                    fields_view>(f1);
-                test_fields(f1, cs1);
-                test_fields(f2, cs1);
-                BOOST_TEST_NE(
-                    f1.buffer().data(),
-                    f2.buffer().data());
-            }
-            {
-                fields f1(cs1);
-                fields f2(
-                    "x: 1\r\n"
-                    "y: 2\r\n"
-                    "z: 3\r\n"
-                    "\r\n");
-                f2 = static_cast<
-                    fields_view>(f1);
-                test_fields(f1, cs1);
-                test_fields(f2, cs1);
-                BOOST_TEST_NE(
-                    f1.buffer().data(),
-                    f2.buffer().data());
-            }
-            {
-                fields_view f1;
-                fields f2(cs1);
-                f2 = f1;
-                test_fields(f1, "\r\n");
-                test_fields(f2, "\r\n");
-                BOOST_TEST_EQ(
-                    f1.buffer().data(),
-                    f2.buffer().data());
-            }
-
-            // existing capacity
-            {
-                fields f1(cs1);
-                fields f2;
-                f2.reserve_bytes(
-                    2 * cs1.size() + 128);
-                f2 = static_cast<
-                    fields_view>(f1);
-                test_fields(f2, cs1);
-                BOOST_TEST(
-                    f1.buffer().data() !=
                     f2.buffer().data());
             }
         }

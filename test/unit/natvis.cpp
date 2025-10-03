@@ -8,11 +8,8 @@
 //
 
 #include <boost/http_proto/fields.hpp>
-#include <boost/http_proto/fields_view.hpp>
 #include <boost/http_proto/request.hpp>
-#include <boost/http_proto/request_view.hpp>
 #include <boost/http_proto/response.hpp>
-#include <boost/http_proto/response_view.hpp>
 
 #include "test_suite.hpp"
 
@@ -32,8 +29,7 @@ struct natvis_test
                 "Connection: keep-alive\r\n"
                 "Server: localhost\r\n"
                 "\r\n");
-            request_view rv(req);
-            ignore_unused(rv);
+            ignore_unused(req);
         }
         {
             std::error_condition ec(std::errc::address_in_use);
@@ -42,8 +38,7 @@ struct natvis_test
                 "Connection: keep-alive\r\n"
                 "Server: localhost\r\n"
                 "\r\n");
-            response_view rv(res);
-            ignore_unused(rv);
+            ignore_unused(res);
         }
     }
 };

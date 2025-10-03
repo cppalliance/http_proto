@@ -32,10 +32,10 @@
     </Expand>
   </Type>
 
-  <Type Name="boost::http_proto::fields_view_base">
-    <DisplayString>{ *ph_ }</DisplayString>
+  <Type Name="boost::http_proto::fields_base">
+    <DisplayString>{ h_ }</DisplayString>
     <Expand>
-        <ExpandedItem>*ph_</ExpandedItem>
+        <ExpandedItem>h_</ExpandedItem>
     </Expand>
   </Type>
 

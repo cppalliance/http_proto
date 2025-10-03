@@ -32,6 +32,8 @@ namespace http_proto {
 // Forward declaration
 class request_parser;
 class response_parser;
+class static_request;
+class static_response;
 
 /** A parser for HTTP/1 messages.
 
@@ -627,8 +629,11 @@ private:
     void
     start_impl(bool);
 
-    detail::header const*
-    safe_get_header() const;
+    static_request const&
+    safe_get_request() const;
+
+    static_response const&
+    safe_get_response() const;
 
     BOOST_HTTP_PROTO_DECL
     detail::workspace&

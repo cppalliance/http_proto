@@ -14,7 +14,7 @@ namespace http_proto {
 
 core::string_view
 combine_field_values(
-    fields_view_base::subrange const& vr,
+    fields_base::subrange const& vr,
     grammar::recycled_ptr<std::string>& temp)
 {
     core::string_view result;
