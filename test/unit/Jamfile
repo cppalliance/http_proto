@@ -35,28 +35,22 @@ local SOURCES =
     error.cpp
     field.cpp
     fields_base.cpp
-    fields_view_base.cpp
-    fields_view.cpp
     fields.cpp
     file_mode.cpp
     header_limits.cpp
     http_proto.cpp
     message_base.cpp
-    message_view_base.cpp
     metadata.cpp
     method.cpp
     parser.cpp
     request_parser.cpp
-    request_view.cpp
     request.cpp
     response_parser.cpp
-    response_view.cpp
     response.cpp
     sandbox.cpp
     serializer.cpp
     sink.cpp
     source.cpp
-    static_fields.cpp
     static_request.cpp
     static_response.cpp
     status.cpp

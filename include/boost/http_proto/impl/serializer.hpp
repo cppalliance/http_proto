@@ -117,7 +117,7 @@ template<
 void
 serializer::
 start(
-    message_view_base const& m,
+    message_base const& m,
     ConstBufferSequence&& cbs)
 {
     static_assert(buffers::is_const_buffer_sequence<
@@ -139,7 +139,7 @@ template<
 Source&
 serializer::
 start(
-    message_view_base const& m,
+    message_base const& m,
     Args&&... args)
 {
     static_assert(

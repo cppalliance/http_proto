@@ -17,7 +17,7 @@ namespace http_proto {
 
 void
 test_fields(
-    fields_view_base const& f,
+    fields_base const& f,
     core::string_view match)
 {
     fields r(match);

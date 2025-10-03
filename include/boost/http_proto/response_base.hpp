@@ -14,7 +14,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/message_base.hpp>
-#include <boost/http_proto/response_view.hpp>
 #include <boost/http_proto/status.hpp>
 
 namespace boost {
@@ -31,86 +30,28 @@ class response_base
     : public message_base
 {
     friend class response;
-    template<std::size_t>
     friend class static_response;
 
     response_base() noexcept
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(detail::kind::response)
+        : message_base(detail::kind::response)
     {
     }
 
     explicit
     response_base(core::string_view s)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(detail::kind::response, s)
-    {
-    }
-
-    explicit
-    response_base(detail::header const& ph)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(ph)
+        : message_base(detail::kind::response, s)
     {
     }
 
     response_base(
-        detail::header const& ph,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(ph, storage, cap)
-    {
-    }
-
-public:
-    response_base(
-        char* storage,
+        void* storage,
         std::size_t cap) noexcept
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
+        : message_base(
             detail::kind::response, storage, cap)
     {
     }
 
-    response_base(
-        core::string_view s,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(
-            detail::kind::response, storage, cap, s)
-    {
-    }
-
-    response_base(
-        response_view const& other,
-        char* storage,
-        std::size_t cap)
-        : fields_view_base(
-            &this->fields_base::h_)
-        , message_base(*other.ph_, storage, cap)
-    {
-    }
-
-    /** Conversion.
-
-        @see
-            @ref response_view.
-
-        @return A view of the response.
-    */
-    operator response_view() const noexcept
-    {
-        return response_view(ph_);
-    }
-
+public:
     //--------------------------------------------
     //
     // Observers
@@ -127,8 +68,8 @@ public:
     reason() const noexcept
     {
         return core::string_view(
-            ph_->cbuf + 13,
-            ph_->prefix - 15);
+            h_.cbuf + 13,
+            h_.prefix - 15);
     }
 
     /** Return the status code.
@@ -136,7 +77,7 @@ public:
     http_proto::status
     status() const noexcept
     {
-        return ph_->res.status;
+        return h_.res.status;
     }
 
     /** Return the status code as an integral.
@@ -144,7 +85,7 @@ public:
     unsigned short
     status_int() const noexcept
     {
-        return ph_->res.status_int;
+        return h_.res.status_int;
     }
 
     //--------------------------------------------

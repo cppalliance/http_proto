@@ -21,10 +21,6 @@ cpp:boost::http_proto::fields[fields]
 
 cpp:boost::http_proto::fields_base[fields_base]
 
-cpp:boost::http_proto::fields_view[fields_view]
-
-cpp:boost::http_proto::fields_view_base[fields_view_base]
-
 cpp:boost::http_proto::file[file]
 
 cpp:boost::http_proto::file_sink[file_sink]
@@ -34,8 +30,6 @@ cpp:boost::http_proto::file_source[file_source]
 cpp:boost::http_proto::header_limits[header_limits]
 
 cpp:boost::http_proto::message_base[message_base]
-
-cpp:boost::http_proto::message_view_base[message_view_base]
 
 cpp:boost::http_proto::metadata[metadata]
 
@@ -47,25 +41,19 @@ cpp:boost::http_proto::request_base[request_base]
 
 cpp:boost::http_proto::request_parser[request_parser]
 
-cpp:boost::http_proto::request_view[request_view]
-
 cpp:boost::http_proto::response[response]
 
 cpp:boost::http_proto::response_base[response_base]
 
 cpp:boost::http_proto::response_parser[response_parser]
 
-| **Types (2/2)**
-
-cpp:boost::http_proto::response_view[response_view]
-
 cpp:boost::http_proto::serializer[serializer]
+
+| **Types (2/2)**
 
 cpp:boost::http_proto::sink[sink]
 
 cpp:boost::http_proto::source[source]
-
-cpp:boost::http_proto::static_fields[static_fields]
 
 cpp:boost::http_proto::static_request[static_request]
 

@@ -43,13 +43,12 @@ namespace http_proto {
 
     @see
         @ref static_request,
-        @ref request_view.
+        @ref request_base.
 */
 class request
     : public request_base
 {
 public:
-
     //--------------------------------------------
     //
     // Special Members
@@ -74,8 +73,7 @@ public:
         @par Complexity
         Constant.
     */
-    BOOST_HTTP_PROTO_DECL
-    request() noexcept;
+    request() noexcept = default;
 
     /** Constructor.
 
@@ -111,10 +109,12 @@ public:
 
         @param s The string to parse.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     request(
-        core::string_view s);
+        core::string_view s)
+        : request_base(s)
+    {
+    }
 
     /** Constructor.
 
@@ -203,10 +203,14 @@ public:
 
         @param max_cap Maximum allowed capacity in bytes.
     */
-    BOOST_HTTP_PROTO_DECL
     request(
         std::size_t cap,
-        std::size_t max_cap = std::size_t(-1));
+        std::size_t max_cap = std::size_t(-1))
+        : request()
+    {
+        reserve_bytes(cap);
+        set_max_capacity_in_bytes(max_cap);
+    }
 
     /** Constructor.
 
@@ -227,52 +231,57 @@ public:
 
         @param r The request to move from.
     */
-    BOOST_HTTP_PROTO_DECL
-    request(request&& r) noexcept;
-
-    /** Constructor.
-
-        The newly constructed object contains
-        a copy of `r`.
-
-        @par Postconditions
-        @code
-        this->buffer() == r.buffer() && this->buffer.data() != r.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `r.size()`.
-
-        @par Exception Safety
-        Calls to allocate may throw.
-
-        @param r The request to copy.
-    */
-    BOOST_HTTP_PROTO_DECL
-    request(request const& r);
-
-    /** Constructor.
-
-        The newly constructed object contains
-        a copy of `r`.
-
-        @par Postconditions
-        @code
-        this->buffer() == r.buffer() && this->buffer.data() != r.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `r.size()`.
-
-        @par Exception Safety
-        Strong guarantee.
-        Calls to allocate may throw.
-
-        @param r The request to copy.
-    */
-    BOOST_HTTP_PROTO_DECL
     request(
-        request_view const& r);
+        request&& other) noexcept
+        : request()
+    {
+        swap(other);
+    }
+
+    /** Constructor.
+
+        The newly constructed object contains
+        a copy of `r`.
+
+        @par Postconditions
+        @code
+        this->buffer() == r.buffer() && this->buffer.data() != r.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `r.size()`.
+
+        @par Exception Safety
+        Calls to allocate may throw.
+
+        @param r The request to copy.
+    */
+    request(
+        request const& r) = default;
+
+    /** Constructor.
+
+        The newly constructed object contains
+        a copy of `r`.
+
+        @par Postconditions
+        @code
+        this->buffer() == r.buffer() && this->buffer.data() != r.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `r.size()`.
+
+        @par Exception Safety
+        Calls to allocate may throw.
+
+        @param r The request to copy.
+    */
+    request(
+        request_base const& r)
+        : request_base(r)
+    {
+    }
 
     /** Assignment
 
@@ -295,42 +304,11 @@ public:
 
         @return A reference to this object.
     */
-    BOOST_HTTP_PROTO_DECL
     request&
-    operator=(request&& r) noexcept;
-
-
-    /** Assignment.
-
-        The contents of `r` are copied and
-        the previous contents of `this` are
-        discarded.
-
-        @par Postconditions
-        @code
-        this->buffer() == r.buffer() && this->buffer().data() != r.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `r.size()`.
-
-        @par Exception Safety
-        Strong guarantee.
-        Calls to allocate may throw.
-        Exception thrown if max capacity exceeded.
-
-        @throw std::length_error
-        Max capacity would be exceeded.
-
-        @param r The request to copy.
-
-        @return A reference to this object.
-    */
-    request&
-    operator=(
-        request const& r)
+    operator=(request&& r) noexcept
     {
-        copy_impl(*r.ph_);
+        request temp(std::move(r));
+        temp.swap(*this);
         return *this;
     }
 
@@ -362,9 +340,43 @@ public:
     */
     request&
     operator=(
-        request_view const& r)
+        request const& r)
     {
-        copy_impl(*r.ph_);
+        copy_impl(r.h_);
+        return *this;
+    }
+
+    /** Assignment.
+
+        The contents of `r` are copied and
+        the previous contents of `this` are
+        discarded.
+
+        @par Postconditions
+        @code
+        this->buffer() == r.buffer() && this->buffer().data() != r.buffer().data()
+        @endcode
+
+        @par Complexity
+        Linear in `r.size()`.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if max capacity exceeded.
+
+        @throw std::length_error
+        Max capacity would be exceeded.
+
+        @param r The request to copy.
+
+        @return A reference to this object.
+    */
+    request&
+    operator=(
+        request_base const& r)
+    {
+        copy_impl(r.h_);
         return *this;
     }
 
@@ -398,7 +410,6 @@ public:
         h_.swap(other.h_);
         std::swap(max_cap_, other.max_cap_);
     }
-
 
     /** Swap.
 

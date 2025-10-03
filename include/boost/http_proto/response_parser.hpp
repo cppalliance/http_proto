@@ -14,7 +14,7 @@
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/parser.hpp>
-#include <boost/http_proto/response_view.hpp>
+#include <boost/http_proto/static_response.hpp>
 #include <boost/http_proto/status.hpp>
 
 namespace boost {
@@ -143,9 +143,9 @@ public:
         start_impl(true);
     }
 
-    /** Return a read-only view to the parsed response headers.
+    /** Return a reference to the parsed response headers.
 
-        The returned view remains valid until:
+        The returned reference remains valid until:
         @li @ref start or @ref start_head_response is called
         @li @ref reset is called
         @li The parser instance is destroyed
@@ -162,7 +162,7 @@ public:
             @ref got_header.
     */
     BOOST_HTTP_PROTO_DECL
-    response_view
+    static_response const&
     get() const;
 };
 

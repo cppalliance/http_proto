@@ -12,7 +12,6 @@
 #include <boost/http_proto/request.hpp>
 
 #include <boost/http_proto/message_base.hpp>
-#include <boost/http_proto/request_view.hpp>
 
 #include <utility>
 
@@ -112,6 +111,38 @@ struct request_test
             }
         }
 
+        // request(request const&)
+        {
+            {
+                // default
+                request_base const& r1 = request();
+                request r2(r1);
+                check(r2, 0,
+                    "GET / HTTP/1.1\r\n"
+                    "\r\n");
+                BOOST_TEST(
+                    r2.method() == method::get);
+                BOOST_TEST(
+                    r2.method_text() == "GET");
+                BOOST_TEST(
+                    r2.version() == version::http_1_1);
+            }
+            {
+                request_base const& r1 = request(cs);
+                request r2(r1);
+                check(r2, 2, cs);
+                BOOST_TEST(
+                    r2.buffer().data() !=
+                        r1.buffer().data());
+                BOOST_TEST(
+                    r2.method() == method::post);
+                BOOST_TEST(
+                    r2.method_text() == "POST");
+                BOOST_TEST(
+                    r2.version() == version::http_1_0);
+            }
+        }
+
         // request(request&&)
         {
             {
@@ -188,6 +219,27 @@ struct request_test
             }
         }
 
+        // operator=(request_base const&)
+        {
+            {
+                request r1(cs);
+                request_base const& r2 = request();
+                r1 = r2;
+                check(r1, 0,
+                    "GET / HTTP/1.1\r\n"
+                    "\r\n");
+                BOOST_TEST(
+                    r1.buffer().data() !=
+                        r2.buffer().data());
+                BOOST_TEST(
+                    r1.method() == method::get);
+                BOOST_TEST(
+                    r1.method_text() == "GET");
+                BOOST_TEST(
+                    r1.version() == version::http_1_1);
+            }
+        }
+
         // operator=(fields&&)
         {
             {
@@ -244,57 +296,6 @@ struct request_test
                 BOOST_TEST(
                     r2.version() == version::http_1_1);
             }
-        }
-    }
-
-    void
-    testViewConstructor()
-    {
-        {
-            request req;
-            BOOST_TEST_EQ(
-                req.buffer(),
-                "GET / HTTP/1.1\r\n\r\n");
-
-            request_view req_view(req);
-            request req2(req_view);
-
-            BOOST_TEST_EQ(
-                req2.buffer(),
-                "GET / HTTP/1.1\r\n\r\n");
-
-            // default-constructed recycles the same string literal
-            BOOST_TEST_EQ(
-                req2.buffer().data(),
-                req.buffer().data());
-
-            BOOST_TEST_EQ(
-                req2.buffer().data(),
-                req_view.buffer().data());
-
-        }
-
-        {
-            request req;
-            req.set_method("POST");
-            BOOST_TEST_EQ(
-                req.buffer(),
-                "POST / HTTP/1.1\r\n\r\n");
-
-            request_view req_view(req);
-            request req2(req_view);
-
-            BOOST_TEST_EQ(
-                req2.buffer(),
-                "POST / HTTP/1.1\r\n\r\n");
-
-            BOOST_TEST_NE(
-                req2.buffer().data(),
-                req.buffer().data());
-
-            BOOST_TEST_NE(
-                req2.buffer().data(),
-                req_view.buffer().data());
         }
     }
 
@@ -788,7 +789,6 @@ struct request_test
     {
         testHelpers();
         testSpecial();
-        testViewConstructor();
         testObservers();
         testModifiers();
         testExpect();

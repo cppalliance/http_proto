@@ -11,7 +11,7 @@
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
-#include <boost/http_proto/message_view_base.hpp>
+#include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/serializer.hpp>
 
 #include "src/detail/array_of_const_buffers.hpp"
@@ -633,7 +633,7 @@ public:
 
     void
     start_init(
-        message_view_base const& m)
+        message_base const& m)
     {
         // Precondition violation
         if(state_ != state::start)
@@ -646,7 +646,7 @@ public:
 
         // VFALCO what do we do with
         // metadata error code failures?
-        // m.ph_->md.maybe_throw();
+        // m.h_.md.maybe_throw();
 
         auto const& md = m.metadata();
         needs_exp100_continue_ = md.expect.is_100_continue;
@@ -701,7 +701,7 @@ public:
 
     void
     start_empty(
-        message_view_base const& m)
+        message_base const& m)
     {
         start_init(m);
         style_ = style::empty;
@@ -715,13 +715,13 @@ public:
         if(!filter_)
             out_finish();
 
-        prepped_.append({ m.ph_->cbuf, m.ph_->size });
+        prepped_.append({ m.h_.cbuf, m.h_.size });
         more_input_ = false;
     }
 
     void
     start_buffers(
-        message_view_base const& m,
+        message_base const& m,
         cbs_gen& cbs_gen)
     {
         // start_init() already called 
@@ -738,7 +738,7 @@ public:
                 batch_size + // buffers
                 (is_chunked_ ? 2 : 0)); // chunk header + final chunk
 
-            prepped_.append({ m.ph_->cbuf, m.ph_->size });
+            prepped_.append({ m.h_.cbuf, m.h_.size });
             more_input_ = (batch_size != 0);
 
             if(is_chunked_)
@@ -767,14 +767,14 @@ public:
 
         out_init();
 
-        prepped_.append({ m.ph_->cbuf, m.ph_->size });
+        prepped_.append({ m.h_.cbuf, m.h_.size });
         tmp_ = {};
         more_input_ = true;
     }
 
     void
     start_source(
-        message_view_base const& m,
+        message_base const& m,
         source& source)
     {
         // start_init() already called 
@@ -794,12 +794,12 @@ public:
 
         out_init();
 
-        prepped_.append({ m.ph_->cbuf, m.ph_->size });
+        prepped_.append({ m.h_.cbuf, m.h_.size });
         more_input_ = true;
     }
 
     stream
-    start_stream(message_view_base const& m)
+    start_stream(message_base const& m)
     {
         start_init(m);
         style_ = style::stream;
@@ -817,7 +817,7 @@ public:
 
         out_init();
 
-        prepped_.append({ m.ph_->cbuf, m.ph_->size });
+        prepped_.append({ m.h_.cbuf, m.h_.size });
         more_input_ = true;
         return stream{ this };
     }
@@ -961,7 +961,7 @@ reset() noexcept
 
 void
 serializer::
-start(message_view_base const& m)
+start(message_base const& m)
 {
     BOOST_ASSERT(impl_);
     impl_->start_empty(m);
@@ -970,7 +970,7 @@ start(message_view_base const& m)
 auto
 serializer::
 start_stream(
-    message_view_base const& m) -> stream
+    message_base const& m) -> stream
 {
     BOOST_ASSERT(impl_);
     return impl_->start_stream(m);
@@ -1013,7 +1013,7 @@ ws()
 
 void
 serializer::
-start_init(message_view_base const& m)
+start_init(message_base const& m)
 {
     BOOST_ASSERT(impl_);
     impl_->start_init(m);
@@ -1022,7 +1022,7 @@ start_init(message_view_base const& m)
 void
 serializer::
 start_buffers(
-    message_view_base const& m,
+    message_base const& m,
     cbs_gen& cbs_gen)
 {
     BOOST_ASSERT(impl_);
@@ -1032,7 +1032,7 @@ start_buffers(
 void
 serializer::
 start_source(
-    message_view_base const& m,
+    message_base const& m,
     source& source)
 {
     BOOST_ASSERT(impl_);

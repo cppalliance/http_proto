@@ -52,7 +52,7 @@ test_to_string(Buffers const& bs)
 // Test that fields equals HTTP string
 void
 test_fields(
-    fields_view_base const& f,
+    fields_base const& f,
     core::string_view match);
 
 //------------------------------------------------

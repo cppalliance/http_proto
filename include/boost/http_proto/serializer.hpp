@@ -27,7 +27,7 @@ namespace boost {
 namespace http_proto {
 
 // Forward declaration
-class message_view_base;
+class message_base;
 
 /** A serializer for HTTP/1 messages
 
@@ -191,11 +191,11 @@ public:
         start-line and headers from.
 
         @see
-            @ref message_view_base.
+            @ref message_base.
     */
     void
     BOOST_HTTP_PROTO_DECL
-    start(message_view_base const& m);
+    start(message_base const& m);
 
     /** Prepare the serializer for a new message with a ConstBufferSequence body.
 
@@ -248,7 +248,7 @@ public:
         until @ref is_done returns `true`.
 
         @see
-            @ref message_view_base.
+            @ref message_base.
     */
     template<
         class ConstBufferSequence,
@@ -258,7 +258,7 @@ public:
     >
     void
     start(
-        message_view_base const& m,
+        message_base const& m,
         ConstBufferSequence&& buffers);
 
     /** Prepare the serializer for a new message with a Source body.
@@ -321,7 +321,7 @@ public:
         @see
             @ref source,
             @ref file_source,
-            @ref message_view_base.
+            @ref message_base.
     */
     template<
         class Source,
@@ -330,7 +330,7 @@ public:
             is_source<Source>::value>::type>
     Source&
     start(
-        message_view_base const& m,
+        message_base const& m,
         Args&&... args);
 
     /** Prepare the serializer for a new message using a stream interface.
@@ -402,12 +402,12 @@ public:
 
         @see
             @ref stream,
-            @ref message_view_base.
+            @ref message_base.
      */
     BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
-        message_view_base const& m);
+        message_base const& m);
 
     /** Return the output area.
 
@@ -527,18 +527,18 @@ private:
     BOOST_HTTP_PROTO_DECL
     void
     start_init(
-        message_view_base const&);
+        message_base const&);
 
     BOOST_HTTP_PROTO_DECL
     void
     start_buffers(
-        message_view_base const&,
+        message_base const&,
         cbs_gen&);
 
     BOOST_HTTP_PROTO_DECL
     void
     start_source(
-        message_view_base const&,
+        message_base const&,
         source&);
 
     impl* impl_;

@@ -73,16 +73,16 @@ void
 message_base::
 set_keep_alive(bool value)
 {
-    if(ph_->md.connection.ec.failed())
+    if(h_.md.connection.ec.failed())
     {
         // throw? return false?
         return;
     }
 
-    if(ph_->md.connection.count == 0)
+    if(h_.md.connection.count == 0)
     {
         // no Connection field
-        switch(ph_->version)
+        switch(h_.version)
         {
         default:
         case http_proto::version::http_1_1:
@@ -155,22 +155,22 @@ set_keep_alive(bool value)
         };
     if(value)
     {
-        if(ph_->md.connection.close)
+        if(h_.md.connection.close)
             erase_token("close");
     }
     else
     {
-        if(ph_->md.connection.keep_alive)
+        if(h_.md.connection.keep_alive)
             erase_token("keep-alive");
     }
-    switch(ph_->version)
+    switch(h_.version)
     {
     default:
     case http_proto::version::http_1_1:
         if(! value)
         {
             // add one "close" token if needed
-            if(! ph_->md.connection.close)
+            if(! h_.md.connection.close)
                 append(field::connection, "close");
         }
         break;
@@ -179,7 +179,7 @@ set_keep_alive(bool value)
         if(value)
         {
             // add one "keep-alive" token if needed
-            if(! ph_->md.connection.keep_alive)
+            if(! h_.md.connection.keep_alive)
                 append(field::connection, "keep-alive");
         }
         break;

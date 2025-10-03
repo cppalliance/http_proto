@@ -14,8 +14,6 @@
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
-#include <boost/http_proto/fields_view.hpp>
-#include <boost/core/detail/string_view.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -46,8 +44,7 @@ namespace http_proto {
     @endcode
 
     @see
-        @ref static_fields,
-        @ref fields_view.
+        @ref fields_base.
 */
 class fields final
     : public fields_base
@@ -78,8 +75,11 @@ public:
         @par Complexity
         Constant.
     */
-    BOOST_HTTP_PROTO_DECL
-    fields() noexcept;
+    fields() noexcept
+        : fields_base(detail::kind::fields)
+    {
+    }
+
 
     /** Constructor.
 
@@ -116,10 +116,12 @@ public:
 
         @param s The string to parse.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     fields(
-        core::string_view s);
+        core::string_view s)
+        : fields_base(detail::kind::fields, s)
+    {
+    }
 
     /** Constructor.
 
@@ -147,11 +149,15 @@ public:
 
         @param max_cap Maximum allowed capacity in bytes.
     */
-    BOOST_HTTP_PROTO_DECL
     explicit
     fields(
         std::size_t cap,
-        std::size_t max_cap = std::size_t(-1));
+        std::size_t max_cap = std::size_t(-1))
+        : fields()
+    {
+        reserve_bytes(cap);
+        set_max_capacity_in_bytes(max_cap);
+    }
 
     /** Constructor.
 
@@ -172,8 +178,12 @@ public:
 
         @param f The fields to move from.
     */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields&& f) noexcept;
+    fields(fields&& f) noexcept
+        : fields_base(f.h_.kind)
+    {
+        swap(f);
+    }
+
 
     /** Constructor.
 
@@ -193,30 +203,7 @@ public:
 
         @param f The fields to copy.
     */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields const& f);
-
-    /** Constructor.
-
-        The newly constructed object contains
-        a copy of `f`.
-
-        @par Postconditions
-        @code
-        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `f.size()`.
-
-        @par Exception Safety
-        Strong guarantee.
-        Calls to allocate may throw.
-
-        @param f The fields to copy.
-    */
-    BOOST_HTTP_PROTO_DECL
-    fields(fields_view const& f);
+    fields(fields const& f) = default;
 
     /** Assignment.
 
@@ -239,9 +226,13 @@ public:
 
         @return A reference to this object.
     */
-    BOOST_HTTP_PROTO_DECL
     fields&
-    operator=(fields&& f) noexcept;
+    operator=(fields&& f) noexcept
+    {
+        fields tmp(std::move(f));
+        tmp.swap(*this);
+        return *this;
+    }
 
     /** Assignment.
 
@@ -272,53 +263,8 @@ public:
     fields&
     operator=(fields const& f) noexcept
     {
-        copy_impl(*f.ph_);
+        copy_impl(f.h_);
         return *this;
-    }
-
-    /** Assignment.
-
-        The contents of `f` are copied and
-        the previous contents of `this` are
-        discarded.
-
-        @par Postconditions
-        @code
-        this->buffer() == f.buffer() && this->buffer().data() != f.buffer().data()
-        @endcode
-
-        @par Complexity
-        Linear in `r.size()`.
-
-        @par Exception Safety
-        Strong guarantee.
-        Calls to allocate may throw.
-        Exception thrown if max capacity exceeded.
-
-        @throw std::length_error
-        Max capacity would be exceeded.
-
-        @return A reference to this object.
-
-        @param f The fields to copy.
-    */
-    fields&
-    operator=(fields_view const& f)
-    {
-        copy_impl(*f.ph_);
-        return *this;
-    }
-
-    /** Conversion.
-
-        @see
-            @ref fields_view.
-
-        @return A view of the fields.
-    */
-    operator fields_view() const noexcept
-    {
-        return fields_view(ph_);
     }
 
     //--------------------------------------------
