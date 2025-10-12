@@ -158,11 +158,13 @@ public:
     void
     reset() noexcept;
 
-    /** Prepare the serializer for a new message without a body.
+    /** Start serializing a message with an empty body
 
-        Initializes the serializer with the HTTP
-        start-line and headers from `m`, and
-        without a body.
+        This function prepares the serializer to create a message which
+        has an empty body.
+        Ownership of the specified message is not transferred; the caller is
+        responsible for ensuring the lifetime of the object extends until the
+        serializer is done.
 
         @par Preconditions
         @code
@@ -176,19 +178,15 @@ public:
 
         @par Exception Safety
         Strong guarantee.
-        Exceptions thrown if there is insufficient
-        internal buffer space to start the
-        operation.
+        Exceptions thrown if there is insufficient internal buffer space
+        to start the operation.
 
-        @throw std::logic_error
-        `this->is_done() == true`.
+        @throw std::logic_error `this->is_done() == true`.
 
-        @throw std::length_error if there is
-        insufficient internal buffer space to
-        start the operation.
+        @throw std::length_error if there is insufficient internal buffer
+        space to start the operation.
 
-        @param m The message to read the HTTP
-        start-line and headers from.
+        @param m The request or response headers to serialize.
 
         @see
             @ref message_base.
@@ -197,17 +195,19 @@ public:
     BOOST_HTTP_PROTO_DECL
     start(message_base const& m);
 
-    /** Prepare the serializer for a new message with a ConstBufferSequence body.
+    /** Start serializing a message with a buffer sequence body
 
-        Initializes the serializer with the HTTP
-        start-line and headers from `m`, and the
-        provided `buffers` for reading the
-        message body from.
+        Initializes the serializer with the HTTP start-line and headers from `m`,
+        and the provided `buffers` for reading the message body from.
 
-        Changing the contents of the message
-        after calling this function and before
-        @ref is_done returns `true` results in
-        undefined behavior.
+        Changing the contents of the message after calling this function and
+        before @ref is_done returns `true` results in undefined behavior.
+
+        At least one copy of the specified buffer sequence is maintained until
+        the serializer is done, gets reset, or ios destroyed, after which all
+        of its copies are destroyed. Ownership of the underlying memory is not
+        transferred; the caller must ensure the memory remains valid until the
+        serializer’s copies are destroyed.
 
         @par Preconditions
         @code
@@ -221,26 +221,23 @@ public:
 
         @par Constraints
         @code
-        buffers::is_const_buffer_sequence<ConstBufferSequence>::value == true
+        buffers::is_const_buffer_sequence_v<ConstBufferSequence> == true
         @endcode
 
         @par Exception Safety
         Strong guarantee.
-        Exceptions thrown if there is insufficient
-        internal buffer space to start the
-        operation.
+        Exceptions thrown if there is insufficient internal buffer space
+        to start the operation.
 
-        @throw std::logic_error
-        `this->is_done() == true`.
+        @throw std::logic_error `this->is_done() == true`.
 
-        @throw std::length_error if there is
-        insufficient internal buffer space to
-        start the operation.
+        @throw std::length_error If there is insufficient internal buffer
+        space to start the operation.
 
-        @param m The message to read the HTTP
-        start-line and headers from.
+        @param m The message to read the HTTP start-line and headers from.
 
-        @param buffers One or more buffers
+        @param buffers A buffer sequence containing the message body.
+
         containing the message body data. While
         the buffers object is copied, ownership of
         the underlying memory remains with the
@@ -261,12 +258,10 @@ public:
         message_base const& m,
         ConstBufferSequence&& buffers);
 
-    /** Prepare the serializer for a new message with a Source body.
+    /** Start serializing a message with a @em Source body
 
-        Initializes the serializer with the
-        HTTP start-line and headers from `m`,
-        and constructs a `Source` object to read
-        the message body.
+        Initializes the serializer with the HTTP start-line and headers from
+        `m`, and constructs a `Source` object to provide the message body.
 
         Changing the contents of the message
         after calling this function and before
