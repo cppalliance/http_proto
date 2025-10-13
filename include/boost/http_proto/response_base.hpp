@@ -13,7 +13,7 @@
 #define BOOST_HTTP_PROTO_RESPONSE_BASE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 #include <boost/http_proto/status.hpp>
 
 namespace boost {
@@ -22,31 +22,31 @@ namespace http_proto {
 /** Mixin for modifing HTTP responses.
 
     @see
-        @ref message_base,
+        @ref header,
         @ref response,
         @ref static_response.
 */
 class response_base
-    : public message_base
+    : public header
 {
     friend class response;
     friend class static_response;
 
     response_base() noexcept
-        : message_base(detail::kind::response)
+        : header(detail::kind::response)
     {
     }
 
     explicit
     response_base(core::string_view s)
-        : message_base(detail::kind::response, s)
+        : header(detail::kind::response, s)
     {
     }
 
     response_base(
         void* storage,
         std::size_t cap) noexcept
-        : message_base(
+        : header(
             detail::kind::response, storage, cap)
     {
     }

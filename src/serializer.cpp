@@ -11,7 +11,7 @@
 
 #include <boost/http_proto/detail/except.hpp>
 #include <boost/http_proto/detail/header.hpp>
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 #include <boost/http_proto/serializer.hpp>
 
 #include "src/detail/array_of_const_buffers.hpp"
@@ -633,7 +633,7 @@ public:
 
     void
     start_init(
-        message_base const& m)
+        header const& m)
     {
         // Precondition violation
         if(state_ != state::start)
@@ -701,7 +701,7 @@ public:
 
     void
     start_empty(
-        message_base const& m)
+        header const& m)
     {
         start_init(m);
         style_ = style::empty;
@@ -721,7 +721,7 @@ public:
 
     void
     start_buffers(
-        message_base const& m,
+        header const& m,
         cbs_gen& cbs_gen)
     {
         // start_init() already called 
@@ -774,7 +774,7 @@ public:
 
     void
     start_source(
-        message_base const& m,
+        header const& m,
         source& source)
     {
         // start_init() already called 
@@ -799,7 +799,7 @@ public:
     }
 
     stream
-    start_stream(message_base const& m)
+    start_stream(header const& m)
     {
         start_init(m);
         style_ = style::stream;
@@ -961,7 +961,7 @@ reset() noexcept
 
 void
 serializer::
-start(message_base const& m)
+start(header const& m)
 {
     BOOST_ASSERT(impl_);
     impl_->start_empty(m);
@@ -970,7 +970,7 @@ start(message_base const& m)
 auto
 serializer::
 start_stream(
-    message_base const& m) -> stream
+    header const& m) -> stream
 {
     BOOST_ASSERT(impl_);
     return impl_->start_stream(m);
@@ -1013,7 +1013,7 @@ ws()
 
 void
 serializer::
-start_init(message_base const& m)
+start_init(header const& m)
 {
     BOOST_ASSERT(impl_);
     impl_->start_init(m);
@@ -1022,7 +1022,7 @@ start_init(message_base const& m)
 void
 serializer::
 start_buffers(
-    message_base const& m,
+    header const& m,
     cbs_gen& cbs_gen)
 {
     BOOST_ASSERT(impl_);
@@ -1032,7 +1032,7 @@ start_buffers(
 void
 serializer::
 start_source(
-    message_base const& m,
+    header const& m,
     source& source)
 {
     BOOST_ASSERT(impl_);

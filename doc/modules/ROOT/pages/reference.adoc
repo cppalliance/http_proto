@@ -29,7 +29,7 @@ cpp:boost::http_proto::file_source[file_source]
 
 cpp:boost::http_proto::header_limits[header_limits]
 
-cpp:boost::http_proto::message_base[message_base]
+cpp:boost::http_proto::header[header]
 
 cpp:boost::http_proto::metadata[metadata]
 

@@ -19,7 +19,7 @@
 #include <boost/http_proto/file_sink.hpp>
 #include <boost/http_proto/file_source.hpp>
 #include <boost/http_proto/header_limits.hpp>
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 #include <boost/http_proto/method.hpp>
 #include <boost/http_proto/parser.hpp>
 #include <boost/http_proto/request.hpp>

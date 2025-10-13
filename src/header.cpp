@@ -8,7 +8,7 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 #include <boost/http_proto/rfc/list_rule.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 #include <boost/http_proto/detail/except.hpp>
@@ -20,7 +20,7 @@ namespace boost {
 namespace http_proto {
 
 void
-message_base::
+header::
 set_payload_size(
     std::uint64_t n)
 {
@@ -39,7 +39,7 @@ set_payload_size(
 }
 
 void
-message_base::
+header::
 set_content_length(
     std::uint64_t n)
 {
@@ -48,7 +48,7 @@ set_content_length(
 }
 
 void
-message_base::
+header::
 set_chunked(bool value)
 {
     if(value)
@@ -70,7 +70,7 @@ set_chunked(bool value)
 }
 
 void
-message_base::
+header::
 set_keep_alive(bool value)
 {
     if(h_.md.connection.ec.failed())

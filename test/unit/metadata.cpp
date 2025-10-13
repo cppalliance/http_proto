@@ -138,7 +138,7 @@ struct metadata_test
     {
         auto const req = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             metadata::connection_t con)
         {
             {
@@ -157,65 +157,65 @@ struct metadata_test
         req("GET / HTTP/1.1\r\n"
             "Connection: /\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_connection, 1, false, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: x\r\n"
             "Connection: /\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_connection, 2, false, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: x, /\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_connection, 1, false, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: /\r\n"
             "Connection: /\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_connection, 2, false, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: close\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true, false, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: keep-alive\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false, true, false });
 
         req("GET / HTTP/1.1\r\n"
             "Connection: upgrade\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false, false, true});
 
         req("GET / HTTP/1.1\r\n"
             "Connection: upgrade, close, keep-alive\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true, true, true});
 
         req("GET / HTTP/1.1\r\n"
             "Server: localhost\r\n"
             "Connection: upgrade, close, keep-alive\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true, true, true});
 
         //----------------------------------------
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::connection, "close");
             },
@@ -223,7 +223,7 @@ struct metadata_test
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::connection, "keep-alive");
             },
@@ -231,7 +231,7 @@ struct metadata_test
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::connection, "upgrade");
             },
@@ -239,7 +239,7 @@ struct metadata_test
 
         req("GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::connection, "close");
                 f.append(field::connection, "keep-alive");
@@ -252,7 +252,7 @@ struct metadata_test
             "Connection: upgrade\r\n"
             "Connection: keep-alive\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::connection));
             },
@@ -263,7 +263,7 @@ struct metadata_test
             "Connection: close, upgrade\r\n"
             "Connection: keep-alive\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::connection);
             },
@@ -275,7 +275,7 @@ struct metadata_test
     {
         auto const check = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             metadata::content_encoding_t ce)
         {
             request req(s);
@@ -290,21 +290,21 @@ struct metadata_test
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 0, content_coding::identity });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: gzip\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, content_coding::gzip });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: gzip, deflate\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, content_coding::unknown });
 
         check(
@@ -312,14 +312,14 @@ struct metadata_test
             "Content-Encoding: gzip\r\n"
             "Content-Encoding: deflate\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 2, content_coding::unknown });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Encoding: bad;\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_content_encoding, 1, content_coding::unknown});
     }
 
@@ -328,7 +328,7 @@ struct metadata_test
     {
         auto const check = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             metadata::content_length_t clen)
         {
             request req(s);
@@ -344,7 +344,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Content-Length: 0,0\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_content_length, 1, 0 });
 
         check(
@@ -352,14 +352,14 @@ struct metadata_test
             "Content-Length: 00\r\n"
             "Content-Length: 0,0\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_content_length, 2, 0 });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Content-Length: 0\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, 0 });
 
         check(
@@ -367,7 +367,7 @@ struct metadata_test
             "Content-Length: 2\r\n"
             "Content-Length: 2\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 2, 2 });
 
         check(
@@ -375,7 +375,7 @@ struct metadata_test
             "Content-Length: 3\r\n"
             "Content-Length: 5\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::multiple_content_length, 2, 0 });
 
         //----------------------------------------
@@ -385,7 +385,7 @@ struct metadata_test
             "Content-Length: 0\r\n"
             "Content-Length: 42\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(
                     field::content_length));
@@ -398,7 +398,7 @@ struct metadata_test
             "Content-Length: 42\r\n"
             "Content-Length: 42\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(
                     field::content_length));
@@ -412,7 +412,7 @@ struct metadata_test
             "Content-Length: 42\r\n"
             "Content-Length: 42\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(
                     field::content_length));
@@ -424,7 +424,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Content-Length: 42\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(
                     field::content_length));
@@ -438,7 +438,7 @@ struct metadata_test
             "Content-Length: 2\r\n"
             "Content-Length: 3\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::content_length);
             },
@@ -451,7 +451,7 @@ struct metadata_test
             "Content-Length: 2\r\n"
             "Content-Length: 2\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::content_length);
             },
@@ -463,7 +463,7 @@ struct metadata_test
     {
         auto const check = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             metadata::transfer_encoding_t te)
         {
             request req(s);
@@ -478,21 +478,21 @@ struct metadata_test
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 0, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked, chunked\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 1, false });
 
         check(
@@ -500,14 +500,14 @@ struct metadata_test
             "Transfer-Encoding: chunked\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 2, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked, compress\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 1, false});
 
         check(
@@ -515,14 +515,14 @@ struct metadata_test
             "Transfer-Encoding: chunked\r\n"
             "Transfer-Encoding: compress\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 2, false});
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: chunked;a=b\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 1, false });
 
         check(
@@ -530,42 +530,42 @@ struct metadata_test
             "Transfer-Encoding: deflate;a=b\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_transfer_encoding, 2, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: compress\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: deflate\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: gzip\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: custom;a=1\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false});
 
         check(
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: a,b,c\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false});
 
         check(
@@ -573,7 +573,7 @@ struct metadata_test
             "Transfer-Encoding: a,b,c\r\n"
             "Transfer-Encoding: x,y\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 2, false});
 
         //----------------------------------------
@@ -582,7 +582,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Transfer-Encoding: compress\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::transfer_encoding));
             },
@@ -593,7 +593,7 @@ struct metadata_test
             "Transfer-Encoding: compress\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::transfer_encoding));
             },
@@ -605,7 +605,7 @@ struct metadata_test
             "Transfer-Encoding: compress\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::transfer_encoding));
             },
@@ -616,7 +616,7 @@ struct metadata_test
             "Server: localhost\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::transfer_encoding));
             },
@@ -629,7 +629,7 @@ struct metadata_test
             "Transfer-Encoding: compress\r\n"
             "Transfer-Encoding: chunked\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::transfer_encoding);
             },
@@ -641,7 +641,7 @@ struct metadata_test
     {
         auto const check = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             metadata::upgrade_t te)
         {
             request req(s);
@@ -657,21 +657,21 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Upgrade: websocket\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: WEBSOCKET\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: /usr\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_upgrade, 1, false });
 
         check(
@@ -679,14 +679,14 @@ struct metadata_test
             "Upgrade: /usr\r\n"
             "Upgrade: websocket\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_upgrade, 2, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: websocket, /usr\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_upgrade, 1, false });
 
         // HTTP/1.0
@@ -694,14 +694,14 @@ struct metadata_test
             "GET / HTTP/1.0\r\n"
             "Upgrade: websocket\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { error::bad_upgrade, 1, false });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: chaka\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false });
 
         check(
@@ -709,14 +709,14 @@ struct metadata_test
             "Upgrade: websocket\r\n"
             "Upgrade: rick/morty\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 2, true });
 
         check(
             "GET / HTTP/1.1\r\n"
             "Upgrade: websocket/2\r\n"
             "\r\n",
-            [](message_base&){},
+            [](header&){},
             { ok, 1, false });
 
         //----------------------------------------
@@ -724,7 +724,7 @@ struct metadata_test
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::upgrade, "http/2");
             },
@@ -734,7 +734,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Upgrade: chaka\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::upgrade));
             },
@@ -744,7 +744,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Upgrade: websocket\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::upgrade));
             },
@@ -753,7 +753,7 @@ struct metadata_test
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::upgrade, "websocket");
                 f.append(field::upgrade, "chaka");
@@ -764,7 +764,7 @@ struct metadata_test
         check(
             "GET / HTTP/1.1\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::upgrade, "chaka");
                 f.append(field::upgrade, "websocket");
@@ -778,7 +778,7 @@ struct metadata_test
             "Upgrade: http/2\r\n"
             "Upgrade: chaka\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::upgrade);
             },
@@ -790,7 +790,7 @@ struct metadata_test
     {
         auto const check = [](
             core::string_view s,
-            void(*f)(message_base&),
+            void(*f)(header&),
             core::string_view s1)
         {
             request req(s);
@@ -802,7 +802,7 @@ struct metadata_test
             "GET / HTTP/1.1\r\n"
             "Server: localhost\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.append(field::accept, "text/html");
             },
@@ -816,7 +816,7 @@ struct metadata_test
             "Server: localhost\r\n"
             "Accept: text/html\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(f.find(field::accept));
             },
@@ -832,7 +832,7 @@ struct metadata_test
             "Set-Cookie: 2\r\n"
             "Set-Cookie: 3\r\n"
             "\r\n",
-            [](message_base& f)
+            [](header& f)
             {
                 f.erase(field::set_cookie);
             },
