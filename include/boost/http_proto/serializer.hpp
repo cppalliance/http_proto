@@ -337,8 +337,8 @@ public:
 
         Initializes the serializer with the HTTP
         start-line and headers from `m`, and returns
-        a @ref stream object for reading the body
-        from an external source.
+        a @ref stream object for writing the body
+        to an external destination.
 
         Once the serializer is destroyed, @ref reset
         is called, or @ref is_done returns true, the
@@ -346,8 +346,7 @@ public:
 
         The stream allows inverted control flow: the
         caller supplies body data via the serializer’s
-        internal buffer while reading from an external
-        source.
+        internal buffer for writing to the remote peer.
 
         Changing the contents of the message
         after calling this function and before
@@ -397,7 +396,7 @@ public:
         @param m The message to read the HTTP
         start-line and headers from.
 
-        @return A @ref stream object for reading body
+        @return A @ref stream object for writing body
         content into the serializer's buffer.
 
         @see
