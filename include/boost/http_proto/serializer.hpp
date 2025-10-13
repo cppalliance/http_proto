@@ -161,7 +161,7 @@ public:
     /** Prepare the serializer for a new message without a body.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and
+        start-line and headers from `h`, and
         without a body.
 
         @par Preconditions
@@ -200,7 +200,7 @@ public:
     /** Prepare the serializer for a new message with a ConstBufferSequence body.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and the
+        start-line and headers from `h`, and the
         provided `buffers` for reading the
         message body from.
 
@@ -264,7 +264,7 @@ public:
     /** Prepare the serializer for a new message with a Source body.
 
         Initializes the serializer with the
-        HTTP start-line and headers from `m`,
+        HTTP start-line and headers from `h`,
         and constructs a `Source` object to read
         the message body.
 
@@ -336,7 +336,7 @@ public:
     /** Prepare the serializer for a new message using a stream interface.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and returns
+        start-line and headers from `h`, and returns
         a @ref stream object for reading the body
         from an external source.
 
