@@ -8,8 +8,8 @@
 // Official repository: https://github.com/cppalliance/http_proto
 //
 
-#ifndef BOOST_HTTP_PROTO_MESSAGE_BASE_HPP
-#define BOOST_HTTP_PROTO_MESSAGE_BASE_HPP
+#ifndef BOOST_HTTP_PROTO_HEADER_HPP
+#define BOOST_HTTP_PROTO_HEADER_HPP
 
 #include <boost/http_proto/detail/config.hpp>
 #include <boost/http_proto/fields_base.hpp>
@@ -19,7 +19,7 @@ namespace boost {
 namespace http_proto {
 
 /** Mixin for modifing common metadata
-    in HTTP request and response messages.
+    in HTTP request and response headers.
 
     This type is useful for modifying common
     properties shared by both requests
@@ -32,7 +32,7 @@ namespace http_proto {
         @ref static_request,
         @ref metadata.
 */
-class message_base
+class header
     : public fields_base
 {
     friend class request_base;

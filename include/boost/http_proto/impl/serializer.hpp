@@ -117,16 +117,16 @@ template<
 void
 serializer::
 start(
-    message_base const& m,
+    header const& h,
     ConstBufferSequence&& cbs)
 {
     static_assert(buffers::is_const_buffer_sequence<
             ConstBufferSequence>::value,
         "ConstBufferSequence type requirements not met");
 
-    start_init(m);
+    start_init(h);
     start_buffers(
-        m,
+        h,
         ws().emplace<cbs_gen_impl<typename
             std::decay<ConstBufferSequence>::type>>(
                 std::forward<ConstBufferSequence>(cbs)));
@@ -139,7 +139,7 @@ template<
 Source&
 serializer::
 start(
-    message_base const& m,
+    header const& h,
     Args&&... args)
 {
     static_assert(
@@ -149,10 +149,10 @@ start(
         std::is_constructible<Source, detail::workspace&, Args...>::value,
         "The Source cannot be constructed with the given arguments");
 
-    start_init(m);
+    start_init(h);
     auto& source = ws().emplace<Source>(
         std::forward<Args>(args)...);
-    start_source(m, source);
+    start_source(h, source);
     return source;
 }
 

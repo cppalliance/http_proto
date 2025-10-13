@@ -11,7 +11,7 @@
 // Test that header file is self-contained.
 #include <boost/http_proto/request.hpp>
 
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 
 #include <utility>
 

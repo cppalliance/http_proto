@@ -64,7 +64,7 @@ class fields_base
     };
 
     friend class fields;
-    friend class message_base;
+    friend class header;
     friend class request_base;
     friend class request;
     friend class static_request;

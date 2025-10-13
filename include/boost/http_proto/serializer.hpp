@@ -27,7 +27,7 @@ namespace boost {
 namespace http_proto {
 
 // Forward declaration
-class message_base;
+class header;
 
 /** A serializer for HTTP/1 messages
 
@@ -161,7 +161,7 @@ public:
     /** Prepare the serializer for a new message without a body.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and
+        start-line and headers from `h`, and
         without a body.
 
         @par Preconditions
@@ -187,20 +187,20 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @see
-            @ref message_base.
+            @ref header.
     */
     void
     BOOST_HTTP_PROTO_DECL
-    start(message_base const& m);
+    start(header const& h);
 
     /** Prepare the serializer for a new message with a ConstBufferSequence body.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and the
+        start-line and headers from `h`, and the
         provided `buffers` for reading the
         message body from.
 
@@ -237,7 +237,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @param buffers One or more buffers
@@ -248,7 +248,7 @@ public:
         until @ref is_done returns `true`.
 
         @see
-            @ref message_base.
+            @ref header.
     */
     template<
         class ConstBufferSequence,
@@ -258,13 +258,13 @@ public:
     >
     void
     start(
-        message_base const& m,
+        header const& h,
         ConstBufferSequence&& buffers);
 
     /** Prepare the serializer for a new message with a Source body.
 
         Initializes the serializer with the
-        HTTP start-line and headers from `m`,
+        HTTP start-line and headers from `h`,
         and constructs a `Source` object to read
         the message body.
 
@@ -310,7 +310,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @param args Arguments to be passed to the
@@ -321,7 +321,7 @@ public:
         @see
             @ref source,
             @ref file_source,
-            @ref message_base.
+            @ref header.
     */
     template<
         class Source,
@@ -330,13 +330,13 @@ public:
             is_source<Source>::value>::type>
     Source&
     start(
-        message_base const& m,
+        header const& h,
         Args&&... args);
 
     /** Prepare the serializer for a new message using a stream interface.
 
         Initializes the serializer with the HTTP
-        start-line and headers from `m`, and returns
+        start-line and headers from `h`, and returns
         a @ref stream object for reading the body
         from an external source.
 
@@ -394,7 +394,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @return A @ref stream object for reading body
@@ -402,12 +402,12 @@ public:
 
         @see
             @ref stream,
-            @ref message_base.
+            @ref header.
      */
     BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
-        message_base const& m);
+        header const& h);
 
     /** Return the output area.
 
@@ -527,18 +527,18 @@ private:
     BOOST_HTTP_PROTO_DECL
     void
     start_init(
-        message_base const&);
+        header const&);
 
     BOOST_HTTP_PROTO_DECL
     void
     start_buffers(
-        message_base const&,
+        header const&,
         cbs_gen&);
 
     BOOST_HTTP_PROTO_DECL
     void
     start_source(
-        message_base const&,
+        header const&,
         source&);
 
     impl* impl_;

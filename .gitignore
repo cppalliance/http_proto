@@ -2,6 +2,9 @@
 /bin64
 /_build*
 temp
+/build/CMakeCache.txt
+/build/CMakeFiles/
+/build/DartConfiguration.tcl
 
 # Emacs
 *#

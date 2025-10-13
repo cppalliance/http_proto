@@ -12,7 +12,7 @@
 #define BOOST_HTTP_PROTO_REQUEST_BASE_HPP
 
 #include <boost/http_proto/detail/config.hpp>
-#include <boost/http_proto/message_base.hpp>
+#include <boost/http_proto/header.hpp>
 
 namespace boost {
 namespace http_proto {
@@ -20,31 +20,31 @@ namespace http_proto {
 /** Mixin for modifing HTTP requests.
 
     @see
-        @ref message_base,
+        @ref header,
         @ref request,
         @ref static_request.
 */
 class request_base
-    : public message_base
+    : public header
 {
     friend class request;
     friend class static_request;
 
     request_base() noexcept
-        : message_base(detail::kind::request)
+        : header(detail::kind::request)
     {
     }
 
     explicit
     request_base(core::string_view s)
-        : message_base(detail::kind::request, s)
+        : header(detail::kind::request, s)
     {
     }
 
     request_base(
         void* storage,
         std::size_t cap) noexcept
-        : message_base(
+        : header(
             detail::kind::request, storage, cap)
     {
     }
