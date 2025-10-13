@@ -21,6 +21,13 @@ namespace http_proto {
 
     Each item corresponds to a particular method string
     used in HTTP request messages.
+
+    @par Enumeration Constants
+
+    The enumeration constants are guaranteed to begin at 0 for the
+    first constant, with each subsequent constant incremented by
+    exactly one. This makes the constants suitable for use as
+    indexes into a compact array.
 */
 enum class method : char
 {
