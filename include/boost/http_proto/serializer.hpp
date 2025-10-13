@@ -187,7 +187,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @see
@@ -195,7 +195,7 @@ public:
     */
     void
     BOOST_HTTP_PROTO_DECL
-    start(header const& m);
+    start(header const& h);
 
     /** Prepare the serializer for a new message with a ConstBufferSequence body.
 
@@ -237,7 +237,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @param buffers One or more buffers
@@ -258,7 +258,7 @@ public:
     >
     void
     start(
-        header const& m,
+        header const& h,
         ConstBufferSequence&& buffers);
 
     /** Prepare the serializer for a new message with a Source body.
@@ -310,7 +310,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @param args Arguments to be passed to the
@@ -330,7 +330,7 @@ public:
             is_source<Source>::value>::type>
     Source&
     start(
-        header const& m,
+        header const& h,
         Args&&... args);
 
     /** Prepare the serializer for a new message using a stream interface.
@@ -394,7 +394,7 @@ public:
         insufficient internal buffer space to
         start the operation.
 
-        @param m The message to read the HTTP
+        @param h The message to read the HTTP
         start-line and headers from.
 
         @return A @ref stream object for reading body
@@ -407,7 +407,7 @@ public:
     BOOST_HTTP_PROTO_DECL
     stream
     start_stream(
-        header const& m);
+        header const& h);
 
     /** Return the output area.
 
