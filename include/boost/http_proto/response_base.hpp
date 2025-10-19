@@ -16,6 +16,8 @@
 #include <boost/http_proto/message_base.hpp>
 #include <boost/http_proto/status.hpp>
 
+#include <iosfwd>
+
 namespace boost {
 namespace http_proto {
 
