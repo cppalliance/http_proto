@@ -8,8 +8,11 @@
 //
 
 #include <boost/http_proto/response_base.hpp>
+#include <boost/http_proto/response.hpp>
+#include <boost/http_proto/fields_base.hpp>
 
 #include <cstring>
+#include <ostream>
 
 namespace boost {
 namespace http_proto {
@@ -55,6 +58,26 @@ set_start_line_impl(
     }
 
     h_.on_start_line();
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const response_base& res)
+{
+    return operator<<(os, static_cast<const fields_base&>(res));
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const response& res)
+{
+    return operator<<(os, static_cast<const response_base&>(res));
 }
 
 } // http_proto

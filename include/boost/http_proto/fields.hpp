@@ -343,6 +343,44 @@ public:
     }
 };
 
+/** Format the container to the output stream
+
+    This function serializes the container to
+    the specified output stream.
+
+    @par Example
+    @code
+    fields f;
+    f.set(field::host, "example.com");
+    std::stringstream ss;
+    ss << f;
+    assert( ss.str() == "Host: example.com\n" );
+    @endcode
+
+    @par Effects
+    Each field is written to the output stream with
+    CRLF line endings converted to LF. The trailing
+    CRLF that indicates the end of headers is not
+    written.
+
+    @par Complexity
+    Linear in `f.buffer().size()`
+
+    @par Exception Safety
+    Basic guarantee.
+
+    @return A reference to the output stream, for chaining
+
+    @param os The output stream to write to.
+
+    @param f The container to write.
+*/
+BOOST_HTTP_PROTO_DECL
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const fields& f);
+
 } // http_proto
 } // boost
 

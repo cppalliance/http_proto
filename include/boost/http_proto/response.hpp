@@ -448,6 +448,42 @@ public:
     }
 };
 
+/** Format the container to the output stream
+
+    This function serializes the container to
+    the specified output stream.
+
+    @par Example
+    @code
+    response res(status::ok);
+    std::stringstream ss;
+    ss << res;
+    @endcode
+
+    @par Effects
+    Each field is written to the output stream with
+    CRLF line endings converted to LF. The trailing
+    CRLF that indicates the end of headers is not
+    written.
+
+    @par Complexity
+    Linear in `res.buffer().size()`
+
+    @par Exception Safety
+    Basic guarantee.
+
+    @return A reference to the output stream, for chaining
+
+    @param os The output stream to write to.
+
+    @param res The container to write.
+*/
+BOOST_HTTP_PROTO_DECL
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const response& res);
+
 } // http_proto
 } // boost
 

@@ -14,6 +14,7 @@
 #include <boost/http_proto/error.hpp>
 #include <boost/http_proto/field.hpp>
 #include <boost/http_proto/fields_base.hpp>
+#include <boost/http_proto/fields.hpp>
 #include <boost/http_proto/header_limits.hpp>
 #include <boost/http_proto/rfc/token_rule.hpp>
 
@@ -857,7 +858,38 @@ operator<<(
     std::ostream& os,
     const fields_base& f)
 {
-    return os << f.buffer();
+    auto buf = f.buffer();
+    std::size_t i = 0;
+    
+    while (i < buf.size()) {
+        if (i + 1 < buf.size() && 
+            buf[i] == '\r' && 
+            buf[i+1] == '\n') {
+            // Check if this is the trailing CRLF (at the end)
+            if (i + 2 == buf.size()) {
+                // This is the trailing CRLF, don't output it
+                break;
+            }
+            // Replace CRLF with LF
+            os << '\n';
+            i += 2;
+        } else {
+            os << buf[i];
+            i++;
+        }
+    }
+    
+    return os;
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const fields& f)
+{
+    return operator<<(os, static_cast<const fields_base&>(f));
 }
 
 //------------------------------------------------
@@ -1496,3 +1528,4 @@ length(
 
 } // http_proto
 } // boost
+

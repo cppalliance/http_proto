@@ -10,8 +10,11 @@
 //
 
 #include <boost/http_proto/request_base.hpp>
+#include <boost/http_proto/request.hpp>
+#include <boost/http_proto/fields_base.hpp>
 
 #include <cstring>
+#include <ostream>
 
 namespace boost {
 namespace http_proto {
@@ -120,6 +123,26 @@ set_start_line_impl(
     }
 
     h_.on_start_line();
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const request_base& req)
+{
+    return operator<<(os, static_cast<const fields_base&>(req));
+}
+
+//------------------------------------------------
+
+std::ostream&
+operator<<(
+    std::ostream& os,
+    const request& req)
+{
+    return operator<<(os, static_cast<const request_base&>(req));
 }
 
 } // http_proto
