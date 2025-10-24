@@ -58,11 +58,9 @@ write_impl(
         while(
             p != tmp_end &&
             it != end_);
-        rv += on_write(
-            true,
-            boost::span<
-                buffers::const_buffer const>(
-                    tmp, p - tmp),
+        rv += on_write(boost::span<
+            buffers::const_buffer const>(
+                tmp, p - tmp),
             it != end_ || more);
         if(rv.ec.failed())
             return rv;
