@@ -58,11 +58,9 @@ read_impl(
         while(
             p != tmp_end &&
             it != end_);
-        rv += on_read(
-            true,
-            boost::span<
-                buffers::mutable_buffer const>(
-                    tmp, p - tmp));
+        rv += on_read(boost::span<
+            buffers::mutable_buffer const>(
+                tmp, p - tmp));
         if(rv.ec.failed())
             return rv;
         if(rv.finished)
