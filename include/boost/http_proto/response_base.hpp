@@ -129,6 +129,23 @@ public:
                 obsolete_reason(sc), v);
     }
 
+    /** Set the HTTP version of the response
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if maximum capacity exceeded.
+
+        @throw std::length_error
+        Maximum capacity would be exceeded.
+
+        @param v The version to set.
+    */
+    BOOST_HTTP_PROTO_DECL
+    void
+    set_version(
+        http_proto::version v);
+
     /** Set the status code of the response.
 
         The reason-phrase will be set to the

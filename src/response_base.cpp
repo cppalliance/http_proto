@@ -57,5 +57,37 @@ set_start_line_impl(
     h_.on_start_line();
 }
 
+void
+response_base::
+set_version(
+    http_proto::version v)
+{
+    if(v == h_.version)
+        return;
+    if(h_.is_default())
+    {
+        auto def = h_.get_default(detail::kind::response);
+        return set_start_line_impl(
+            def->res.status, def->res.status_int,
+            core::string_view(
+                def->cbuf + 13, def->prefix - 15), v);
+    }
+
+    // Introduce a new scope so that prefix_op's
+    // destructor runs before h_.on_start_line().
+    {
+        auto op = prefix_op_t(
+            *this, h_.prefix, nullptr);
+        char* dest = h_.buf;
+        if(v == http_proto::version::http_1_1)
+            dest[7] = '1';
+        else
+            dest[7] = '0';
+        h_.version = v;
+    }
+
+    h_.on_start_line();
+}
+
 } // http_proto
 } // boost

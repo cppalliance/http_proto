@@ -284,6 +284,20 @@ public:
             }
         }
 
+        // set_version
+        {
+            response res;
+            res.set_version(version::http_1_1);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.1 200 OK\r\n\r\n");
+            res.set_version(version::http_1_0);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.0 200 OK\r\n\r\n");
+            res.set_version(version::http_1_1);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.1 200 OK\r\n\r\n");
+        }
+
         // set_status
         {
             response res;
