@@ -110,6 +110,8 @@ public:
 
         @throw std::length_error
         Max capacity would be exceeded.
+        @throw std::invalid_argument
+        `sc == status::unknown`
 
         @param sc The status code to set. This
         must not be @ref status::unknown.
@@ -122,12 +124,40 @@ public:
         http_proto::version v =
             http_proto::version::http_1_1)
     {
-        set_start_line_impl(
-            sc,
-            static_cast<
-                unsigned short>(sc),
+        set_start_line_impl(sc,
+            static_cast<unsigned short>(sc),
+                obsolete_reason(sc), v);
+    }
+
+    /** Set the status code of the response.
+
+        The reason-phrase will be set to the
+        standard text for the specified status
+        code. The version will remain unchanged.
+
+        @par Exception Safety
+        Strong guarantee.
+        Calls to allocate may throw.
+        Exception thrown if maximum capacity exceeded.
+
+        @throw std::length_error
+        Maximum capacity would be exceeded.
+        @throw std::invalid_argument
+        `sc == status::unknown`
+
+        @param sc The status code to set. This
+        must not be @ref status::unknown.
+    */
+    void
+    set_status(
+        http_proto::status sc)
+    {
+        if(sc == http_proto::status::unknown)
+            detail::throw_invalid_argument();
+        set_start_line_impl(sc,
+            static_cast<unsigned short>(sc),
             obsolete_reason(sc),
-            v);
+            version());
     }
 
     /** Set the status code and version of the response.

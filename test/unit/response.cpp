@@ -283,6 +283,20 @@ public:
                 BOOST_TEST_EQ(it->value, "0");
             }
         }
+
+        // set_status
+        {
+            response res;
+            res.set_status(status::not_found);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.1 404 Not Found\r\n\r\n");
+            res.set_status(status::bad_request);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.1 400 Bad Request\r\n\r\n");
+            res.set_status(status::ok);
+            BOOST_TEST_EQ(res.buffer(),
+                "HTTP/1.1 200 OK\r\n\r\n");
+        }
     }
 
     void

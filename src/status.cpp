@@ -8,7 +8,8 @@
 //
 
 #include <boost/http_proto/status.hpp>
-#include <boost/throw_exception.hpp>
+#include <boost/http_proto/detail/except.hpp>
+//#include <boost/throw_exception.hpp>
 #include <ostream>
 
 namespace boost {
