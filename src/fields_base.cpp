@@ -850,14 +850,18 @@ find_all(
         &h_, find(name).i_);
 }
 
-//------------------------------------------------
-
 std::ostream&
 operator<<(
     std::ostream& os,
     const fields_base& f)
 {
-    return os << f.buffer();
+    if(f.h_.prefix != 0)
+        os << core::string_view(f.h_.cbuf, f.h_.prefix - 2) << '\n';
+
+    for(auto ref : f)
+        os << ref.name << ": " << ref.value << '\n';
+
+    return os;
 }
 
 //------------------------------------------------
