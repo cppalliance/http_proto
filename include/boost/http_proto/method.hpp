@@ -21,6 +21,9 @@ namespace http_proto {
 
     Each item corresponds to a particular method string
     used in HTTP request messages.
+
+    @note The values are guaranteed to be consecutive,
+    starting at 0.
 */
 enum class method : char
 {
