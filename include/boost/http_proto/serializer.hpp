@@ -332,15 +332,15 @@ public:
 
         Initializes the serializer with the HTTP
         start-line and headers from `m`, and returns
-        a @ref stream object for reading the body
-        from an external source.
+        a @ref stream object for writing the body
+        data into the serializer's internal buffer.
 
         Once the serializer is destroyed, @ref reset
         is called, or @ref is_done returns true, the
         only valid operation on the stream is destruction.
 
         The stream allows inverted control flow: the
-        caller supplies body data via the serializer’s
+        caller supplies body data to the serializer’s
         internal buffer while reading from an external
         source.
 
@@ -351,17 +351,17 @@ public:
 
         @par Example
         @code
-        serializer::stream strm = serializer.start_stream(response);
+        serializer::stream st = serializer.start_stream(response);
         do
         {
-            if(strm.is_open())
+            if(st.is_open())
             {
-                std::size_t n = source.read_some(strm.prepare());
+                std::size_t n = source.read_some(st.prepare());
 
                 if(ec == error::eof)
-                    strm.close();
+                    st.close();
                 else
-                    strm.commit(n);
+                    st.commit(n);
             }
 
             write_some(client, serializer);
@@ -392,8 +392,8 @@ public:
         @param m The message to read the HTTP
         start-line and headers from.
 
-        @return A @ref stream object for reading body
-        content into the serializer's buffer.
+        @return A @ref stream object for writing the body
+        data into the serializer's internal buffer.
 
         @see
             @ref stream,
