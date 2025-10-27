@@ -1704,11 +1704,15 @@ struct fields_base_test
         // operator<<
         {
             std::stringstream ss;
-            fields f;
-            f.set(field::content_length, "42");
-            ss << f;
+            response r;
+            r.set(field::content_length, "42");
+            r.set(field::connection, "Close");
+            ss << r;
             BOOST_TEST_EQ(
-                ss.str(), "Content-Length: 42\r\n\r\n");
+                ss.str(),
+                "HTTP/1.1 200 OK\n"
+                "Content-Length: 42\n"
+                "Connection: Close\n");
         }
     }
 
